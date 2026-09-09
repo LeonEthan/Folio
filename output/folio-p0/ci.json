@@ -1,0 +1,52 @@
+{
+  "status": "success",
+  "commit": "e64edec462a732003966bea2b1795224d4a4c124",
+  "url": "https://github.com/LeonEthan/Folio/actions/runs/34350883149",
+  "scope": "Bento resource build and integrity; not Windows/Linux application runtime support",
+  "jobs": [
+    {
+      "name": "build (macos-latest)",
+      "conclusion": "success",
+      "url": "https://github.com/LeonEthan/Folio/actions/runs/34350883149/job/102463584848"
+    },
+    {
+      "name": "build (ubuntu-latest)",
+      "conclusion": "success",
+      "url": "https://github.com/LeonEthan/Folio/actions/runs/34350883149/job/102463585247"
+    },
+    {
+      "name": "build (windows-latest)",
+      "conclusion": "success",
+      "url": "https://github.com/LeonEthan/Folio/actions/runs/34350883149/job/102463585724"
+    }
+  ],
+  "resources": [
+    {
+      "platform": "darwin",
+      "arch": "arm64",
+      "source": "7fd3c0691876ec7428fe3f3ef1ef6c4c46cdef12",
+      "bento": "813c71fff72491e6898f5e55a20da44a562be586",
+      "shellSha256": "a08bc38ef6e2d6dd76579fa5b7f25a37fe1360463e01734e424700c38da85237",
+      "sampleSha256": "6420efd728e8f5203ed8a489567cd7a83e1fb9a9b5ca0b751802fb90530abd7f",
+      "node": "v22.22.0"
+    },
+    {
+      "platform": "linux",
+      "arch": "x64",
+      "source": "7fd3c0691876ec7428fe3f3ef1ef6c4c46cdef12",
+      "bento": "813c71fff72491e6898f5e55a20da44a562be586",
+      "shellSha256": "a08bc38ef6e2d6dd76579fa5b7f25a37fe1360463e01734e424700c38da85237",
+      "sampleSha256": "6420efd728e8f5203ed8a489567cd7a83e1fb9a9b5ca0b751802fb90530abd7f",
+      "node": "v22.22.0"
+    },
+    {
+      "platform": "win32",
+      "arch": "x64",
+      "source": "7fd3c0691876ec7428fe3f3ef1ef6c4c46cdef12",
+      "bento": "813c71fff72491e6898f5e55a20da44a562be586",
+      "shellSha256": "a08bc38ef6e2d6dd76579fa5b7f25a37fe1360463e01734e424700c38da85237",
+      "sampleSha256": "6420efd728e8f5203ed8a489567cd7a83e1fb9a9b5ca0b751802fb90530abd7f",
+      "node": "v22.22.0"
+    }
+  ]
+}
