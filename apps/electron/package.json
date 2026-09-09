@@ -1,7 +1,7 @@
 {
   "name": "@lody/electron",
-  "productName": "Lody",
-  "desktopName": "dev.loro.lody.oss.desktop",
+  "productName": "Folio",
+  "desktopName": "dev.folio.app.desktop",
   "private": true,
   "version": "0.76.0",
   "description": "Lody Desktop - Electron app",
@@ -65,7 +65,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "^5.1.1",
-    "electron": "^39.2.6",
+    "electron": "39.5.1",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "eslint": "^9.39.1",

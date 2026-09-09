@@ -191,6 +191,8 @@ export function isLikelyNpmCacheCorruption(text: string | null | undefined): boo
     normalized.includes('npm cache') ||
     normalized.includes('.lody/npm-cache') ||
     normalized.includes('.lody\\npm-cache') ||
+    normalized.includes('.folio/npm-cache') ||
+    normalized.includes('.folio\\npm-cache') ||
     normalized.includes('.lody-oss/npm-cache') ||
     normalized.includes('.lody-oss\\npm-cache');
   if (!mentionsNpmCache) {

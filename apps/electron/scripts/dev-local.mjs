@@ -43,4 +43,9 @@ function runScript(script) {
 
 run(process.execPath, [packageManagerEntry, '--dir', '../cli', 'run', 'dev:build'], localEnv)
 runScript('sync:cli:dev')
+run(
+  process.execPath,
+  [fileURLToPath(new URL('../../../packages/design-bento/scripts/build.mjs', import.meta.url))],
+  localEnv
+)
 run(process.execPath, [electronViteEntry, 'dev', '--watch', '--mode', 'oss'], localEnv)

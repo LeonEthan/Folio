@@ -1,9 +1,9 @@
-appId: dev.loro.lody.oss
-productName: Lody OSS
+appId: dev.folio.app
+productName: Folio
 protocols:
-  - name: Lody OSS Desktop
+  - name: Folio Desktop
     schemes:
-      - lody-oss
+      - folio
 directories:
   buildResources: build
 # Embedded-CLI native deps: swap Electron-ABI bindings per packaging target,
@@ -60,15 +60,15 @@ electronLanguages:
   - en_US
   - en-US
 win:
-  executableName: lody-oss
+  executableName: folio
   icon: build/icon.ico
 nsis:
   # GitHub Releases rewrites spaces in uploaded asset names to periods, which would
   # desynchronize the file names electron-builder records in latest*.yml from the
   # ones electron-updater can actually download on Windows/Linux. productName is
-  # "Lody OSS", so every artifact name here uses a space-free token instead of
+  # "Folio", so every artifact name here uses a space-free token instead of
   # ${productName}. macOS updates use Sparkle appcast.xml, not latest-mac.yml.
-  artifactName: LodyOSS-${version}-${arch}-setup.${ext}
+  artifactName: Folio-${version}-${arch}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
@@ -97,13 +97,13 @@ mac:
   # Local builds without Apple credentials are still fine: electron-builder skips
   # signing (and therefore notarization) with a warning rather than failing.
   notarize: true
-  artifactName: LodyOSS-${version}-${arch}.${ext}
+  artifactName: Folio-${version}-${arch}.${ext}
 dmg:
-  artifactName: LodyOSS-${version}-${arch}.${ext}
+  artifactName: Folio-${version}-${arch}.${ext}
   writeUpdateInfo: false
 linux:
   icon: build/icon.png
-  executableName: lodyOssDesktop
+  executableName: folioDesktop
   syncDesktopName: true
   target:
     - AppImage
@@ -112,11 +112,11 @@ linux:
   maintainer: LodyAI
   category: Utility
 appImage:
-  artifactName: LodyOSS-${version}-${arch}.${ext}
+  artifactName: Folio-${version}-${arch}.${ext}
 snap:
-  artifactName: LodyOSS-${version}-${arch}.${ext}
+  artifactName: Folio-${version}-${arch}.${ext}
 deb:
-  artifactName: LodyOSS-${version}-${arch}.${ext}
+  artifactName: Folio-${version}-${arch}.${ext}
 includePdb: false
 npmRebuild: false
 # The public build has no VITE_ELECTRON_UPDATE_URL to inject: electron.vite.config.ts

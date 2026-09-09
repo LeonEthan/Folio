@@ -38,3 +38,9 @@ per-turn MCP selection, or Role-based session creation and dispatch.
   canonical Prompt, target, Role revision, and dispatch config into the Operation;
   edits/deletion cannot change recovery or retry. `SessionMeta.agentRoleId` and
   `agentRoleRevision` are display-only creation provenance.
+
+## Installation identity
+
+The public local profile is Folio. Keep its data directory, host endpoint, protocol,
+app ID and packaged desktop identity isolated from Lody. Update both TypeScript
+and CommonJS installation profiles together; never migrate or delete Lody data.

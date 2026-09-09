@@ -2,6 +2,8 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "oxc", "react", "react-perf", "react-hooks"],
   "ignorePatterns": [
+    "packages/design-bento/vendor/**",
+    "packages/design-bento/bento/**",
     "utils/loro-deploy/**/*",
     "scripts/**/*",
     "apps/*/scripts/**/*",

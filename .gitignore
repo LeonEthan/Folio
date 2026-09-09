@@ -156,3 +156,6 @@ apps/electron/resources/cli/
 /.claude/skills/apple-appstore-reviewer
 /.claude/skills/appstore-info-generator
 /skills-lock.json
+
+# Generated pinned Bento bundle
+apps/electron/resources/design/

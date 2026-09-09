@@ -1,3 +1,5 @@
+import { verifyDesignSample } from './services/design-sample-verification'
+import { registerDesignSampleScheme } from './services/design-sample-service'
 import {
   registerLocalFileResourceScheme,
   installLocalFileResourceProtocol
@@ -77,6 +79,7 @@ if (
 }
 
 registerLocalFileResourceScheme()
+registerDesignSampleScheme()
 
 const LODY_PROTOCOL = desktopInstallationProfile.desktopProtocol
 const PRODUCT_NAME = desktopInstallationProfile.desktopProductName
@@ -183,7 +186,18 @@ if (hasSingleInstanceLock) {
 
 if (hasSingleInstanceLock) {
   recordE2EBootDiagnostic('waiting-for-app-ready')
-  const appReady = app.whenReady().then(() => {
+  const appReady = app.whenReady().then(async () => {
+    const designProbe = process.argv.find((argument) => argument.startsWith('--folio-p0-verify='))
+    if (designProbe) {
+      try {
+        await verifyDesignSample(designProbe.slice('--folio-p0-verify='.length))
+        app.exit(0)
+      } catch (error) {
+        console.error(error)
+        app.exit(1)
+      }
+      return
+    }
     installLocalFileResourceProtocol()
     recordE2EBootDiagnostic('initializing-services')
     if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(macIcon)
@@ -351,7 +365,10 @@ if (hasSingleInstanceLock) {
 }
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  if (
+    process.platform !== 'darwin' &&
+    !process.argv.some((argument) => argument.startsWith('--folio-p0-verify='))
+  ) {
     app.quit()
   }
 })

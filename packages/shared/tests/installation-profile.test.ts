@@ -26,13 +26,13 @@ describe('installation profile', () => {
       localCliHostPort: 17_788,
     });
     expect(getInstallationProfile('local')).toMatchObject({
-      namespace: 'lody-oss',
-      dataDirectoryName: '.lody-oss',
-      desktopProtocol: 'lody-oss',
-      localCliHostPort: 17_789,
+      namespace: 'folio',
+      dataDirectoryName: '.folio',
+      desktopProtocol: 'folio',
+      localCliHostPort: 17_790,
     });
     expect(getLodyDataDir('cloud', '/home/alice')).toBe(path.join('/home/alice', '.lody'));
-    expect(getLodyDataDir('local', '/home/alice')).toBe(path.join('/home/alice', '.lody-oss'));
+    expect(getLodyDataDir('local', '/home/alice')).toBe(path.join('/home/alice', '.folio'));
   });
 
   it('uses disjoint local host lease endpoints', () => {
@@ -44,7 +44,7 @@ describe('installation profile', () => {
       expect(local).toMatchObject({ kind: 'pipe' });
     } else {
       expect(cloud).toEqual({ kind: 'tcp', host: '127.0.0.1', port: 17_788 });
-      expect(local).toEqual({ kind: 'tcp', host: '127.0.0.1', port: 17_789 });
+      expect(local).toEqual({ kind: 'tcp', host: '127.0.0.1', port: 17_790 });
     }
   });
 
@@ -64,14 +64,14 @@ describe('installation profile', () => {
       expect(getLocalCliHostEndpoint('local')).toEqual({
         kind: 'tcp',
         host: '127.0.0.1',
-        port: 17_789,
+        port: 17_790,
       });
     }
   );
 
   it.runIf(process.platform !== 'win32')('rejects an invalid E2E host port', () => {
     vi.stubEnv('LODY_E2E', '1');
-    vi.stubEnv('LODY_E2E_LOCAL_CLI_HOST_PORT', '17789junk');
+    vi.stubEnv('LODY_E2E_LOCAL_CLI_HOST_PORT', '17790junk');
 
     expect(() => getLocalCliHostEndpoint('local')).toThrow(
       'LODY_E2E_LOCAL_CLI_HOST_PORT must be an integer between 1024 and 65535'
@@ -99,11 +99,11 @@ describe('installation profile', () => {
       const cloudRunDir = getLocalDaemonRunDir('cloud');
       const localRunDir = getLocalDaemonRunDir('local');
       expect(localRunDir).not.toBe(cloudRunDir);
-      expect(localRunDir).toContain('.lody-oss');
-      expect(getLocalWorkspaceCatalogPath('local')).toContain('.lody-oss');
-      expect(getLocalControlSocketPath('local')).toContain('lody-oss-control');
-      expect(getLocalLoroDataPlaneSocketPath('local')).toContain('lody-oss-loro-data-plane');
-      expect(getLocalTerminalSocketPath('local')).toContain('lody-oss-terminal');
+      expect(localRunDir).toContain('.folio');
+      expect(getLocalWorkspaceCatalogPath('local')).toContain('.folio');
+      expect(getLocalControlSocketPath('local')).toContain('folio-control');
+      expect(getLocalLoroDataPlaneSocketPath('local')).toContain('folio-loro-data-plane');
+      expect(getLocalTerminalSocketPath('local')).toContain('folio-terminal');
     } finally {
       if (previousPlatform === undefined) delete process.env.LODY_PLATFORM;
       else process.env.LODY_PLATFORM = previousPlatform;

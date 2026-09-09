@@ -196,9 +196,7 @@ describe('buildOpenLocalProjectDeepLink', () => {
         localProjectId: LOCAL_PROJECT_ID,
         workspaceSlug: 'acme',
       })
-    ).toBe(
-      `lody-oss://chat/new?machine=${MACHINE_ID}&project=${LOCAL_PROJECT_ID}&workspaceSlug=acme`
-    );
+    ).toBe(`folio://chat/new?machine=${MACHINE_ID}&project=${LOCAL_PROJECT_ID}&workspaceSlug=acme`);
   });
 
   it('omits an unknown workspace slug so the app keeps its current workspace', () => {
@@ -208,7 +206,7 @@ describe('buildOpenLocalProjectDeepLink', () => {
         localProjectId: LOCAL_PROJECT_ID,
         workspaceSlug: null,
       })
-    ).toBe(`lody-oss://chat/new?machine=${MACHINE_ID}&project=${LOCAL_PROJECT_ID}`);
+    ).toBe(`folio://chat/new?machine=${MACHINE_ID}&project=${LOCAL_PROJECT_ID}`);
   });
 
   it('uses the official desktop protocol in cloud mode', () => {

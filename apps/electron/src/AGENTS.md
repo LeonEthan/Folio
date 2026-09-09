@@ -101,3 +101,10 @@ native-dependency, and OSS-composition rules stay in `apps/electron/AGENTS.md`.
 - Text above the editor budget uses fixed bounded Range requests. Binary uses raw
   streams with backpressure/cancellation; raster header dimensions bound decode cost.
   The scheme never bypasses CSP, executes file content, or authorizes a remote RPC.
+
+## Design sample
+
+The P0 design window accepts only the bundled synthetic fixture. Keep its isolated
+session without preload, Node access, permissions, or external network requests.
+CLI owns sample persistence; Electron owns Bento resource delivery and rendering.
+Before extending document input or export, read [the design boundary](../../../packages/design-bento/README.md).

@@ -10,6 +10,13 @@ const nodeOptions = /--max[-_]old[-_]space[-_]size(?:=|\s|$)/u.test(inheritedNod
   ? inheritedNodeOptions
   : `${inheritedNodeOptions} --max-old-space-size=8192`.trim()
 
+const designBuild = spawnSync(
+  process.execPath,
+  [fileURLToPath(new URL('../../../packages/design-bento/scripts/build.mjs', import.meta.url))],
+  { stdio: 'inherit' }
+)
+if (designBuild.status !== 0) throw new Error('Bento resource build failed')
+
 const result = spawnSync(process.execPath, [electronViteEntry, 'build', '--mode', 'oss'], {
   cwd: electronDir,
   env: {

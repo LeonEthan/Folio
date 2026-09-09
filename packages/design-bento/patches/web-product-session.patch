@@ -1,0 +1,106 @@
+--- a/slides/src/a1a2/boot.ts
++++ b/slides/src/a1a2/boot.ts
+@@ -1,3 +1,4 @@
++import { createProductSession } from './packages/editor-bento/src/boot/product-session.ts'
+ // A1a-2 composition root（docs/a1a-2-acceptance.md §3/§5）。
+ // 页面以 ?ws=<id> 启动时接管 boot：从同源 test server 取 semantic BentoDocV4 +
+ // 资产 dataURI 表，建 kernel + bridge（packages 源码拷入本目录 packages/），
+@@ -19,7 +20,7 @@
+   readonly bridge: BentoVisualBridge
+   readonly kernel: RecordingVisualDocumentKernel
+   /** editorMode 建 Store 后回接，供 bridge 成功命令后的视图刷新。 */
+-  attachStore(store: { replaceViewDoc(next: unknown): void }): void
++  attachStore(store: { replaceViewDoc(next: unknown): void; setDirty(dirty: boolean): void; readonly selection: string[]; on(event: 'selection', callback: () => void): () => void }, commitPending: () => void): void
+   /** 登记新资产字节（setAsset 前置）；key 为调用方算好的内容 sha256 hex。 */
+   registerAsset(key: string, dataUri: string): void
+   /** 保存 = semantic canonical JSON + 全量资产表 POST /ws/<id>/save。 */
+@@ -29,6 +30,7 @@
+ interface WorkspacePayload {
+   doc: BentoDocV4
+   assets: Record<string, string>
++  revisionId?: string | null
+ }
+ 
+ export async function bootA1a2Workspace(wsId: string): Promise<A1a2Session> {
+@@ -50,24 +52,40 @@
+   }
+ 
+   const kernel = createRecordingVisualDocumentKernel(payload.doc)
++  let product: ReturnType<typeof createProductSession> | undefined
+   let view: { replaceViewDoc(next: unknown): void } | null = null
+   const bridge = new BentoVisualBridge(kernel, (snapshot) => {
+     view?.replaceViewDoc(
+       projectToBentoNative(JSON.parse(snapshot) as BentoDocV4, { resolveAsset }),
+     )
++    product?.changed()
+   })
+ 
+   return {
+     nativeDoc: projectToBentoNative(payload.doc, { resolveAsset }),
+     bridge,
+     kernel,
+-    attachStore(store) {
++    attachStore(store, commitPending) {
+       view = store
++      if (new URLSearchParams(location.search).get('autosave') === '1') {
++        if (typeof payload.revisionId !== 'string') throw new Error('Product workspace requires a revision')
++        product = createProductSession({ sessionId: wsId, revisionId: payload.revisionId,
++          snapshot: () => kernel.snapshot(), assets: () => Object.fromEntries(assetRegistry),
++          commitPending, setDirty: (dirty) => store.setDirty(dirty) })
++        store.on('selection', () => {
++          const byId = new Map(kernel.inspect().elements.map((element) => [element.id, element]))
++          product!.selection(store.selection.flatMap((id) => {
++            const element = byId.get(id)
++            return element ? [{ id: element.id, type: element.type, preview: element.text ?? '' }] : []
++          }))
++        })
++      }
+     },
+     registerAsset(key, dataUri) {
+       assetRegistry.set(key, dataUri)
+     },
+     async save() {
++      if (product) return product.save()
+       const reply = await fetch(`/ws/${encodeURIComponent(wsId)}/save`, {
+         method: 'POST',
+         headers: { 'content-type': 'application/json' },
+--- a/slides/src/editor/editor.ts
++++ b/slides/src/editor/editor.ts
+@@ -320,6 +320,7 @@
+     history.append(undoB, redoB)
+     const saveGroup = div('ed-split')
+     saveGroup.append(saveB, this.saveDropdown())
++    if (new URLSearchParams(location.search).get('autosave') === '1') saveGroup.style.display = 'none'
+     const shareD = this.shareDropdown()
+     const langD = this.languageDropdown()
+     actions.append(pdfB, this.avatarsBox, shareD, saveGroup, langD, helpB)
+@@ -2604,6 +2605,8 @@
+     this.savedHideTimer = window.setTimeout(() => { tag!.hidden = true }, 1700)
+   }
+ 
++  commitPendingText() { this.canvas.commitTextEdit() }
++
+   async save(forcePicker: boolean) {
+     this.canvas.commitTextEdit()
+     if (this.bridge) {
+@@ -2617,7 +2620,7 @@
+       }
+       const saved = await (window as any).bento?.save?.()
+       if (saved?.ok) {
+-        this.store.setDirty(false)
++        if (new URLSearchParams(location.search).get('autosave') !== '1') this.store.setDirty(false)
+         this.flashSaved()
+       } else {
+         this.toast(typeof saved?.error === 'string' ? saved.error : t('Save failed — see console'))
+--- a/slides/src/main.ts
++++ b/slides/src/main.ts
+@@ -182,8 +182,8 @@
+ if (doc.fonts?.length) injectFonts(doc)
+ 
+ const store = new Store(doc)
+-a1a2.attachStore(store)
+ const editor = new Editor(document.getElementById('app')!, store, a1a2.bridge)
++a1a2.attachStore(store, () => editor.commitPendingText())
+ 
+ // Live collaboration (bento-sync): same-machine tabs sync automatically over
+ // BroadcastChannel; the online relay transport joins via the Share UI.

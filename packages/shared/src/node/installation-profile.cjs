@@ -13,12 +13,12 @@ const CLOUD_PROFILE = Object.freeze({
 
 const LOCAL_PROFILE = Object.freeze({
   platform: 'local',
-  namespace: 'lody-oss',
-  dataDirectoryName: '.lody-oss',
-  desktopProtocol: 'lody-oss',
-  desktopProductName: 'Lody OSS',
-  desktopAppId: 'dev.loro.lody.oss',
-  localCliHostPort: 17789,
+  namespace: 'folio',
+  dataDirectoryName: '.folio',
+  desktopProtocol: 'folio',
+  desktopProductName: 'Folio',
+  desktopAppId: 'dev.folio.app',
+  localCliHostPort: 17790,
 });
 
 function resolvePlatformKind(raw) {

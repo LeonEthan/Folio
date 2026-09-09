@@ -181,7 +181,7 @@ describe('terminal workdir resolver', () => {
   it('resolves chat-only sessions to the default chat workdir', async () => {
     const homeDir = makeTempDir();
     const sessionId = 'session-chat-only' as SessionId;
-    const expected = path.join(homeDir, '.lody-oss', 'chats', sessionId);
+    const expected = path.join(homeDir, '.folio', 'chats', sessionId);
 
     await expect(
       createResolver({
@@ -228,7 +228,7 @@ describe('terminal workdir resolver', () => {
     const homeDir = makeTempDir();
     const parentSessionId = 'session-parent-chat' as SessionId;
     const childSessionId = 'session-child-chat' as SessionId;
-    const expected = path.join(homeDir, '.lody-oss', 'chats', parentSessionId);
+    const expected = path.join(homeDir, '.folio', 'chats', parentSessionId);
 
     await expect(
       createResolver({

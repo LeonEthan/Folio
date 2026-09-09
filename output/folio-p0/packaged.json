@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "packaged": true,
+  "platform": "darwin",
+  "arch": "arm64",
+  "electron": "39.5.1",
+  "chromium": "142.0.7444.265",
+  "dimensions": [
+    800,
+    600
+  ],
+  "reopen": "identical",
+  "png": "transparent",
+  "jpeg": "white"
+}

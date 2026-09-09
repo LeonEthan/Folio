@@ -46,3 +46,14 @@ $ pnpm build:mac
 # For Linux
 $ pnpm build:linux
 ```
+
+### Folio P0 design sample
+
+The File menu opens the fixed Folio sample and exports PNG/JPEG. Both development
+and packaged builds include the pinned Bento resources; no adjacent checkout is
+needed. See [Bento resources](../../packages/design-bento/README.md) for the source
+closure and current scope. Folio local state uses `~/.folio`, independently of Lody.
+
+Run the built app with `--folio-p0-verify=<output-directory>` and an isolated
+`LODY_DATA_DIR` to check save/reopen, image dimensions, PNG transparency and JPEG
+white compositing. The same probe works with the installed executable.

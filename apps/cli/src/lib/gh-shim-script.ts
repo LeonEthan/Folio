@@ -327,7 +327,7 @@ const BROKER_STATE_PATHS = [
   '/home/node/.lody/broker.json',
   path.join(
     process.env.LODY_DATA_DIR ||
-      path.join(os.homedir(), process.env.LODY_PLATFORM === 'local' ? '.lody-oss' : '.lody'),
+      path.join(os.homedir(), process.env.LODY_PLATFORM === 'local' ? '.folio' : '.lody'),
     'broker.json'
   ),
 ];

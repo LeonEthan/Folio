@@ -4,12 +4,12 @@ import { resolvePlatformKind, type PlatformKind } from '../platform-kind';
 
 export type InstallationProfile = {
   platform: PlatformKind;
-  namespace: 'lody' | 'lody-oss';
-  dataDirectoryName: '.lody' | '.lody-oss';
-  desktopProtocol: 'lody' | 'lody-oss';
-  desktopProductName: 'Lody' | 'Lody OSS';
-  desktopAppId: 'ai.lody.desktop' | 'dev.loro.lody.oss';
-  localCliHostPort: 17_788 | 17_789;
+  namespace: 'lody' | 'folio';
+  dataDirectoryName: '.lody' | '.folio';
+  desktopProtocol: 'lody' | 'folio';
+  desktopProductName: 'Lody' | 'Folio';
+  desktopAppId: 'ai.lody.desktop' | 'dev.folio.app';
+  localCliHostPort: 17_788 | 17_790;
 };
 
 const CLOUD_PROFILE: InstallationProfile = {
@@ -24,12 +24,12 @@ const CLOUD_PROFILE: InstallationProfile = {
 
 const LOCAL_PROFILE: InstallationProfile = {
   platform: 'local',
-  namespace: 'lody-oss',
-  dataDirectoryName: '.lody-oss',
-  desktopProtocol: 'lody-oss',
-  desktopProductName: 'Lody OSS',
-  desktopAppId: 'dev.loro.lody.oss',
-  localCliHostPort: 17_789,
+  namespace: 'folio',
+  dataDirectoryName: '.folio',
+  desktopProtocol: 'folio',
+  desktopProductName: 'Folio',
+  desktopAppId: 'dev.folio.app',
+  localCliHostPort: 17_790,
 };
 
 /**

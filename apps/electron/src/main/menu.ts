@@ -1,3 +1,8 @@
+import {
+  openDesignSampleWindow,
+  exportDesignSample,
+  reportDesignSampleError
+} from './services/design-sample-service'
 import { app, BrowserWindow, Menu, shell } from 'electron'
 import { closeFocusedTabOrWindow } from './close-focused-tab-or-window'
 import type { AppUpdaterService } from './services/app-updater-service'
@@ -120,6 +125,24 @@ function buildAndSetMenu(): void {
     {
       label: t(locale, 'menu.file'),
       submenu: [
+        {
+          label: 'Folio Sample',
+          click: () => {
+            void openDesignSampleWindow().catch(reportDesignSampleError)
+          }
+        },
+        {
+          label: 'Export Sample PNG…',
+          click: () => {
+            void exportDesignSample('png').catch(reportDesignSampleError)
+          }
+        },
+        {
+          label: 'Export Sample JPEG…',
+          click: () => {
+            void exportDesignSample('jpeg').catch(reportDesignSampleError)
+          }
+        },
         {
           label: t(locale, 'menu.openProject'),
           accelerator: 'CmdOrCtrl+O',
