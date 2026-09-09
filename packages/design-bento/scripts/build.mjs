@@ -1,6 +1,14 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, cpSync } from 'node:fs';
+import {
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  cpSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,7 +21,8 @@ const run = (command, args, cwd) =>
 for (const [file, expected] of Object.entries(manifest.files)) {
   if (hash(readFileSync(join(root, file))) !== expected) throw Error(`Source pin changed: ${file}`);
 }
-const temporary = mkdtempSync(join(tmpdir(), 'folio-bento-'));
+// Windows TEMP may use an 8.3 alias; Vite module IDs must use one canonical path.
+const temporary = realpathSync.native(mkdtempSync(join(tmpdir(), 'folio-bento-')));
 const tree = join(temporary, 'bento');
 let registered = false;
 try {
