@@ -789,6 +789,8 @@ export type PendingScheduledTask = {
 };
 
 export type SessionMeta = {
+  /** Local editable artwork association; the workspace owns canonical bytes. */
+  design?: { artworkId: string; path: 'design.json' };
   id: SessionId;
   machineId: MachineId;
   createdAt: string;

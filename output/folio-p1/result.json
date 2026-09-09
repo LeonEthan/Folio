@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "packaged": false,
+  "electron": "39.5.1",
+  "create": true,
+  "edit": true,
+  "undoRedoAcrossHide": true,
+  "reopenWithoutUndo": true,
+  "staleHostIgnored": true,
+  "conflictPreserved": true,
+  "independentCopy": true,
+  "pngTransparency": true,
+  "jpegWhite": true
+}

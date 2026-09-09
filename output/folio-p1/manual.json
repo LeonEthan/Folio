@@ -1,0 +1,46 @@
+{
+  "status": "passed",
+  "surface": "macOS arm64 packaged app, computer-use",
+  "date": "2026-09-09",
+  "checks": {
+    "enterCreatesAssociatedCanvas": true,
+    "automaticSessionTitle": true,
+    "autoInitialCanvas": [
+      800,
+      600
+    ],
+    "textEditing": true,
+    "imageImportAndMove": true,
+    "undoRedoAcrossRouteSwitch": true,
+    "normalQuitReopen": true,
+    "reopenClearsUndo": true,
+    "savedDocumentHashUnchanged": true,
+    "nativePngAndJpegSave": true,
+    "exportDefaultUsesSessionTitle": true
+  },
+  "documentSha256": "d4808559b8d5c4ab1f56d4d72d1f382f2196bbf614c9387a43d892883f2d9f98",
+  "elementKinds": [
+    "text",
+    "shape",
+    "image"
+  ],
+  "embeddedAssets": 1,
+  "exports": {
+    "png": {
+      "file": "manual-acceptance.png",
+      "sha256": "aee8704013a3190e504301499d0e8bb9b795e5f3ea8bdb89aa6a565b5f343003",
+      "width": 800,
+      "height": 600
+    },
+    "jpg": {
+      "file": "manual-acceptance.jpg",
+      "sha256": "cad0cf158b5320513de2f95c6fceb9917a4bd368babdc7a38eba0f64e3c3bfb1",
+      "width": 800,
+      "height": 600
+    }
+  },
+  "limits": [
+    "Synthetic acceptance artwork; no design-generation capability claimed.",
+    "Save failure and conflict coverage is from the existing storage test and packaged native probe."
+  ]
+}

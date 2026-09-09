@@ -70,6 +70,7 @@ export default defineConfig({
       // turn-diff-store-worker bundles the TypeScript workspace package while keeping
       // better-sqlite3 external, just like the main CLI entry.
       input: {
+        design: path.resolve(__dirname, 'src/design-entry.ts'),
         'design-sample': path.resolve(__dirname, 'src/design-sample-entry.ts'),
         index: path.resolve(__dirname, 'src/index.ts'),
         'codex-acp': path.resolve(__dirname, 'src/codex-acp-entry.ts'),

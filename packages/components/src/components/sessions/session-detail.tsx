@@ -1,3 +1,5 @@
+import { getIpcServices } from '@/lib/electron-ipc-client';
+import { DesignCanvas } from './design-canvas';
 import {
   Archive,
   ArchiveRestore,
@@ -3526,8 +3528,9 @@ const SessionDetail = ({
         kind: 'pr',
       });
     }
+    if (activeSession?.design) options.unshift({ id: 'design', label: t('design.canvas', 'Design canvas'), kind: 'design' });
     return options;
-  }, [activeBrowserSession, latestPr, latestPrNumber, repoFullName, t]);
+  }, [activeSession?.design, activeBrowserSession, latestPr, latestPrNumber, repoFullName, t]);
   const sideChatOption = useMemo<SessionSidePanelOption | null>(() => {
     const launcherState = getSideChatLauncherState({
       providerSupportsFork: Boolean(
@@ -4176,9 +4179,13 @@ const SessionDetail = ({
         handleCloseViewerTab(tabId);
         return;
       }
+      if (tabId === 'design') {
+        void getIpcServices()?.design.close(sessionId).then(closed => { if (closed) handleCloseSidebarTab('design'); }).catch(error => toast.error(String(error)));
+        return;
+      }
       handleCloseSidebarTab(tabId as SidebarTab);
     },
-    [handleCloseSideSession, handleCloseSidebarTab, handleCloseViewerTab]
+    [sessionId, handleCloseSideSession, handleCloseSidebarTab, handleCloseViewerTab]
   );
 
   const activeSidePanelTabId =
@@ -5595,6 +5602,11 @@ const SessionDetail = ({
   // switching behaves like a browser rather than rebuilding the page.
   const sidebarContent = (
     <div className="relative h-full min-h-0">
+      {activeSession.design && openedSidebarTabs.includes('design') ? (
+        <div className={cn('absolute inset-0', activeSidebarTab !== 'design' && 'invisible pointer-events-none')}>
+          <DesignCanvas name={activeSession.title || t('design.untitled', 'Untitled design')} key={activeSession.id} sessionId={activeSession.id} workspaceSlug={workspaceSlug ?? ''} active={activeSidebarTab === 'design' && isSidebarVisible && effectiveActiveViewerTabId === null && effectiveActiveSideSessionId === null} />
+        </div>
+      ) : null}
       {activeBrowserSession && openedSidebarTabs.includes('browser') ? (
         <div
           className={cn(
@@ -5625,7 +5637,7 @@ const SessionDetail = ({
           />
         </div>
       ) : null}
-      {activeSidebarTab !== 'browser' ? (
+      {activeSidebarTab !== 'browser' && activeSidebarTab !== 'design' ? (
         <div className="absolute inset-0">{nonBrowserSidebarContent}</div>
       ) : null}
     </div>
@@ -5635,7 +5647,7 @@ const SessionDetail = ({
   // top; the fixed-panel body only shows when neither owns the panel.
   const showFixedSidePanelBody =
     effectiveActiveViewerTabId === null && effectiveActiveSideSessionId === null;
-  const defaultSizes = showFixedSidePanelBody
+  const defaultSizes = activeSession.design ? { main: 40, sidebar: 60 } : showFixedSidePanelBody
     ? { main: 75, sidebar: 25 }
     : { main: 60, sidebar: 40 };
 
@@ -5985,6 +5997,7 @@ const SessionDetail = ({
     >
       <DesktopSessionDetailLayout
         defaultSizes={defaultSizes}
+        layoutId={activeSession.design ? 'session-design-panels' : undefined}
         topBar={tabBar}
         chatSurfaces={desktopChatSurfaces}
         terminalDock={<TerminalDockHost />}

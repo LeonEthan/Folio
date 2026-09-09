@@ -3,6 +3,7 @@ import { createServices, type MergeIpcService } from 'electron-ipc-decorator'
 import { IPC_PUSH_CHANNELS, IPC_SEND_CHANNELS } from '@lody/shared/electron-ipc'
 import { LocalLoroDataPlaneClientMessageSchema } from '@lody/shared/local-loro-data-plane'
 import { TerminalClientMessageSchema } from '@lody/shared/terminal-protocol'
+import { DesignIpc } from './services/design-ipc'
 import { AppIpc, installNativeThemeWatch } from './services/app-ipc'
 import { AuthIpc } from './services/auth-ipc'
 import { CliIpc } from './services/cli-ipc'
@@ -21,6 +22,7 @@ import { setIpcServiceDeps, type IpcServiceDeps } from './ipc-service-deps'
 type TerminalFireAndForgetType = 'attach' | 'input' | 'resize' | 'close' | 'close_session'
 
 export const IPC_SERVICE_CONSTRUCTORS = [
+  DesignIpc,
   AppIpc,
   AuthIpc,
   CliIpc,

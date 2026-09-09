@@ -7,6 +7,7 @@ import { FocusScope } from '@/ui/focus-scope';
 import { WORKSPACE_FOCUS_SCOPES } from '@/atoms';
 
 export type DesktopSessionDetailLayoutProps = {
+  layoutId?: string;
   defaultSizes: {
     main: number;
     sidebar: number;
@@ -48,6 +49,7 @@ const MAIN_COLUMN_MIN_WIDTH_PX = 500;
 
 export function DesktopSessionDetailLayout({
   defaultSizes,
+  layoutId = 'session-detail-panels',
   topBar,
   chatSurfaces,
   terminalDock,
@@ -142,7 +144,7 @@ export function DesktopSessionDetailLayout({
       <ResizablePanelGroup
         direction="horizontal"
         className="h-full w-full"
-        autoSaveId="session-detail-panels"
+        autoSaveId={layoutId}
       >
         <ResizablePanel
           id="chat"

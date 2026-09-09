@@ -8,6 +8,7 @@ What each file in this directory is responsible for. Binding rules live in
 
 | File                                         | Responsibility                                                              |
 | -------------------------------------------- | --------------------------------------------------------------------------- |
+| `design-canvas.tsx`                         | Artwork copy, association repair and native canvas lifecycle; titles belong to Session |
 | `session-detail.tsx`                         | Outer session shell: top tabs, side panel, session-switch reset, tab closer |
 | `desktop-session-detail-layout.tsx`          | Desktop two-column layout and the side-panel expand/collapse animation      |
 | `session-conversation-page.tsx`              | Shared full-page composition used by `SessionConversationPage.stories.tsx`  |

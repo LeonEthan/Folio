@@ -3945,5 +3945,17 @@
   "sessions.fileViewer.previousPage": "上一页",
   "sessions.fileViewer.nextPage": "下一页",
   "sessions.fileViewer.page": "页码",
-  "sessions.fileViewer.pageUnavailable": "文件已更改或无法读取，请重新打开预览。"
+  "sessions.fileViewer.pageUnavailable": "文件已更改或无法读取，请重新打开预览。",
+  "design.width": "宽度",
+  "design.height": "高度",
+  "design.untitled": "未命名作品",
+  "design.copySuffix": " — 副本",
+  "design.saveCopy": "另存为新作品",
+  "design.canvas": "设计画布",
+  "design.focus": "专注画布",
+  "design.showChat": "显示对话",
+  "design.size": "画布尺寸",
+  "design.sizeHint": "每边 1–4096 像素",
+  "design.invalidSize": "画布宽高必须是 1–4096 的整数。",
+  "design.customSize": "自定义"
 }

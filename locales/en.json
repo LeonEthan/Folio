@@ -3945,5 +3945,17 @@
   "sessions.fileViewer.previousPage": "Previous page",
   "sessions.fileViewer.nextPage": "Next page",
   "sessions.fileViewer.page": "Page",
-  "sessions.fileViewer.pageUnavailable": "File changed or is unavailable. Reopen the preview."
+  "sessions.fileViewer.pageUnavailable": "File changed or is unavailable. Reopen the preview.",
+  "design.width": "Width",
+  "design.height": "Height",
+  "design.untitled": "Untitled design",
+  "design.copySuffix": " — copy",
+  "design.saveCopy": "Save as new design",
+  "design.canvas": "Design canvas",
+  "design.focus": "Focus canvas",
+  "design.showChat": "Show conversation",
+  "design.size": "Canvas size",
+  "design.sizeHint": "1–4096 px per side",
+  "design.invalidSize": "Canvas dimensions must be whole numbers from 1 to 4096.",
+  "design.customSize": "Custom"
 }

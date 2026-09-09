@@ -11,6 +11,9 @@ reasoning behind those rules.
   primary/secondary action placement.
 - `chat-landing.tsx` — new-chat orchestration: selector state, mobile sheet
   wiring, submit behavior, and the nodes passed into `ChatComposer`.
+- `canvas-size-selector.tsx` — the Auto/custom dimensions popover at the right end
+  of the project selector row, aligned with the composer. Enter uses existing submission and naming;
+  artwork persistence precedes acceptance using the reserved draft session identity.
 - `chat-landing-view.tsx` — the render-only landing layout around `ChatComposer`.
 - `chat-landing-derived.ts` — derived landing selection state.
 - `chat-landing-selectors.tsx`, `unified-project-selector.tsx` — wrappers over the

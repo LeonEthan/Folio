@@ -23,7 +23,7 @@ import { WINDOW_DRAG_EXEMPT_CLASS, useWindowDragRegionClass } from '@/ui/window-
 export type SessionSidePanelTabItem = {
   id: string;
   label: string;
-  kind: 'files' | 'changes' | 'pr' | 'browser' | 'session' | 'file' | 'diff';
+  kind: 'design' | 'files' | 'changes' | 'pr' | 'browser' | 'session' | 'file' | 'diff';
   filePath?: string;
   closeable?: boolean;
   dirty?: boolean;
@@ -34,8 +34,8 @@ export type SessionSidePanelTabItem = {
 };
 
 export type SessionSidePanelOption = Omit<SessionSidePanelTabItem, 'id' | 'kind'> & {
-  id: 'files' | 'changes' | 'pr' | 'browser' | 'side-session';
-  kind: 'files' | 'changes' | 'pr' | 'browser' | 'session';
+  id: 'design' | 'files' | 'changes' | 'pr' | 'browser' | 'side-session';
+  kind: 'design' | 'files' | 'changes' | 'pr' | 'browser' | 'session';
 };
 
 const SIDE_SESSION_PANEL_PREFIX = 'side-session:';

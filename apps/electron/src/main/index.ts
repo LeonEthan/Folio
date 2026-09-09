@@ -1,3 +1,5 @@
+import { verifyDesign } from './services/design-verification'
+import { hasOpenDesigns, prepareDesignQuit } from './services/design-service'
 import { verifyDesignSample } from './services/design-sample-verification'
 import { registerDesignSampleScheme } from './services/design-sample-service'
 import {
@@ -187,6 +189,17 @@ if (hasSingleInstanceLock) {
 if (hasSingleInstanceLock) {
   recordE2EBootDiagnostic('waiting-for-app-ready')
   const appReady = app.whenReady().then(async () => {
+    const p1Probe = process.argv.find((argument) => argument.startsWith('--folio-p1-verify='))
+    if (p1Probe) {
+      try {
+        await verifyDesign(p1Probe.slice('--folio-p1-verify='.length))
+        app.exit(0)
+      } catch (error) {
+        console.error(error)
+        app.exit(1)
+      }
+      return
+    }
     const designProbe = process.argv.find((argument) => argument.startsWith('--folio-p0-verify='))
     if (designProbe) {
       try {
@@ -316,8 +329,24 @@ if (hasSingleInstanceLock) {
       openOrFocusMainWindow({ icon })
     })
 
+    let designQuitPending = false
     let cliShutdownComplete = false
     app.on('before-quit', (event) => {
+      if (hasOpenDesigns()) {
+        event.preventDefault()
+        if (!designQuitPending) {
+          designQuitPending = true
+          void prepareDesignQuit()
+            .then((ready) => {
+              if (ready) app.quit()
+            })
+            .catch((error) => console.error('Design save failed', error))
+            .finally(() => {
+              designQuitPending = false
+            })
+        }
+        return
+      }
       setAppQuitting(true)
       setWindowsTrayAvailable(false)
       windowsTrayService.stop()

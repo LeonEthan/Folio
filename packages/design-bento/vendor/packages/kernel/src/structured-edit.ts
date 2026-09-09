@@ -32,7 +32,7 @@
  *   persistent grid rebase) stay in the panel layer. Inputs are never mutated
  *   and applied values share no mutable state with the inputs.
  */
-import { canonicalJson } from "contracts";
+import { canonicalJson } from "../../contracts/src/index.ts";
 
 /** Explicit terminal intent of one Structured Edit gesture. */
 export type StructuredEditIntent<T> =

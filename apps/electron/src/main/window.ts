@@ -487,6 +487,7 @@ export function openMainWindow(options: OpenMainWindowOptions): BrowserWindow {
   window.on('leave-full-screen', sendFullscreenState)
 
   window.on('close', (event) => {
+    if (event.defaultPrevented) return
     if (isAppQuitting()) {
       return
     }

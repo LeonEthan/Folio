@@ -82,7 +82,7 @@ import {
   staticV1ShapeAdjustmentsError,
   isStaticV1LatexSource,
   staticV1SvgPathSyntaxError,
-} from "contracts";
+} from "../../contracts/src/index.ts";
 import type {
   AddFontRegistrationCommand,
   ApplyError,
@@ -124,7 +124,7 @@ import type {
   VisualElementV4,
   VisualStylePatchV4,
   VisualTreeV4,
-} from "contracts";
+} from "../../contracts/src/index.ts";
 
 /** 命令受影响元素：doc 级命令无 targetId（不进 changedElementIds）。 */
 function affectedIdOf(command: VisualCommandV4): ElementId | undefined {

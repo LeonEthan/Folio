@@ -78,3 +78,18 @@ export const chatLandingDraftSessionIdAtomFamily = atomFamily((_draftKey: string
 export const chatLandingAppliedResetKeyAtomFamily = atomFamily((_draftKey: string) =>
   atom<string | null>(null)
 );
+
+export const chatLandingCanvasDraftAtomFamily = atomFamily((_draftKey: string) =>
+  atom<{
+    mode: 'auto' | 'custom';
+    width: number;
+    height: number;
+    association?: {
+      sessionId: string;
+      name: string;
+      userId: string;
+      machineId: string;
+      createdAt: string;
+    };
+  }>({ mode: 'auto', width: 800, height: 600 })
+);

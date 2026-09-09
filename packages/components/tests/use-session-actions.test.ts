@@ -752,7 +752,7 @@ describe('useSessionActions', () => {
     });
     const actions = await renderActions(runtime);
 
-    const result = await actions.startSession(createSessionPayload(sessionId), {
+    const result = await actions.startSession({ ...createSessionPayload(sessionId), title: 'A poster', titleSource: 'draft', design: { artworkId: sessionId, path: 'design.json' } }, {
       role: 'user',
       userId: 'user-1',
       items: [{ type: 'text', text: 'hi' }],
@@ -776,6 +776,9 @@ describe('useSessionActions', () => {
         id: sessionId,
         machineId: 'machine-1',
         lastMessageAt: expect.any(Number),
+        title: 'A poster',
+        titleSource: 'draft',
+        design: { artworkId: sessionId, path: 'design.json' },
       }),
       expect.objectContaining({ id: result.historyEntry.id, role: 'user' }),
       expect.objectContaining({ userTurnId: result.historyEntry.id })

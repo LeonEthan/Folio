@@ -1,4 +1,5 @@
 export const IPC_INVOKE_SERVICE_GROUPS = [
+  'design',
   'app',
   'auth',
   'cli',

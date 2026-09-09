@@ -1,6 +1,8 @@
 {
   "extends": "../configs/tsconfig.extend.json",
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "experimentalDecorators": true,
     "jsx": "react-jsx",
     "types": ["node"],

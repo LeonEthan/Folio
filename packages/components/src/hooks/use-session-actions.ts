@@ -146,6 +146,7 @@ function buildSessionCreateResult(payload: SessionToCreate): CreateSessionResult
     cliType: payload.cliType,
     agentType: payload.agentType,
     agentConfigId: payload.agentConfigId,
+    ...(payload.design ? { design: payload.design } : {}),
     acpSessionId: undefined,
     diffStats: undefined,
   };

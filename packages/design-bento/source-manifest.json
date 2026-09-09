@@ -14,7 +14,7 @@
     "vendor/packages/contracts/src/checker.ts": "5fa3e6fdfd4018501b61000298aba5545ab7d705d2f22c758cf4b35845d4a687",
     "vendor/packages/contracts/src/pptd.ts": "254d537433a736b0f0e6440f9ac8f7523cd540c7511b5975782d5a789a299fc8",
     "vendor/packages/contracts/src/commands.ts": "e8c9eb8ad4718840fd79146a99d3d52832eb57e69a276ad2358a2bf13cfeece5",
-    "vendor/packages/contracts/src/chart-invariants.ts": "8615c76a5e91a3a4e1d336395faaf42841fd941dfeeeece80eaf2deb2bfb97e6",
+    "vendor/packages/contracts/src/chart-invariants.ts": "92435f062a870b193f90d2e2d0138018b4ff7ba28d14a1e9b5115e56999c88bc",
     "vendor/packages/contracts/src/provenance.ts": "b301e8bf04501f93387b3fd61f2987691a93999ea6a9512429377f4fcb92744e",
     "vendor/packages/contracts/src/revision.ts": "44500cbfc5f098a6e489abff17182e6596d3c750892a86252a666ba9b841218d",
     "vendor/packages/contracts/src/bentodoc.ts": "6c9d996ca974fec745d26843845d7da04024e403e02c2defefe5da2f56fd8dcc",
@@ -30,8 +30,8 @@
     "vendor/packages/contracts/src/bentodoc-v4.ts": "739b0fbd32b76bc8b4d65cb1e0f60eedf8c26675b17420e98058ee1ac649a57f",
     "vendor/packages/contracts/src/matrix.ts": "810b0104f3b22ee533e60d5bfd40da7eaa954749e995986741305a3461aaa168",
     "vendor/packages/contracts/src/serialize.ts": "315f0f85ea965d7298476a6413c270442a2d16ca8fdbc77b2c6825be4728295f",
-    "vendor/packages/kernel/src/kernel.ts": "0de6fa8e5450837f228359dd203f4e631a9142539a42311e83a4edf0924c7ed8",
-    "vendor/packages/kernel/src/structured-edit.ts": "c5b986cd72b30ec32b06150236933ee2e206a551c85075789150c4c1e3a132c8",
+    "vendor/packages/kernel/src/kernel.ts": "242ba9a7ece269045e617ada25103bac9a7d72b082fad9b31b8161bae58fba17",
+    "vendor/packages/kernel/src/structured-edit.ts": "2da5be45dcdbeba09e77b811e80ba6604fd037e5115d5860f99427c85baf6ebc",
     "vendor/packages/editor-bento/src/bridge.ts": "7c136320094e5b0526a6fe555659f030cd2d81947cb5b66dd81f6ab0215e0071",
     "vendor/packages/editor-bento/src/project.ts": "124c5ddcd5ced75c2382e99f8eac0f1834c65ab0487b7b85d956547ffe326a2f",
     "vendor/packages/editor-bento/src/trace-kernel.ts": "58edec816343c57ad5a8f7fbe6dfd786351b2590d131eff74eb97ae5d41224b5",
@@ -89,5 +89,9 @@
     "patches/gd4c-frame-decorators.patch": "8aca515c15e81ccd9ab2058443da598a80bfd8ade095748897c9df5741ac8d87",
     "vendor/packages/contracts/capability-matrix/v1.json": "a96c9959ba6beeb66aca16fa8f48da3993b394ea526ca979c5949aab8e2dfd48",
     "vendor/packages/contracts/capability-matrix/loader.ts": "f9a222b94901e28961ce440f28be0cc678ca1c834e05b13cbe694d5500eef8cc"
-  }
+  },
+  "localAdaptations": [
+    "kernel imports use relative paths for CLI validation; original source commit remains recorded above",
+    "chart invariant default label table asserts its existing required entry under noUncheckedIndexedAccess"
+  ]
 }

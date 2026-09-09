@@ -49,6 +49,21 @@ try {
       .replaceAll('from "kernel"', `from "${up}kernel/src/kernel.ts"`);
     writeFileSync(target, source);
   }
+  cpSync(
+    join(root, 'src/product-session.ts'),
+    join(destination, 'editor-bento/src/boot/product-session.ts')
+  );
+  cpSync(join(root, 'src/image.ts'), join(destination, 'editor-bento/src/ui/dom/image.ts'));
+  const imageFile = join(destination, 'editor-bento/src/ui/dom/image.ts');
+  writeFileSync(
+    imageFile,
+    readFileSync(imageFile, 'utf8').replaceAll(
+      'from "contracts"',
+      'from "../../../../contracts/src/index.ts"'
+    )
+  );
+  const canvasFile = join(destination, 'editor-bento/src/ui/canvas.ts');
+  writeFileSync(canvasFile, readFileSync(canvasFile, 'utf8').replace('16000', '4096'));
   const slides = join(tree, 'slides');
   // Use the checked-in npm lockfile; installation may fill an empty CI cache.
   if (process.platform === 'win32')

@@ -489,7 +489,7 @@ function seriesError(series: unknown, data: BentoChartDataV4): string | null {
       break;
   }
   const labels = series.dataLabels;
-  if (labels?.content !== undefined && !(LABEL_CONTENTS[type] ?? LABEL_CONTENTS.default).includes(labels.content)) return `series ${type} dataLabels.content is unsupported`;
+  if (labels?.content !== undefined && !(LABEL_CONTENTS[type] ?? LABEL_CONTENTS.default!).includes(labels.content)) return `series ${type} dataLabels.content is unsupported`;
   return null;
 }
 
@@ -993,7 +993,7 @@ export function bentoChartRenderInvariantError(chart: unknown, dimensions?: { wi
   if (chart.legend !== undefined && !legend(chart.legend)) return "chart.legend is invalid";
   if (chart.dataLabels !== undefined && !dataLabels(chart.dataLabels)) return "chart.dataLabels is invalid";
   const globalLabels = chart.dataLabels as BentoChartDataLabelV4 | undefined;
-  if (globalLabels?.content !== undefined && series.some((item) => !(LABEL_CONTENTS[item.type] ?? LABEL_CONTENTS.default).includes(globalLabels.content!))) return "global dataLabels.content is unsupported by a series";
+  if (globalLabels?.content !== undefined && series.some((item) => !(LABEL_CONTENTS[item.type] ?? LABEL_CONTENTS.default!).includes(globalLabels.content!))) return "global dataLabels.content is unsupported by a series";
   if (chart.palette !== undefined && (!Array.isArray(chart.palette) || chart.palette.length === 0 || !chart.palette.every(color))) return "chart.palette must contain colors";
   if (chart.fontFamily !== undefined && staticV1FontFamilyError(chart.fontFamily) !== null) return "chart.fontFamily is invalid";
   if (chart.fill !== undefined && !fill(chart.fill)) return "chart.fill is invalid";

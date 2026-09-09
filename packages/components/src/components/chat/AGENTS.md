@@ -51,7 +51,7 @@ Index and rationale: [README.md](README.md).
   replace (incomplete selection → empty search). Plain `/chat` stays plain; restored
   defaults/auto-selection never rewrite it. Mobile keeps base context with no callback.
 - `use-chat-landing-draft-session.ts` owns the landing's reserved session id, and
-  images, files, ACP preparation, and `startSession({ sessionId }, firstTurn)`
+  canvas initialization, images, files, ACP preparation, and `startSession({ sessionId }, firstTurn)`
   MUST consume that same identity. Attachment hooks never reset it independently;
   reset only after a full draft clear. Submit blocks while `hasBlockingImages` or
   `hasBlockingFiles`.

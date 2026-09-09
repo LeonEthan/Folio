@@ -1,3 +1,7 @@
+import { CanvasSizeSelector } from './canvas-size-selector';
+import { usePendingDesignRecovery } from '@/components/sessions/design-canvas';
+import { chatLandingCanvasDraftAtomFamily } from '@/atoms/chat-landing-draft';
+import { writeStoredLastActiveTabState } from '@/lib/session-draft-tabs';
 import {
   useCallback,
   useEffect,
@@ -966,6 +970,10 @@ function WorkspaceChatLanding({
    * addressable only inside the workspace it was uploaded to.
    */
   const chatLandingDraftKey = buildChatLandingDraftKey(chatLandingStateKey, workspaceSlug);
+  const [canvasDraft, setCanvasDraft] = useAtom(
+    chatLandingCanvasDraftAtomFamily(chatLandingDraftKey)
+  );
+  usePendingDesignRecovery();
   const prompt = sessionState.prompt;
   const [draftActivityRevision, setDraftActivityRevision] = useState(0);
   const pastedTextDrafts = useMemo(
@@ -1350,7 +1358,13 @@ function WorkspaceChatLanding({
     clearPendingImages();
     clearPendingFiles();
     resetDraftSessionId();
+    draftStore.set(chatLandingCanvasDraftAtomFamily(chatLandingDraftKey), {
+      mode: 'auto',
+      width: 800,
+      height: 600,
+    });
   }, [
+    chatLandingDraftKey,
     appliedResetKeyAtom,
     chatLandingStateKey,
     clearPendingFiles,
@@ -2946,6 +2960,18 @@ function WorkspaceChatLanding({
       setComposerError(t('chat.validation.missingPrompt'));
       return;
     }
+    if (
+      isElectron &&
+      canvasDraft.mode === 'custom' &&
+      ![canvasDraft.width, canvasDraft.height].every(
+        (value) => Number.isInteger(value) && value >= 1 && value <= 4096
+      )
+    ) {
+      setComposerError(
+        t('design.invalidSize', 'Canvas dimensions must be whole numbers from 1 to 4096.')
+      );
+      return;
+    }
     if (!selectedAgent || !selectedConfig) {
       captureSessionInputBlocked('missing_agent_config');
       setComposerError(t('chat.validation.missingAgent'));
@@ -3090,9 +3116,35 @@ function WorkspaceChatLanding({
         throw new Error('Initial session history missing effective items');
       }
       startFailureReason = 'session_create_failed';
+      const designService = isElectron ? getIpcServices()?.design : undefined;
+      if (
+        isElectron &&
+        (!designService || selectedAgent.machineId !== localProbeResult?.machineId)
+      ) {
+        throw new Error('The canvas requires the local workspace');
+      }
+      if (designService) {
+        const association = canvasDraft.association ?? {
+          sessionId: sessionIdForStart,
+          name: t('design.untitled', 'Untitled design'),
+          userId,
+          machineId: selectedAgent.machineId,
+          createdAt: new Date().toISOString(),
+        };
+        setCanvasDraft({ ...canvasDraft, association });
+        await designService.create({
+          association,
+          ...(canvasDraft.mode === 'custom'
+            ? { width: canvasDraft.width, height: canvasDraft.height }
+            : {}),
+        });
+      }
       const { sessionId, historyEntry } = await startSession(
         {
           sessionId: sessionIdForStart,
+          ...(designService
+            ? { design: { artworkId: sessionIdForStart, path: 'design.json' as const } }
+            : {}),
           userId,
           cliType: selectedConfig.cliType,
           agentType: selectedConfig.agentType,
@@ -3124,6 +3176,15 @@ function WorkspaceChatLanding({
       );
       if (!historyEntry || typeof historyEntry !== 'object' || !('id' in historyEntry)) {
         throw new Error(`Initial session history missing entry id (sessionId=${sessionId})`);
+      }
+      if (designService) {
+        writeStoredLastActiveTabState(sessionId, {
+          sessionTabId: sessionId,
+          viewerTab: null,
+          sidePanel: { open: true, tab: 'design', tabs: ['design'], sideSessionId: null },
+        });
+        // Session acceptance is durable: acknowledgement failure must not resend the turn.
+        void designService.acknowledge(sessionId).catch((error) => toast.error(String(error)));
       }
       persistAgentSessionDefaults(selectedAgent.agentId, {
         modeId: modeOptions.length > 0 ? selectedModeId : null,
@@ -3274,6 +3335,11 @@ function WorkspaceChatLanding({
       clearPendingImages();
       clearPendingFiles();
       resetDraftSessionId();
+      setCanvasDraft({
+        mode: canvasDraft.mode,
+        width: canvasDraft.width,
+        height: canvasDraft.height,
+      });
       if (mobileNewChatOpen) {
         // The mobile base ChatLanding stays mounted beneath the session drawer.
         // Close the sheet explicitly on successful start so keyboard-submit and
@@ -3764,6 +3830,15 @@ function WorkspaceChatLanding({
         />
         {localGitStateRetryNode}
         {branchWorktreePill}
+        {isElectron ? (
+          <div className="ml-auto shrink-0">
+            <CanvasSizeSelector
+              {...canvasDraft}
+              disabled={submitting || Boolean(canvasDraft.association)}
+              onChange={setCanvasDraft}
+            />
+          </div>
+        ) : null}
       </div>
     </ErrorBoundary>
   );

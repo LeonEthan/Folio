@@ -814,3 +814,32 @@ export function bindingToElectronAccelerator(binding: string | null | undefined)
 }
 
 export * from './electron-ipc-channels';
+
+export const DesignSessionIdSchema = z.string().uuid();
+export const DesignAssociationSchema = z
+  .object({
+    sessionId: DesignSessionIdSchema,
+    name: z.string().trim().min(1).max(200),
+    userId: z.string().min(1).max(200),
+    machineId: z.string().min(1).max(200),
+    createdAt: z.string().datetime(),
+  })
+  .strict();
+export const DesignCreationSchema = z
+  .object({
+    association: DesignAssociationSchema,
+    width: z.number().int().min(1).max(4096).default(800),
+    height: z.number().int().min(1).max(4096).default(600),
+  })
+  .strict();
+export const DesignBoundsSchema = z
+  .object({
+    x: z.number().finite().nonnegative(),
+    y: z.number().finite().nonnegative(),
+    width: z.number().finite().positive(),
+    height: z.number().finite().positive(),
+  })
+  .strict();
+export const DesignExportFormatSchema = z.enum(['png', 'jpeg']);
+export type DesignCreationInput = z.input<typeof DesignCreationSchema>;
+export type DesignAssociationInput = z.input<typeof DesignAssociationSchema>;

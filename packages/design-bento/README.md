@@ -3,8 +3,7 @@
 P0 loads a synthetic single-canvas design through Folio's Electron File menu.
 The CLI owns the current JSON at `<Folio data root>/chats/folio-p0/design.json`;
 Electron owns a sandboxed, network-blocked Bento view and PNG/JPEG rendering.
-This fixed sample is not a new Session or a general document import API. Editing,
-Agent generation, and session-side-panel integration belong to P1/P2.
+This fixed sample is not a new Session or a general document import API. P1 adds editable Session canvases; Agent generation remains P2.
 
 Run `corepack pnpm --dir packages/design-bento build`. Normal Electron development
 and production builds invoke the same builder. Install the pinned Bento submodule
@@ -39,3 +38,33 @@ existing bytes. Repeating an open after a lost child-process response reuses the
 already persisted file. No notification or separate chat metadata write is needed
 to reconstruct this sample. Future Session association must derive from its stable
 workspace/relative path after durable save, without rolling back saved content.
+
+## P1 manual designs
+
+`apps/cli/src/design/store.ts` owns `<Folio data root>/chats/<sessionId>/design.json`.
+The file atomically contains the canonical BentoDoc, referenced content-addressed
+asset bytes, and Session association. Assets are embedded so a confirmed save has
+no partially committed external asset table. The Electron-owned CLI worker processes
+requests sequentially, verifies expected content hashes and semantic kernel commands,
+fsyncs replacement bytes, then acknowledges. A lost reply can be retried; a different
+baseline is a conflict. P1 supports the app's single writer, not external programs
+writing the same file while a commit is in progress.
+
+`design-pending/` contains only unfinished Session associations. UI repair authors
+those through the existing workspace writer, then acknowledges them to the CLI.
+Acknowledged Sessions are not reconstructed by scanning design files, so ordinary
+Session deletion keeps its existing meaning. No conversation or undo log is copied
+when conflict edits become an independent design.
+
+Each native view retains its editor while its canvas tab is open, including hidden
+panels and Session route switches. Explicit close releases undo history. Save failures
+block leaving with retry/discard choices; an unexpected crash recovers the last
+confirmed file. Export uses an isolated instance of the same saved Bento document,
+with fixed resources, decoded images and loaded fonts before stage capture.
+
+P1 bounds canvases to 4096 pixels per side and imports PNG/JPEG/GIF images up to
+16 MiB and 16 megapixels. These are resource limits, not new output formats. The
+semantic controls expose these limits. `src/product-session.ts` and `src/image.ts`
+are local overlays of the pinned adapters; the builder applies them after copying
+vendor sources. The source manifest records relative kernel imports and stricter
+TypeScript adaptations. Original upstream identity and licenses remain unchanged.
