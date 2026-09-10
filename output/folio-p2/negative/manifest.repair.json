@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "turnId": "2c0fe2ce-c1bd-4030-8f6a-685d577de036",
+  "prompt": "The previous turn's design artifact failed validation and could not be written to the canvas (status: artifact rejected). Please fix the problems below, regenerate design.pptd, and submit it again.\nBounded diagnostics (up to 1):\n1. [PPTD-E005] 引用媒体文件不存在：media/missing.png（相对 projectRoot）",
+  "canvas": {
+    "width": 800,
+    "height": 600
+  },
+  "baselineRevisionId": "600c9c21341532bd8323a16d958578164d0f79d1cd70eb754e2313cf917bc87c",
+  "skillSourceIdentity": "7ab7980b86577a61c673be525f8638824a1680aec2a10c18f74fbb79c0f26ca0",
+  "skillDrift": [],
+  "references": [],
+  "artifactAtSend": {
+    "status": "present",
+    "digest": "b1756294eba2bac77a4513a56a8c1f3653840a8cd576a08afaf72f240f4115d2"
+  }
+}
