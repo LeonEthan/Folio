@@ -816,6 +816,12 @@ export function bindingToElectronAccelerator(binding: string | null | undefined)
 export * from './electron-ipc-channels';
 
 export const DesignSessionIdSchema = z.string().uuid();
+/**
+ * A design candidate's id is the content address the design store writes for
+ * its bytes: 64 lowercase hex characters. P2.5 candidate IPC accepts nothing
+ * else, so a renderer cannot name `../design.json` or any other path.
+ */
+export const DesignCandidateIdSchema = z.string().regex(/^[a-f0-9]{64}$/);
 export const DesignAssociationSchema = z
   .object({
     sessionId: DesignSessionIdSchema,

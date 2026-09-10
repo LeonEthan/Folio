@@ -20,6 +20,8 @@ type CachedChatStreamMessageItem = {
   readonly rawModelInfo: unknown;
   readonly rawFileDiff: unknown;
   readonly rawPlan: unknown;
+  /** P2.5 read-side payload: the design result card must see a new verdict. */
+  readonly rawDesignOutcome: unknown;
   /** Preceding user-turn config attached for assistant header display. */
   readonly rawTurnInputConfig: unknown;
 };
@@ -66,6 +68,7 @@ function canReuseCachedMessageItem(
     cached.rawFileDiff === entry.fileDiff &&
     cached.item.message.finished === entry.finished &&
     cached.rawPlan === entry.plan &&
+    cached.rawDesignOutcome === entry.designOutcome &&
     cached.rawTurnInputConfig === expectedInputConfig
   );
 }
@@ -84,6 +87,7 @@ function createCachedMessageItem(
     rawModelInfo: entry.modelInfo,
     rawFileDiff: entry.fileDiff,
     rawPlan: entry.plan,
+    rawDesignOutcome: entry.designOutcome,
     rawTurnInputConfig: message.inputConfig,
   };
 }
@@ -162,6 +166,7 @@ export function buildChatStreamItems(
       fileDiff: entry.fileDiff,
       finished: entry.finished,
       plan: entry.plan,
+      designOutcome: entry.designOutcome,
       // User turns keep their own config; assistant turns inherit the
       // preceding user's so the header can list mode / effort / plan / fast.
       inputConfig: expectedInputConfig,

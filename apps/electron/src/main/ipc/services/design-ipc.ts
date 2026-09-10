@@ -1,6 +1,7 @@
 import { getIpcContext, IpcMethod, IpcService } from 'electron-ipc-decorator'
 import {
   DesignSessionIdSchema as id,
+  DesignCandidateIdSchema as candidateId,
   DesignAssociationSchema as association,
   DesignCreationSchema as creation,
   DesignBoundsSchema,
@@ -10,14 +11,17 @@ import {
 } from '@lody/shared/electron-ipc'
 import { getIpcServiceDeps } from '../ipc-service-deps'
 import {
+  adoptDesignCandidate,
   attachDesign,
   hideDesign,
   destroyDesign,
   designRequest,
+  discardDesignCandidate,
   leaveDesign,
   copyDesign,
   exportDesign,
   finishDesignCopy,
+  readDesignCandidateState,
   renameDesign,
   saveDesignForDispatch
 } from '../../services/design-service'
@@ -64,6 +68,23 @@ export class DesignIpc extends IpcService {
   @IpcMethod() async save(sessionId: string) {
     owner()
     await saveDesignForDispatch(id.parse(sessionId))
+  }
+  /**
+   * P2.5 result-card actions on a kept candidate. Read-only state first; the
+   * user's explicit adopt/discard go through the design worker's store, never
+   * through this process.
+   */
+  @IpcMethod() async candidateState(sessionId: string, rawCandidateId: string) {
+    owner()
+    return readDesignCandidateState(id.parse(sessionId), candidateId.parse(rawCandidateId))
+  }
+  @IpcMethod() async adoptCandidate(sessionId: string, rawCandidateId: string) {
+    owner()
+    return adoptDesignCandidate(id.parse(sessionId), candidateId.parse(rawCandidateId))
+  }
+  @IpcMethod() async discardCandidate(sessionId: string, rawCandidateId: string) {
+    owner()
+    return discardDesignCandidate(id.parse(sessionId), candidateId.parse(rawCandidateId))
   }
   @IpcMethod() async attach(
     sessionId: string,

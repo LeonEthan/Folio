@@ -52,6 +52,7 @@ import { Button } from '@/ui/button';
 import { isMacOSElectronRenderer, useElectronFullscreen } from '@/lib/electron';
 import { getIpcServices } from '@/lib/electron-ipc-client';
 import { flushDesignCanvasBeforeSend } from '@/lib/design-canvas-save-gate';
+import { DesignTurnResultActionsProvider } from '@/components/sessions/design-turn-result-card';
 import { isMac } from '@/lib/commands/platform';
 import { matchesKeyboardEvent, parseBinding } from '@/lib/commands/key-matcher';
 import { isSessionContextCompacting } from '@/lib/session-context-compaction';
@@ -1820,6 +1821,11 @@ interface SessionChatInterfaceProps {
   browserActionSession?: SessionMeta | null;
   /** Called when the user wants to open the Browser panel. */
   onOpenBrowser?: () => void;
+  /**
+   * Reveals this session's design canvas (its side-panel tab), owned by the
+   * parent layout — a design result card's "show on canvas" action.
+   */
+  onRevealDesignPanel?: () => void;
   /** Opens Browser without forcing a newly reported candidate navigation. */
   onOpenExistingBrowser?: () => void;
   /**
@@ -1971,6 +1977,7 @@ export const SessionChatInterface = memo(
       browserActionSession,
       onOpenBrowser,
       onOpenExistingBrowser,
+      onRevealDesignPanel,
       headerVariant = 'page',
       paintSessionMentionOverlay = true,
       changesDiffStat,
@@ -5418,6 +5425,19 @@ export const SessionChatInterface = memo(
       }
       return false;
     });
+    /**
+     * P2.5 design result card: the two session-scoped actions a card may take.
+     * Locating is a view action; repairing is an ordinary user turn through the
+     * same send path as the composer — same design save gate, same baseline
+     * freeze — so the card never gets a private channel to the agent. Neither
+     * runs unless the user asked for it.
+     */
+    const handleDesignLocate = useStableCallback(() => {
+      onRevealDesignPanel?.();
+    });
+    const handleDesignRepair = useStableCallback(async (request: string): Promise<boolean> => {
+      return await dispatchPrompt(request);
+    });
     const openInIdeTarget = useMemo(
       () =>
         resolveSessionOpenInIdePathTarget({
@@ -5913,45 +5933,52 @@ export const SessionChatInterface = memo(
                       {/* Key forces remount on session change, preventing scroll state bleed between sessions */}
                       <MessageSendStatusContext.Provider value={sendingMessageIds}>
                         <MessageSelectionContext.Provider value={shareSelection.context}>
-                          <SessionChatStream
-                            key={session.id}
-                            ref={chatStreamRef}
-                            sessionId={session?.id}
-                            workspaceId={workspaceId}
-                            sessionDoc={sessionDoc}
-                            sessionCreatedAt={session?.createdAt}
-                            dividerLabel={sessionDividerLabel}
-                            className="h-full"
-                            leadingContent={openedByConversationStart}
-                            emptyState={chatStreamEmptyState}
-                            agentActivityLabel={agentActivityLabel}
-                            agentActivityTone={agentActivityTone}
-                            onFileDiffClick={onFileDiffClick}
-                            onFilePathClick={onFilePathClick ? handleFilePathClick : undefined}
-                            onOpenHtmlFile={handleOpenHtmlAttachment}
-                            messageFileDiffEntriesByTurn={messageFileDiffEntriesByTurn}
-                            assistantActions={assistantQuickActions}
-                            assistantActionsMessageId={latestCompletedProposedPlan?.entryId}
-                            onForkLastAssistant={onForkLastAssistant}
-                            forkWorktreeAvailability={forkWorktreeAvailability}
-                            onForkWorktreeMenuOpen={onForkWorktreeMenuOpen}
-                            onEditLastUser={
-                              editableLastUserMessageId ? handleEditLastUser : undefined
+                          <DesignTurnResultActionsProvider
+                            onLocate={
+                              onRevealDesignPanel && session.design ? handleDesignLocate : undefined
                             }
-                            onResendUndelivered={handleResendUndelivered}
-                            capacityRetry={capacityRetry ?? undefined}
-                            forkingAssistantMessageId={forkingAssistantMessageId}
-                            onNavigateSession={onNavigateSession}
-                            onLastCompletedAssistantMessageIdChange={
-                              handleLastCompletedAssistantMessageIdChange
-                            }
-                            conversationFontSize={conversationFontSize}
-                            skipNextViewportResizeAutoScrollRef={
-                              skipNextViewportResizeAutoScrollRef
-                            }
-                            suppressStickyAutoScrollRef={suppressStickyAutoScrollRef}
-                            outlineOverlayRoot={outlineOverlayRoot}
-                          />
+                            onRepair={session.design ? handleDesignRepair : undefined}
+                          >
+                            <SessionChatStream
+                              key={session.id}
+                              ref={chatStreamRef}
+                              sessionId={session?.id}
+                              workspaceId={workspaceId}
+                              sessionDoc={sessionDoc}
+                              sessionCreatedAt={session?.createdAt}
+                              dividerLabel={sessionDividerLabel}
+                              className="h-full"
+                              leadingContent={openedByConversationStart}
+                              emptyState={chatStreamEmptyState}
+                              agentActivityLabel={agentActivityLabel}
+                              agentActivityTone={agentActivityTone}
+                              onFileDiffClick={onFileDiffClick}
+                              onFilePathClick={onFilePathClick ? handleFilePathClick : undefined}
+                              onOpenHtmlFile={handleOpenHtmlAttachment}
+                              messageFileDiffEntriesByTurn={messageFileDiffEntriesByTurn}
+                              assistantActions={assistantQuickActions}
+                              assistantActionsMessageId={latestCompletedProposedPlan?.entryId}
+                              onForkLastAssistant={onForkLastAssistant}
+                              forkWorktreeAvailability={forkWorktreeAvailability}
+                              onForkWorktreeMenuOpen={onForkWorktreeMenuOpen}
+                              onEditLastUser={
+                                editableLastUserMessageId ? handleEditLastUser : undefined
+                              }
+                              onResendUndelivered={handleResendUndelivered}
+                              capacityRetry={capacityRetry ?? undefined}
+                              forkingAssistantMessageId={forkingAssistantMessageId}
+                              onNavigateSession={onNavigateSession}
+                              onLastCompletedAssistantMessageIdChange={
+                                handleLastCompletedAssistantMessageIdChange
+                              }
+                              conversationFontSize={conversationFontSize}
+                              skipNextViewportResizeAutoScrollRef={
+                                skipNextViewportResizeAutoScrollRef
+                              }
+                              suppressStickyAutoScrollRef={suppressStickyAutoScrollRef}
+                              outlineOverlayRoot={outlineOverlayRoot}
+                            />
+                          </DesignTurnResultActionsProvider>
                         </MessageSelectionContext.Provider>
                       </MessageSendStatusContext.Provider>
                     </ErrorBoundary>

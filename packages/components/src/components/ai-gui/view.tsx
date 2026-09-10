@@ -71,6 +71,7 @@ import {
   SESSION_FILE_MAX_COUNT,
 } from '@lody/shared';
 import { AskUserQuestionCard } from '@/components/sessions/ask-user-question-card';
+import { DesignTurnResultCard } from '@/components/sessions/design-turn-result-card';
 import { PermissionRequestCard } from '@/components/sessions/floating-permission-request';
 import { CommentReferenceCard } from './comment-reference-card';
 import { VisualAnnotationReferenceCard } from './visual-annotation-reference-card';
@@ -1834,6 +1835,7 @@ export const MessageRowView = memo(function MessageRowView({
   onResendUndelivered,
   capacityRetry,
   conversationFontSize = DEFAULT_CONVERSATION_FONT_SIZE,
+  isLatestUserTurn,
 }: {
   message: SessionHistoryParsed;
   sessionId: SessionId;
@@ -1843,6 +1845,8 @@ export const MessageRowView = memo(function MessageRowView({
   capacityRetry?: CapacityRetryControl;
   user?: SessionChatUser;
   conversationFontSize?: ConversationFontSize;
+  /** Trailing user turn: the only one a design result card may call generating. */
+  isLatestUserTurn?: boolean;
 }) {
   const { i18n } = useTranslation();
   const timestampLabel = formatConversationTimestamp(message.timestamp, {
@@ -1877,6 +1881,7 @@ export const MessageRowView = memo(function MessageRowView({
         conversationFontSize={conversationFontSize}
         onEdit={onEdit}
         onResendUndelivered={onResendUndelivered}
+        isLatestUserTurn={isLatestUserTurn === true}
       />
     );
   }
@@ -2693,6 +2698,7 @@ const UserMessageRowView = ({
   conversationFontSize,
   onEdit,
   onResendUndelivered,
+  isLatestUserTurn,
 }: {
   message: SessionHistoryParsed;
   sessionId: SessionId;
@@ -2702,6 +2708,7 @@ const UserMessageRowView = ({
   conversationFontSize: ConversationFontSize;
   onEdit?: (message: SessionHistoryParsed, text: string) => Promise<boolean>;
   onResendUndelivered?: (userTurnId: string, inputBlocks: SessionInputBlock[]) => Promise<boolean>;
+  isLatestUserTurn: boolean;
 }) => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
@@ -2899,6 +2906,19 @@ const UserMessageRowView = ({
             </div>
           </div>
         </div>
+        {/* P2.5: the design result card hangs on the user turn it belongs to, for
+            design sessions only. It reads the durable outcome (and, for a kept
+            candidate, one read-only live query) and owns its own actions. */}
+        {sessionMeta?.design ? (
+          <div className="w-full min-w-0">
+            <DesignTurnResultCard
+              sessionId={sessionId}
+              artworkId={sessionMeta.design.artworkId}
+              outcome={message.designOutcome}
+              isLatestUserTurn={isLatestUserTurn}
+            />
+          </div>
+        ) : null}
         {/* While editing, the row's own actions (edit/pin/copy) would compete with
             the editor's Cancel / Save & resend — hide them until it closes. */}
         {hasTextContent && !isEditing ? (

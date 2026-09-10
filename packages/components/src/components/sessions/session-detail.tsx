@@ -4168,6 +4168,13 @@ const SessionDetail = ({
     [handleSidebarTabSelect, handleViewerTabSelect, selectSidePanelTab]
   );
 
+  /* P2.5: a design result card's "show on canvas" reveals this session's design
+     side-panel tab through the same path the panel's own strip uses. */
+  const handleRevealDesignPanel = useCallback(() => {
+    handleSidebarTabSelect('design');
+    revealRightSidebar();
+  }, [handleSidebarTabSelect, revealRightSidebar]);
+
   const handleSidePanelTabClose = useCallback(
     (tabId: string) => {
       const sideSessionId = parseSideSessionPanelTabId(tabId) as SessionId | null;
@@ -5182,6 +5189,9 @@ const SessionDetail = ({
                   onOpenAllChanges={handleOpenAllChanges}
                   onOpenBrowser={() => handleOpenBrowser(tabSession.id, true)}
                   onOpenExistingBrowser={() => handleOpenBrowser(tabSession.id, false)}
+                  onRevealDesignPanel={
+                    tabSession.id === sessionId ? handleRevealDesignPanel : undefined
+                  }
                   changesDiffStat={changesDiffStat}
                   onForkLastAssistant={
                     canForkSession(tabSession)

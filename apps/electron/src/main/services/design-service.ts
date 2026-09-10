@@ -5,7 +5,15 @@ import { randomUUID, createHash } from 'node:crypto'
 import { readFile, open, rename, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
-import type { DesignPayload, DesignRequest } from '../../../../cli/src/design/store'
+import type {
+  DesignCandidateAdoption,
+  DesignCandidateState,
+  DesignPayload,
+  DesignRequest
+} from '../../../../cli/src/design/store'
+
+/** P2.5 candidate handling rides the existing design worker channel. */
+type DesignCandidateRequest = { sessionId: string; candidateId: string }
 
 const resources = () =>
   app.isPackaged
@@ -24,6 +32,9 @@ export function designRequest<T = DesignPayload>(
     | DesignRequest
     | { operation: 'pending' }
     | { operation: 'acknowledge'; sessionId: string }
+    | ({ operation: 'candidate-state' } & DesignCandidateRequest)
+    | ({ operation: 'adopt-candidate' } & DesignCandidateRequest)
+    | ({ operation: 'discard-candidate' } & DesignCandidateRequest)
 ): Promise<T> {
   const result = queue
     .catch(() => {})
@@ -224,6 +235,82 @@ export async function saveDesignForDispatch(id: string) {
   if (result === undefined || result === null) return
   if (!result.ok) throw Error(result.error ?? 'Canvas save failed')
 }
+/**
+ * P2.5 result-card actions. The card reads a candidate's standing and acts on
+ * it here, so the renderer never reaches into `chats/<artworkId>/`: the worker
+ * owns the store, and the store owns `design.json` and `candidates/`.
+ */
+export async function readDesignCandidateState(
+  id: string,
+  candidateId: string
+): Promise<DesignCandidateState> {
+  return await designRequest<DesignCandidateState>({
+    operation: 'candidate-state',
+    sessionId: id,
+    candidateId
+  })
+}
+
+/**
+ * Replace the current canvas with a kept candidate, at the user's explicit
+ * request. Pending editor edits are flushed first (the same "tolerate a bridge
+ * that has not loaded, reject a real save failure" contract the dispatch gate
+ * uses): adopting replaces the document, and edits that were never written would
+ * otherwise be replaced without a trace. On success an already-open editor is
+ * re-created so it shows the adopted document instead of the one it just lost.
+ */
+export async function adoptDesignCandidate(
+  id: string,
+  candidateId: string
+): Promise<DesignCandidateAdoption> {
+  await saveDesignForDispatch(id)
+  const result = await designRequest<DesignCandidateAdoption>({
+    operation: 'adopt-candidate',
+    sessionId: id,
+    candidateId
+  })
+  if (result.status === 'adopted') await reloadDesignCanvas(id)
+  return result
+}
+
+/** Deletes the candidate file only; `design.json` is not touched. */
+export async function discardDesignCandidate(
+  id: string,
+  candidateId: string
+): Promise<{ candidateId: string; removed: boolean }> {
+  return await designRequest<{ candidateId: string; removed: boolean }>({
+    operation: 'discard-candidate',
+    sessionId: id,
+    candidateId
+  })
+}
+
+/**
+ * Show the adopted document in an editor that is already open.
+ *
+ * The editor loads its document once and remembers the revision it may save
+ * against, so without this it would keep rendering — and later saving — the
+ * document the user just replaced. The record is torn down and re-created from
+ * the same host and bounds; the flush in `adoptDesignCandidate` already made
+ * that safe, because no editor-side work is pending at this point.
+ *
+ * A canvas the user does not have open stays closed: the record is only
+ * re-attached while a host still holds it. Re-attaching an unhosted canvas would
+ * set a native view visible over whatever the user is actually looking at, and
+ * tearing the editor down is enough — the next attach re-creates it from the
+ * store, so it cannot come back showing the document that was just replaced.
+ */
+async function reloadDesignCanvas(id: string) {
+  const record = records.get(id)
+  if (!record) return
+  const hostId = hosts.get(id)
+  const { owner } = record
+  const bounds = record.view.getBounds()
+  destroyDesign(id)
+  if (!hostId) return
+  await attachDesign(owner, id, bounds, hostId)
+}
+
 export async function leaveDesign(id: string): Promise<boolean> {
   try {
     await records.get(id)?.view.webContents.executeJavaScript('document.body.inert = true')
