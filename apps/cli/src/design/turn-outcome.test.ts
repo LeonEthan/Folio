@@ -9,6 +9,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -26,6 +27,7 @@ import type {
 import { sanitizeDesignTurnOutcome, type DesignTurnOutcome } from '@lody/shared';
 import type { DesignRenderQueue } from './render-output';
 import { DESIGN_ARTIFACT_ENTRY } from './artifact';
+import { DESIGN_LOCK_FILENAME } from './lock';
 import { designOperation, listDesignCandidates, readDesignCandidate } from './store';
 import { MAX_THUMBNAIL_EDGE, DESIGN_THUMBNAIL_DIRNAME } from './thumbnail';
 import {
@@ -501,6 +503,229 @@ describe('collectDesignTurnOutcome', () => {
     });
     expect(stored.revisionId).toBe(userSaved.revisionId);
     expect(stored.doc.elements).toHaveLength(0);
+  });
+
+  it('keeps the document as a candidate when the store refuses to write it in time', async () => {
+    const harness = createHarness();
+    const created = await createDesign(harness);
+    await writeArtifact(harness, PAGE);
+    await writeManifest(harness, created.revisionId);
+    // Another writer holds the artwork's lock past the deadline. The store
+    // refuses (`DESIGN_BUSY`) rather than overwriting or waiting forever, and a
+    // refusal must never cost the turn its work — the document is adoptable, and
+    // only the *forced* write is what we refuse to do.
+    writeFileSync(
+      path.join(harness.workdir, DESIGN_LOCK_FILENAME),
+      JSON.stringify({ pid: 1, token: 'someone-else' })
+    );
+    let at = Date.now();
+    const lock = {
+      now: () => {
+        at += 1_000;
+        return at;
+      },
+      sleep: async () => undefined,
+    };
+
+    const attempt = await collectDesignTurnOutcome({ ...contextFor(harness), lock });
+    expect(attempt.status).toBe('recorded');
+    if (attempt.status !== 'recorded') return;
+    expect(attempt.outcome.status).toBe('candidate');
+    const stored = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+    expect(stored.revisionId).toBe(created.revisionId);
+    expect(await listDesignCandidates(harness.root, harness.sessionId)).toHaveLength(1);
+  });
+
+  it('recovers a lost stamp from the receipt, and never decides twice', async () => {
+    const harness = createHarness();
+    const created = await createDesign(harness);
+    await writeArtifact(harness, PAGE);
+    await writeManifest(harness, created.revisionId);
+
+    const first = await collectDesignTurnOutcome(withHost(harness, renderingHost()));
+    expect(first.status).toBe('recorded');
+    if (first.status !== 'recorded') return;
+    // The verdict is on disk twice: the receipt this turn's directory keeps, and
+    // the entry the card renders. The receipt is written before the render, so it
+    // is the verdict itself and never the image.
+    const receiptFile = path.join(
+      harness.workdir,
+      DESIGN_TURN_INPUT_DIRNAME,
+      harness.turnId,
+      'receipt.json'
+    );
+    expect(JSON.parse(readFileSync(receiptFile, 'utf8'))).toEqual({
+      ...first.outcome,
+      thumbnail: undefined,
+    });
+    const committed = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+
+    // The daemon died between the receipt and the history write. By the time the
+    // collection runs again, the turn's document has been edited further and the
+    // user has saved: deciding again would keep a candidate for a document this
+    // turn already committed — an invitation to undo their own save.
+    harness.forgetOutcome();
+    await writeArtifact(harness, RESTYLED_PAGE);
+    await moveBaseline(harness, committed.revisionId);
+    const userSaved = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+    let renderedAgain = 0;
+
+    const second = await collectDesignTurnOutcome(
+      withHost(
+        harness,
+        renderingHost(undefined, () => {
+          renderedAgain += 1;
+        })
+      )
+    );
+    expect(second.status).toBe('recorded');
+    if (second.status !== 'recorded') return;
+    // Exactly what was written down, image included: recovery stamps, it does not
+    // re-derive — so a verdict whose thumbnail was already captured still has no
+    // second one.
+    expect(second.outcome).toEqual({ ...first.outcome, thumbnail: undefined });
+    expect(recordedOutcome(harness)).toEqual(second.outcome);
+    expect(renderedAgain).toBe(0);
+    expect(await listDesignCandidates(harness.root, harness.sessionId)).toEqual([]);
+    // The canvas the user saved is still theirs, byte for byte, and nothing was
+    // committed a second time.
+    const live = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+    expect(live).toEqual(userSaved);
+    expect(live.revisionId).not.toBe(committed.revisionId);
+  });
+
+  it('decides again when the crash left no receipt, and still never overwrites the canvas', async () => {
+    const harness = createHarness();
+    await createDesign(harness);
+    // A first design turn: no project existed in the workspace when it was sent.
+    await freezeTurnInput(harness);
+    await writeArtifact(harness, PAGE);
+
+    const first = await collectDesignTurnOutcome(contextFor(harness));
+    expect(first.status).toBe('recorded');
+    if (first.status !== 'recorded') return;
+    expect(first.outcome.status).toBe('committed');
+    const committed = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+
+    // The daemon died between the store write and the receipt, so the commit
+    // landed with nothing recording that it did. That is the stretch the receipt
+    // cannot cover, and deciding again is the only reading of the turn that does
+    // not rest on a missing file. It stays safe — the store's CAS refuses the
+    // moved baseline, so the user's save is never overwritten — and the cost is
+    // the documented one: this turn's already-committed document comes back as a
+    // candidate rather than as the commit it was.
+    harness.forgetOutcome();
+    rmSync(path.join(harness.workdir, DESIGN_TURN_INPUT_DIRNAME, harness.turnId, 'receipt.json'), {
+      force: true,
+    });
+    // The user resized the canvas while the daemon was down, so the canvas no
+    // longer holds this turn's document: the store's comparison has nothing left
+    // to recognise the turn's bytes by.
+    await designOperation(harness.root, {
+      operation: 'save',
+      sessionId: harness.sessionId,
+      baseRevisionId: committed.revisionId,
+      content: {
+        doc: { ...committed.doc, canvas: { width: 640, height: 480 } },
+        assets: committed.assets,
+      },
+      name: 'Saved while the daemon was down',
+    });
+    const userSaved = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+
+    const second = await collectDesignTurnOutcome(contextFor(harness));
+    expect(second.status).toBe('recorded');
+    if (second.status !== 'recorded') return;
+    expect(second.outcome.status).toBe('candidate');
+    expect(second.outcome.candidateId).toMatch(/^[a-f0-9]{64}$/);
+    expect(await listDesignCandidates(harness.root, harness.sessionId)).toHaveLength(1);
+    const live = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+    expect(live).toEqual(userSaved);
+  });
+
+  it('ignores a receipt that is not this turn’s verdict', async () => {
+    const harness = createHarness();
+    await createDesign(harness);
+    await writeArtifact(harness, PAGE);
+    const receiptFile = path.join(
+      harness.workdir,
+      DESIGN_TURN_INPUT_DIRNAME,
+      harness.turnId,
+      'receipt.json'
+    );
+    const forged = {
+      version: 1,
+      status: 'committed',
+      turnId: harness.turnId,
+      artworkId: harness.sessionId,
+      revisionId: 'f'.repeat(64),
+      timestamp: '2026-09-10T02:00:00.000Z',
+    };
+
+    // Corrupt, and a verdict belonging to something else: neither may be
+    // stamped, because neither is this turn's record.
+    for (const written of [
+      '{ not json',
+      JSON.stringify({ ...forged, turnId: 'someone-else' }),
+      JSON.stringify({ ...forged, artworkId: crypto.randomUUID() }),
+    ]) {
+      harness.forgetOutcome();
+      const current = await designOperation(harness.root, {
+        operation: 'read',
+        sessionId: harness.sessionId,
+      });
+      await writeManifest(harness, current.revisionId);
+      writeFileSync(receiptFile, written);
+      const attempt = await collectDesignTurnOutcome(contextFor(harness));
+      expect(attempt.status).toBe('recorded');
+      if (attempt.status !== 'recorded') return;
+      expect(attempt.outcome.status).toBe('committed');
+      expect(attempt.outcome.revisionId).not.toBe(forged.revisionId);
+    }
+  });
+
+  it('stamps the verdict before the desktop renders it a thumbnail', async () => {
+    const harness = createHarness();
+    const created = await createDesign(harness);
+    await writeArtifact(harness, PAGE);
+    await writeManifest(harness, created.revisionId);
+    let duringRender: DesignTurnOutcome | undefined;
+
+    const attempt = await collectDesignTurnOutcome(
+      withHost(
+        harness,
+        renderingHost({ width: 160, height: 100 }, () => {
+          duringRender = recordedOutcome(harness);
+        })
+      )
+    );
+    expect(attempt.status).toBe('recorded');
+    // The entry already carries the truth — without the image — while the image
+    // is being made: a render that fails or never lands cannot un-record it.
+    expect(duringRender).toMatchObject({ status: 'committed', turnId: harness.turnId });
+    expect(duringRender?.thumbnail).toBeUndefined();
+    expect(recordedOutcome(harness)?.thumbnail).toMatchObject({ width: 160, height: 100 });
   });
 
   it('reports invalid with the validator diagnostics for a broken artifact', async () => {

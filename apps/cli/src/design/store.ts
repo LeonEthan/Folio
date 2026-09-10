@@ -1,18 +1,27 @@
 /**
  * The single design committer.
  *
- * Everything that writes `<data root>/chats/<artworkId>/` goes through this
- * module: the canonical `design.json` (via `designOperation`) and the validated
- * conflict candidates kept beside it (via `saveDesignCandidate`).
+ * Everything that writes a design session's workspace goes through this module:
+ * the canonical `design.json` (via `designOperation`) and the validated conflict
+ * candidates kept beside it (via `saveDesignCandidate`). The one exception is the
+ * P0 fixed sample, which `./sample.ts` links into `chats/folio-p0/` — an id that
+ * is not a design session, holding the raw fixture rather than a saved design,
+ * created once and never replaced.
  *
  * Two callers, one writer: the Electron-owned CLI worker (`cli/design.js`)
  * forwards UI save/read/create requests over stdin, and the daemon calls
  * `designOperation` in-process for post-turn collection (P2.3,
- * `./turn-outcome.ts`). They are coordinated by content-addressed state only —
- * sha256 revision ids compared against the caller's baseline — so no lock,
- * port, or process ownership is shared between them. A caller that loses the
- * baseline race gets `DESIGN_CONFLICT` and never sees its bytes land; the
- * daemon turns that into a candidate instead of an overwrite (P2.3).
+ * `./turn-outcome.ts`). What a caller has is a baseline — a sha256 revision id
+ * it believes is current — and a save whose baseline moved gets
+ * `DESIGN_CONFLICT` instead of overwriting someone else's work; the daemon turns
+ * that into a candidate (P2.3). The comparison and the write are one step
+ * because they happen under the artwork's own write lock (`./lock.ts`): two
+ * callers that read the same revision cannot both land, and a caller that cannot
+ * get the lock in time is told `DESIGN_BUSY` rather than waiting forever.
+ *
+ * Reads take no lock: bytes become visible whole (`publishBytesAtomic`), so a
+ * reader sees one complete revision or none, and the value it reads back is the
+ * baseline its own save will be checked against.
  *
  * `design.json` holds embedded base64 assets so a confirmed save has no
  * partially committed asset table; the per-file digest of exactly those bytes
@@ -44,6 +53,7 @@ import { mkdir, open, rename, unlink, lstat, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { z } from 'zod';
+import { withDesignLock, type DesignLockTiming } from './lock';
 
 export const designId = z.string().uuid();
 export const designSize = z.number().int().min(1).max(4096);
@@ -535,12 +545,23 @@ function validateAssets(content: z.output<typeof designInput>) {
   return assets;
 }
 
+export interface DesignOperationOptions {
+  /** Timing seams for the write lock; see `./lock.ts`. */
+  lock?: DesignLockTiming;
+}
+
 /**
  * Read/create/save the current canvas. Callers pass the revisionId they believe
  * is current as `baseRevisionId`; a save whose baseline moved is rejected with
- * `DESIGN_CONFLICT` rather than overwriting someone else's work.
+ * `DESIGN_CONFLICT` rather than overwriting someone else's work, and a write
+ * that cannot take the artwork's lock inside its deadline is rejected with
+ * `DESIGN_BUSY`.
  */
-export async function designOperation(dataRoot: string, raw: unknown): Promise<DesignPayload> {
+export async function designOperation(
+  dataRoot: string,
+  raw: unknown,
+  options?: DesignOperationOptions
+): Promise<DesignPayload> {
   const request = designRequest.parse(raw);
   const id = request.operation === 'create' ? request.association.sessionId : request.sessionId;
   const directory = path.join(dataRoot, 'chats', id);
@@ -563,65 +584,76 @@ export async function designOperation(dataRoot: string, raw: unknown): Promise<D
     }
   };
   if (request.operation === 'read') return read();
-  let previous: DesignPayload | undefined;
-  try {
-    previous = await read();
-  } catch (error) {
-    if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error;
-  }
-  if (request.operation === 'create' && previous) {
-    if (JSON.stringify(previous.association) !== JSON.stringify(request.association))
-      throw Error('Design already exists');
-    return previous;
-  }
-  const content =
-    request.operation === 'create'
-      ? (request.copy ?? {
-          doc: {
-            schemaVersion: 4 as const,
-            canvas: { width: request.width, height: request.height },
-            background: { type: 'solid', color: '#ffffff' },
-            diagnostics: [],
-            elements: [],
-          },
-          assets: {},
-        })
-      : request.content;
-  const saved = savedSchema.parse({
-    ...content,
-    assets: validateAssets(content),
-    association:
-      request.operation === 'create'
-        ? request.association
-        : { ...previous?.association, ...(request.name ? { name: request.name } : {}) },
-  });
-  const bytes = JSON.stringify(saved);
-  if (bytes.length > 64 * 1024 * 1024) throw Error('Design exceeds 64 MiB');
-  if (request.operation === 'save' && previous?.revisionId !== request.baseRevisionId) {
-    // Lost acknowledgement is safely retryable when the requested bytes already landed.
-    if (previous?.revisionId === digest(bytes)) return previous;
-    throw Error('DESIGN_CONFLICT');
-  }
-  if (request.operation === 'create') {
-    const pending = path.join(dataRoot, 'design-pending');
-    await mkdir(pending, { recursive: true });
-    const marker = await open(path.join(pending, id), 'a', 0o600);
+
+  // Everything from here writes, and the baseline this write is checked against
+  // is read inside the lock: a caller cannot compare a revision it read before
+  // another writer landed.
+  return await withDesignLock(directory, options?.lock ?? {}, async (assertHeld) => {
+    let previous: DesignPayload | undefined;
     try {
-      await marker.sync();
-    } finally {
-      await marker.close();
+      previous = await read();
+    } catch (error) {
+      if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error;
     }
-    if (process.platform !== 'win32') {
-      const parent = await open(pending, constants.O_RDONLY);
+    if (request.operation === 'create' && previous) {
+      if (JSON.stringify(previous.association) !== JSON.stringify(request.association))
+        throw Error('Design already exists');
+      return previous;
+    }
+    const content =
+      request.operation === 'create'
+        ? (request.copy ?? {
+            doc: {
+              schemaVersion: 4 as const,
+              canvas: { width: request.width, height: request.height },
+              background: { type: 'solid', color: '#ffffff' },
+              diagnostics: [],
+              elements: [],
+            },
+            assets: {},
+          })
+        : request.content;
+    const saved = savedSchema.parse({
+      ...content,
+      assets: validateAssets(content),
+      association:
+        request.operation === 'create'
+          ? request.association
+          : { ...previous?.association, ...(request.name ? { name: request.name } : {}) },
+    });
+    const bytes = JSON.stringify(saved);
+    if (bytes.length > 64 * 1024 * 1024) throw Error('Design exceeds 64 MiB');
+    if (request.operation === 'save' && previous?.revisionId !== request.baseRevisionId) {
+      // Lost acknowledgement is safely retryable when the requested bytes already landed.
+      if (previous?.revisionId === digest(bytes)) return previous;
+      throw Error('DESIGN_CONFLICT');
+    }
+    if (request.operation === 'create') {
+      const pending = path.join(dataRoot, 'design-pending');
+      await mkdir(pending, { recursive: true });
+      const marker = await open(path.join(pending, id), 'a', 0o600);
       try {
-        await parent.sync();
+        await marker.sync();
       } finally {
-        await parent.close();
+        await marker.close();
+      }
+      if (process.platform !== 'win32') {
+        const parent = await open(pending, constants.O_RDONLY);
+        try {
+          await parent.sync();
+        } finally {
+          await parent.close();
+        }
       }
     }
-  }
-  await publishBytesAtomic(directory, current, bytes);
-  return { ...saved, revisionId: digest(bytes) };
+    // The last thing before bytes become visible. Everything above decided what
+    // to write while holding the lock; if that lock is no longer ours, another
+    // writer may already be deciding against a canvas this write has not landed
+    // on, and the refusal costs a candidate instead of a lost revision (`./lock.ts`).
+    await assertHeld();
+    await publishBytesAtomic(directory, current, bytes);
+    return { ...saved, revisionId: digest(bytes) };
+  });
 }
 
 /** Only unfinished associations are repaired; acknowledged/deleted sessions are never rediscovered. */

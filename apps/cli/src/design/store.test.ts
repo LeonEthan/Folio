@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { afterEach, expect, test } from 'vitest';
+import { DESIGN_LOCK_FILENAME } from './lock';
 import {
   adoptDesignCandidate,
   designOperation,
@@ -13,6 +14,7 @@ import {
   readDesignCandidate,
   readDesignCandidateState,
   saveDesignCandidate,
+  type DesignPayload,
 } from './store';
 
 const roots: string[] = [];
@@ -139,6 +141,62 @@ test('durable save, stale writer, retry, independent copy and malformed input pr
   await expect(
     designOperation(root, { operation: 'create', association, width: 800, height: 600 })
   ).rejects.toThrow();
+});
+
+test('two writers that read the same revision cannot both land', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'folio-design-'));
+  roots.push(root);
+  const association = {
+    sessionId: randomUUID(),
+    name: 'Synthetic',
+    userId: 'local:test',
+    machineId: 'test-machine',
+    createdAt: '2026-09-09T00:00:00.000Z',
+  };
+  const created = await designOperation(root, { operation: 'create', association });
+  const save = (color: string) =>
+    designOperation(root, {
+      operation: 'save',
+      sessionId: association.sessionId,
+      baseRevisionId: created.revisionId,
+      content: { doc: { ...created.doc, background: { type: 'solid', color } }, assets: {} },
+    });
+
+  // The daemon's post-turn collection and the desktop's save are different
+  // processes on the same artwork. Both read the same revision; exactly one may
+  // write it, or the loser's revision disappears with a success reply.
+  const settled = await Promise.allSettled([save('#111111'), save('#222222')]);
+  const landed = settled.filter((result) => result.status === 'fulfilled');
+  const refused = settled.filter((result) => result.status === 'rejected');
+  expect(landed).toHaveLength(1);
+  expect(refused).toHaveLength(1);
+  expect((refused[0] as PromiseRejectedResult).reason.message).toBe('DESIGN_CONFLICT');
+
+  const winner = (landed[0] as PromiseFulfilledResult<DesignPayload>).value;
+  const live = await designOperation(root, { operation: 'read', sessionId: association.sessionId });
+  expect(live).toEqual(winner);
+});
+
+test('a read is not blocked by a writer holding the lock', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'folio-design-'));
+  roots.push(root);
+  const association = {
+    sessionId: randomUUID(),
+    name: 'Synthetic',
+    userId: 'local:test',
+    machineId: 'test-machine',
+    createdAt: '2026-09-09T00:00:00.000Z',
+  };
+  const created = await designOperation(root, { operation: 'create', association });
+  // Bytes become visible whole, so a reader needs no lock: it sees one complete
+  // revision, and that revision is then a truthful baseline for its own save.
+  await writeFile(
+    path.join(root, 'chats', association.sessionId, DESIGN_LOCK_FILENAME),
+    JSON.stringify({ pid: 1, token: 'someone-else' })
+  );
+  expect(
+    await designOperation(root, { operation: 'read', sessionId: association.sessionId })
+  ).toEqual(created);
 });
 
 test('a candidate is written beside the canvas, addressed by content and never twice', async () => {

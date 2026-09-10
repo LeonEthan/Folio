@@ -334,6 +334,10 @@ export function designTurnReceiptFile(workdir: string, turnId: string): string {
  *
  * It is the same payload the entry carries, by construction: `./turn-outcome.ts`
  * stamps what it wrote here.
+ *
+ * Like the manifest, this file is written into the agent's own workspace, so it
+ * is app bookkeeping by convention, not by isolation. `./turn-outcome.ts` states
+ * what that costs and why it is bounded.
  */
 export async function writeDesignTurnReceipt(
   workdir: string,

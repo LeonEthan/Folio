@@ -506,8 +506,9 @@ export type SessionExecutionServiceDeps = {
     /**
      * The user turn being dispatched. Design sessions freeze the turn-input
      * manifest under this id (P2.2); pass the raw message userTurnId (not the
-     * delivery-filtered execution id) so delivery retries rewrite the same
-     * manifest. Absent for internal auto prompts.
+     * delivery-filtered execution id) so a delivery retry meets the manifest
+     * already frozen for that turn instead of freezing a second one. Absent for
+     * internal auto prompts.
      */
     userTurnId?: string;
   }) => Promise<ContentBlock[]>;
