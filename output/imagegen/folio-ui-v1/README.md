@@ -2,14 +2,18 @@
 
 2026-09-09 · 内置 imagegen 生成 · 待确认概念图，不代表已实现或已验收 UI。
 
+**2026-09-10 范围更新：独立素材库及跨作品素材复用已从整个迁移计划移除。03-assets 页面和所有图片中的“素材库”侧栏入口作废；图片及原始提示词仅保留为历史生成记录，不作为后续实施要求。**
+
+**同日方案复核：04-versions 中的历史版本列表与恢复承诺取消，完整三方对比不属于迁移要求；仅保留当前稿/候选查看及显式采用/丢弃的方向。旧图中的独立新建入口、作品库、品牌资源管理等控件也不构成需求，以 [Spec](../../../specs/graphic-design-platform.zh.md) 和当前阶段计划为准。原图和提示词不改写为已实现结果。**
+
 沿用 Folio 的浅色桌面外壳、侧栏、标签页与对话结构，覆盖本地平面设计主流程。使用合成海报和素材案例；Agent 状态、路径、时间和作品内容均为界面示意。
 
 | 页面 | 文件 |
 | --- | --- |
 | 首页 | [01-home.png](01-home.png) |
 | 对话与画布 | [02-workbench.png](02-workbench.png) |
-| 素材库 | [03-assets.png](03-assets.png) |
-| 版本与候选对比 | [04-versions.png](04-versions.png) |
+| 素材库（已取消，仅历史记录） | [03-assets.png](03-assets.png) |
+| 版本与候选对比（历史版本部分已取消） | [04-versions.png](04-versions.png) |
 | 设置与 Agents | [05-settings.png](05-settings.png) |
 
 [完整提示词](prompts.md) · [功能改造提案](../../../.agents/notes/proposed/architecture/2026-09-09-graphic-design-platform.zh.md)

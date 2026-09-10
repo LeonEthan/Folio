@@ -1,5 +1,9 @@
 # Folio UI v1 — final prompt set
 
+Scope update (2026-09-10): The standalone asset library and cross-design asset reuse have been removed from the entire migration plan. The 03-assets page and asset-library sidebar entries in all prompts below are obsolete. These are historical generation inputs, not implementation requirements.
+
+**同日方案复核：04-versions 中的历史版本列表与恢复承诺取消，完整三方对比不属于迁移要求；仅保留当前稿/候选查看及显式采用/丢弃的方向。旧图中的独立新建入口、作品库、品牌资源管理等控件也不构成需求，以 [Spec](../../../specs/graphic-design-platform.zh.md) 和当前阶段计划为准。原图和提示词不改写为已实现结果。**
+
 Mode: built-in image_gen (no CLI fallback).
 Use case: ui-mockup.
 Reference: 02-workbench.png was generated first; the other four pages use that image as their visual reference.

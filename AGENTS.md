@@ -53,13 +53,16 @@ Repository map and entry points: [README.md](README.md#repository).
 
 The design authoring environment (skills, MCP design tools, workspace files,
 artifact intake) is agent-naive: it presents capabilities with honest
-availability and never gates, scripts, or second-guesses agent behavior. The
-agent owns its workflow, including finalizing its own artifacts. App-side code
-performs only storage-level structural validation (schema, kernel replay, asset
-integrity) and classifies observable outcomes (no artifact / invalid /
-committed); it never re-runs semantic checks the agent could have run itself,
+availability. The agent owns its creative workflow, including finalizing its own
+artifacts; app-side hooks enforce only data-integrity preconditions, not design
+methods or semantic review. App-side code performs only storage-level structural
+validation (schema, kernel replay, asset integrity, version consistency) and
+classifies observable outcomes (no artifact / invalid / committed); it never
+re-runs semantic checks the agent could have run itself,
 never repairs agent output behind the agent's back, and never auto-retries paid
-model calls.
+model calls. Before changing design read/write hooks, canvas synchronization, or
+draft intake, read the [design Spec](specs/graphic-design-platform.zh.md); canvas
+editing remains independent of Agent execution.
 
 ## Contributions and checks
 
