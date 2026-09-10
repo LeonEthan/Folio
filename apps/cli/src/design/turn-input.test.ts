@@ -6,7 +6,7 @@
 
 import { createHash, randomUUID } from 'node:crypto';
 import { readdirSync } from 'node:fs';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -35,6 +35,16 @@ const pngBytes = (seed: number): Buffer => {
   ihdr.writeUInt32BE(4, 12);
   return Buffer.concat([header, ihdr, Buffer.from([seed, seed >>> 8])]);
 };
+
+/** The smallest workspace project the artifact collector accepts (P2.1 layout). */
+async function writeProject(workdir: string, page: string): Promise<void> {
+  await mkdir(path.join(workdir, 'pages'), { recursive: true });
+  await writeFile(
+    path.join(workdir, 'design.pptd'),
+    'version: v2\ntitle: Frozen\nsize: [320, 200]\npages:\n  - pages/main.page\n'
+  );
+  await writeFile(path.join(workdir, 'pages', 'main.page'), page);
+}
 
 async function setupDesign(options: { width?: number; height?: number } = {}) {
   const root = await mkdtemp(path.join(tmpdir(), 'folio-turn-input-'));
@@ -92,6 +102,8 @@ describe('materializeDesignTurnInput', () => {
           mimeType: 'image/png',
         },
       ],
+      // The workspace had no project yet, which is a fact about this turn too.
+      artifactAtSend: { status: 'absent' },
     });
 
     const turnDir = path.join(workdir, DESIGN_TURN_INPUT_DIRNAME, turnId);
@@ -102,7 +114,7 @@ describe('materializeDesignTurnInput', () => {
     expect(sha256Hex(landed)).toBe(sha256Hex(image));
   });
 
-  it('rewrites identical content on retry and leaves no temporary files behind', async () => {
+  it('freezes a turn once: a re-dispatch keeps the manifest and the references it was sent with', async () => {
     const { root, sessionId, workdir } = await setupDesign();
     const turnId = 'turn-user-retry';
     const request = {
@@ -119,13 +131,18 @@ describe('materializeDesignTurnInput', () => {
     };
 
     const first = await materializeDesignTurnInput(request);
-    const firstBytes = await readFile(
-      path.join(workdir, DESIGN_TURN_INPUT_DIRNAME, turnId, 'manifest.json')
-    );
-    const second = await materializeDesignTurnInput(request);
-    const secondBytes = await readFile(
-      path.join(workdir, DESIGN_TURN_INPUT_DIRNAME, turnId, 'manifest.json')
-    );
+    const manifestFile = path.join(workdir, DESIGN_TURN_INPUT_DIRNAME, turnId, 'manifest.json');
+    const firstBytes = await readFile(manifestFile);
+    // The canvas this turn was anchored to is gone by the time the turn is set
+    // up again (a restart, a rewind, a deleted design). Re-materializing must
+    // not rebase the turn on it — and must not fail on its absence.
+    await rm(path.join(workdir, 'design.json'));
+    const second = await materializeDesignTurnInput({
+      ...request,
+      prompt: 'a different prompt',
+      references: [{ bytes: pngBytes(9), mimeType: 'image/png' }],
+    });
+    const secondBytes = await readFile(manifestFile);
 
     expect(second).toEqual(first);
     expect(secondBytes.equals(firstBytes)).toBe(true);
@@ -136,6 +153,72 @@ describe('materializeDesignTurnInput', () => {
     );
     // Atomic writes leave no `.tmp` siblings anywhere under the turn directory.
     expect(readdirSync(turnDir).filter((name) => name.endsWith('.tmp'))).toEqual([]);
+  });
+
+  it('replaces a manifest that is not this turn’s frozen input', async () => {
+    const { root, sessionId, workdir } = await setupDesign();
+    const turnId = 'turn-user-corrupt-manifest';
+    const turnDir = path.join(workdir, DESIGN_TURN_INPUT_DIRNAME, turnId);
+    await mkdir(turnDir, { recursive: true });
+    const request = {
+      workdir,
+      turnId,
+      artworkId: sessionId,
+      prompt: 'poster please',
+      skillSourceIdentity: 'b'.repeat(64),
+      dataRoot: root,
+    };
+    const baseline = await designOperation(root, { operation: 'read', sessionId });
+
+    // Truncated, and another turn's: neither anchors this turn, so both are
+    // replaced rather than reused.
+    for (const written of ['{ not json', JSON.stringify({ version: 1, turnId: 'someone-else' })]) {
+      await writeFile(path.join(turnDir, 'manifest.json'), written);
+      const manifest = await materializeDesignTurnInput(request);
+      expect(manifest).toMatchObject({
+        version: 1,
+        turnId,
+        baselineRevisionId: baseline.revisionId,
+      });
+    }
+  });
+
+  it('records the project the turn was dispatched with, and tells a changed one apart', async () => {
+    const { root, sessionId, workdir } = await setupDesign();
+    const send = (turnId: string) =>
+      materializeDesignTurnInput({
+        workdir,
+        turnId,
+        artworkId: sessionId,
+        prompt: 'p',
+        skillSourceIdentity: 'c'.repeat(64),
+        dataRoot: root,
+      });
+
+    // No project yet: there is nothing for P2.3 to compare against.
+    expect((await send('turn-a')).artifactAtSend).toEqual({ status: 'absent' });
+
+    await writeProject(workdir, 'elements: []\n');
+    const withProject = await send('turn-b');
+    expect(withProject.artifactAtSend).toEqual({
+      status: 'present',
+      digest: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
+    const digest = (withProject.artifactAtSend as { digest: string }).digest;
+
+    // The same project on the next dispatch is the same identity — which is what
+    // lets P2.3 report "this turn produced nothing" instead of re-importing it.
+    expect((await send('turn-c')).artifactAtSend).toEqual({ status: 'present', digest });
+
+    // One rewritten page is a different project.
+    await writeProject(workdir, 'elements:\n  - elementId: title\n');
+    expect((await send('turn-d')).artifactAtSend).not.toEqual({ status: 'present', digest });
+
+    // A workspace we refuse to import is recorded as refused, without the
+    // collector's message (the manifest is a file the agent can read).
+    await rm(path.join(workdir, 'design.pptd'));
+    await symlink(path.join(workdir, 'pages', 'main.page'), path.join(workdir, 'design.pptd'));
+    expect((await send('turn-e')).artifactAtSend).toEqual({ status: 'rejected' });
   });
 
   it('replaces a corrupted reference copy instead of trusting the file name', async () => {

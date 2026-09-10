@@ -5,6 +5,7 @@
  * in the session workdir and classifies it into one durable verdict:
  *
  *   missing design.pptd            -> no_artifact (canvas untouched)
+ *   project unchanged since send   -> no_artifact (nothing this turn produced)
  *   structure/collection failure   -> invalid (+ bounded diagnostics)
  *   imported and saved             -> committed (revisionId)
  *   baseline moved under us        -> candidate  (kept beside the canvas)
@@ -20,6 +21,13 @@
  *   (`./turn-input.ts`) is the integrity anchor. No manifest means no design
  *   turn input was frozen (pre-P2.2 session, internal turn, or the meta-read
  *   branch), so there is nothing to report and nothing is written.
+ * - A turn that produced nothing is not a turn that found something. The
+ *   workspace project is compared against the manifest's `artifactAtSend`
+ *   (`./artifact.ts`): a byte-identical project is a `no_artifact`, not this
+ *   turn's output. Without that check a turn whose agent wrote nothing would
+ *   re-import the previous turn's project and report it as its own — committing
+ *   the same document again, or (worse) keeping a candidate that would undo the
+ *   user's newer edit.
  * - Validation is storage-layer structure only — schema, Bento kernel replay,
  *   asset integrity, and the intake's own fail-closed snapshot rules. Semantic
  *   checks the agent could have run itself (its `finalize.mjs`, preview
@@ -37,7 +45,7 @@
  *   was before. No failure here can change a status, and nothing is ever retried.
  */
 
-import { AuthoringSnapshotError, collectAuthoring, intakeAuthoring } from '@folio/design-authoring';
+import { intakeAuthoring } from '@folio/design-authoring';
 import {
   DESIGN_TURN_OUTCOME_VERSION,
   sanitizeDesignTurnOutcome,
@@ -48,9 +56,10 @@ import {
   type SessionHistoryInput,
   type SessionMeta,
 } from '@lody/shared';
-import { lstat, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { getLodyDataDir } from '@lody/shared/node/installation-profile';
+import { DESIGN_ARTIFACT_ENTRY, readDesignArtifact } from './artifact';
 import { buildAssetDataUris } from './authoring-assets';
 import type { DesignRenderQueue } from './render-output';
 import { designOperation, saveDesignCandidate } from './store';
@@ -58,11 +67,10 @@ import { captureDesignThumbnail, type DesignThumbnailSubject } from './thumbnail
 import {
   DESIGN_TURN_INPUT_DIRNAME,
   DESIGN_TURN_MANIFEST_FILENAME,
+  isDesignTurnId,
   type DesignTurnManifest,
 } from './turn-input';
 
-/** The design artifact entry, at the workdir root (P2.1 contract). */
-export const DESIGN_ARTIFACT_ENTRY = 'design.pptd';
 const SHA256_RE = /^[a-f0-9]{64}$/;
 
 /**
@@ -149,6 +157,10 @@ type ManifestPresent =
 type ManifestRead = { kind: 'missing' } | ManifestPresent;
 
 async function readTurnManifest(workdir: string, turnId: string): Promise<ManifestRead> {
+  // A turn whose id cannot name a turn directory never had a frozen manifest
+  // (P2.2 refuses to materialize one), so there is nothing to read and no path
+  // to build out of it.
+  if (!isDesignTurnId(turnId)) return { kind: 'missing' };
   const file = path.join(workdir, DESIGN_TURN_INPUT_DIRNAME, turnId, DESIGN_TURN_MANIFEST_FILENAME);
   let bytes: string;
   try {
@@ -318,33 +330,33 @@ export async function collectDesignTurnOutcome(
 
       // Missing entry artifact: the agent finished without producing an editable
       // design. The current canvas is left exactly as it was.
-      const entryFile = path.join(workdir, DESIGN_ARTIFACT_ENTRY);
-      try {
-        await lstat(entryFile);
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-          return { ...base, status: 'no_artifact' };
-        }
-        return invalid([{ code: 'design_collect_failed', message: errorMessage(error) }]);
-      }
-
-      let snapshot: Map<string, Uint8Array>;
-      try {
-        snapshot = collectAuthoring(workdir);
-      } catch (error) {
+      const artifact = await readDesignArtifact(workdir);
+      if (artifact.status === 'absent') return { ...base, status: 'no_artifact' };
+      if (artifact.status === 'rejected') {
         // Symlink/hardlink/escape/non-regular entry: the artifact exists but is
         // not a snapshot we are willing to import. Never repaired, never retried.
         return invalid([
           {
             code:
-              error instanceof AuthoringSnapshotError
+              artifact.rejectedBy === 'snapshot'
                 ? 'design_collect_rejected'
                 : 'design_collect_failed',
-            message: errorMessage(error),
+            message: artifact.message,
           },
         ]);
       }
 
+      // The workspace still holds exactly the project the turn was dispatched
+      // with, so this turn produced nothing: what is on disk is an earlier
+      // turn's work, already collected when it was written. Reporting it again
+      // as this turn's output would re-commit a document the user has since
+      // moved past, or keep a candidate that undoes their newer edit.
+      const atSend = manifestFile.manifest.artifactAtSend;
+      if (atSend?.status === 'present' && atSend.digest === artifact.digest) {
+        return { ...base, status: 'no_artifact' };
+      }
+
+      const snapshot = artifact.snapshot;
       const intake = intakeAuthoring(DESIGN_ARTIFACT_ENTRY, snapshot);
       if (intake.status === 'invalid') {
         return invalid(intake.diagnostics.map(({ code, message }) => ({ code, message })));

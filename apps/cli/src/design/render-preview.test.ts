@@ -15,8 +15,8 @@ import path from 'node:path';
 import { deflateSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { DesignRenderHostWork } from '@lody/shared';
+import { DESIGN_ARTIFACT_ENTRY } from './artifact';
 import { canonicalContentBytes } from './store';
-import { DESIGN_ARTIFACT_ENTRY } from './turn-outcome';
 import {
   DESIGN_PREVIEW_DIRNAME,
   MAX_KEPT_PREVIEWS,

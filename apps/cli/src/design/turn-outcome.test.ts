@@ -25,15 +25,19 @@ import type {
 } from '@lody/shared';
 import { sanitizeDesignTurnOutcome, type DesignTurnOutcome } from '@lody/shared';
 import type { DesignRenderQueue } from './render-output';
+import { DESIGN_ARTIFACT_ENTRY } from './artifact';
 import { designOperation, listDesignCandidates, readDesignCandidate } from './store';
 import { MAX_THUMBNAIL_EDGE, DESIGN_THUMBNAIL_DIRNAME } from './thumbnail';
 import {
-  DESIGN_ARTIFACT_ENTRY,
   collectDesignTurnOutcome,
   recordDesignTurnTerminalOutcome,
   type DesignTurnOutcomeSession,
 } from './turn-outcome';
-import { DESIGN_TURN_INPUT_DIRNAME, DESIGN_TURN_MANIFEST_FILENAME } from './turn-input';
+import {
+  DESIGN_TURN_INPUT_DIRNAME,
+  DESIGN_TURN_MANIFEST_FILENAME,
+  materializeDesignTurnInput,
+} from './turn-input';
 
 function syntheticPng(width: number, height: number, rgb: [number, number, number]): Uint8Array {
   const crcTable = new Int32Array(256);
@@ -117,6 +121,9 @@ elements:
 
 /** The page above, but pointing at a media file that was never written. */
 const BROKEN_PAGE = PAGE.replace('media/pic.png', 'media/missing.png');
+
+/** The page above, restyled: one real edit an agent could have made. */
+const RESTYLED_PAGE = PAGE.replace('#1F6B8A', '#7B6B8A');
 
 const files = (page: string): Map<string, Uint8Array> =>
   new Map<string, Uint8Array>([
@@ -231,6 +238,11 @@ async function writeArtifact(harness: Harness, page: string | null): Promise<voi
   }
 }
 
+/**
+ * The manifest of a turn that was dispatched *before* `artifactAtSend` existed:
+ * the same anchor, collected without the stale-project comparison. The
+ * multi-turn tests below freeze the real manifest instead (P2.2 writes it).
+ */
 async function writeManifest(harness: Harness, baselineRevisionId: string): Promise<void> {
   const dir = path.join(harness.workdir, DESIGN_TURN_INPUT_DIRNAME, harness.turnId);
   mkdirSync(dir, { recursive: true });
@@ -251,6 +263,18 @@ async function writeManifest(harness: Harness, baselineRevisionId: string): Prom
       2
     )
   );
+}
+
+/** Freeze this turn's input the way dispatch does, with the workspace as it is now. */
+async function freezeTurnInput(harness: Harness): Promise<void> {
+  await materializeDesignTurnInput({
+    workdir: harness.workdir,
+    turnId: harness.turnId,
+    artworkId: harness.sessionId,
+    prompt: 'design a poster',
+    skillSourceIdentity: 'test',
+    dataRoot: harness.root,
+  });
 }
 
 const contextFor = (harness: Harness, now = new Date('2026-09-10T01:00:00.000Z')) => ({
@@ -406,6 +430,76 @@ describe('collectDesignTurnOutcome', () => {
       sessionId: harness.sessionId,
     });
     expect(stored.revisionId).toBe(created.revisionId);
+    expect(stored.doc.elements).toHaveLength(0);
+  });
+
+  it('reports no_artifact, not a re-import, when the turn left the project exactly as dispatched', async () => {
+    const harness = createHarness();
+    const created = await createDesign(harness);
+    // A project an earlier turn produced, still sitting in the workspace.
+    await writeArtifact(harness, PAGE);
+    await freezeTurnInput(harness);
+
+    const attempt = await collectDesignTurnOutcome(contextFor(harness));
+    expect(attempt).toEqual({
+      status: 'recorded',
+      outcome: expect.objectContaining({ status: 'no_artifact' }),
+    });
+    const stored = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+    expect(stored.revisionId).toBe(created.revisionId);
+    expect(stored.doc.elements).toHaveLength(0);
+  });
+
+  it('collects the project once the turn actually changed it', async () => {
+    const harness = createHarness();
+    const created = await createDesign(harness);
+    await writeArtifact(harness, PAGE);
+    await freezeTurnInput(harness);
+    // The agent edited one page — the project is no longer the one it started
+    // from, so this turn did produce something.
+    await writeArtifact(harness, RESTYLED_PAGE);
+
+    const attempt = await collectDesignTurnOutcome(contextFor(harness));
+    expect(attempt.status).toBe('recorded');
+    if (attempt.status !== 'recorded') return;
+    expect(attempt.outcome.status).toBe('committed');
+    const stored = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+    expect(stored.revisionId).toBe(attempt.outcome.revisionId);
+    expect(stored.revisionId).not.toBe(created.revisionId);
+    expect(stored.doc.elements).toHaveLength(3);
+  });
+
+  it('never keeps an earlier turn’s project as a candidate for this turn', async () => {
+    const harness = createHarness();
+    const created = await createDesign(harness);
+    await writeArtifact(harness, PAGE);
+    await freezeTurnInput(harness);
+    // The user saved while this turn ran. Re-importing the project now would
+    // either re-commit a document they moved past, or keep a candidate whose
+    // content is the older document — an invitation to undo their own save.
+    await moveBaseline(harness, created.revisionId);
+    const userSaved = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+
+    const attempt = await collectDesignTurnOutcome(contextFor(harness));
+    expect(attempt).toEqual({
+      status: 'recorded',
+      outcome: expect.objectContaining({ status: 'no_artifact' }),
+    });
+    expect(await listDesignCandidates(harness.root, harness.sessionId)).toEqual([]);
+    const stored = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+    expect(stored.revisionId).toBe(userSaved.revisionId);
     expect(stored.doc.elements).toHaveLength(0);
   });
 

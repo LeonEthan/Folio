@@ -45,8 +45,8 @@ import {
   verifyRenderedPng,
   type DesignRenderQueue,
 } from './render-output';
+import { DESIGN_ARTIFACT_ENTRY } from './artifact';
 import { canonicalContentBytes, type DesignPayload } from './store';
-import { DESIGN_ARTIFACT_ENTRY } from './turn-outcome';
 
 /** Where rendered previews live, relative to the session workdir. */
 export const DESIGN_PREVIEW_DIRNAME = 'design-preview';
