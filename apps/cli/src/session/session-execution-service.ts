@@ -489,6 +489,13 @@ export type SessionExecutionServiceDeps = {
     inputBlocks: SessionInputBlock[];
     issuePRMentions?: IssuePRMention[];
     replayPromptText?: string;
+    /**
+     * The user turn being dispatched. Design sessions freeze the turn-input
+     * manifest under this id (P2.2); pass the raw message userTurnId (not the
+     * delivery-filtered execution id) so delivery retries rewrite the same
+     * manifest. Absent for internal auto prompts.
+     */
+    userTurnId?: string;
   }) => Promise<ContentBlock[]>;
   applyAcpModeAndModel: (
     session: {
@@ -1293,6 +1300,7 @@ export class SessionExecutionService {
         sessionId: options.sessionId,
         inputBlocks,
         issuePRMentions: options.inputConfig.issuePRMentions,
+        userTurnId: options.userTurnId,
       });
       const preConfigRejection = await rejectBeforeProviderSubmission();
       if (preConfigRejection) {
@@ -3812,6 +3820,7 @@ export class SessionExecutionService {
                   usedHistoryReplay && replayPromptResult?.promptText
                     ? replayPromptResult.promptText
                     : undefined,
+                userTurnId,
               })
           );
 
@@ -4622,6 +4631,7 @@ export class SessionExecutionService {
                   workspaceId,
                   sessionId,
                   inputBlocks: [...nonTextInputBlocks, { type: 'text', text: createPromptText }],
+                  ...(userTurnId ? { userTurnId } : {}),
                 })
             );
             void promise.catch(() => undefined);

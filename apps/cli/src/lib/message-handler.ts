@@ -289,6 +289,7 @@ import type { WorkspaceWatchCoordinatorApi } from './code-collab/workspace-watch
 import { appendIssuePrMentionsToPrompt } from '@/session/session-execution-helpers';
 import { getDefaultSessionWorkdir } from '@/session/session';
 import { designSkillPointerLine, materializeDesignSkills } from '@/design/skills';
+import { DesignTurnInputError, materializeDesignTurnInput } from '@/design/turn-input';
 import {
   SessionExecutionService,
   type SessionDispatchSource,
@@ -2498,6 +2499,12 @@ export class MessageHandler {
     inputBlocks: SessionInputBlock[];
     issuePRMentions?: IssuePRMention[];
     replayPromptText?: string;
+    /**
+     * The dispatch's userTurnId. Present for user turns (create/continue/
+     * steer/delivery-retry); absent for internal auto prompts. Design sessions
+     * freeze their turn-input manifest under this id (P2.2).
+     */
+    userTurnId?: string;
   }): Promise<ContentBlock[]> {
     const textParts: string[] = [];
     const imageInputBlocks: Extract<SessionInputBlock, { type: 'image' }>[] = [];
@@ -2570,9 +2577,15 @@ export class MessageHandler {
     ).trim();
 
     // Design sessions (SessionMeta.design) get the bundled design skills
-    // materialized into their workdir plus a pointer line in the prompt.
-    // Non-design sessions are byte-identical to before.
-    const designSkillPointer = await this.buildDesignSkillPointer(args.sessionId);
+    // materialized into their workdir plus a pointer line in the prompt, and —
+    // for user turns — a frozen turn-input manifest (P2.2). Non-design
+    // sessions are byte-identical to before.
+    const designSkillPointer = await this.prepareDesignTurn({
+      sessionId: args.sessionId,
+      userTurnId: args.userTurnId,
+      promptText: textPrompt,
+      imageAttachments: imagePromptAttachments,
+    });
     const finalTextPrompt = designSkillPointer
       ? `${textPrompt}${textPrompt.length > 0 ? '\n\n' : ''}${designSkillPointer}`
       : textPrompt;
@@ -2608,35 +2621,90 @@ export class MessageHandler {
   }
 
   /**
-   * Design-turn skill delivery (P2.1): when the session meta carries a design
-   * association, sync the bundled skill dirs into the session workdir's
+   * Design-turn preparation (P2.1 + P2.2): when the session meta carries a
+   * design association, sync the bundled skill dirs into the session workdir's
    * project-level skill dirs and return the prompt pointer line. Returns null
-   * for non-design sessions (zero prompt change) and on materialization
-   * failure — a damaged bundle must not block dispatch on the prompt hot path;
-   * the warning stays observable in the log instead.
+   * for non-design sessions (zero prompt change).
+   *
+   * Failure discipline is split on purpose:
+   * - Skill materialization failure stays non-blocking (warn, omit the
+   *   pointer) for internal turns without a userTurnId — the P2.1 hot-path
+   *   rule.
+   * - For user turns the turn-input manifest is the integrity anchor P2.3 uses
+   *   to decide commit-vs-candidate, so every part of it is blocking: an
+   *   unreadable design baseline, an unwriteable manifest/reference, or a
+   *   failed skill sync (the manifest must record its content identity) throws
+   *   and fails the dispatch through the ordinary turn-failure path.
    */
-  private async buildDesignSkillPointer(sessionId: SessionId): Promise<string | null> {
+  private async prepareDesignTurn(args: {
+    sessionId: SessionId;
+    userTurnId?: string;
+    promptText: string;
+    imageAttachments: Array<{
+      inputBlock: Extract<SessionInputBlock, { type: 'image' }>;
+      downloaded: DownloadedSessionImagePromptBlock;
+    }>;
+  }): Promise<string | null> {
+    let meta: SessionMeta | null | undefined;
     try {
-      const sessionDoc = await this.workspaceDocument.getOrCreateSessionDoc(sessionId);
-      const meta = await sessionDoc.getMetaState();
-      if (!meta?.design) return null;
-      const workdir = getDefaultSessionWorkdir(sessionId);
-      const result = materializeDesignSkills({ workdir });
-      const drifted = result.targets.flatMap((target) =>
-        target.drifted.map((file) => `${target.dir}/${file}`)
-      );
-      if (drifted.length > 0) {
-        this.logger.warn(
-          `[${sessionId}] design skill materialization left user-modified files untouched: ${drifted.join(', ')}`
-        );
-      }
-      return designSkillPointerLine(workdir);
+      const sessionDoc = await this.workspaceDocument.getOrCreateSessionDoc(args.sessionId);
+      meta = await sessionDoc.getMetaState();
     } catch (error) {
+      // An unreadable session doc means we cannot even establish that this is a
+      // design session, so there is no manifest to freeze and nothing to block
+      // on; the ordinary dispatch path reports the underlying problem.
       this.logger.warn(
-        `[${sessionId}] design skill materialization failed: ${error instanceof Error ? error.message : String(error)}`
+        `[${args.sessionId}] design session meta unreadable; skipping design turn preparation: ${error instanceof Error ? error.message : String(error)}`
       );
       return null;
     }
+    if (!meta?.design) return null;
+    const workdir = getDefaultSessionWorkdir(args.sessionId);
+
+    let sourceIdentity: string;
+    let skillDrift: string[];
+    try {
+      const result = materializeDesignSkills({ workdir });
+      sourceIdentity = result.sourceIdentity;
+      skillDrift = result.targets.flatMap((target) =>
+        target.drifted.map((file) => path.relative(workdir, path.join(target.dir, file)))
+      );
+      if (skillDrift.length > 0) {
+        this.logger.warn(
+          `[${args.sessionId}] design skill materialization left user-modified files untouched: ${skillDrift.join(', ')}`
+        );
+      }
+    } catch (error) {
+      if (!args.userTurnId) {
+        this.logger.warn(
+          `[${args.sessionId}] design skill materialization failed: ${error instanceof Error ? error.message : String(error)}`
+        );
+        return null;
+      }
+      throw new DesignTurnInputError(
+        `[${args.sessionId}] design skill materialization failed; the turn-input manifest cannot record the skill content identity: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
+      );
+    }
+
+    if (args.userTurnId) {
+      const manifest = await materializeDesignTurnInput({
+        workdir,
+        turnId: args.userTurnId,
+        artworkId: meta.design.artworkId,
+        prompt: args.promptText,
+        skillSourceIdentity: sourceIdentity,
+        skillDrift,
+        references: args.imageAttachments.map(({ downloaded }) => ({
+          bytes: downloaded.bytes,
+          mimeType: downloaded.mimeType,
+        })),
+      });
+      this.logger.debug(
+        `[${args.sessionId}] design turn input frozen for turn ${args.userTurnId}: baseline=${manifest.baselineRevisionId.slice(0, 12)} references=${manifest.references.length}`
+      );
+    }
+    return designSkillPointerLine(workdir);
   }
 
   private async getLocalProjectGitStateForRpc(args: {

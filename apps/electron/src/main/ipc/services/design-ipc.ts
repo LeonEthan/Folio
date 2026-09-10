@@ -18,7 +18,8 @@ import {
   copyDesign,
   exportDesign,
   finishDesignCopy,
-  renameDesign
+  renameDesign,
+  saveDesignForDispatch
 } from '../../services/design-service'
 
 function owner() {
@@ -59,6 +60,10 @@ export class DesignIpc extends IpcService {
   @IpcMethod() async read(sessionId: string) {
     owner()
     return designRequest({ operation: 'read', sessionId: id.parse(sessionId) })
+  }
+  @IpcMethod() async save(sessionId: string) {
+    owner()
+    await saveDesignForDispatch(id.parse(sessionId))
   }
   @IpcMethod() async attach(
     sessionId: string,

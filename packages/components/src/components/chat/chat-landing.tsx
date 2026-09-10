@@ -67,6 +67,7 @@ import {
 } from '@/components/shared';
 import { cn } from '@/lib/utils';
 import { getIpcServices, onIpcEvent, sendIpc } from '@/lib/electron-ipc-client';
+import { flushDesignCanvasBeforeSend } from '@/lib/design-canvas-save-gate';
 import {
   bugReportDialogOpenAtom,
   chatLandingSessionStateAtomFamily,
@@ -2900,7 +2901,8 @@ function WorkspaceChatLanding({
         | 'missing_context'
         | 'local_project_git_state_failed'
         | 'missing_branch'
-        | 'missing_project',
+        | 'missing_project'
+        | 'design_save_failed',
       extra?: Record<string, unknown>
     ) => {
       capturePostHogEvent(postHog, 'session/input_blocked', {
@@ -3138,6 +3140,23 @@ function WorkspaceChatLanding({
             ? { width: canvasDraft.width, height: canvasDraft.height }
             : {}),
         });
+        /* P2.2: the first turn's baseline must be the saved canvas. Create is
+           the initial save; also flush any already-open editor (a no-op when
+           none is attached). On failure block the send and keep the draft. */
+        try {
+          await flushDesignCanvasBeforeSend(association.sessionId);
+        } catch (error) {
+          captureSessionInputBlocked('design_save_failed', {
+            error_message: error instanceof Error ? error.message : String(error),
+          });
+          setComposerError(
+            t(
+              'design.saveFailedBeforeSend',
+              'The canvas could not be saved; your edits are kept. Please try sending again.'
+            )
+          );
+          return;
+        }
       }
       const { sessionId, historyEntry } = await startSession(
         {

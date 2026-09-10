@@ -375,3 +375,17 @@ Auto 修订验证：扩展存储检查覆盖省略宽高时的缺省初始化，
 **测试。** 包内 19 项（intake 三态 7、最小示例符合性 1、loadBentoDocV4 2、采集 2、技能脚本端到端 7）；CLI 侧物化器 9 项（全新同步/幂等/更新受管文件/漂移保护/既有未受管文件/名称逃逸/符号链接/缺源/指路行）、intake→store 集成 2 项（合成 PPTD 经 intake 后过 store 的 schema+kernel 重放+素材完整性）、prompt 接线 3 项（设计会话有指路且双目录落盘、非设计会话不变、缺 bundle 不阻塞）。全部通过；全部夹具合成。
 
 **偏差与理由。**（1）示例 manifest 保留上游名 `poster.pptd`（逐字迁入），pptd-authoring.md 注明交付物须为 `design.pptd`。（2）物化器不删除旧版本遗留文件（裁定只要求新增/更新语义）。（3）物化失败不阻塞回合——沿用「agent.prompt 前只允许正确性关键准备」的现有纪律，缺失以日志呈现。（4）`pnpm format` 发现 main 上 `app-updater-sparkle-policy.test.mjs` 存在既有格式漂移（与本次无关），已还原留给主会话处置。（5）上游代码三处为满足本仓 lint（no-shadow、consistent-return）与 noUncheckedIndexedAccess（richtext 一处）做了不动语义的适配，已记入 manifest 的 adapted 级别。P2.2–P2.5（输入清单、回合后采集、图像连接、结果卡）不在本轮。
+
+### P2.2 实施记录（2026-09-10）
+
+**输入物化。** `apps/cli/src/design/turn-input.ts` 在用户回合派发前冻结本次输入：`chats/<sessionId>/design-input/<turnId>/manifest.json`（version、turnId、prompt、画布宽高、`baselineRevisionId`、`skillSourceIdentity`、`skillDrift`、references 列表）与 `references/<sha256>.<ext>` 内容定名副本（写后复验哈希；同内容去重；同 turnId 重试逐字节重写不重复）。全部写走 store 同款纪律：临时文件 + fsync + rename + 父目录 fsync。基线经单一提交者 `designOperation({operation:'read'})` 读取；设计不可读即抛 `DesignTurnInputError` 阻塞派发，与 P2.1 技能同步对 `userTurnId` 缺失的内部轮次保持警告语义的分工一致——用户回合的清单是 P2.3 判定提交/候选的完整性锚点，不得降级为警告。
+
+**turnId 贯通。** `SessionExecutionServiceDeps.buildAcpPromptBlocks` 增加 `userTurnId`，由三处调用点传入原始消息 userTurnId（create、continue/replay、runVisibleSessionTurn），使投递重试（delivery retry）改写同一清单而非产生第二份。`prepareDesignTurn` 取代 P2.1 的 `buildDesignSkillPointer`：设计会话先物化技能再写清单，返回指路行；非设计会话仍逐字节不变。
+
+**参考图双通道。** 清单 references 使用与 prompt 图片块同源的已下载字节（`DownloadedSessionImagePromptBlock`），按 MIME 定扩展名；Agent 声明的图像输入能力不变，图片块照常进入 prompt。
+
+**发送前保存（渲染侧）。** `packages/components/src/lib/design-canvas-save-gate.ts` 的 `flushDesignCanvasBeforeSend(artworkId)` 是两处发送点的共用漏斗：无 Electron 宿主或画布本轮从未挂载即直接放行（无未保存编辑），有编辑器记录则执行 `window.folio.save()` 并等待。Electron `design.save` IPC 经 `saveDesignForDispatch`：无记录放行；桥未就绪（`window.folio` 未定义）放行；真实保存失败抛出，调用方（chat-landing 首回合提交、session-chat-interface 输入提交）阻断发送、保留草稿并提示 `design.saveFailedBeforeSend`（中英文案已补）。隐藏但未关闭的画布沿用 P1 实例保留语义，保存照常工作。
+
+**测试。** CLI 10 项（清单内容与哈希、原子写、幂等重写、设计不可读阻塞、非设计会话不变、参考图落盘与去重、prompt 接线）；渲染侧 4 项（无宿主放行、无设计服务放行、等待保存完成才 resolve、保存失败 reject 以阻断发送）。
+
+**偏差与理由。**（1）保存门为「无记录即放行」——P1 语义下未挂载编辑器不可能存在未保存编辑，强制失败会把正常发送误伤为错误。（2）参考图与图片块共用下载字节而非二次读取附件，避免两条路径产生不同事实。（3）`skillDrift` 记录为 workdir 相对路径（P2.1 为绝对路径），便于清单消费方直接定位。（4）会话元数据不可读（如测试替身未提供文档）时按「无法确认是设计会话」处理：警告并跳过设计回合准备，不阻塞——此时既无设计关联可确认，也无清单可冻结；确认 `meta.design` 之后的技能同步、基线读取与清单写入仍是阻塞语义。该分支由既有 `message-handler-session-file-prompt` 测试暴露（最小替身不含文档），修复后设计相关 26 项测试全绿。P2.3–P2.5（回合后采集、图像连接、结果卡）不在本轮。

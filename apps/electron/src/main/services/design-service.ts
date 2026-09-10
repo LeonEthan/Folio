@@ -208,6 +208,22 @@ export async function saveDesign(id: string) {
   const result = await record.view.webContents.executeJavaScript('window.folio?.save()')
   if (!result?.ok) throw Error(result?.error ?? 'Canvas is not ready')
 }
+/**
+ * P2.2 send gate: flush pending canvas edits before a design turn is
+ * dispatched. A missing record means no editor was ever opened this run, so no
+ * unsaved edits can exist; an editor whose bridge has not finished loading
+ * cannot have been edited yet either. Both proceed; a real save failure
+ * rejects so the renderer can block the send and keep the user's draft.
+ */
+export async function saveDesignForDispatch(id: string) {
+  const record = records.get(id)
+  if (!record) return
+  const result = await record.view.webContents.executeJavaScript(
+    'window.folio ? window.folio.save() : undefined'
+  )
+  if (result === undefined || result === null) return
+  if (!result.ok) throw Error(result.error ?? 'Canvas save failed')
+}
 export async function leaveDesign(id: string): Promise<boolean> {
   try {
     await records.get(id)?.view.webContents.executeJavaScript('document.body.inert = true')

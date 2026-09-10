@@ -51,6 +51,7 @@ import {
 import { Button } from '@/ui/button';
 import { isMacOSElectronRenderer, useElectronFullscreen } from '@/lib/electron';
 import { getIpcServices } from '@/lib/electron-ipc-client';
+import { flushDesignCanvasBeforeSend } from '@/lib/design-canvas-save-gate';
 import { isMac } from '@/lib/commands/platform';
 import { matchesKeyboardEvent, parseBinding } from '@/lib/commands/key-matcher';
 import { isSessionContextCompacting } from '@/lib/session-context-compaction';
@@ -3876,6 +3877,25 @@ export const SessionChatInterface = memo(
           });
           return false;
         }
+        // P2.2: a design turn may only leave once the canvas editor (possibly
+        // open-but-hidden) has durably saved; the daemon pins the post-save
+        // baseline in the turn-input manifest. On failure the send is blocked
+        // and the composer draft is left untouched.
+        if (session.design) {
+          try {
+            await flushDesignCanvasBeforeSend(session.design.artworkId);
+          } catch (error) {
+            captureSessionEvent('session/input_blocked', {
+              reason: 'design_save_failed',
+              entrypoint: 'session_chat',
+              has_pending_images: inputSummary.has_images,
+            });
+            toast.error(t('design.saveFailedBeforeSend', 'Canvas save failed'), {
+              description: getErrorMessage(error),
+            });
+            return false;
+          }
+        }
         captureSessionEvent('session/message_submit_requested', {
           ...inputSummary,
           force_queue: Boolean(options?.forceQueue),
@@ -3965,9 +3985,11 @@ export const SessionChatInterface = memo(
         isAgentBusy,
         queueInputBlocks,
         queuedMessageBehavior,
+        session.design,
         sessionDocReady,
         selectedModeId,
         selectedModelId,
+        t,
       ]
     );
 
