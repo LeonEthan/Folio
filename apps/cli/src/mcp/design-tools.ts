@@ -23,9 +23,19 @@
  * be reached is not a daemon that said yes, and a session the daemon cannot
  * recognize as a design session is not one. A missing tool is honest, while a
  * registered tool that always errors would teach the agent to stop trying.
+ *
+ * `folio_render_preview` (P2.4b) rides the same socket for the same reason, but
+ * asks a different question: whether a Folio desktop is polling this machine. It
+ * is the desktop — not the daemon — that owns rendering, so the capability this
+ * tool needs is not a credential the daemon holds but a window the user has
+ * open. The two gates stay separate fields because they are separate facts, and
+ * the render request itself is also the honest one: the daemon renders from the
+ * session workdir it already resolves, so this process never learns a path it
+ * could have supplied.
  */
 
 import {
+  DesignRenderRpcResultSchema,
   ImageConnectionRpcResultSchema,
   type ImageConnectionSettings,
   type SessionId,
@@ -35,6 +45,19 @@ import { Effect } from 'effect';
 
 /** How long the gate lookup may take before it is treated as "no capability". */
 export const DESIGN_GATE_TIMEOUT_MS = 10_000;
+
+/**
+ * How long the render call itself may take.
+ *
+ * Deliberately longer than the daemon's own preview timeout (60 s,
+ * `DESIGN_RENDER_PREVIEW_TIMEOUT_MS`): the daemon must be the one that gives up
+ * first, so that a slow render resolves as an honest daemon-side refusal
+ * ("nothing rendered am I willing to hand over") instead of this process
+ * abandoning a call the daemon is still holding. A client that times out first
+ * would leave the daemon's queue holding work for a preview nobody is waiting
+ * for.
+ */
+export const DESIGN_RENDER_TIMEOUT_MS = 75_000;
 
 /**
  * What the built-in MCP server needs to know about design capability.
@@ -115,25 +138,135 @@ export async function resolveDesignGate(
     logger?.debug('design gate: no local control socket; image tool stays unregistered');
     return EMPTY_DESIGN_GATE;
   }
+  const answer = await callDesignRpc(ctx, logger, 'design/image-connection', {});
+  if (!answer.ok) {
+    logger?.debug(`design gate: lookup failed: ${answer.error}`);
+    return EMPTY_DESIGN_GATE;
+  }
+  const gate = designGateFromRpcResult(answer.result);
+  if (gate.imageConnection === null) {
+    logger?.debug(
+      'design gate: session is not an eligible design session, or the image connection is absent, disabled, or incomplete'
+    );
+  }
+  return gate;
+}
+
+/**
+ * Whether a Folio desktop is polling the daemon right now, which is the whole
+ * of what makes preview rendering possible (P2.4b).
+ *
+ * Separate from `resolveDesignGate` because the two capabilities are genuinely
+ * independent: a machine can have a working image connection with no desktop
+ * running, and a desktop can be running with no image connection at all.
+ * Folding them into one bit would make either tool lie about the other.
+ */
+export async function resolveRenderHost(
+  ctx: DesignGateContext,
+  logger?: { debug(message: string): void }
+): Promise<boolean> {
+  if (!ctx.localControlSocketPath) {
+    logger?.debug('render gate: no local control socket; preview tool stays unregistered');
+    return false;
+  }
+  const answer = await callDesignRpc(ctx, logger, 'design/render-host-status', {});
+  if (!answer.ok) {
+    logger?.debug(`render gate: daemon refused the lookup: ${answer.error}`);
+    return false;
+  }
+  const connected = renderHostFromRpcResult(answer.result);
+  if (!connected) {
+    logger?.debug('render gate: no Folio desktop is polling this machine, so nothing can render');
+  }
+  return connected;
+}
+
+/** The daemon's own reading of `design/render-host-status`; anything else is "no". */
+export function renderHostFromRpcResult(result: unknown): boolean {
+  const parsed = DesignRenderRpcResultSchema.safeParse(result);
+  if (!parsed.success || parsed.data.type !== 'design/render-host-status') return false;
+  return parsed.data.connected;
+}
+
+export type DesignRenderRequest =
+  | { status: 'rendered'; path: string; width: number; height: number; bytes: number }
+  | { status: 'refused'; error: string };
+
+/**
+ * Ask the daemon to render one preview of the asking session's project.
+ *
+ * The daemon owns the workdir, the intake, and the render queue; this process
+ * owns nothing but the question. Every answer — including "the desktop went
+ * away mid-render" — comes back as a result, because none of those are
+ * transport failures: a preview that could not be rendered is a fact the agent
+ * is entitled to hear.
+ */
+export async function requestDesignRenderPreview(
+  ctx: DesignGateContext,
+  logger?: { debug(message: string): void }
+): Promise<DesignRenderRequest> {
+  if (!ctx.localControlSocketPath) {
+    return { status: 'refused', error: 'this session has no local control socket to ask.' };
+  }
+  const answer = await callDesignRpc(
+    ctx,
+    logger,
+    'design/render-preview',
+    {},
+    DESIGN_RENDER_TIMEOUT_MS
+  );
+  if (!answer.ok) return { status: 'refused', error: answer.error };
+
+  const parsed = DesignRenderRpcResultSchema.safeParse(answer.result);
+  if (!parsed.success || parsed.data.type !== 'design/render-preview') {
+    return { status: 'refused', error: 'the daemon answered the render request unexpectedly.' };
+  }
+  return parsed.data.ok
+    ? {
+        status: 'rendered',
+        path: parsed.data.path,
+        width: parsed.data.width,
+        height: parsed.data.height,
+        bytes: parsed.data.bytes,
+      }
+    : { status: 'refused', error: parsed.data.error };
+}
+
+type DesignRpcAnswer = { ok: true; result: unknown } | { ok: false; error: string };
+
+/**
+ * One question to the daemon over the machine-local control socket.
+ *
+ * Never throws: a missing socket, a timeout, a protocol surprise, or a refusal
+ * envelope all become the same "not available", because absence is what every
+ * caller here already means by a failed lookup.
+ */
+async function callDesignRpc(
+  ctx: DesignGateContext,
+  logger: { debug(message: string): void } | undefined,
+  method: 'design/image-connection' | 'design/render-host-status' | 'design/render-preview',
+  params: Record<string, never>,
+  timeoutMs: number = DESIGN_GATE_TIMEOUT_MS
+): Promise<DesignRpcAnswer> {
+  const socketPath = ctx.localControlSocketPath;
+  if (!socketPath) return { ok: false, error: 'no local control socket' };
   try {
     const result = await Effect.runPromise(
-      makeLocalControlClientAuto({ socketPath: ctx.localControlSocketPath })
+      makeLocalControlClientAuto({ socketPath })
         .machineRpc(
           {
-            method: 'design/image-connection',
+            method,
             machineId: ctx.machineId,
             workspaceId: ctx.workspaceId,
             ownerSessionId: ctx.sessionId,
-            params: {},
+            params,
           },
-          { timeoutMs: DESIGN_GATE_TIMEOUT_MS }
+          { timeoutMs }
         )
         .pipe(
           Effect.catchTag('IpcTimeoutError', (error) =>
             Effect.fail(
-              new Error(
-                `local control timed out after ${DESIGN_GATE_TIMEOUT_MS}ms (${error.message})`
-              )
+              new Error(`local control timed out after ${timeoutMs}ms (${error.message})`)
             )
           ),
           Effect.catchTag('IpcProtocolError', (error) =>
@@ -141,19 +274,10 @@ export async function resolveDesignGate(
           )
         )
     );
-    if (!result.ok) {
-      logger?.debug(`design gate: daemon refused the lookup: ${result.error}`);
-      return EMPTY_DESIGN_GATE;
-    }
-    const gate = designGateFromRpcResult(result.result);
-    if (gate.imageConnection === null) {
-      logger?.debug(
-        'design gate: session is not an eligible design session, or the image connection is absent, disabled, or incomplete'
-      );
-    }
-    return gate;
+    if (!result.ok) return { ok: false, error: result.error };
+    return { ok: true, result: result.result };
   } catch (error) {
-    logger?.debug(`design gate: lookup failed: ${errorMessage(error)}`);
-    return EMPTY_DESIGN_GATE;
+    logger?.debug(`design rpc ${method} failed: ${errorMessage(error)}`);
+    return { ok: false, error: errorMessage(error) };
   }
 }

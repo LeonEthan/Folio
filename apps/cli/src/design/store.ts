@@ -167,7 +167,10 @@ const candidateSummary = (candidate: DesignCandidate): DesignCandidateSummary =>
  * Content-addressed without depending on key insertion order: the id must be
  * stable across processes and reloads for the same produced design.
  */
-const canonicalContentBytes = (content: z.output<typeof designInput>): Uint8Array => {
+export const canonicalContentBytes = (content: {
+  doc: unknown;
+  assets: Record<string, string>;
+}): Uint8Array => {
   const assets: Record<string, string> = {};
   for (const key of Object.keys(content.assets).sort()) {
     assets[key] = content.assets[key] as string;

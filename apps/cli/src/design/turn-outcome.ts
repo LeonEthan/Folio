@@ -46,10 +46,7 @@ import {
 import { lstat, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { getLodyDataDir } from '@lody/shared/node/installation-profile';
-import {
-  sniffStaticV1FontMime,
-  sniffStaticV1ImageMime,
-} from '../../../../packages/design-bento/vendor/packages/contracts/src/static-v1';
+import { buildAssetDataUris } from './authoring-assets';
 import { designOperation, saveDesignCandidate } from './store';
 import {
   DESIGN_TURN_INPUT_DIRNAME,
@@ -60,7 +57,6 @@ import {
 /** The design artifact entry, at the workdir root (P2.1 contract). */
 export const DESIGN_ARTIFACT_ENTRY = 'design.pptd';
 const SHA256_RE = /^[a-f0-9]{64}$/;
-const MAX_ASSET_BYTES = 16 * 1024 * 1024;
 
 /**
  * The part of `SessionDocument` this module needs. Structural, so the real
@@ -147,22 +143,6 @@ async function readTurnManifest(workdir: string, turnId: string): Promise<Manife
     return { kind: 'unreadable', message: 'manifest does not carry a usable baselineRevisionId' };
   }
   return { kind: 'ok', manifest: manifest as DesignTurnManifest };
-}
-
-/**
- * The store admits exactly these MIME types, sniffed from the bytes themselves
- * (`store.ts` cross-checks the same way) — so a font is never served as an
- * image and a mislabeled asset fails loudly here instead of being repaired.
- */
-function buildAssetDataUris(assets: Map<string, Uint8Array>): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const [hash, bytes] of assets) {
-    const mime = sniffStaticV1ImageMime(bytes) ?? sniffStaticV1FontMime(bytes);
-    if (mime === null) throw Error(`unsupported asset bytes for ${hash}`);
-    if (bytes.byteLength > MAX_ASSET_BYTES) throw Error(`asset exceeds 16 MiB: ${hash}`);
-    out[hash] = `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`;
-  }
-  return out;
 }
 
 /** The outcome already stamped on this turn, if any. */

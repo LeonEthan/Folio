@@ -11,7 +11,7 @@ import {
   runWithMcpSessionContext,
   type McpSessionContext,
 } from './lody-mcp-server';
-import { resolveDesignGate } from './design-tools';
+import { resolveDesignGate, resolveRenderHost } from './design-tools';
 import { canReadProcNetTcp, lookupLoopbackPeerUid } from './loopback-peer-uid';
 import {
   MCP_HTTP_MACHINE_ID_HEADER,
@@ -309,10 +309,13 @@ async function handleRequest(
   // rather than frozen for a session: enabling the image connection takes effect
   // on the next turn, and disabling it removes the tool just as promptly.
   const designGate = await resolveDesignGate(context, logger);
+  const renderHost = await resolveRenderHost(context, logger);
   const server = buildLodyMcpServer({
     taskToolsEnabled: context.taskToolsEnabled,
     designGate,
+    renderHost,
     resolveGate: async () => await resolveDesignGate(context, logger),
+    resolveRenderHost: async () => await resolveRenderHost(context, logger),
   });
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,

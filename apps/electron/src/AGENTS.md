@@ -109,5 +109,9 @@ through the CLI design worker. Keep editor views isolated without preload, Node,
 permissions or external network. Bind each view's save route to its exact Session;
 CLI owns canonical bytes and assets, Electron owns rendering and native dialogs.
 Save before route/close/quit cleanup; retain editor instances until explicit tab close.
-Before changing design input, persistence or export, read
-[the design boundary](../../../packages/design-bento/README.md).
+The desktop also renders agent-requested previews: `design-render-host-service.ts` polls the
+daemon's preview queue, so `folio_render_preview` exists exactly while this window is open. Keep
+that loop's policy in `design-render-host-core.ts` — importable without the `electron` runtime —
+and never let it retry or repair a render. Read
+[the design boundary](../../../packages/design-bento/README.md) before changing design input,
+persistence or export.

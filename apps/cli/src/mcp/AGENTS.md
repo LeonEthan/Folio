@@ -46,9 +46,10 @@ Parent instructions apply.
   servers publish no Task tools, and a still-resident Agent whose next Turn disables the feature
   is rejected at every Task handler. Task-originated automation explicitly freezes `true` so it
   can update and comment on the Task it is executing.
-- INVARIANT: `folio_generate_image` is design-sessions-only, decided by the daemon (see the
-  image-connection contract in `packages/shared/AGENTS.md`). Send `ownerSessionId` and treat a
-  missing or empty gate as unregistered: a non-design workdir is the user's own repository.
+- INVARIANT: `folio_generate_image` is design-sessions-only; `folio_render_preview` needs a polling
+  Folio desktop. Both gates are the daemon's: send `ownerSessionId`, and treat a missing gate as
+  unregistered — absent from `tools/list`, never advertised-then-refused. Contract:
+  `packages/shared/AGENTS.md`.
 
 ## Session and Task tool contracts
 

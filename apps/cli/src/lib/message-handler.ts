@@ -302,6 +302,8 @@ import {
   readMachineImageConnection,
 } from '@/design/image-connection';
 import { DesignTurnInputError, materializeDesignTurnInput } from '@/design/turn-input';
+import { DesignRenderHost } from '@/design/render-host';
+import { renderDesignPreview } from '@/design/render-preview';
 import {
   SessionExecutionService,
   type SessionDispatchSource,
@@ -889,6 +891,12 @@ export class MessageHandler {
   private static readonly TURN_CLOUD_SIDE_EFFECT_WAIT_MS = 10_000;
   /** Image-connection probe transport (P2.4); the real fetch transport when unset. */
   private imageConnectionTransport?: MessageHandlerConfig['imageConnectionTransport'];
+  /**
+   * The desktop render host's preview queue (P2.4b). Process state, not per-turn
+   * state: the desktop polls independently of any turn, and one daemon handing
+   * the same preview to two hosts is exactly what a second instance would cause.
+   */
+  private readonly designRenderHost = new DesignRenderHost();
 
   private static readonly ACP_INITIAL_UPDATE_BATCH_WINDOW_MS = 10;
   private static readonly ACP_SUBSEQUENT_UPDATE_BATCH_WINDOW_MS = 100;
@@ -2749,16 +2757,43 @@ export class MessageHandler {
    * absent/deleted document, or an unreadable store all answer `false`.
    */
   private async isDesignSession(sessionId: SessionId | undefined): Promise<boolean> {
-    if (!sessionId) return false;
+    return (await this.readDesignSession(sessionId)) !== undefined;
+  }
+
+  /**
+   * The artwork identity a design session carries, or `undefined` for any
+   * session the design surfaces must not act on (P2.4/P2.4b).
+   *
+   * One reader, because the image gate and the render gate must never disagree
+   * about which sessions are eligible — a session that may generate an asset
+   * into its workdir is exactly a session whose workdir may be rendered. The
+   * read is a raw doc-meta lookup, so asking costs nothing and never opens,
+   * creates, or writes a session document; a missing id, an absent/deleted
+   * document, or an unreadable store all answer `undefined`.
+   */
+  private async readDesignSession(
+    sessionId: SessionId | undefined
+  ): Promise<{ artworkId: string; name: string; userId: string } | undefined> {
+    if (!sessionId) return undefined;
     try {
       const record = await this.workspaceDocument.repo.getDocMeta(getSessionRoomId(sessionId));
-      if (!record?.meta || isLoroRepoDocDeleted(record)) return false;
-      return Boolean((record.meta as SessionMeta).design);
+      if (!record?.meta || isLoroRepoDocDeleted(record)) return undefined;
+      const meta = record.meta as SessionMeta;
+      const design = meta.design;
+      if (!design) return undefined;
+      return {
+        artworkId: design.artworkId,
+        // The artwork's display name, for the payload's association block; a
+        // title-less session falls back to the id rather than carrying an empty
+        // string the design store would have to interpret.
+        name: meta.title?.trim() || design.artworkId,
+        userId: meta.userId,
+      };
     } catch (error) {
       this.logger.warn(
         `[${sessionId}] image capability check could not read the session meta; treating it as a non-design session: ${formatErrorMessage(error)}`
       );
-      return false;
+      return undefined;
     }
   }
 
@@ -6810,6 +6845,71 @@ export class MessageHandler {
               type: 'design/image-connection-test' as const,
               ok: false as const,
               error: result.error.slice(0, 500),
+            };
+      }
+      // The desktop render host (P2.4b). Three methods over one queue, and the
+      // direction is the ordinary one: the desktop calls the daemon, exactly as
+      // it does for images. The daemon never calls out, so a machine with no
+      // desktop polling simply has no render capability — which
+      // `design/render-host-status` answers honestly instead of the call stalling.
+      case 'design/render-host-status': {
+        return {
+          type: 'design/render-host-status' as const,
+          connected: this.designRenderHost.isConnected(),
+        };
+      }
+      case 'design/render-host': {
+        // The host's own loop: it reports finished or failed work, and receives
+        // whatever is queued in the same round trip. No session identity is
+        // required because nothing here is scoped to a session — the work itself
+        // was enqueued by a session-scoped `design/render-preview`.
+        return {
+          type: 'design/render-host' as const,
+          requests: this.designRenderHost.handleHostPoll(request.params.reports),
+        };
+      }
+      case 'design/render-preview': {
+        const design = await this.readDesignSession(
+          request.ownerSessionId as SessionId | undefined
+        );
+        if (!design) {
+          // Same identity predicate as the image methods: a session that is not
+          // a design session has no artwork to render, and the agent that asked
+          // is told that rather than being handed an empty preview.
+          return {
+            type: 'design/render-preview' as const,
+            ok: false as const,
+            error: 'this session is not a design session, so there is no project to preview.',
+          };
+        }
+        const result = await renderDesignPreview(
+          {
+            // The artwork owns the canvas; the session owns the workdir the
+            // agent writes into. Both come from what the daemon resolved, never
+            // from a path the caller supplied — a design session can only ever
+            // preview its own workspace.
+            artworkId: design.artworkId,
+            workdir: getDefaultSessionWorkdir(request.ownerSessionId as SessionId),
+            dataRoot: getLodyDataDir(),
+            name: design.name,
+            userId: design.userId,
+            machineId: this.machineId,
+          },
+          this.designRenderHost
+        );
+        return result.status === 'rendered'
+          ? {
+              type: 'design/render-preview' as const,
+              ok: true as const,
+              path: result.path,
+              width: result.width,
+              height: result.height,
+              bytes: result.bytes,
+            }
+          : {
+              type: 'design/render-preview' as const,
+              ok: false as const,
+              error: result.error.slice(0, 2000),
             };
       }
       case 'code-collab/get-file-index':

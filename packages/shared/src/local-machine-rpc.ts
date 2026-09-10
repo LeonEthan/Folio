@@ -129,6 +129,118 @@ export const ImageConnectionRpcResultSchema = z.discriminatedUnion('type', [
 ]);
 export type ImageConnectionRpcResult = z.infer<typeof ImageConnectionRpcResultSchema>;
 
+/**
+ * The design preview render bridge (P2.4b).
+ *
+ * The daemon cannot rasterize a design: `renderSavedDesign` needs a Chromium
+ * `BrowserWindow`, and that lives in Electron main. Electron main cannot see a
+ * session document either — it is a byte-forwarding pipe with no Loro handle —
+ * so a session-doc rendezvous would have to be answered by the renderer, which
+ * only observes sessions it has joined. The two processes therefore meet on the
+ * owner-only machine-local control socket, in the one direction that already
+ * exists end to end: the desktop calls the daemon.
+ *
+ * `design/render-host` is the desktop's own worker loop. It is not a push and
+ * not a stream: each call returns the results the host finished since the last
+ * call and collects the work waiting now, so a request is a bounded round trip
+ * with no long-lived connection, no cancellation path, and no reverse channel to
+ * secure. Polling at `DESIGN_RENDER_HOST_POLL_INTERVAL_MS` is what makes a host
+ * live: the daemon only reports the capability while a host has polled within
+ * `DESIGN_RENDER_HOST_TTL_MS`, so a desktop that is not running means the tool is
+ * not registered, and a request that arrives with no host fails at once instead
+ * of waiting for one that will never come.
+ *
+ * The payload travels by path, never by value: `assets` are embedded base64 and
+ * a design can exceed the 16 MiB local control response cap, so the daemon
+ * stages the payload file and the host reads it. `outputPath` is the daemon's
+ * choice too, which keeps the rendered PNG inside the session workdir where the
+ * agent that asked for it can open it.
+ */
+export const DESIGN_RENDER_HOST_POLL_INTERVAL_MS = 2_000;
+/** How long a host stays "connected" after its last poll. Comfortably longer than one interval. */
+export const DESIGN_RENDER_HOST_TTL_MS = 15_000;
+
+/** One staged render the daemon is offering the desktop host. */
+export const DesignRenderHostWorkSchema = z
+  .object({
+    requestId: z.string().trim().min(1).max(200),
+    /** Absolute path of the staged `DesignPayload` JSON the host must render. */
+    payloadPath: z.string().min(1),
+    /** Absolute path the host must write the PNG to. */
+    outputPath: z.string().min(1),
+    width: z.number().int().min(1).max(4096),
+    height: z.number().int().min(1).max(4096),
+  })
+  .strict();
+export type DesignRenderHostWork = z.infer<typeof DesignRenderHostWorkSchema>;
+
+const DesignRenderHostReportBase = z.object({
+  requestId: z.string().trim().min(1).max(200),
+});
+export const DesignRenderHostReportSchema = z.discriminatedUnion('ok', [
+  DesignRenderHostReportBase.extend({ ok: z.literal(true) }).strict(),
+  DesignRenderHostReportBase.extend({
+    ok: z.literal(false),
+    // The host's own message, bounded: it reaches the agent as a tool error.
+    error: z.string().trim().min(1).max(500),
+  }).strict(),
+]);
+export type DesignRenderHostReport = z.infer<typeof DesignRenderHostReportSchema>;
+
+/**
+ * The render-preview answer, which is itself a union: a rendered preview and a
+ * refusal carry the same `type` and differ in `ok`.
+ *
+ * Nested rather than flattened because a discriminated union cannot hold two
+ * options with the same discriminator value. Zod dispatches on `type` first and
+ * on `ok` only inside this branch, so both halves stay exhaustively typed
+ * instead of collapsing into one object with optional fields.
+ */
+const DesignRenderPreviewResultSchema = z.discriminatedUnion('ok', [
+  z
+    .object({
+      type: z.literal('design/render-preview'),
+      ok: z.literal(true),
+      /** Workdir-relative path of the rendered PNG, for the agent to open. */
+      path: z.string().trim().min(1).max(1024),
+      width: z.number().int().min(1).max(4096),
+      height: z.number().int().min(1).max(4096),
+      bytes: z.number().int().positive(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('design/render-preview'),
+      ok: z.literal(false),
+      /**
+       * Why the preview could not be rendered: no artifact yet, intake
+       * diagnostics, a host that went away, or a render failure. A refusal is a
+       * result, not a transport error — nothing about it is unexpected.
+       */
+      error: z.string().trim().min(1).max(2000),
+    })
+    .strict(),
+]);
+
+export const DesignRenderRpcResultSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('design/render-host'),
+      /** Work waiting for the host. Delivered once; the daemon owns the queue. */
+      requests: z.array(DesignRenderHostWorkSchema).max(8),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('design/render-host-status'),
+      /** True while a desktop host has polled within `DESIGN_RENDER_HOST_TTL_MS`. */
+      connected: z.boolean(),
+    })
+    .strict(),
+  DesignRenderPreviewResultSchema,
+]);
+export type DesignRenderRpcResult = z.infer<typeof DesignRenderRpcResultSchema>;
+
 export const LocalMachineRpcRequestSchema = z.discriminatedUnion('method', [
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('design/image-connection'),
@@ -137,6 +249,28 @@ export const LocalMachineRpcRequestSchema = z.discriminatedUnion('method', [
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('design/image-connection-test'),
     params: z.object({}).strict(),
+  }).strict(),
+  // Render bridge (P2.4b). The asking session is `ownerSessionId`, exactly as
+  // above: an identity predicate the daemon resolves the workdir from, never a
+  // path the caller could point at someone else's directory.
+  BaseLocalMachineRpcRequestSchema.extend({
+    method: z.literal('design/render-preview'),
+    params: z.object({}).strict(),
+  }).strict(),
+  BaseLocalMachineRpcRequestSchema.extend({
+    method: z.literal('design/render-host-status'),
+    params: z.object({}).strict(),
+  }).strict(),
+  // The desktop host's own loop. Deliberately carries no `ownerSessionId`: a host
+  // belongs to no session, and it is the daemon that decides which sessions may
+  // be previewed.
+  BaseLocalMachineRpcRequestSchema.extend({
+    method: z.literal('design/render-host'),
+    params: z
+      .object({
+        reports: z.array(DesignRenderHostReportSchema).max(8),
+      })
+      .strict(),
   }).strict(),
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('session/get-active-invocation-context'),
@@ -300,6 +434,7 @@ export type LocalMachineRpcRequestValidated = LocalMachineRpcRequest;
 
 export const LocalMachineRpcResultSchema = z.union([
   ImageConnectionRpcResultSchema,
+  DesignRenderRpcResultSchema,
   SessionActiveInvocationContextResultSchema,
   CodeCollabV2FileIndexSnapshotSchema,
   CodeCollabV2OpenTextOkSchema,

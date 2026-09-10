@@ -448,9 +448,11 @@ Auto 修订验证：扩展存储检查覆盖省略宽高时的缺省初始化，
 
 **偏差与理由。**（1）先前写进决策简报的字面规则「候选 baseline 必须等于当前 revision」**废止**：它会让采用在「冲突之后」这条最常见路径上永远拒绝；用户的显式采用应以「现在」为基准，而并发写者由 store 自己的 CAS 如实拒绝。（2）候选三操作做成独立导出 + `design-entry` 独立分支，而不是塞进 `designOperation` 的请求联合：`designOperation` 的形状是既有合同（create/read/save），把「候选处理」并进去会让「谁在写、写的是什么」变模糊，而它本来就不是保存语义。（3）设计会话「还没有画布」（`design.json` 不存在）时 `readDesignCandidateState`／`adoptDesignCandidate` 会以 store 的 `ENOENT` 失败，而不是编一个状态；卡把它渲染为「无法读取候选状态」且不提供任何动作。候选只可能产生于画布已存在之后，画布被销毁属于会话已经不成立的边界，这里选择如实失败而不是发明语义。（4）「已采用」不新增持久位、也不回写历史条目：加字段要动 history schema 与所有写入方，等于把 store 的事实复制成第二份可能漂移的真相。（5）采用前先 flush 画布（`saveDesignForDispatch`）：采用会替换文档，尚未写出的编辑否则会无痕消失；flush 失败则整次采用失败（与发送门同一条语义「宽容尚未加载的桥、拒绝真实的保存失败」）。（6）修复文本固定由客户端合成而不是让模型自己组织：同一诊断进 transcript 的文本每次都一样，而且「不自动」这件事可以被审查。（7）Spec 无需改动，但有一处**按既定决策推迟**需要写明：草案第 5 条要求「重新生成的候选提供比较、采用和拒绝」，本轮实现采用（含重核当前状态与幂等）与拒绝（丢弃），**比较 UI 不在本轮**——决策简报已明确「候选比较／三方协调 UI」属于 P3.3，卡只呈现候选号、状态与有界诊断，不做视觉比较。`Status: draft` 与验证状态按原样保留。P2.4b（渲染预览）与 P2 总验收不在本轮。
 
-### P2.4b 渲染预览复核（2026-09-10，**未实施**）
+### P2.4b 渲染预览桥（2026-09-10，已实施）
 
-**状态：仍未实现，且未半建。** 本轮只做独立复核与设计，不新增事件种类、不在 Electron 新增端点、不注册 `folio_render_preview`。工具缺席是当前诚实状态；代价是技能第 6 步（`SKILL.md` 的 Review）在真实会话里至今无法按文本成功，这是已知且记录在案的局限，不是静默降级。
+**状态：已实现，按「传输方案 C」落地。** 注册受门控的 MCP 工具 `folio_render_preview`：守护进程作为**服务端**保留渲染队列，运行中的 Folio 桌面按 `DESIGN_RENDER_HOST_POLL_INTERVAL_MS` 轮询既有 owner-only 机器控制 socket 的 `design/render-host`，取走待渲染负载、出图、在**下一次**轮询回报结果。守护进程**从不**发起出站请求，Electron main **不新增任何入站面**，会话文档**不新增任何键或事件种类**。工具缺席仍然诚实：桌面没在轮询就没有 `design/render-host-status` 的 `connected:true`，工具即未注册。
+
+**这一轮推翻了前一版复核的推荐方案。** 上一版把「A 复用 CRDT 中介往返」列为推荐，是在**尚未测量改动面**时作出的判断；本轮两次独立勘察否掉了它（见下），记录在此以免被重新提出。
 
 **复核结论（三项独立勘察一致）。** 守护进程→Electron main 的请求/应答通道**确实不存在**，P2.4 记录中的判断成立：
 
@@ -460,13 +462,24 @@ Auto 修订验证：扩展存储检查覆盖省略宽高时的缺省初始化，
 - 无渲染能力声明：[machine-protocol-capabilities.ts](../../../../packages/shared/src/machine-protocol-capabilities.ts) 无 render 键；[packages/platform](../../../../packages/platform/src/capabilities.ts) 只有云/本地字符串开关与云端口，无 host/render 端口；`apps/cli/src/design/*` 对 Electron／渲染零引用。
 - MCP 侧**没有任何图像内容块**：结果助手只有 `textResult`／`jsonTextResult`（`content: [{ type: 'text' }]`）；已生成图像到达用户走的是「返回路径 + 另一次 `lody_upload_images`」。因此预览工具应返回**可读的文件路径**而非字节——这与技能文本「render the project and open the resulting PNG with the image-reading tool」一致。
 
-**守护进程已经具备的部分（不在本轮改动范围）。** 未保存的工程也能得到可渲染负载：[collect-authoring.ts](../../../../packages/design-authoring/src/collect-authoring.ts) → [intake.ts](../../../../packages/design-authoring/src/intake.ts) `intakeAuthoring` → `buildAssetDataUris`（P2.3 的 `collectDesignTurnOutcome` 已在用同一条链）。`surface(payload, false)` 不暴露 save 路由，所以**预览不需要、也不应该提交画稿**。缺的只有最后一跳：[design-service.ts](../../../../apps/electron/src/main/services/design-service.ts) 的 `renderSavedDesign` 只能在 Electron main 运行（CLI worker 以 `ELECTRON_RUN_AS_NODE=1` 启动，是纯 Node，无 Chromium）。
+**守护进程已经具备的部分（C 直接复用）。** 未保存的工程也能得到可渲染负载：[collect-authoring.ts](../../../../packages/design-authoring/src/collect-authoring.ts) → [intake.ts](../../../../packages/design-authoring/src/intake.ts) `intakeAuthoring` → `buildAssetDataUris`（P2.3 的 `collectDesignTurnOutcome` 已在用同一条链）。`surface(payload, false)` 不暴露 save 路由，所以**预览不需要、也不应该提交画稿**。缺的只有最后一跳：[design-service.ts](../../../../apps/electron/src/main/services/design-service.ts) 的 `renderSavedDesign` 只能在 Electron main 运行（CLI worker 以 `ELECTRON_RUN_AS_NODE=1` 启动，是纯 Node，无 Chromium）。
 
-**要让它存在，需要同时新增三样东西**（与 P2.4 记录的判断一致）：一个持久请求事件与它的观察方、一个 Electron IPC 与 main 端点、一个受门控的 MCP 工具。两条候选传输：
+**这条勘察决定了传输方案。** 既然守护进程**无法发起**，那么「让桥存在」就不必等于「给守护进程装上发起能力」：把它做成守护进程**应答**、桌面**发起**的轮询，改动就落回既有方向之内。三条候选传输：
 
-- **A（推荐）复用 CRDT 中介往返**：守护进程把**有界**请求（requestId、artworkId、画布尺寸、负载摘要）写进会话文档，渲染器观察到后调用新增的 design IPC，Electron main `renderSavedDesign` 出图、把 PNG 落到数据根下私有路径，渲染器把结果写回文档，守护进程解除等待。负载本身**不上文档**——base64 素材可达数 MB，塞进会话文档会同时污染同步与历史；文件系统继续充当交换介质，与 store 现有的「内容寻址、无锁、无端口」协调方式一致。代价：它继承该先例的失败语义——**没有客户端在线时请求永远不会被应答**，工具必须超时并如实报错。
+- **A（否决）复用 CRDT 中介往返**：守护进程把请求写进会话文档，渲染器观察到后调用 design IPC，Electron main 出图，渲染器把结果写回文档。**否决理由（两条，任一即可成立）**：（1）**守护进程读不到会话文档**——它只有 `repo.getDocMeta` 与自己的 mirror，真正持有可写文档的是**加入该房间的渲染器**；因此这条路径只在「用户正好打开着这个会话」时才可能被应答，其余情况静默挂起，工具只能超时，而这正是它想避免的失败语义。（2）改动面被显著低估：新增文档根键要同时改 schema、mirror 的 `initialState`、合并、`getDocState`、各脱敏器与约 15 个测试文件；它确实是「持久事件种类」级改动，而不是一次传输选择。B/RPC 往返虽能枚举房间，但仍需渲染器在线，同样保留静默挂起。
 - **B 在 Electron main 新开入站监听**：代码更短，但给一个**刻意不设入站面**的进程新增入站面，需要 owner-only socket、鉴权与生命周期治理，安全评审面明显更大。
+- **C（采纳）复用既有的 Electron→守护进程方向**：把请求/应答的**发起权留在客户端**。桌面轮询 `design/render-host`（报告进、工作出），守护进程只在内存里排队；负载与产物都走文件系统（守护进程暂存 `<dataRoot>/design-preview-stage/<requestId>.json`，桌面写回 `chats/<session>/design-preview/<ms>-<8hex>.png`），因为 base64 素材可达数 MB 而控制 socket 的应答体上限是 16 MiB。代价与 A 相同——桌面不在就没有渲染——但这一点现在是**可观测的**：`design/render-host-status` 直接回答 `connected`，工具据此注册或缺席，而不是承诺一个永不兑现的等待。它不新增 IPC 通道、不新增监听、不新增会话文档键、不新增持久事件种类。
 
-**已知的能力落差（不因建桥而消除）。** 旧上游 gateway 的 `textMeasurements`（`{ elementId, overflow }`）在 Folio 无对应实现，本轮及可预见的 P2.4b 都**不复制**它；Agent 由 PNG 自行目视判断溢出，这正是故事 13 与技能文本的要求，不得声称桥建成后具备程序化溢出检测。
+**失败语义（C 下的既定答案）。** 桌面在持有请求时消失，由**下一个** host 的首帧轮询判定：守护进程记录「上一帧是否已过期」，并把旧 host 持有的全部请求立即失败（"the Folio desktop restarted before the preview was rendered"）；桌面自己渲染失败则如实回报为拒绝；守护进程另有 60 s 兜底期限，桌面侧的 MCP 超时是 75 s，**必须更长**，否则客户端会放弃一个守护进程仍在持有、且已被交给某个 host 的请求。
 
-**结论。** 这是一处**跨进程协议 + 持久事件种类**的改动，属于「改变契约」而非局部实现，按仓库规则需要 Spec 草案同步并接受评审；未经确认不在本轮单方面引入。已核准的 P2 验收（Issue #1）**不包含**渲染预览，因此它不阻塞 P2 总验收。
+**验证与绕过。** 产物**先验证再交给 agent**：头部嗅探必须是 PNG、大小非零、路径必须落在会话 workspace 内；宿主回报不等于产物存在，未通过即拒绝且不重试。暂存目录 `<dataRoot>/design-preview-stage/` 与产物目录 `design-preview/` 都**不在** `collectAuthoring` 的白名单（根 `design.pptd`、`pages/`、`media/`）内，所以预览永远不会被后续回合当成素材采集进画稿。`renderDesignPreview` 只读协议产物、从不读也从不写 `design.json`：中途预览不可能提交、不可能覆盖、不可能变成候选。
+
+**已知的能力落差（不因建桥而消除）。** 旧上游 gateway 的 `textMeasurements`（`{ elementId, overflow }`）在 Folio 无对应实现，本桥**不复制**它；Agent 由 PNG 自行目视判断溢出，这正是故事 13 与技能文本的要求，不得声称桥建成后具备程序化溢出检测。
+
+**离开 agent-naive 检查清单的三处，以及为什么都不越界。** 工具与队列不做任何语义判断：（1）`buildPreviewPayload` 走的是与回合后采集**同一条** intake（`collectAuthoring` → `intakeAuthoring` → `buildAssetDataUris`），只复检 schema／快照完整性／素材摘要，即存储层结构；（2）失败**不重试**，无论是渲染失败、超时还是产物验证失败，都直接如实拒绝；（3）不做「预渲染修复」——若 agent 写坏了工程，它拿到的就是 intake 自己的诊断文本。三处都属于「如实分类可观察结果」，不是「替 agent 重跑它自己能跑的东西」。
+
+**测试。** CLI 4 个文件 40 项：队列 10（未轮询即未连接、无 host 立即拒绝、TTL 边界、只派发一次且由回报结算、失败回报转成宿主错误、同一帧内先应用回报再派发、跨 liveness 断档判定重启、自身期限拒绝、未知 requestId 忽略、`MAX_PENDING_PREVIEWS` 上限且已排队者不受影响）；渲染 10（同一 intake 导入、无产物时「Write the project first.」、坏页面带诊断、happy path 含路径形状与 `revisionId === sha256(canonicalContentBytes({doc,assets}))`、非 PNG 拒绝、越出 workspace 拒绝、宿主拒绝透传、空文件拒绝、按名裁剪到 `MAX_KEPT_PREVIEWS`、`design.json` 字节不变）；守护进程 RPC 10（状态前后、非设计会话、读不到的会话、未署名会话、无桌面立即拒绝、无产物拒绝、happy path 端到端含桌面回写与回报、桌面失败转成 agent 的拒绝、空轮询与未知 requestId 容错）；MCP 工具 11（缺席／`renderHost:false`／存在三种注册态、缺席即不可调用且不产生任何渲染请求、`resolveRenderHost` 对未知与不可达 socket 为 false、请求体携带 method／machineId／workspaceId／ownerSessionId、成功渲染返回落地路径、拒绝转 `isError`、不可达守护进程、中途退出的桌面被二次核对拦下）。共享协议 11 项钉住线上形状。Electron 纯循环 8 项（本帧不报未完成、失败轮询不丢失也不重复、在途去重、渲染失败转 `ok:false`、错误有界且不为空、每轮至多 8 条报告、`start` 立即轮询再按周期且 `stop` 幂等、已欠下的报告仍会送达）。全部通过，夹具全部合成，无真实 Electron、网络或时钟。
+
+**本轮修掉的两处缺陷（都由新测试当场暴露）。** （1）`DesignRenderRpcResultSchema` 最初把「渲染成功」与「拒绝」两个变体平铺进同一个 `discriminatedUnion('type', …)`——判别值重复，zod 在解析时抛错，结果是**每一次成功渲染**都会被 MCP 工具读成「守护进程答非所问」。改为按 `ok` 嵌套判别；共享协议测试现在同时解析两半。（2）Electron 轮询循环 `pollOnce` 把 `this.reports` 别名进 `pending` 后重建 `[...held, ...this.reports]`，**每一次轮询都会把已发出的报告复制一遍**（失败轮询还会指数增长）。改为只丢弃已发出的前缀（`slice(send.length)`），失败时不改动（本来就没投递）。
+
+**结论。** C 把这次的改动面收在「跨进程协议 + 一条客户端轮询」内：不改会话文档 schema、不新增持久事件种类、不在 Electron 新增入站端点。Spec 只需订正 `folio_render_preview` 的验证状态一行，行为陈述（工具诚实缺席、能力由机器决定）原本就成立，`Status: draft` 保留。已核准的 P2 验收（Issue #1）**不包含**渲染预览，因此它不阻塞 P2 总验收。

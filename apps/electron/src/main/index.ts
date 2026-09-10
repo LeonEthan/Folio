@@ -1,5 +1,6 @@
 import { verifyDesign } from './services/design-verification'
 import { hasOpenDesigns, prepareDesignQuit } from './services/design-service'
+import { startDesignRenderHost } from './services/design-render-host-service'
 import { verifyDesignSample } from './services/design-sample-verification'
 import { registerDesignSampleScheme } from './services/design-sample-service'
 import {
@@ -295,6 +296,14 @@ if (hasSingleInstanceLock) {
       getMainWindow,
       completeOnboarding
     })
+
+    // The design preview render host (P2.4b): the desktop polls its daemon for
+    // previews to render, so `folio_render_preview` is available exactly while
+    // this window is open. Started here rather than lazily because the daemon
+    // treats "no poller" as "no render capability", and a preview asked for
+    // before the first poll would be refused for no reason.
+    const stopDesignRenderHost = startDesignRenderHost(cliService)
+    app.once('will-quit', () => stopDesignRenderHost())
 
     setupApplicationMenu({
       appUpdaterService,

@@ -48,6 +48,19 @@ per-turn MCP selection, or Role-based session creation and dispatch.
   session document to answer it. `design/image-connection-test` is machine-scoped and carries no
   session identity: a settings surface must work before any session exists.
 
+## Machine RPC: render bridge
+
+- `design/render-preview` asks the daemon's render host to rasterize ONE session's project; it
+  carries `ownerSessionId` and the daemon resolves the workdir from it, never from a caller path.
+  `design/render-host-status` is its availability probe, and `design/render-host` is the host's own
+  poll: the desktop calls the daemon, never the reverse, so the bridge adds no inbound surface.
+- The preview answer is a **nested** union — rendered and refused share the `type` and differ in
+  `ok` — because a discriminated union cannot hold two options with the same discriminator value.
+  Adding a variant means adding it to the nesting level it belongs to.
+- Capability exists only while a host polls within `DESIGN_RENDER_HOST_TTL_MS`, and the poll
+  interval must stay well under it. Both ends bound one exchange at 8 items (work out, reports
+  back); the daemon's queue ceiling and the request schemas must move together.
+
 ## Installation identity
 
 The public local profile is Folio. Keep its data directory, host endpoint, protocol,

@@ -145,7 +145,13 @@ import {
 } from '@/orchestration/operation-store';
 import { publishTaskProposal } from '@/mcp/task-proposal';
 import { generateImageAsset } from '@/mcp/image-generation';
-import { EMPTY_DESIGN_GATE, resolveDesignGate, type McpDesignGate } from '@/mcp/design-tools';
+import {
+  EMPTY_DESIGN_GATE,
+  requestDesignRenderPreview,
+  resolveDesignGate,
+  resolveRenderHost,
+  type McpDesignGate,
+} from '@/mcp/design-tools';
 import { fetchImageHttpTransport } from '@/design/image-connection';
 import { version as cliVersion } from '@/pkg';
 import { uploadTaskImages } from '@/lib/task-image-upload';
@@ -186,6 +192,7 @@ const TASK_COMMENT_TOOL_NAME = 'lody_task_comment';
 const TASK_IMAGE_UPLOAD_TOOL_NAME = 'lody_task_upload_images';
 const REVIEW_SUBMIT_TOOL_NAME = 'lody_review_submit';
 const GENERATE_IMAGE_TOOL_NAME = 'folio_generate_image';
+const RENDER_PREVIEW_TOOL_NAME = 'folio_render_preview';
 const DESIGN_IMAGE_PROMPT_MAX_CHARS = 8_000;
 const DESIGN_IMAGE_SIZE_SPEC_MAX_CHARS = 32;
 const SESSION_FILE_MAX_SIZE_MB = Math.floor(SESSION_FILE_MAX_SIZE_BYTES / (1024 * 1024));
@@ -4077,6 +4084,16 @@ export function buildLodyMcpServer(
      * the daemon lookup; when absent, `designGate` is the whole truth.
      */
     resolveGate?: () => Promise<McpDesignGate>;
+    /**
+     * Whether a Folio desktop is polling this machine (P2.4b). Absent means "no
+     * desktop", the honest default: rendering is done by the desktop app, so a
+     * caller that has not asked the daemon has no reason to claim otherwise.
+     * Deliberately not folded into `designGate` — an image connection and a
+     * running desktop are independent facts.
+     */
+    renderHost?: boolean;
+    /** Live re-check of the render host, run immediately before each render. */
+    resolveRenderHost?: () => Promise<boolean>;
     /** Test seam: image generation transport. Production uses the shared fetch transport. */
     imageTransport?: ImageHttpTransport;
   } = {}
@@ -4143,6 +4160,48 @@ export function buildLodyMcpServer(
           error instanceof Error ? error.message : `Image generation failed: ${String(error)}`,
           true
         );
+      }
+    }
+  );
+
+  // Preview rendering (P2.4b). Registered unconditionally and disabled below
+  // unless a Folio desktop is polling this machine, so the agent that cannot
+  // render never sees the tool rather than discovering it by failing.
+  const renderPreviewTool = server.registerTool(
+    RENDER_PREVIEW_TOOL_NAME,
+    {
+      title: 'Render a preview of the current design project',
+      description:
+        "Render the design session's current project (design.pptd and its assets) to a PNG with the Folio desktop, and return the workspace-relative path of the written file. Use it to actually look at what you have built — check layout, spacing, overflow, and whether text fits — instead of reasoning about the document abstractly. It is available in design sessions only, and only while the user has Folio open: rendering is done by the desktop app, not by this process. It reads the project files as they are now; it does not save, commit, or change anything, so it is safe to call at any point mid-work. Each call renders one image of the whole canvas. If the tool is not in your tool list, Folio is not running: tell the user to open Folio and ask again, rather than assuming the design is wrong.",
+      inputSchema: z.object({}).strict(),
+    },
+    async () => {
+      try {
+        const ctx = getSessionContext();
+        // Re-resolve before rendering, for the same reason the image tool does:
+        // the registration is a snapshot, and in a stdio session it can outlive
+        // the desktop that made it available.
+        const host = config.resolveRenderHost
+          ? await config.resolveRenderHost()
+          : (config.renderHost ?? false);
+        if (!host) {
+          return textResult(
+            'Preview rendering is unavailable: the Folio desktop is not running, or this is not a design session. Tell the user to open Folio and ask again; do not retry.',
+            true
+          );
+        }
+        const result = await requestDesignRenderPreview(ctx);
+        if (result.status === 'refused') return textResult(result.error, true);
+        return jsonTextResult({
+          ok: true,
+          path: result.path,
+          width: result.width,
+          height: result.height,
+          bytes: result.bytes,
+          note: `The preview was written to "${result.path}" (relative to the session workspace). Open that file to see it.`,
+        });
+      } catch (error) {
+        return mcpErrorResult(error);
       }
     }
   );
@@ -5257,6 +5316,13 @@ export function buildLodyMcpServer(
     generateImageTool.disable();
   }
 
+  // Preview rendering needs a desktop, not a credential: the gate is "is a
+  // Folio window polling this machine right now". Without one there is nothing
+  // to render with, so the tool is absent rather than present-and-always-failing.
+  if (config.renderHost !== true) {
+    renderPreviewTool.disable();
+  }
+
   if (config.taskToolsEnabled !== true) {
     for (const tool of [
       taskImageUploadTool,
@@ -5280,9 +5346,12 @@ export async function runLodyMcpServer(): Promise<void> {
   // fixed at startup from this session's own gate; `resolveGate` keeps the paid
   // call itself honest if the connection is switched off afterwards.
   const designGate = await resolveDesignGate(context);
+  const renderHost = await resolveRenderHost(context);
   await buildLodyMcpServer({
     taskToolsEnabled: context.taskToolsEnabled,
     designGate,
+    renderHost,
     resolveGate: async () => await resolveDesignGate(context),
+    resolveRenderHost: async () => await resolveRenderHost(context),
   }).connect(new StdioServerTransport());
 }
