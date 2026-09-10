@@ -447,3 +447,26 @@ Auto 修订验证：扩展存储检查覆盖省略宽高时的缺省初始化，
 **测试。** CLI store 3 项（新增 1 项钉住 P2.5：缺失／不可校验／待处理三态与各自携带的字段、采用后读回 `adopted` 且画布文档等于候选、再次采用幂等且 `design.json` 字节不变、读写之间的并发写者被 CAS 拒绝且候选保留、丢弃只删候选文件而 `design.json` 字节不变、重复丢弃报 `removed:false`、`../outside` 与 `../design.json` 一律拒绝）；components 33 项（纯函数 18：六态与 `live` 的判据、读不懂即不显示、非内容地址的 id 一律丢弃、候选回答到可用性的映射含未知形状、脱敏（含带空格路径与 URL／相对路径的保留）、修复文本合成与两个上限、i18n 键齐全且 shipped 文案不含路径或凭据；真实组件 15：六态渲染、`live` 只在没有结果且有 presence 时且不提供任何动作、读不懂即渲染空、卡内确认后采用并如实报告、`alreadyCurrent` 不谎报新版本、画布已动即报告拒绝且候选保留、候选已消失不提供动作、丢弃只丢弃、修复只在点击后发送且请求里没有路径、诊断折叠有界、候选读写走设计通道）。全部通过，夹具全部合成，无真实 Electron、网络或时钟。
 
 **偏差与理由。**（1）先前写进决策简报的字面规则「候选 baseline 必须等于当前 revision」**废止**：它会让采用在「冲突之后」这条最常见路径上永远拒绝；用户的显式采用应以「现在」为基准，而并发写者由 store 自己的 CAS 如实拒绝。（2）候选三操作做成独立导出 + `design-entry` 独立分支，而不是塞进 `designOperation` 的请求联合：`designOperation` 的形状是既有合同（create/read/save），把「候选处理」并进去会让「谁在写、写的是什么」变模糊，而它本来就不是保存语义。（3）设计会话「还没有画布」（`design.json` 不存在）时 `readDesignCandidateState`／`adoptDesignCandidate` 会以 store 的 `ENOENT` 失败，而不是编一个状态；卡把它渲染为「无法读取候选状态」且不提供任何动作。候选只可能产生于画布已存在之后，画布被销毁属于会话已经不成立的边界，这里选择如实失败而不是发明语义。（4）「已采用」不新增持久位、也不回写历史条目：加字段要动 history schema 与所有写入方，等于把 store 的事实复制成第二份可能漂移的真相。（5）采用前先 flush 画布（`saveDesignForDispatch`）：采用会替换文档，尚未写出的编辑否则会无痕消失；flush 失败则整次采用失败（与发送门同一条语义「宽容尚未加载的桥、拒绝真实的保存失败」）。（6）修复文本固定由客户端合成而不是让模型自己组织：同一诊断进 transcript 的文本每次都一样，而且「不自动」这件事可以被审查。（7）Spec 无需改动，但有一处**按既定决策推迟**需要写明：草案第 5 条要求「重新生成的候选提供比较、采用和拒绝」，本轮实现采用（含重核当前状态与幂等）与拒绝（丢弃），**比较 UI 不在本轮**——决策简报已明确「候选比较／三方协调 UI」属于 P3.3，卡只呈现候选号、状态与有界诊断，不做视觉比较。`Status: draft` 与验证状态按原样保留。P2.4b（渲染预览）与 P2 总验收不在本轮。
+
+### P2.4b 渲染预览复核（2026-09-10，**未实施**）
+
+**状态：仍未实现，且未半建。** 本轮只做独立复核与设计，不新增事件种类、不在 Electron 新增端点、不注册 `folio_render_preview`。工具缺席是当前诚实状态；代价是技能第 6 步（`SKILL.md` 的 Review）在真实会话里至今无法按文本成功，这是已知且记录在案的局限，不是静默降级。
+
+**复核结论（三项独立勘察一致）。** 守护进程→Electron main 的请求/应答通道**确实不存在**，P2.4 记录中的判断成立：
+
+- Electron main 侧没有任何入站监听（`apps/electron/src/main` 下不存在 `net.createServer`／`http.createServer`），其 socket 全部是**出站**客户端（[loro-data-plane-relay.ts](../../../../apps/electron/src/main/services/loro-data-plane-relay.ts)、[terminal-relay.ts](../../../../apps/electron/src/main/services/terminal-relay.ts)、[cli-service.ts](../../../../apps/electron/src/main/services/cli-service.ts)）。
+- [local-machine-rpc.ts](../../../../packages/shared/src/local-machine-rpc.ts) 的请求联合（`code-collab/*`、`file/*`、`session/*`、`design/image-connection*`）**全部**由 Electron／渲染器发起、守护进程作答；守护进程只能应答，无法发起。
+- 唯一「守护进程发起请求并等应答」的先例是权限/elicitation 往返，且它由**共享 Loro 会话文档**中介：守护进程把请求写进 history（`handleAgentPermissionRequest`），**任何客户端**把结果写回，守护进程的 mirror 订阅解除等待。参与者是渲染器的 CRDT 写入方，**不是 Electron main**。
+- 无渲染能力声明：[machine-protocol-capabilities.ts](../../../../packages/shared/src/machine-protocol-capabilities.ts) 无 render 键；[packages/platform](../../../../packages/platform/src/capabilities.ts) 只有云/本地字符串开关与云端口，无 host/render 端口；`apps/cli/src/design/*` 对 Electron／渲染零引用。
+- MCP 侧**没有任何图像内容块**：结果助手只有 `textResult`／`jsonTextResult`（`content: [{ type: 'text' }]`）；已生成图像到达用户走的是「返回路径 + 另一次 `lody_upload_images`」。因此预览工具应返回**可读的文件路径**而非字节——这与技能文本「render the project and open the resulting PNG with the image-reading tool」一致。
+
+**守护进程已经具备的部分（不在本轮改动范围）。** 未保存的工程也能得到可渲染负载：[collect-authoring.ts](../../../../packages/design-authoring/src/collect-authoring.ts) → [intake.ts](../../../../packages/design-authoring/src/intake.ts) `intakeAuthoring` → `buildAssetDataUris`（P2.3 的 `collectDesignTurnOutcome` 已在用同一条链）。`surface(payload, false)` 不暴露 save 路由，所以**预览不需要、也不应该提交画稿**。缺的只有最后一跳：[design-service.ts](../../../../apps/electron/src/main/services/design-service.ts) 的 `renderSavedDesign` 只能在 Electron main 运行（CLI worker 以 `ELECTRON_RUN_AS_NODE=1` 启动，是纯 Node，无 Chromium）。
+
+**要让它存在，需要同时新增三样东西**（与 P2.4 记录的判断一致）：一个持久请求事件与它的观察方、一个 Electron IPC 与 main 端点、一个受门控的 MCP 工具。两条候选传输：
+
+- **A（推荐）复用 CRDT 中介往返**：守护进程把**有界**请求（requestId、artworkId、画布尺寸、负载摘要）写进会话文档，渲染器观察到后调用新增的 design IPC，Electron main `renderSavedDesign` 出图、把 PNG 落到数据根下私有路径，渲染器把结果写回文档，守护进程解除等待。负载本身**不上文档**——base64 素材可达数 MB，塞进会话文档会同时污染同步与历史；文件系统继续充当交换介质，与 store 现有的「内容寻址、无锁、无端口」协调方式一致。代价：它继承该先例的失败语义——**没有客户端在线时请求永远不会被应答**，工具必须超时并如实报错。
+- **B 在 Electron main 新开入站监听**：代码更短，但给一个**刻意不设入站面**的进程新增入站面，需要 owner-only socket、鉴权与生命周期治理，安全评审面明显更大。
+
+**已知的能力落差（不因建桥而消除）。** 旧上游 gateway 的 `textMeasurements`（`{ elementId, overflow }`）在 Folio 无对应实现，本轮及可预见的 P2.4b 都**不复制**它；Agent 由 PNG 自行目视判断溢出，这正是故事 13 与技能文本的要求，不得声称桥建成后具备程序化溢出检测。
+
+**结论。** 这是一处**跨进程协议 + 持久事件种类**的改动，属于「改变契约」而非局部实现，按仓库规则需要 Spec 草案同步并接受评审；未经确认不在本轮单方面引入。已核准的 P2 验收（Issue #1）**不包含**渲染预览，因此它不阻塞 P2 总验收。
