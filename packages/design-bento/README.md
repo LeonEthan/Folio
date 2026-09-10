@@ -60,7 +60,10 @@ Session deletion keeps its existing meaning. No conversation or undo log is copi
 when conflict edits become an independent design.
 
 Each native view retains its editor while its canvas tab is open, including hidden
-panels and Session route switches. Explicit close releases undo history. Save failures
+panels and Session route switches. A committed turn (and an adopted candidate)
+destroys that instance and re-creates it from the store so the open view cannot
+keep showing, or later saving, a superseded document. Explicit close releases undo
+history. Save failures
 block leaving with retry/discard choices; an unexpected crash recovers the last
 confirmed file. Export uses an isolated instance of the same saved Bento document,
 with fixed resources, decoded images and loaded fonts before stage capture.

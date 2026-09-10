@@ -24,7 +24,8 @@ import {
   readDesignCandidateState,
   readDesignCardThumbnail,
   renameDesign,
-  saveDesignForDispatch
+  saveDesignForDispatch,
+  syncDesignCanvasFromStore
 } from '../../services/design-service'
 
 function owner() {
@@ -69,6 +70,16 @@ export class DesignIpc extends IpcService {
   @IpcMethod() async save(sessionId: string) {
     owner()
     await saveDesignForDispatch(id.parse(sessionId))
+  }
+  /**
+   * P2-A2: reload this artwork's open editor from the store when a turn has
+   * committed a new revision. No-op when the canvas is not open or already
+   * matches the store; the renderer calls this from the committed outcome, not
+   * on a timer.
+   */
+  @IpcMethod() async syncFromStore(sessionId: string) {
+    owner()
+    await syncDesignCanvasFromStore(id.parse(sessionId))
   }
   /**
    * P2.5 result-card actions on a kept candidate. Read-only state first; the

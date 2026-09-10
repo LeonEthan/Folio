@@ -13,6 +13,7 @@ import type {
 } from '../../../../cli/src/design/store'
 import type { DesignThumbnailRead } from '../../../../cli/src/design/thumbnail-read'
 import { scaleToLongestEdge } from './design-render-host-core'
+import { openDesignCanvasNeedsReload } from './design-canvas-sync-core'
 
 /** P2.5 candidate handling rides the existing design worker channel. */
 type DesignCandidateRequest = { sessionId: string; candidateId: string }
@@ -21,9 +22,15 @@ const resources = () =>
   app.isPackaged
     ? join(process.resourcesPath, 'app.asar.unpacked/resources')
     : join(app.getAppPath(), 'resources')
-type RecordEntry = { view: WebContentsView; owner: BrowserWindow; dispose(): void }
+type RecordEntry = {
+  view: WebContentsView
+  owner: BrowserWindow
+  dispose(): void
+  revisionId: string
+}
 const records = new Map<string, RecordEntry>()
 const loading = new Map<string, Promise<RecordEntry>>()
+const syncing = new Map<string, Promise<void>>()
 const hosts = new Map<string, string>()
 let worker: ChildProcessWithoutNullStreams | undefined
 let pending: { resolve(value: unknown): void; reject(error: Error): void } | undefined
@@ -125,6 +132,8 @@ async function surface(payload: DesignPayload, editable: boolean) {
           content: { doc: input.doc, assets: input.assets }
         })
         payload = saved
+        const record = records.get(id)
+        if (record) record.revisionId = saved.revisionId
         return Response.json({ ok: true, revisionId: saved.revisionId }, { headers })
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
@@ -165,7 +174,7 @@ export async function attachDesign(
             nodeIntegration: false
           }
         })
-        const entry = { view, owner, dispose: source.dispose }
+        const entry = { view, owner, dispose: source.dispose, revisionId: payload.revisionId }
         records.set(id, entry)
         owner.contentView.addChildView(view)
         view.setVisible(false)
@@ -307,6 +316,45 @@ export async function readDesignCardThumbnail(
     sessionId: id,
     reference
   })
+}
+
+/**
+ * P2-A2: if this artwork's editor is open on a superseded revision, tear it
+ * down and re-create it from the store.
+ *
+ * The daemon commits in-process after a turn; this process's editor does not
+ * see that write. The renderer calls here when session history records a
+ * committed outcome. A canvas that was never attached this run is left
+ * untouched — the next attach reads the store. An editor whose loaded
+ * revision already matches is left untouched, so a historical committed card
+ * on first mount, a thumbnail amendment, or a later manual save does not
+ * destroy undo. Two callers are serialized per artwork so a second signal
+ * cannot tear down the reload of the first.
+ *
+ * Unsaved edits against the superseded revision cannot be saved (they would
+ * 409 and latch the instance). They are dropped by the reload rather than
+ * left as a permanent conflict. A canvas the user does not have on screen
+ * stays closed: destroy is enough, and the next attach reads the store.
+ */
+export async function syncDesignCanvasFromStore(id: string): Promise<void> {
+  const previous = syncing.get(id) ?? Promise.resolve()
+  const next = previous.catch(() => {}).then(() => syncDesignCanvasFromStoreOnce(id))
+  syncing.set(id, next)
+  try {
+    await next
+  } finally {
+    if (syncing.get(id) === next) syncing.delete(id)
+  }
+}
+
+async function syncDesignCanvasFromStoreOnce(id: string): Promise<void> {
+  const opening = loading.get(id)
+  if (opening) await opening.catch(() => {})
+  const record = records.get(id)
+  if (!record) return
+  const saved = await designRequest({ operation: 'read', sessionId: id })
+  if (!openDesignCanvasNeedsReload(record.revisionId, saved.revisionId)) return
+  await reloadDesignCanvas(id)
 }
 
 /**
@@ -520,15 +568,15 @@ export async function renameDesign(id: string, name: string) {
     name,
     content: { doc: saved.doc, assets: saved.assets }
   })
-  await records
-    .get(id)
-    ?.view.webContents.executeJavaScript(
-      'window.folio.rebase(' +
-        JSON.stringify(saved.revisionId) +
-        ',' +
-        JSON.stringify(renamed.revisionId) +
-        ')'
-    )
+  const record = records.get(id)
+  await record?.view.webContents.executeJavaScript(
+    'window.folio.rebase(' +
+      JSON.stringify(saved.revisionId) +
+      ',' +
+      JSON.stringify(renamed.revisionId) +
+      ')'
+  )
+  if (record) record.revisionId = renamed.revisionId
   return renamed
 }
 export function hasOpenDesigns() {

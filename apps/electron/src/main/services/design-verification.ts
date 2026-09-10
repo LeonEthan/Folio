@@ -12,7 +12,8 @@ import {
   copyDesign,
   finishDesignCopy,
   renderSavedDesign,
-  prepareDesignQuit
+  prepareDesignQuit,
+  syncDesignCanvasFromStore
 } from './design-service'
 
 /** Opt-in synthetic acceptance journey using the production editor and persistence path. */
@@ -29,7 +30,7 @@ export async function verifyDesign(directory: string) {
   const id = association.sessionId
   const created = await designRequest({ operation: 'create', association, width: 800, height: 600 })
   await attachDesign(owner, id, { x: 0, y: 0, width: 1200, height: 800 })
-  const view = owner.contentView.children.find(
+  let view = owner.contentView.children.find(
     (child) => child instanceof WebContentsView
   ) as WebContentsView
   await view.webContents.executeJavaScript(`new Promise((resolve, reject) => {
@@ -52,6 +53,30 @@ export async function verifyDesign(directory: string) {
   await view.webContents.executeJavaScript('window.bento.redo()')
   await saveDesign(id)
   assert.equal((await designRequest({ operation: 'read', sessionId: id })).doc.elements.length, 2)
+  const beforeCommit = await designRequest({ operation: 'read', sessionId: id })
+  await designRequest({
+    operation: 'save',
+    sessionId: id,
+    baseRevisionId: beforeCommit.revisionId,
+    content: {
+      doc: { ...beforeCommit.doc, background: { type: 'solid', color: '#FDF3E3' } },
+      assets: beforeCommit.assets
+    }
+  })
+  await syncDesignCanvasFromStore(id)
+  view = owner.contentView.children.find(
+    (child) => child instanceof WebContentsView
+  ) as WebContentsView
+  await view.webContents.executeJavaScript(`new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { observer.disconnect(); reject(Error('Editor not ready after commit reload')); }, 30000);
+    const observer = new MutationObserver(check); observer.observe(document, { childList:true, subtree:true });
+    function check() { if (window.folio && window.bento?.doc) { clearTimeout(timer); observer.disconnect(); resolve(true); } } check();
+  })`)
+  assert.deepEqual(
+    JSON.parse(await view.webContents.executeJavaScript('window.bento.visual.snapshot()'))
+      .background,
+    { type: 'solid', color: '#FDF3E3' }
+  )
   const beforeConflict = await designRequest({ operation: 'read', sessionId: id })
   await designRequest({
     operation: 'save',
@@ -112,6 +137,7 @@ export async function verifyDesign(directory: string) {
         undoRedoAcrossHide: true,
         reopenWithoutUndo: true,
         staleHostIgnored: true,
+        commitReloadsOpenCanvas: true,
         conflictPreserved: true,
         independentCopy: true,
         pngTransparency: true,

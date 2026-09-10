@@ -5,7 +5,7 @@ Translation: pending
 
 ## 摘要
 
-Folio 沿用 Lody 的 coding-agent 工作台，复用桌面外壳、会话、Agent 接入和本地持久化。本提案保留这些基础设施及现有 UI 设计语言，从相邻 agentic-listing-design 项目迁入 Bento 文档、编辑、素材与导出能力，将产品转为本地优先的平面设计工作台。整体方向已获基本认可，本次细化为从技术切片到发布验收的七个阶段，避免两套会话和调度系统并存。具体行为以新增 Spec 草案待复核，Agent 由用户选择，发布平台支持仍待实机证据；已完成 P0 macOS 固定样稿集成与本地安装产物验收、P1 手工编辑闭环，以及 P2.1–P2.7（技能与物化、回合输入物化、回合后采集与提交、图像连接、结果卡与候选采用/丢弃、缩略图引用、持久化加固，实施记录见下）。P2 总验收已在打包应用内执行并留下证据：真实 Agent 完成「参考图 + 需求 → 可编辑作品 → 手工修改 → 保存重开 → PNG/JPEG 导出」，取消／权限回应／无效产物三条负路径通过，同时发现并修掉一处打包缺陷，另记下两处未修的产品缺口。视觉质量仍为人工判断。P3–P6 尚未实现，本文件与 Spec 仍为 proposed／draft。
+Folio 沿用 Lody 的 coding-agent 工作台，复用桌面外壳、会话、Agent 接入和本地持久化。本提案保留这些基础设施及现有 UI 设计语言，从相邻 agentic-listing-design 项目迁入 Bento 文档、编辑、素材与导出能力，将产品转为本地优先的平面设计工作台。整体方向已获基本认可，本次细化为从技术切片到发布验收的七个阶段，避免两套会话和调度系统并存。具体行为以新增 Spec 草案待复核，Agent 由用户选择，发布平台支持仍待实机证据；已完成 P0 macOS 固定样稿集成与本地安装产物验收、P1 手工编辑闭环，以及 P2.1–P2.7（技能与物化、回合输入物化、回合后采集与提交、图像连接、结果卡与候选采用/丢弃、缩略图引用、持久化加固，实施记录见下）。P2 总验收已在打包应用内执行并留下证据：真实 Agent 完成「参考图 + 需求 → 可编辑作品 → 手工修改 → 保存重开 → PNG/JPEG 导出」，取消／权限回应／无效产物三条负路径通过，同时发现并修掉一处打包缺陷。提交后已打开画布不重绘（P2-A2）已随后修复；OSS 桌面无法把参考图作为回合附件（P2-A3）仍未修。视觉质量仍为人工判断。P3–P6 尚未实现，本文件与 Spec 仍为 proposed／draft。
 
 ## 调研范围与依据
 
@@ -547,7 +547,7 @@ Auto 修订验证：扩展存储检查覆盖省略宽高时的缺省初始化，
 
 **发现一（打包，已修）。** 打包后的应用只带技能脚本、不带技能说明：`resources/cli` 是暂存的构建产物，而 `files` 里针对源码树的 `!**/*.{md,markdown,mkd}` 与 `!**/{examples,...}/**` 同样伸进了它，静默剥掉 `SKILL.md`、四个 `references/*.md`、`examples/minimal/*`，以及固定的 DeepSeek 预设技能——共 13 个文件。症状只体现在 Agent 行为上：修复前 Agent 说「No SKILL.md exists — let me inspect the scripts」，修复后说「Now reading the skill references and inspecting the reference image」，`skillSourceIdentity` 也随之从 `cfecf632…` 变为 `7ab7980b…`。根因是 electron-builder 的 `files` 语义：整份列表只要含一个正向模式（`FileMatcher.containsOnlyIgnore` 为假），隐式全包含即被取消，反向模式就成了唯一规则。修法是在列表首行显式写回 `'**/*'`，再为两棵暂存树重新正向包含（`resources/cli/design-skills/**`、`resources/cli/deepseek-agent-presets/**`），并按「后匹配者胜」为这两棵树重述 `!resources/cli/**/*.map`。修复后 `resources/cli/design-skills` 下的文件由 5 个变为 16 个。
 
-**发现二（未修，P1）。** 回合提交后已打开的画布不重绘。两个独立会话都复现：回执报 `committed`、`design.json` 摘要与之一致、卡上写着「已保存到画布」，而屏幕上的画布仍是提交前的空白稿（Edit tools 的 CANVAS BACKGROUND 读回 `#ffffff`）。同一修订经 Agent 自己的 `folio_render_preview` 与桌面导出各自渲染，两个字节完全相同（`acea99b1…`）——落盘、导出与卡片是一致的，落后的是那一个视图。代码上没有任何生产路径在提交后重读或 rebase 已打开的编辑器：唯一的读入点是缓存未命中时的 `attachDesign`、`adoptDesignCandidate` 触发的 `reloadDesignCanvas`，以及销毁后重新附着。后果不止于看不到：此时添加元素会得到裸的 `DESIGN_CONFLICT`（无 i18n 键、面板内无恢复入口），编辑器的冲突闩锁对本次实例是**永久的**（`product-session.ts:18,43,53,83`）使重试永不成功，`⌘Q` 的离开保护只有「放弃修改」能逃出，下一个回合的 `flushDesignCanvasBeforeSend` 也会被同一冲突挡住。存储侧全程安全：已提交的画稿没有被覆盖，重启后同一会话能正确渲染。本轮只记录，未修。
+**发现二（P1，已于后续修复，见下节）。** 回合提交后已打开的画布不重绘。两个独立会话都复现：回执报 `committed`、`design.json` 摘要与之一致、卡上写着「已保存到画布」，而屏幕上的画布仍是提交前的空白稿（Edit tools 的 CANVAS BACKGROUND 读回 `#ffffff`）。同一修订经 Agent 自己的 `folio_render_preview` 与桌面导出各自渲染，两个字节完全相同（`acea99b1…`）——落盘、导出与卡片是一致的，落后的是那一个视图。代码上当时没有任何生产路径在提交后重读或 rebase 已打开的编辑器：唯一的读入点是缓存未命中时的 `attachDesign`、`adoptDesignCandidate` 触发的 `reloadDesignCanvas`，以及销毁后重新附着。后果不止于看不到：此时添加元素会得到裸的 `DESIGN_CONFLICT`（无 i18n 键、面板内无恢复入口），编辑器的冲突闩锁对本次实例是**永久的**（`product-session.ts:18,43,53,83`）使重试永不成功，`⌘Q` 的离开保护只有「放弃修改」能逃出，下一个回合的 `flushDesignCanvasBeforeSend` 也会被同一冲突挡住。存储侧全程安全：已提交的画稿没有被覆盖，重启后同一会话能正确渲染。验收当轮只记录；修复见下节 P2-A2。
 
 **发现三（未修，P1 候选）。** OSS 桌面无法把参考图作为附件发给设计回合：附件区返回「Failed」芯片（`use-chat-landing-image-draft.ts:128` 要求托管方的 `authToken`），`hasBlockingImages` 随即阻止发送，`references[]` 因图片来自托管会话的图片库而始终为空。本次验收因此改以 prompt 内的绝对路径提供参考图，本地 Agent 从磁盘读取——这是当前 OSS 下唯一可用的路径。这与本地专用组合的定位有关，如何处理待定。
 
@@ -555,4 +555,16 @@ Auto 修订验证：扩展存储检查覆盖省略宽高时的缺省初始化，
 
 **验证。** 打包修复经全量 `pnpm check`（隔离 shell 的 Anthropic 配置后）通过：CLI 2800 项、components 3333 项、shared 1108 项，其余包与静态检查（i18n、公开边界、平台边界、code-collab 导入守卫）全绿，退出 0；`pnpm format` 已执行，未提交与本次无关的既有格式漂移 `app-updater-sparkle-policy.test.mjs`；`pnpm run docs status`／`docs check` 无错误。修复本身经打包后逐文件核对（包内技能文件 5 → 16），并在同一包内观察到 Agent 读取技能说明的行为变化。
 
-**局限。** 参考图走的是 prompt 内绝对路径而非附件（见发现三）；三条负路径由刻意构造的缺陷提示驱动，不是自然故障；本进程的 `screencapture` 不可用，因此现场证据是 computer-use 的可访问性读回加磁盘产物与应用自身导出，而非窗口截图；旅程跑在已配置的本地 Agent 上，未为任何重试额外发起付费调用。Spec 的行为条款无需改动：「文件出现不代表完成」「无法证明安全的修改保留为独立候选」正是本轮实现。只更新草案的验证状态行——原文「P2 总验收尚未执行」已不再成立，改为记录本轮已执行的旅程、三条负路径、已修的打包缺陷与两处未修缺口；`Status: draft`、英文翻译待补与「不据此批准整个草案」按原样保留。
+**局限。** 参考图走的是 prompt 内绝对路径而非附件（见发现三）；三条负路径由刻意构造的缺陷提示驱动，不是自然故障；本进程的 `screencapture` 不可用，因此现场证据是 computer-use 的可访问性读回加磁盘产物与应用自身导出，而非窗口截图；旅程跑在已配置的本地 Agent 上，未为任何重试额外发起付费调用。Spec 的行为条款无需改动：「文件出现不代表完成」「无法证明安全的修改保留为独立候选」正是本轮实现。只更新草案的验证状态行——原文「P2 总验收尚未执行」已不再成立，改为记录本轮已执行的旅程、三条负路径、已修的打包缺陷与当时记下的两处缺口；其中打开画布提交后不重绘已于 P2-A2 修复，参考图附件（P2-A3）仍未修。`Status: draft`、英文翻译待补与「不据此批准整个草案」按原样保留。
+
+### P2-A2 打开画布在提交后重绘（2026-09-10，已实施）
+
+**状态：已实现。** 验收发现二：守护进程回合后把画稿写进 store，已打开的原生编辑器仍显示它载入时的文档，随后的保存变成永久的 `DESIGN_CONFLICT`。采用候选时本来就会销毁并按同一 host／bounds 重建编辑器（`reloadDesignCanvas`）；提交路径没有对等的调用。本轮把那一次重载接到提交上，不新增编辑器 API，不改会话文档 schema。
+
+**信号在渲染器，比较在 Electron。** 守护进程没有通往 Electron 的请求通道（P2.4b 已写明），桌面也不能监视 `design.json`：编辑器自己的自动保存同样写那个文件，监视会在保存成功后把还没更新修订号的实例误判为过期并拆掉撤销栈。渲染器本来就会看到 history 上新盖的 `designOutcome`。`DesignCanvas` 用 `latestCommittedDesignRevision` 取出本作品最后一次可读的 `committed` revisionId，变了就调用 `design.syncFromStore`。缩略图补写不改 revisionId，因此不会触发第二次重载。Electron 侧把编辑器上次载入或保存的 revisionId 记在 record 上，与 store 当前修订比较：相同则不动——所以历史 committed 卡在首次挂载、后来的手工保存、或画布根本没打开，都不会造出一个盖住用户正在看的界面的原生视图。未打开的画布仍由下一次 `attachDesign` 从 store 读取。
+
+**过期实例上的未保存编辑会被丢掉。** 相对已提交修订的未保存修改无法落盘（会 409，且该实例的冲突闩锁永不解开）。留下它们等于留下一个不能保存、不能正常退出、也不能发下一回合的编辑器。重载丢掉这些击键，换回已提交的画稿；这比永久闩锁诚实。用户在回合中已经保存过的修改走的是候选路径，store 未动，同步是空操作。
+
+**未采用的方案。** `window.folio.rebase` 只改修订号、不换文档，保存会用旧稿覆盖 Agent 的提交。文件监视会与自动保存竞态。像 P2.4b 那样轮询没有必要：history 已经在更新。就地加载新 payload 要给嵌入编辑器加一套载入 API，而销毁再附着已经是采用路径验证过的行为。
+
+**测试。** components：`latestCommittedDesignRevision`（无提交／最后一次提交／忽略其它作品与无修订号的 committed／缩略图不改值）与 `syncOpenDesignCanvas`（无宿主放行、调用 `design.syncFromStore`、失败 reject）；Electron：`openDesignCanvasNeedsReload`（相同不动、不同必须重载、未打开不重载）。P1 原生探针增加一步：打开的编辑器在进程外改写 store 后调用 `syncDesignCanvasFromStore`，重建后的视图背景为 `#FDF3E3`。未再跑打包应用内的真实 Agent 旅程；验收证据里的 `openCanvasRepaintsAfterACommittedTurn: false` 仍是当时的记录。

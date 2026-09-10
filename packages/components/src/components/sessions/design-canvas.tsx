@@ -8,6 +8,8 @@ import { activeWorkspaceRuntimeAtom } from '@/atoms/runtime';
 import { localProbeResultAtom } from '@/atoms/local-probe';
 import { userAtom } from '@/atoms';
 import { getIpcServices } from '@/lib/electron-ipc-client';
+import { latestCommittedDesignRevision, syncOpenDesignCanvas } from '@/lib/design-canvas-sync';
+import { useSessionDoc } from '@/hooks/use-session-doc';
 import { Button } from '@/ui/button';
 import { writeStoredLastActiveTabState } from '@/lib/session-draft-tabs';
 
@@ -84,6 +86,8 @@ export function DesignCanvas({
   const [busy, setBusy] = useState(false);
   const create = useDesignCreation(workspaceSlug);
   const [focused, setFocused] = useState(false);
+  const { doc } = useSessionDoc(sessionId as SessionId, { enabled: sessionId.length > 0 });
+  const committedRevisionId = latestCommittedDesignRevision(doc.history, sessionId);
   useBlocker({
     enableBeforeUnload: false,
     shouldBlockFn: async ({ current, next }) => {
@@ -129,6 +133,16 @@ export function DesignCanvas({
       void work.then(() => service.hide(sessionId, hostId)).catch((cause) => console.error(cause));
     };
   }, [sessionId, active, hostId]);
+  useEffect(() => {
+    if (committedRevisionId === undefined) return undefined;
+    let cancelled = false;
+    void syncOpenDesignCanvas(sessionId).catch((cause) => {
+      if (!cancelled) setError(String(cause));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, committedRevisionId]);
   const run = (action: () => Promise<unknown>) => {
     setBusy(true);
     setError('');
