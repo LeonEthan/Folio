@@ -49,6 +49,18 @@ Repository map and entry points: [README.md](README.md#repository).
 - Viewer packaging/version changes must follow its [rules](packages/code-review-viewer/AGENTS.md).
   Package-scope or cloud/local composition changes require `pnpm check:public-boundary`.
 
+## Design platform: agent-naive environment
+
+The design authoring environment (skills, MCP design tools, workspace files,
+artifact intake) is agent-naive: it presents capabilities with honest
+availability and never gates, scripts, or second-guesses agent behavior. The
+agent owns its workflow, including finalizing its own artifacts. App-side code
+performs only storage-level structural validation (schema, kernel replay, asset
+integrity) and classifies observable outcomes (no artifact / invalid /
+committed); it never re-runs semantic checks the agent could have run itself,
+never repairs agent output behind the agent's back, and never auto-retries paid
+model calls.
+
 ## Contributions and checks
 
 - Identify once: Lody team if the user says so or GitHub login is `zxch3n`,
@@ -83,12 +95,12 @@ remains, react 👍. Details: [.github/codex-review.md](.github/codex-review.md)
 
 ### Issue tracker
 
-Issues are tracked as GitHub issues on `LeonEthan/Folio` via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues are tracked as GitHub issues on `LeonEthan/Folio` via the `gh` CLI. See [.agents/agent-skills/issue-tracker.md](.agents/agent-skills/issue-tracker.md).
 
 ### Triage labels
 
-The five canonical labels are used as-is: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+The five canonical labels are used as-is: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See [.agents/agent-skills/triage-labels.md](.agents/agent-skills/triage-labels.md).
 
 ### Domain docs
 
-Single-context: one `CONTEXT.md` glossary plus `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context: one `CONTEXT.md` glossary plus `.agents/docs/adr/` at the repo root (top-level `docs/` is a closed product path here). See [.agents/agent-skills/domain.md](.agents/agent-skills/domain.md).
