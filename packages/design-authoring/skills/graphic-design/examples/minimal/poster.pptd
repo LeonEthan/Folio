@@ -1,0 +1,5 @@
+version: v2
+title: Minimal graphic canvas
+size: [720, 960]
+pages:
+  - pages/poster.page

@@ -1,0 +1,188 @@
+/**
+ * Design skill materializer tests. Synthetic bundled skill trees only; the
+ * real bundle bytes are irrelevant to the sync discipline.
+ */
+
+import { createHash } from 'node:crypto';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+  DESIGN_SKILL_TARGET_BASES,
+  SKILL_MANIFEST_FILENAME,
+  SkillMaterializationError,
+  designSkillPointerLine,
+  materializeDesignSkills,
+} from './skills';
+import { rmSync } from 'node:fs';
+
+const sha256Hex = (bytes: Buffer): string => createHash('sha256').update(bytes).digest('hex');
+
+const workdirs: string[] = [];
+afterEach(() => {
+  while (workdirs.length > 0) rmSync(workdirs.pop()!, { recursive: true, force: true });
+});
+
+function makeSource(skillFiles: Record<string, string>, skill = 'graphic-design'): string {
+  const root = mkdtempSync(path.join(tmpdir(), 'folio-skill-src-'));
+  workdirs.push(root);
+  const dir = path.join(root, skill);
+  for (const [rel, content] of Object.entries(skillFiles)) {
+    const abs = path.join(dir, rel);
+    mkdirSync(path.dirname(abs), { recursive: true });
+    writeFileSync(abs, content);
+  }
+  return root;
+}
+
+function makeWorkdir(): string {
+  const dir = mkdtempSync(path.join(tmpdir(), 'folio-skill-dst-'));
+  workdirs.push(dir);
+  return dir;
+}
+
+const SOURCE_FILES = {
+  'SKILL.md': '# test skill\n',
+  'references/guide.md': 'guide v1\n',
+  'scripts/finalize.mjs': '// finalize v1\n',
+};
+
+describe('materializeDesignSkills', () => {
+  it('syncs every bundled file into both project-level skill dirs with a sha256 manifest', () => {
+    const sourceDir = makeSource(SOURCE_FILES);
+    const workdir = makeWorkdir();
+    const result = materializeDesignSkills({ workdir, sourceDir });
+
+    expect(result.skills).toEqual(['graphic-design']);
+    expect(result.targets).toHaveLength(2);
+    expect(result.sourceIdentity).toMatch(/^[0-9a-f]{64}$/);
+
+    for (const base of DESIGN_SKILL_TARGET_BASES) {
+      const dir = path.join(workdir, base, 'graphic-design');
+      for (const [rel, content] of Object.entries(SOURCE_FILES)) {
+        expect(readFileSync(path.join(dir, rel), 'utf8')).toBe(content);
+      }
+      const manifest = JSON.parse(
+        readFileSync(path.join(dir, SKILL_MANIFEST_FILENAME), 'utf8')
+      ) as Record<string, string>;
+      expect(Object.keys(manifest).sort()).toEqual(Object.keys(SOURCE_FILES).sort());
+      for (const [rel, hash] of Object.entries(manifest)) {
+        expect(hash).toBe(sha256Hex(readFileSync(path.join(dir, rel))));
+      }
+    }
+  });
+
+  it('is idempotent: a second run writes nothing and reports all files unchanged', () => {
+    const sourceDir = makeSource(SOURCE_FILES);
+    const workdir = makeWorkdir();
+    materializeDesignSkills({ workdir, sourceDir });
+    const second = materializeDesignSkills({ workdir, sourceDir });
+    for (const target of second.targets) {
+      expect(target.written).toEqual([]);
+      expect(target.drifted).toEqual([]);
+      expect(target.unchanged.sort()).toEqual(Object.keys(SOURCE_FILES).sort());
+    }
+    expect(second.sourceIdentity).toBe(
+      materializeDesignSkills({ workdir, sourceDir }).sourceIdentity
+    );
+  });
+
+  it('updates a managed-clean file when the bundle changes, and rewrites the manifest', () => {
+    const sourceDir = makeSource(SOURCE_FILES);
+    const workdir = makeWorkdir();
+    materializeDesignSkills({ workdir, sourceDir });
+
+    writeFileSync(path.join(sourceDir, 'graphic-design', 'references', 'guide.md'), 'guide v2\n');
+    const result = materializeDesignSkills({ workdir, sourceDir });
+    for (const target of result.targets) {
+      expect(target.written).toEqual(['references/guide.md']);
+      expect(target.drifted).toEqual([]);
+      expect(readFileSync(path.join(target.dir, 'references', 'guide.md'), 'utf8')).toBe(
+        'guide v2\n'
+      );
+    }
+  });
+
+  it('never overwrites a user-modified file and reports the drift', () => {
+    const sourceDir = makeSource(SOURCE_FILES);
+    const workdir = makeWorkdir();
+    materializeDesignSkills({ workdir, sourceDir });
+
+    const edited = path.join(workdir, '.claude', 'skills', 'graphic-design', 'SKILL.md');
+    writeFileSync(edited, '# user edits\n');
+    // The bundle moved on too, so the file differs from both old and new.
+    writeFileSync(path.join(sourceDir, 'graphic-design', 'SKILL.md'), '# test skill v2\n');
+
+    const result = materializeDesignSkills({ workdir, sourceDir });
+    const claude = result.targets.find((t) => t.dir.includes('.claude'))!;
+    const agents = result.targets.find((t) => t.dir.includes('.agents'))!;
+    expect(claude.drifted).toEqual(['SKILL.md']);
+    expect(readFileSync(edited, 'utf8')).toBe('# user edits\n');
+    // The untouched .agents copy updated normally.
+    expect(agents.drifted).toEqual([]);
+    expect(readFileSync(path.join(agents.dir, 'SKILL.md'), 'utf8')).toBe('# test skill v2\n');
+    // Drift is sticky: still reported, still not clobbered on the next run.
+    const third = materializeDesignSkills({ workdir, sourceDir });
+    expect(third.targets.find((t) => t.dir.includes('.claude'))!.drifted).toEqual(['SKILL.md']);
+    expect(readFileSync(edited, 'utf8')).toBe('# user edits\n');
+  });
+
+  it('never overwrites a pre-existing unmanaged file', () => {
+    const sourceDir = makeSource(SOURCE_FILES);
+    const workdir = makeWorkdir();
+    const preExisting = path.join(workdir, '.claude', 'skills', 'graphic-design', 'SKILL.md');
+    mkdirSync(path.dirname(preExisting), { recursive: true });
+    writeFileSync(preExisting, '# my own skill\n');
+
+    const result = materializeDesignSkills({ workdir, sourceDir });
+    const claude = result.targets.find((t) => t.dir.includes('.claude'))!;
+    expect(claude.drifted).toEqual(['SKILL.md']);
+    expect(readFileSync(preExisting, 'utf8')).toBe('# my own skill\n');
+  });
+
+  it('refuses skill names that escape the target layout', () => {
+    const sourceDir = makeSource(SOURCE_FILES);
+    const workdir = makeWorkdir();
+    expect(() => materializeDesignSkills({ workdir, sourceDir, skills: ['../evil'] })).toThrow(
+      SkillMaterializationError
+    );
+    expect(existsSync(path.join(workdir, '.claude', 'evil'))).toBe(false);
+  });
+
+  it('refuses to write through a symlinked target dir', () => {
+    const sourceDir = makeSource(SOURCE_FILES);
+    const workdir = makeWorkdir();
+    const elsewhere = makeWorkdir();
+    const link = path.join(workdir, '.claude', 'skills', 'graphic-design');
+    mkdirSync(path.dirname(link), { recursive: true });
+    symlinkSync(elsewhere, link);
+    expect(() => materializeDesignSkills({ workdir, sourceDir })).toThrow(
+      SkillMaterializationError
+    );
+    expect(existsSync(path.join(elsewhere, 'SKILL.md'))).toBe(false);
+  });
+
+  it('fails honestly when the bundled source is missing', () => {
+    const workdir = makeWorkdir();
+    const missing = path.join(makeWorkdir(), 'no-such-dir');
+    expect(() => materializeDesignSkills({ workdir, sourceDir: missing })).toThrow(
+      SkillMaterializationError
+    );
+  });
+});
+
+describe('designSkillPointerLine', () => {
+  it('points at the .claude project skill dir', () => {
+    expect(designSkillPointerLine('/tmp/wd')).toBe(
+      'Use the skill at /tmp/wd/.claude/skills/graphic-design; read its SKILL.md first.'
+    );
+  });
+});

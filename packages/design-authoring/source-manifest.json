@@ -1,0 +1,152 @@
+{
+  "repository": "https://github.com/LeonEthan/agentic-listing-design",
+  "commit": "7fd3c0691876ec7428fe3f3ef1ef6c4c46cdef12",
+  "bentoCommit": "813c71fff72491e6898f5e55a20da44a562be586",
+  "capabilityMatrix": {
+    "path": "../design-bento/vendor/packages/contracts/capability-matrix/v1.json",
+    "sha256": "a96c9959ba6beeb66aca16fa8f48da3993b394ea526ca979c5949aab8e2dfd48"
+  },
+  "files": {
+    "src/intake.ts": {
+      "upstreamPath": "packages/authoring/src/intake.ts",
+      "derivation": "adapted",
+      "upstreamSha256": "53cb5060e04e1658fb1de9ab3f2b97f8a38dffcd818d99932218f1c5985fd621"
+    },
+    "src/validate.ts": {
+      "upstreamPath": "packages/authoring/src/validate.ts",
+      "derivation": "adapted",
+      "upstreamSha256": "4adb74deaaee23e9b1c94dcc246f6ea8906a1b8ce11a38038cb79a0f91bf34cd"
+    },
+    "src/import.ts": {
+      "upstreamPath": "packages/authoring/src/import.ts",
+      "derivation": "adapted",
+      "upstreamSha256": "47eaaecd11318d7c5c3876a5014515bd2354b3e4fd8331a2b7e6fd9445060606"
+    },
+    "src/migrate.ts": {
+      "upstreamPath": "packages/authoring/src/migrate.ts",
+      "derivation": "adapted",
+      "upstreamSha256": "8166fef5152bc99d20a630c8222cca2c81ef1aea9dd311f709985d7176f100d2"
+    },
+    "src/richtext.ts": {
+      "upstreamPath": "packages/authoring/src/richtext.ts",
+      "derivation": "adapted",
+      "upstreamSha256": "f3fd4004743e7d50e084a6f263a0ca5f2f9b91aeafa9d86c680fb4e68a3e1ae9"
+    },
+    "src/semantic-assets.ts": {
+      "upstreamPath": "packages/authoring/src/semantic-assets.ts",
+      "derivation": "adapted",
+      "upstreamSha256": "b5993506d0fe20947e5c2f2bd3cc98cdd5ee2850482d12dc3c8b37f36fdd8aa3"
+    },
+    "src/product-boundary.ts": {
+      "upstreamPath": "packages/authoring/src/product-boundary.ts",
+      "derivation": "adapted",
+      "upstreamSha256": "a266e349ec0a0be099a797415791d6a607d2ae9c43582d5d33ab2fb80453b1df"
+    },
+    "src/latex.ts": {
+      "upstreamPath": "packages/authoring/src/latex.ts",
+      "derivation": "adapted",
+      "upstreamSha256": "6e1038f97bc891cd44b203dda6799f4c1227cb654e46921bb8880d7ac0ca29dc"
+    },
+    "src/collect-authoring.ts": {
+      "upstreamPath": "packages/authoring/src/collect-authoring.ts",
+      "derivation": "adapted",
+      "upstreamSha256": "05be0c2e37269422e9e0386564f6760efac8c65d8d0cdbf7c48d300c7e6df72b"
+    },
+    "skills/graphic-design/SKILL.md": {
+      "upstreamPath": "skills/graphic-design/SKILL.md",
+      "derivation": "rewritten",
+      "upstreamSha256": "630e7dcbaa1ce95ead038889684f93239078728121577b048cf4febb57f9d0b2"
+    },
+    "skills/graphic-design/references/general-poster.md": {
+      "upstreamPath": "skills/graphic-design/references/general-poster.md",
+      "derivation": "verbatim",
+      "upstreamSha256": "1ce83687a07955264f97447866ed98cfb3892ccdebeab3725960262d4d94afe3",
+      "sha256": "1ce83687a07955264f97447866ed98cfb3892ccdebeab3725960262d4d94afe3"
+    },
+    "skills/graphic-design/references/replication.md": {
+      "upstreamPath": "skills/graphic-design/references/replication.md",
+      "derivation": "adapted",
+      "upstreamSha256": "00118418c9f784ed401015e52f6685d80143a3f54dcb5893ebba7626d7ce8f0e"
+    },
+    "skills/graphic-design/references/graphic-canvas-profile.md": {
+      "upstreamPath": "skills/graphic-design/references/graphic-canvas-profile.md",
+      "derivation": "adapted",
+      "upstreamSha256": "cbfd95b49d451b88b8072e417b8e8c145fc0691890a1798f3ade8b5528b47967"
+    },
+    "skills/graphic-design/references/pptd-authoring.md": {
+      "upstreamPath": "skills/graphic-design/references/pptd-authoring.md",
+      "derivation": "adapted",
+      "upstreamSha256": "672b8d50455a2e5f8c3eb48e1ddee8b183b06f007a3b8b547d1f49bc052f0ce6"
+    },
+    "skills/graphic-design/scripts/finalize.mjs": {
+      "upstreamPath": "skills/graphic-design/scripts/finalize.mjs",
+      "derivation": "rewritten",
+      "upstreamSha256": "e64f9a6dea910bd0b779999aa6753c1a199fbf22417fd6931ed410a40bde24ee"
+    },
+    "skills/graphic-design/scripts/render-preview.mjs": {
+      "upstreamPath": "skills/graphic-design/scripts/render-preview.mjs",
+      "derivation": "rewritten",
+      "upstreamSha256": "6c478af7297ec2da32902579dee2032572880de530cdd3b9285248d85c28fae7"
+    },
+    "skills/graphic-design/scripts/reference-pack.mjs": {
+      "upstreamPath": "skills/graphic-design/scripts/reference-pack.py",
+      "derivation": "ported",
+      "upstreamSha256": "3e66820f30ffe793d10813e2ecb32b5034791c50e31691dec80cf87c6e70c9e2"
+    },
+    "skills/graphic-design/examples/minimal/poster.pptd": {
+      "upstreamPath": "skills/graphic-design/examples/minimal/poster.pptd",
+      "derivation": "verbatim",
+      "upstreamSha256": "0c413836c877addc7f6e97addc9e900f70f975fda2728ff33489c676db2b0d9d",
+      "sha256": "0c413836c877addc7f6e97addc9e900f70f975fda2728ff33489c676db2b0d9d"
+    },
+    "skills/graphic-design/examples/minimal/pages/poster.page": {
+      "upstreamPath": "skills/graphic-design/examples/minimal/pages/poster.page",
+      "derivation": "verbatim",
+      "upstreamSha256": "e256c48baaefca89d38ae2e40861a2033139e0b1fc9393547278e2a29ab60eee",
+      "sha256": "e256c48baaefca89d38ae2e40861a2033139e0b1fc9393547278e2a29ab60eee"
+    },
+    "skills/graphic-design/examples/minimal/media/swatch.png": {
+      "upstreamPath": "skills/graphic-design/examples/minimal/media/swatch.png",
+      "derivation": "verbatim",
+      "upstreamSha256": "922bc87ec53020f538d101e622731de31eb835e4d3b8f14aecc6dca88cb06249",
+      "sha256": "922bc87ec53020f538d101e622731de31eb835e4d3b8f14aecc6dca88cb06249"
+    },
+    "skills/imagegen/SKILL.md": {
+      "upstreamPath": "skills/imagegen/SKILL.md",
+      "derivation": "rewritten",
+      "upstreamSha256": "31490da61432c1ebcb50e07cba056631c1f3635725dfaeda3dab6fb09e6a43a3"
+    },
+    "skills/imagegen/LICENSE.txt": {
+      "upstreamPath": "skills/imagegen/LICENSE.txt",
+      "derivation": "verbatim",
+      "upstreamSha256": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9",
+      "sha256": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9"
+    },
+    "skills/imagegen/references/prompting.md": {
+      "upstreamPath": "skills/imagegen/references/prompting.md",
+      "derivation": "adapted",
+      "upstreamSha256": "a9fb02d984e8da8442190095a8ac48dc95461d359e3b0f2bf10cff2f22eba2ba"
+    },
+    "skills/imagegen/references/sample-prompts.md": {
+      "upstreamPath": "skills/imagegen/references/sample-prompts.md",
+      "derivation": "verbatim",
+      "upstreamSha256": "be54f1ced28a7ac1d68670eb2d560d1491d7e0efe38972d9ba3309110f7d45e4",
+      "sha256": "be54f1ced28a7ac1d68670eb2d560d1491d7e0efe38972d9ba3309110f7d45e4"
+    }
+  },
+  "derivations": {
+    "verbatim": "byte-identical to the pinned upstream; build.mjs verifies the recorded sha256",
+    "adapted": "minimal Folio adaptations (imports, tool entry points); upstreamSha256 records provenance",
+    "ported": "re-implemented dependency-free for Node (upstream was Python/Pillow)",
+    "rewritten": "rewritten for Folio (tool calls, completion model); method and structure preserved"
+  },
+  "excluded": [
+    "packages/authoring/src/revisions.ts (immutable revision CAS store)",
+    "packages/authoring/src/workspace.ts (CAS workspace persistence)",
+    "skills/graphic-design/references/pptd.md (2029-line upstream catalogue; not authoring permission)",
+    "skills/graphic-design/scripts/reference-pack.py superseded by the ported .mjs",
+    "skills/graphic-design/VENDOR.lock (runtime per-file freezing replaced by this build-time manifest)",
+    "skills/imagegen/scripts/image_gen.py, references/cli.md, references/codex-network.md, references/image-api.md (old CLI/deployment specifics)",
+    "skills/amazon-aplus (out of scope)"
+  ]
+}

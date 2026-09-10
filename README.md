@@ -153,6 +153,7 @@ Lody is still moving toward full local-first support.
 - `packages/platform` — Platform capabilities and integrations
 - `packages/shared` — Shared schemas, protocols, and utilities
 - `packages/design-bento` — Pinned Folio canvas resources and P0 sample
+- `packages/design-authoring` — PPTD intake and bundled graphic-design/imagegen Agent skills
 - `packages/cloud-api` — Optional-cloud protocol names and DTOs
 - `packages/loro-streams-rpc` — RPC over Loro Streams
 - `packages/acp-extension-{core,kimi}` — ACP extension submodule workspaces

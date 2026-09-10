@@ -287,6 +287,8 @@ import {
 import { fetchAcpCapabilities, type FetchAcpCapabilitiesOptions } from '@/agent/acp-capabilities';
 import type { WorkspaceWatchCoordinatorApi } from './code-collab/workspace-watch-coordinator';
 import { appendIssuePrMentionsToPrompt } from '@/session/session-execution-helpers';
+import { getDefaultSessionWorkdir } from '@/session/session';
+import { designSkillPointerLine, materializeDesignSkills } from '@/design/skills';
 import {
   SessionExecutionService,
   type SessionDispatchSource,
@@ -2567,8 +2569,16 @@ export class MessageHandler {
       args.issuePRMentions
     ).trim();
 
+    // Design sessions (SessionMeta.design) get the bundled design skills
+    // materialized into their workdir plus a pointer line in the prompt.
+    // Non-design sessions are byte-identical to before.
+    const designSkillPointer = await this.buildDesignSkillPointer(args.sessionId);
+    const finalTextPrompt = designSkillPointer
+      ? `${textPrompt}${textPrompt.length > 0 ? '\n\n' : ''}${designSkillPointer}`
+      : textPrompt;
+
     const hasCurrentRequestContent =
-      imageBlocks.length > 0 || fileAttachmentBlocks.length > 0 || textPrompt.length > 0;
+      imageBlocks.length > 0 || fileAttachmentBlocks.length > 0 || finalTextPrompt.length > 0;
     const replayText = args.replayPromptText?.trim() ?? '';
 
     const promptBlocks: ContentBlock[] = [];
@@ -2583,10 +2593,10 @@ export class MessageHandler {
     promptBlocks.push(...imageAttachmentBlocks);
     promptBlocks.push(...fileAttachmentBlocks);
 
-    if (textPrompt) {
+    if (finalTextPrompt) {
       promptBlocks.push({
         type: 'text',
-        text: textPrompt,
+        text: finalTextPrompt,
       });
     }
 
@@ -2595,6 +2605,38 @@ export class MessageHandler {
     }
 
     return promptBlocks;
+  }
+
+  /**
+   * Design-turn skill delivery (P2.1): when the session meta carries a design
+   * association, sync the bundled skill dirs into the session workdir's
+   * project-level skill dirs and return the prompt pointer line. Returns null
+   * for non-design sessions (zero prompt change) and on materialization
+   * failure — a damaged bundle must not block dispatch on the prompt hot path;
+   * the warning stays observable in the log instead.
+   */
+  private async buildDesignSkillPointer(sessionId: SessionId): Promise<string | null> {
+    try {
+      const sessionDoc = await this.workspaceDocument.getOrCreateSessionDoc(sessionId);
+      const meta = await sessionDoc.getMetaState();
+      if (!meta?.design) return null;
+      const workdir = getDefaultSessionWorkdir(sessionId);
+      const result = materializeDesignSkills({ workdir });
+      const drifted = result.targets.flatMap((target) =>
+        target.drifted.map((file) => `${target.dir}/${file}`)
+      );
+      if (drifted.length > 0) {
+        this.logger.warn(
+          `[${sessionId}] design skill materialization left user-modified files untouched: ${drifted.join(', ')}`
+        );
+      }
+      return designSkillPointerLine(workdir);
+    } catch (error) {
+      this.logger.warn(
+        `[${sessionId}] design skill materialization failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+      return null;
+    }
   }
 
   private async getLocalProjectGitStateForRpc(args: {

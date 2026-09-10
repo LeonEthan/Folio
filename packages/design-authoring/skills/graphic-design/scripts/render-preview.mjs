@@ -1,0 +1,53 @@
+#!/usr/bin/env node
+// render-preview.mjs — self-check that a PPTD project passes Folio's intake
+// (validate + PPTD→BentoDoc v4 import + asset binding) exactly as the daemon
+// will run it after your turn, then report where visual preview comes from.
+//
+// Usage: node render-preview.mjs <project>/design.pptd
+//
+// Visual rendering is NOT done by this script. Preview rendering goes through
+// the `folio_render_preview` MCP tool when the app's render provider is
+// connected; call that tool, then open the PNG it returns. This script exists
+// so a project that would fail intake never reaches that step.
+
+import path from 'node:path';
+import { existsSync } from 'node:fs';
+import { collectAuthoring, intakeAuthoring } from './lib/folio-pptd.mjs';
+
+const entry = process.argv[2];
+if (!entry || path.basename(entry) !== 'design.pptd' || !existsSync(entry)) {
+  console.error('usage: node render-preview.mjs <project>/design.pptd (file must exist)');
+  process.exit(2);
+}
+
+const projectDir = path.dirname(path.resolve(entry));
+
+let snapshot;
+try {
+  snapshot = collectAuthoring(projectDir);
+} catch (error) {
+  console.error(`render-preview: ${error instanceof Error ? error.message : String(error)}`);
+  process.exit(1);
+}
+
+const intake = intakeAuthoring('design.pptd', snapshot);
+if (intake.status === 'invalid') {
+  for (const d of intake.diagnostics) {
+    console.error(`${d.code} ${d.path}: ${d.message}`);
+  }
+  console.error(`render-preview: ${intake.diagnostics.length} validation diagnostic(s)`);
+  process.exit(1);
+}
+if (intake.status === 'unsupported') {
+  console.error(`render-preview: PPTD import unsupported: ${JSON.stringify(intake.issues)}`);
+  process.exit(1);
+}
+
+console.log(
+  `render-preview: intake OK (${intake.document.elements.length} element(s), ${intake.assets.size} asset(s), profile ${intake.profileVersion})`
+);
+console.log(
+  'render-preview: visual rendering is provided by the folio_render_preview MCP tool. ' +
+    'If that tool is not connected in this session, no preview can be produced here; ' +
+    'report that visual review is incomplete instead of substituting another renderer.'
+);
