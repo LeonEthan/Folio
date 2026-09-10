@@ -100,7 +100,9 @@ export function startDesignRenderHost(cliService: CliService): () => void {
   const loop = new DesignRenderHostLoop<DesignPayload>({
     exchange: makeExchange(cliService),
     readPayload: readStagedPayload,
-    renderPng: async (payload) => await renderSavedDesign(payload, 'png'),
+    // The work item carries `maxEdge` when the daemon wants a scaled copy for a
+    // result card; a preview asks for none and gets the canvas's own size.
+    renderPng: async (payload, work) => await renderSavedDesign(payload, 'png', work.maxEdge),
     writeOutput: writeOutputAtomic,
     log: (message) => {
       // A poll once every couple of seconds must not fill the log with the same

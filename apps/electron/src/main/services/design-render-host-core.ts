@@ -43,6 +43,12 @@ export type DesignRenderHostWork = {
   outputPath: string
   width: number
   height: number
+  /**
+   * Longest edge of the file the daemon wants, when it wants a scaled copy
+   * rather than a full-size render (P2.6's result-card thumbnail). Absent means
+   * render at `width`x`height`, which is what the canvas export path asks for.
+   */
+  maxEdge?: number
 }
 
 /** The result of one handed-out request, as the daemon's schema expects it. */
@@ -59,8 +65,12 @@ export type DesignRenderHostLoopOptions<TPayload> = {
   exchange: (reports: DesignRenderHostReport[]) => Promise<DesignRenderHostWork[]>
   /** Read one staged payload written by the daemon. */
   readPayload: (payloadPath: string) => Promise<TPayload>
-  /** Rasterize a payload to PNG bytes. */
-  renderPng: (payload: TPayload) => Promise<Uint8Array>
+  /**
+   * Rasterize a payload to PNG bytes. The work item travels along because it
+   * carries `maxEdge`: the caller must scale the *canvas* down rather than make
+   * a smaller canvas, so only the renderer can decide how to honour it.
+   */
+  renderPng: (payload: TPayload, work: DesignRenderHostWork) => Promise<Uint8Array>
   /** Write the rendered bytes where the daemon asked for them. */
   writeOutput: (outputPath: string, bytes: Uint8Array) => Promise<void>
   /** Test seams: default to the global timers. */
@@ -80,6 +90,31 @@ export const MAX_REPORTS_PER_POLL = 8
 export const MAX_REPORT_ERROR_CHARS = 500
 
 const FALLBACK_ERROR = 'the preview could not be rendered'
+
+/**
+ * The output size for a canvas of `width`x`height` whose longest edge may not
+ * exceed `maxEdge`, preserving the aspect ratio.
+ *
+ * `undefined` means "render at full size", which is the answer for a canvas that
+ * is already within the bound as well as for a request that named no bound: the
+ * difference between a scaled and an unscaled render never has to be guessed,
+ * and the daemon records whatever dimensions the file really has.
+ *
+ * Pure and Electron-free so the tests can pin the arithmetic — including the
+ * rounding, which must not round a very thin canvas down to a zero edge.
+ */
+export const scaleToLongestEdge = (
+  canvas: { width: number; height: number },
+  maxEdge: number | undefined
+): { width: number; height: number } | undefined => {
+  const longest = Math.max(canvas.width, canvas.height)
+  if (maxEdge === undefined || maxEdge >= longest) return undefined
+  const scale = maxEdge / longest
+  return {
+    width: Math.max(1, Math.round(canvas.width * scale)),
+    height: Math.max(1, Math.round(canvas.height * scale))
+  }
+}
 
 /** Bound and never-empty: an empty message is rejected by the daemon's schema. */
 const describeError = (error: unknown): string => {
@@ -189,7 +224,7 @@ export class DesignRenderHostLoop<TPayload> {
     let report: DesignRenderHostReport
     try {
       const payload = await this.readPayload(work.payloadPath)
-      const bytes = await this.renderPng(payload)
+      const bytes = await this.renderPng(payload, work)
       await this.writeOutput(work.outputPath, bytes)
       report = { requestId: work.requestId, ok: true }
     } catch (error) {

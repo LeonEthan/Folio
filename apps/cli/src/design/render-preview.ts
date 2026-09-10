@@ -33,19 +33,23 @@
 
 import { AuthoringSnapshotError, collectAuthoring, intakeAuthoring } from '@folio/design-authoring';
 import { createHash, randomUUID } from 'node:crypto';
-import { lstat, mkdir, open, readdir, readFile, rename, unlink } from 'node:fs/promises';
+import { lstat, mkdir, readdir, unlink } from 'node:fs/promises';
 import path from 'node:path';
-import { sniffStaticV1ImageMime } from '../../../../packages/design-bento/vendor/packages/contracts/src/static-v1';
 import { buildAssetDataUris } from './authoring-assets';
-import type { DesignRenderPreviewOutcome } from './render-host';
-import type { DesignRenderHostWork } from '@lody/shared';
+import {
+  DESIGN_PREVIEW_STAGE_DIRNAME,
+  errorMessage,
+  MAX_STAGED_PAYLOAD_BYTES,
+  publishBytesAtomic,
+  refused,
+  verifyRenderedPng,
+  type DesignRenderQueue,
+} from './render-output';
 import { canonicalContentBytes, type DesignPayload } from './store';
 import { DESIGN_ARTIFACT_ENTRY } from './turn-outcome';
 
 /** Where rendered previews live, relative to the session workdir. */
 export const DESIGN_PREVIEW_DIRNAME = 'design-preview';
-/** Where staged payloads wait for the desktop, relative to the daemon data root. */
-export const DESIGN_PREVIEW_STAGE_DIRNAME = 'design-preview-stage';
 /**
  * How many previews one session keeps. Previews are scratch output the agent
  * reads once, so they are pruned by name (the timestamp prefix orders them)
@@ -54,8 +58,6 @@ export const DESIGN_PREVIEW_STAGE_DIRNAME = 'design-preview-stage';
 export const MAX_KEPT_PREVIEWS = 8;
 /** Bounded, like every diagnostic that can reach an agent. */
 const MAX_DIAGNOSTICS = 5;
-const MAX_ERROR_CHARS = 800;
-const MAX_STAGED_PAYLOAD_BYTES = 64 * 1024 * 1024;
 
 export interface DesignPreviewContext {
   /**
@@ -81,14 +83,8 @@ export type DesignPreviewResult =
   | { status: 'rendered'; path: string; width: number; height: number; bytes: number }
   | { status: 'refused'; error: string };
 
-/**
- * The part of the render host this module drives. Narrow on purpose: staging a
- * payload and verifying the PNG are filesystem concerns, and keeping them apart
- * from the queue is what lets each be tested without the other.
- */
-export interface DesignRenderQueue {
-  enqueue(work: DesignRenderHostWork): Promise<DesignRenderPreviewOutcome>;
-}
+/** Re-exported so a caller of the preview path finds the queue interface where it always was. */
+export type { DesignRenderQueue };
 
 export type DesignPreviewPayloadResult =
   | {
@@ -99,14 +95,6 @@ export type DesignPreviewPayloadResult =
       height: number;
     }
   | { status: 'refused'; error: string };
-
-const errorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error);
-
-const refused = (error: string): { status: 'refused'; error: string } => ({
-  status: 'refused',
-  error: error.slice(0, MAX_ERROR_CHARS),
-});
 
 /**
  * Import the workdir's PPTD project into the payload the desktop renders.
@@ -182,24 +170,6 @@ function describeDiagnostics(entries: readonly { code: string; message: string }
   return `the project did not pass the design intake: ${shown.join('; ')}${suffix}`;
 }
 
-/** Temp file + fsync + rename, so a half-written payload is never observable. */
-async function publishBytesAtomic(directory: string, target: string, bytes: string): Promise<void> {
-  await mkdir(directory, { recursive: true });
-  const temporary = path.join(directory, `.${randomUUID()}.tmp`);
-  try {
-    const file = await open(temporary, 'wx', 0o600);
-    try {
-      await file.writeFile(bytes, 'utf8');
-      await file.sync();
-    } finally {
-      await file.close();
-    }
-    await rename(temporary, target);
-  } finally {
-    await unlink(temporary).catch(() => undefined);
-  }
-}
-
 /**
  * Render one preview of this session's project through the desktop host.
  *
@@ -264,60 +234,17 @@ export async function renderDesignPreview(
   }
   if (outcome.status === 'refused') return outcome;
 
-  const verified = await verifyRenderedPreview(
-    outcome.absolutePath,
-    workdir,
-    built.width,
-    built.height
-  );
-  if (verified.status === 'rendered') await prunePreviews(previewDirectory);
-  return verified;
-}
-
-/**
- * Confirm the host wrote a PNG before its path reaches the agent.
- *
- * Header sniff plus size, not a decode: this is the same storage-level check the
- * store applies to an imported asset, and the pixel dimensions the desktop
- * asserts during rendering are not re-derived here.
- */
-async function verifyRenderedPreview(
-  absolutePath: string,
-  workdir: string,
-  width: number,
-  height: number
-): Promise<DesignPreviewResult> {
-  let bytes: Buffer;
-  try {
-    const stat = await lstat(absolutePath);
-    if (stat.isSymbolicLink() || !stat.isFile() || stat.size === 0) {
-      return refused('the desktop reported a rendering but wrote no readable PNG');
-    }
-    const handle = await open(absolutePath, 'r');
-    try {
-      const header = Buffer.alloc(16);
-      const { bytesRead } = await handle.read(header, 0, 16, 0);
-      if (sniffStaticV1ImageMime(header.subarray(0, bytesRead)) !== 'image/png') {
-        return refused('the desktop reported a rendering but the file is not a PNG');
-      }
-    } finally {
-      await handle.close();
-    }
-    bytes = await readFile(absolutePath);
-  } catch (error) {
-    return refused(`the rendered preview could not be read: ${errorMessage(error)}`);
-  }
-
-  const relative = path.relative(path.resolve(workdir), absolutePath);
-  if (relative === '' || relative.startsWith('..') || path.isAbsolute(relative)) {
-    return refused('the rendered preview landed outside the session workspace');
-  }
+  const verified = await verifyRenderedPng(outcome.absolutePath, workdir);
+  if (verified.status === 'refused') return verified;
+  await prunePreviews(previewDirectory);
   return {
     status: 'rendered',
-    path: relative.split(path.sep).join('/'),
-    width,
-    height,
-    bytes: bytes.byteLength,
+    path: verified.path,
+    // The canvas's own dimensions: what the agent asked to preview, which is
+    // what it must be told it got.
+    width: built.width,
+    height: built.height,
+    bytes: verified.bytes.byteLength,
   };
 }
 

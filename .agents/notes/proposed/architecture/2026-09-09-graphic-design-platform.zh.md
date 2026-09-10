@@ -483,3 +483,23 @@ Auto 修订验证：扩展存储检查覆盖省略宽高时的缺省初始化，
 **本轮修掉的两处缺陷（都由新测试当场暴露）。** （1）`DesignRenderRpcResultSchema` 最初把「渲染成功」与「拒绝」两个变体平铺进同一个 `discriminatedUnion('type', …)`——判别值重复，zod 在解析时抛错，结果是**每一次成功渲染**都会被 MCP 工具读成「守护进程答非所问」。改为按 `ok` 嵌套判别；共享协议测试现在同时解析两半。（2）Electron 轮询循环 `pollOnce` 把 `this.reports` 别名进 `pending` 后重建 `[...held, ...this.reports]`，**每一次轮询都会把已发出的报告复制一遍**（失败轮询还会指数增长）。改为只丢弃已发出的前缀（`slice(send.length)`），失败时不改动（本来就没投递）。
 
 **结论。** C 把这次的改动面收在「跨进程协议 + 一条客户端轮询」内：不改会话文档 schema、不新增持久事件种类、不在 Electron 新增入站端点。Spec 只需订正 `folio_render_preview` 的验证状态一行，行为陈述（工具诚实缺席、能力由机器决定）原本就成立，`Status: draft` 保留。已核准的 P2 验收（Issue #1）**不包含**渲染预览，因此它不阻塞 P2 总验收。
+
+### P2.6 缩略图引用（2026-09-10，已实施）
+
+**状态：已实现。** 实现故事 20 的「缩略图引用」：结果卡显示本轮产出文档的渲染预览。持久字段是 `DesignTurnOutcome.thumbnail?: { path, width, height }`——[packages/shared/src/design-turn-outcome.ts](../../../../packages/shared/src/design-turn-outcome.ts) 中**可选且新增**，因此旧写入方的 `version: 1` 负载照常读取，version 不变；`sanitizeDesignTurnOutcomeThumbnail` 是唯一读法，路径不是 `<64 位十六进制>.png` 的形状就整体丢弃（不做半修）。
+
+**为何记引用而不是字节。** 持久条目被每个打开该会话的客户端读；把图像写进历史会让每次读都携带一张图。引用是会话 workdir 相对路径 `design-thumbnail/<sha256(canonicalContentBytes({doc, assets}))>.png`——**按内容寻址**，所以两个回合产出同一文档时共享同一个文件，写与读用的是同一套命名规则。
+
+**采集是追加，不是判定。** [thumbnail.ts](../../../../apps/cli/src/design/thumbnail.ts) 的 `captureDesignThumbnail` 只在 `committed`／`candidate` 分类**之后**调用（文档没写进画布就不该有它的照片）：先问 `host.isConnected()` 再落盘（staging 会把整份文档含 base64 素材写进磁盘，没有桌面在轮询的机器不该付这笔钱），再交给 P2.4b 的既有队列，最后 `verifyRenderedPng` 通过才返回引用。**任何失败都是 `undefined`**：不改变 status、不重试、不修 agent 的工程，卡片照常显示它原本的结论。渲染失败因此比命中缓存路径少一件「已存在的缩略图」被覆盖的风险。
+
+**缩放发生在截图之后，不在布局之前。** work item 新增 `maxEdge?: number`，桌面用 `scaleToLongestEdge`（纯函数，随 `design-render-host-core.ts` 一并测试）算出目标尺寸，再对**截到的图像** `nativeImage.resize`。若改成「用 480 px 布局画布再截图」，得到的是**另一张图**——重排后的设计，而不是 agent 那份的缩小版。`Math.max(1, …)` 防止极扁的画布被舍入成零边。
+
+**防覆盖与清理。** 宿主写 `<digest>.<requestId>.png`，验证通过后才 `rename` 到 `<digest>.png`。这样一次失败的渲染**不可能**覆盖同一文档此前回合已经记录好的缩略图（该文档正是同一路径），而清理只 `unlink`／`rmdir` 守护进程自己发明的路径——坏的宿主无法让守护进程删掉任意文件。`rmdir` 拒绝非空目录这一性质，恰好就是「目录里已有别的回合的缩略图时不动它」。
+
+**读取走既有设计通道，不是新的机器 RPC。** 新增 worker 操作 `thumbnail`（[thumbnail-read.ts](../../../../apps/cli/src/design/thumbnail-read.ts)）→ `design-service.ts` 的 `readDesignCardThumbnail` → `DesignIpc.thumbnail(sessionId, reference)` → 渲染器，与 P2.5 的候选三操作同一条通道、同一条纪律：**渲染器不接触 `chats/<artworkId>/`**。读取方校验全部条件后才给出字节：会话 id 是 uuid；引用必须**精确匹配** `^design-thumbnail/[a-f0-9]{64}\.png$`（精确匹配而非「洗干净成形状」，使绝对路径、`..`、Windows 盘符、UNC、query string 无需枚举即全部落空）；`chats/<id>` 与 `design-thumbnail/` 两级都必须 `lstat` 为**真目录**（符号链接不算）；文件以 `O_NOFOLLOW` 打开、必须是 `0 < size <= 4 MiB` 的普通文件、头部既嗅探为 PNG 又必须能读出 IHDR（只嗅探会接受「仅有 8 字节签名」的文件）。任一条不成立 → `unavailable(missing|unreadable)`。读取**不创建任何东西**（所以不能复用 `designChatDirectory` 的 mkdir 路径）、不修复、不重渲染。
+
+**卡上的呈现。** `resolveDesignThumbnail` 只接受 `data:image/png;base64,` 前缀的字符串并有长度上限——`src` 因此永远不可能是远程 URL、`blob:`、`javascript:` 或另一种媒体类型，无论答案从哪来。`<img>` 带记录到的像素尺寸，让卡片在数据 URI 解码前就预留正确的盒子；`object-contain` 保证尺寸万一不符也只是留白而不是拉伸。图像描述的是「**该回合产出了什么**」，所以它与候选随后的处置无关：候选被丢弃后预览照常显示，正如持久状态也照常是 `candidate`。
+
+**测试。** CLI 15 项：采集 6（缩放后的引用与尺寸、无桌面时不落盘任何字节、同一文档两次采集共享一个文件、后一次渲染失败不动前一次的字节、拒绝／不可验证／宿主不答四种情形都是普通缺席且不留空目录、没有 canvas 的文档什么都不记）；读取 9（正常取回 data URI、文件已删、会话根本没有工作区、十四种非形状引用全部拒绝且不创建任何东西、工作区或缩略图目录是符号链接、PNG 本身是符号链接、非 PNG／非普通文件／空文件、超过上限、非法会话 id 抛错）。components 41 项（纯函数 20 含 2 项新增：只接受 PNG data URI、其余 17 种答案一律「无图像」；真实组件 21 含 6 项新增：按记录尺寸显示、无引用时不读也不显示、引用失效时不显示图像也不报错、读取失败按无图像处理、候选已适用时预览仍在、走设计通道且每个引用只读一次）。shared 1108 项、Electron 渲染循环 10 项、IPC 通道注册 2 项全绿；夹具全部合成，无真实 Electron、网络或时钟。
+
+**偏差与理由。**（1）不做成机器 RPC、不开新通道：缩略图是**一个会话自己的历史**的一部分，与候选状态同一性质，因此复用 P2.4b 的渲染队列**只为了出图**，读取则留在设计通道上。（2）`maxEdge` 加进既有 work item 而不是新增请求种类：预览与缩略图共用同一条桥、同一个队列、同一套失败语义，多一个请求种类只会多一份要同步的边界。（3）读取方**不复核**记录尺寸与文件头尺寸是否一致：同一 digest 的缩略图可能被更晚的回合以不同 `maxEdge` 重写，复核会让**较早**回合的卡因为文件已经变尺寸而显示不出图像——那是把一条与结论无关的陈旧信息上升成「没有图像」。（4）引用长度上限放进 shared（`MAX_DESIGN_TURN_OUTCOME_THUMBNAIL_REFERENCE_LENGTH`）而不是各边界各写一份：worker 的请求 schema 与形状规则是同一条规则的两次应用，不共享就会漂移。（5）Spec 无需改动：草案第 5 条「结果卡提供渲染预览与采用／丢弃」正是本轮实现，`Status: draft` 与验证状态按原样保留，仅在验证状态行补记 P2.6 已实现。（6）**顺手修掉一处使本文件无法被审查的既有缺陷**：诊断去重用的连接符是一个**字面 NUL 字节**（模板串里 `` `${code}` `` 与 `` `${message}` `` 之间直接夹了一个 0x00 字节），git 与 grep 因此把 `design-turn-outcome.ts` 整个当成二进制——`git diff` 只报 `Bin 7276 -> …`，本轮的改动在其中完全不可见，任何检索也搜不到该文件。改成等价的 `\u0000` 转义后运行时字节完全不变（去重键仍是同一个含 NUL 的字符串，35 项 shared 测试不变），源码恢复为纯文本。P2 总验收不在本轮——它仍需要打包应用内的真实旅程，见下。

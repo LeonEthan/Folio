@@ -22,6 +22,7 @@ import {
   exportDesign,
   finishDesignCopy,
   readDesignCandidateState,
+  readDesignCardThumbnail,
   renameDesign,
   saveDesignForDispatch
 } from '../../services/design-service'
@@ -85,6 +86,22 @@ export class DesignIpc extends IpcService {
   @IpcMethod() async discardCandidate(sessionId: string, rawCandidateId: string) {
     owner()
     return discardDesignCandidate(id.parse(sessionId), candidateId.parse(rawCandidateId))
+  }
+  /**
+   * P2.6: the bytes behind a recorded thumbnail reference, for the result card.
+   *
+   * Only the type is narrowed here. The reference's shape and length are the
+   * worker's rules (`design/thumbnail-read.ts`), and a reference that breaks
+   * them is an absent picture rather than a caller error — the card shows no
+   * image for that and for a rejection alike, so one owner for the rule beats a
+   * second, drifting copy at this boundary.
+   */
+  @IpcMethod() async thumbnail(sessionId: string, reference: unknown) {
+    owner()
+    if (typeof reference !== 'string') {
+      return { status: 'unavailable', reason: 'missing' } as const
+    }
+    return readDesignCardThumbnail(id.parse(sessionId), reference)
   }
   @IpcMethod() async attach(
     sessionId: string,

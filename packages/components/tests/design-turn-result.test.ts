@@ -15,6 +15,7 @@ import {
   resolveDesignCandidateStanding,
   resolveDesignResultCard,
   resolveDesignResultCardActions,
+  resolveDesignThumbnail,
   shortDesignId,
   type DesignCandidateStanding,
   type DesignResultCardState,
@@ -299,6 +300,47 @@ describe('design repair request', () => {
   });
 });
 
+describe('design thumbnail resolution', () => {
+  const png = `data:image/png;base64,${Buffer.from('not really a png').toString('base64')}`;
+
+  it('takes the bytes the design channel returned, and nothing else', () => {
+    expect(resolveDesignThumbnail({ status: 'ok', dataUri: png })).toEqual({
+      status: 'ready',
+      dataUri: png,
+    });
+  });
+
+  it('renders no image for every answer that is not a PNG data URI', () => {
+    const answers: unknown[] = [
+      undefined,
+      null,
+      {},
+      // The two honest absences the channel reports.
+      { status: 'unavailable', reason: 'missing' },
+      { status: 'unavailable', reason: 'unreadable' },
+      // An answer this build does not know, including one with no status at all.
+      { status: 'ok' },
+      { dataUri: png },
+      { status: 'ok', dataUri: '' },
+      // Every other URL a card must never put in `src`, however it arrived.
+      { status: 'ok', dataUri: 'https://example.com/a.png' },
+      { status: 'ok', dataUri: 'blob:file:///a.png' },
+      { status: 'ok', dataUri: 'lody-resource://abc' },
+      { status: 'ok', dataUri: 'javascript:alert(1)' },
+      { status: 'ok', dataUri: 'data:text/html;base64,PHNjcmlwdD4=' },
+      { status: 'ok', dataUri: 'data:image/svg+xml;base64,PHN2Zz4=' },
+      { status: 'ok', dataUri: 'data:image/png,notbase64' },
+      { status: 'ok', dataUri: `data:image/png;base64,nope${'A'.repeat(9 * 1024 * 1024)}` },
+      { status: 'ok', dataUri: 42 },
+    ];
+    for (const answer of answers) {
+      expect(resolveDesignThumbnail(answer as never), JSON.stringify(answer)?.slice(0, 80)).toEqual(
+        { status: 'none' }
+      );
+    }
+  });
+});
+
 describe('design result copy', () => {
   it('names every string the card renders, in the shipped en locale', () => {
     const copies = [
@@ -321,8 +363,11 @@ describe('design result copy', () => {
           { kind: 'failed' },
         ] satisfies DesignResultNotice[]
       ).map((notice) => getDesignResultNoticeCopy(notice)),
+      // Not part of a copy table: the preview image's alt text, which the card
+      // passes to `t` directly.
+      { key: 'design.result.thumbnailAlt', defaultValue: "Preview of this turn's design" },
     ];
-    expect(copies.length).toBe(6 + 1 + 6 + 1 + 6 + 8);
+    expect(copies.length).toBe(6 + 1 + 6 + 1 + 6 + 8 + 1);
     for (const copy of copies) {
       expect(typeof en[copy.key], copy.key).toBe('string');
       expect(copy.defaultValue.length, copy.key).toBeGreaterThan(0);

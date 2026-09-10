@@ -469,3 +469,143 @@ describe('DesignTurnResultCard through the design IPC', () => {
     expect(labels()).toEqual([]);
   });
 });
+
+describe('DesignTurnResultCard thumbnail', () => {
+  const THUMBNAIL_PATH = `design-thumbnail/${sha('f')}.png`;
+  const DATA_URI = `data:image/png;base64,${Buffer.from('rendered').toString('base64')}`;
+  const committedWithThumbnail = outcome('committed', {
+    revisionId: REVISION_ID,
+    thumbnail: { path: THUMBNAIL_PATH, width: 320, height: 200 },
+  });
+
+  const image = () =>
+    container.querySelector<HTMLImageElement>('[data-design-result-thumbnail]');
+
+  it('shows the preview the outcome recorded, at the size it recorded', async () => {
+    const actions = { ...fakeActions(), thumbnail: vi.fn(async () => ({ status: 'ok', dataUri: DATA_URI })) };
+    render(
+      <DesignTurnResultCardView
+        outcome={committedWithThumbnail}
+        generating={false}
+        actions={actions}
+      />
+    );
+    await settle();
+
+    expect(actions.thumbnail).toHaveBeenCalledTimes(1);
+    expect(actions.thumbnail).toHaveBeenCalledWith(THUMBNAIL_PATH);
+    const preview = image();
+    expect(preview?.getAttribute('src')).toBe(DATA_URI);
+    // The recorded pixel size is what reserves the box before the image decodes.
+    expect(preview?.getAttribute('width')).toBe('320');
+    expect(preview?.getAttribute('height')).toBe('200');
+    expect(preview?.getAttribute('alt')).toBe("Preview of this turn's design");
+  });
+
+  it('reads nothing, and shows nothing, when the outcome carries no reference', async () => {
+    const actions = { ...fakeActions(), thumbnail: vi.fn(async () => ({ status: 'ok', dataUri: DATA_URI })) };
+    render(
+      <DesignTurnResultCardView
+        outcome={outcome('committed', { revisionId: REVISION_ID })}
+        generating={false}
+        actions={actions}
+      />
+    );
+    await settle();
+
+    expect(actions.thumbnail).not.toHaveBeenCalled();
+    expect(image()).toBeNull();
+    // The verdict is untouched: a card with no preview is still a full card.
+    expect(status()).toBe('committed');
+  });
+
+  it('shows no image when the reference no longer resolves, and never an error', async () => {
+    const actions = {
+      ...fakeActions(),
+      thumbnail: vi.fn(async () => ({ status: 'unavailable', reason: 'missing' })),
+    };
+    render(
+      <DesignTurnResultCardView
+        outcome={committedWithThumbnail}
+        generating={false}
+        actions={actions}
+      />
+    );
+    await settle();
+
+    expect(actions.thumbnail).toHaveBeenCalledTimes(1);
+    expect(image()).toBeNull();
+    expect(status()).toBe('committed');
+    expect(text()).toContain("This turn's design was saved to the canvas.");
+  });
+
+  it('treats a failed read as an absent picture rather than a broken card', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const actions = {
+      ...fakeActions(),
+      thumbnail: vi.fn(async () => {
+        throw new Error('the design worker is gone');
+      }),
+    };
+    render(
+      <DesignTurnResultCardView
+        outcome={committedWithThumbnail}
+        generating={false}
+        actions={actions}
+      />
+    );
+    await settle();
+
+    expect(image()).toBeNull();
+    expect(status()).toBe('committed');
+    expect(warn).toHaveBeenCalled();
+  });
+
+  it('keeps the preview for a candidate the canvas already matches', async () => {
+    const actions = {
+      ...fakeActions(),
+      thumbnail: vi.fn(async () => ({ status: 'ok', dataUri: DATA_URI })),
+    };
+    actions.candidateState.mockResolvedValue({ status: 'adopted' });
+    render(
+      <DesignTurnResultCardView
+        outcome={outcome('candidate', {
+          candidateId: CANDIDATE_ID,
+          thumbnail: { path: THUMBNAIL_PATH, width: 320, height: 200 },
+        })}
+        generating={false}
+        actions={actions}
+      />
+    );
+    await settle();
+
+    // The image describes what the turn produced, which stays true whatever the
+    // candidate's later standing is — so it is not tied to the apply/discard
+    // affordances above it.
+    expect(image()?.getAttribute('src')).toBe(DATA_URI);
+    expect(button('Apply')).toBeUndefined();
+  });
+
+  it('reads the preview through the design channel, once per recorded reference', async () => {
+    const invoke = vi.fn(async (channel: string) => {
+      if (channel === 'design.thumbnail') return { status: 'ok', dataUri: DATA_URI };
+      throw new Error(`unexpected invoke ${channel}`);
+    });
+    window.ipc = { invoke, on: () => () => {}, send: () => {} };
+    render(
+      <DesignTurnResultActionsProvider>
+        <DesignTurnResultCard
+          sessionId={SESSION_ID}
+          artworkId={ARTWORK_ID}
+          outcome={committedWithThumbnail}
+          isLatestUserTurn={false}
+        />
+      </DesignTurnResultActionsProvider>
+    );
+    await settle();
+
+    expect(invoke).toHaveBeenCalledWith('design.thumbnail', ARTWORK_ID, THUMBNAIL_PATH);
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(image()?.getAttribute('src')).toBe(DATA_URI);
+  });
+});

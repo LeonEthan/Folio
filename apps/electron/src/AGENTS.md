@@ -112,6 +112,7 @@ Save before route/close/quit cleanup; retain editor instances until explicit tab
 The desktop also renders agent-requested previews: `design-render-host-service.ts` polls the
 daemon's preview queue, so `folio_render_preview` exists exactly while this window is open. Keep
 that loop's policy in `design-render-host-core.ts` — importable without the `electron` runtime —
-and never let it retry or repair a render. Read
+and never let it retry or repair a render. `maxEdge` scales the captured image, never the layout;
+a card's thumbnail is read through the design worker, not this bridge. Read
 [the design boundary](../../../packages/design-bento/README.md) before changing design input,
 persistence or export.

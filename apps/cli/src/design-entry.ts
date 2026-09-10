@@ -9,6 +9,8 @@ import {
   pendingDesigns,
   readDesignCandidateState,
 } from './design/store';
+import { MAX_DESIGN_TURN_OUTCOME_THUMBNAIL_REFERENCE_LENGTH } from '@lody/shared';
+import { readDesignThumbnail } from './design/thumbnail-read';
 
 /** P2.5 candidate requests: same strict shape rule, same single committer. */
 const candidateRequest = z
@@ -52,6 +54,21 @@ for await (const line of createInterface({ input: process.stdin, crlfDelay: Infi
         .extend({ operation: z.literal('discard-candidate') })
         .parse(request);
       value = await discardDesignCandidate(dataRoot, input.sessionId, input.candidateId);
+    } else if (request?.operation === 'thumbnail') {
+      // The reference is bounded but not pattern-checked here: the shape rule is
+      // `readDesignThumbnail`'s own, and the answer it gives a reference this
+      // build does not know — a later build's history, a damaged payload — is
+      // "no image", which the card renders as an ordinary absence rather than an
+      // error it would have to show.
+      const input = z
+        .object({
+          operation: z.literal('thumbnail'),
+          sessionId: z.string().uuid(),
+          reference: z.string().max(MAX_DESIGN_TURN_OUTCOME_THUMBNAIL_REFERENCE_LENGTH),
+        })
+        .strict()
+        .parse(request);
+      value = await readDesignThumbnail(dataRoot, input.sessionId, input.reference);
     } else value = await designOperation(dataRoot, request);
     process.stdout.write(JSON.stringify({ ok: true, value }) + '\n');
   } catch (error) {

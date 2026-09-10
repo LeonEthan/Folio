@@ -3975,6 +3975,7 @@
   "design.result.hint.cancelled": "This turn was stopped; nothing was collected or written.",
   "design.result.revisionRef": "Revision {{revisionId}}",
   "design.result.candidateRef": "Candidate {{candidateId}}",
+  "design.result.thumbnailAlt": "Preview of this turn's design",
   "design.result.diagnostics.show": "Diagnostics ({{count}})",
   "design.result.diagnostics.hide": "Hide diagnostics",
   "design.result.locate": "Show on canvas",

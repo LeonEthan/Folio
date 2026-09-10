@@ -3302,6 +3302,7 @@ export class MessageHandler {
       logger: this.logger,
       sessionManager: this.sessionManager,
       workspaceDocument: this.workspaceDocument,
+      designRenderHost: this.designRenderHost,
       machineId: this.machineId,
       userId: this.userId,
       workspaceId: this.workspaceId,

@@ -141,13 +141,19 @@ function createHarness(options: { artifact?: boolean; page?: string } = {}): Har
 
 type RecordingQueue = DesignRenderQueue & { seen: DesignRenderHostWork[] };
 
-/** A stand-in desktop: whatever `handle` returns is what the host reported. */
+/**
+ * A stand-in desktop: whatever `handle` returns is what the host reported.
+ *
+ * Always "connected": the preview path never asks, and a caller that does
+ * (the thumbnail capture) has its own harness where the answer matters.
+ */
 function queueThat(
   handle: (work: DesignRenderHostWork) => Promise<DesignRenderPreviewOutcome>
 ): RecordingQueue {
   const seen: DesignRenderHostWork[] = [];
   return {
     seen,
+    isConnected: () => true,
     enqueue: async (work) => {
       seen.push(work);
       return await handle(work);

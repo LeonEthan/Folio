@@ -4,14 +4,29 @@
  * Every fixture is synthetic; no agent runs and no network is touched.
  */
 
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { deflateSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { SessionHistoryInput, SessionId, SessionMeta } from '@lody/shared';
+import type {
+  DesignRenderHostWork,
+  SessionHistoryInput,
+  SessionId,
+  SessionMeta,
+} from '@lody/shared';
 import { sanitizeDesignTurnOutcome, type DesignTurnOutcome } from '@lody/shared';
+import type { DesignRenderQueue } from './render-output';
 import { designOperation, listDesignCandidates, readDesignCandidate } from './store';
+import { MAX_THUMBNAIL_EDGE, DESIGN_THUMBNAIL_DIRNAME } from './thumbnail';
 import {
   DESIGN_ARTIFACT_ENTRY,
   collectDesignTurnOutcome,
@@ -159,6 +174,7 @@ function createHarness(
   const meta = {
     id: sessionId as SessionId,
     machineId: 'test-machine',
+    userId: 'local:test',
     createdAt: '2026-09-10T00:00:00.000Z',
     ...(options.design === false
       ? {}
@@ -246,6 +262,24 @@ const contextFor = (harness: Harness, now = new Date('2026-09-10T01:00:00.000Z')
   now: () => now,
 });
 
+/** A stand-in desktop: it writes a real, small PNG wherever it was asked to. */
+const renderingHost = (
+  size: { width: number; height: number } = { width: 160, height: 100 },
+  onWork?: (work: DesignRenderHostWork) => void
+): DesignRenderQueue => ({
+  isConnected: () => true,
+  enqueue: async (work) => {
+    onWork?.(work);
+    writeFileSync(work.outputPath, syntheticPng(size.width, size.height, [31, 107, 138]));
+    return { status: 'rendered', absolutePath: work.outputPath };
+  },
+});
+
+const withHost = (harness: Harness, host: DesignRenderQueue) => ({
+  ...contextFor(harness),
+  thumbnail: { host, machineId: 'test-machine' },
+});
+
 const recordedOutcome = (harness: Harness): DesignTurnOutcome | undefined => {
   const entry = harness.history.find((item) => item.id === harness.turnId);
   return sanitizeDesignTurnOutcome(entry?.designOutcome);
@@ -293,6 +327,68 @@ describe('collectDesignTurnOutcome', () => {
     expect(stored.doc.canvas).toEqual({ width: 320, height: 200 });
     expect(stored.doc.elements).toHaveLength(3);
     expect(recordedOutcome(harness)).toEqual(attempt.outcome);
+  });
+
+  it('records a reference to the thumbnail the desktop rendered for the commit', async () => {
+    const harness = createHarness();
+    const created = await createDesign(harness);
+    await writeArtifact(harness, PAGE);
+    await writeManifest(harness, created.revisionId);
+    let asked: DesignRenderHostWork | undefined;
+
+    const attempt = await collectDesignTurnOutcome(
+      withHost(
+        harness,
+        renderingHost({ width: 160, height: 100 }, (work) => {
+          asked = work;
+        })
+      )
+    );
+    expect(attempt.status).toBe('recorded');
+    if (attempt.status !== 'recorded' || attempt.outcome.status !== 'committed') return;
+
+    const thumbnail = attempt.outcome.thumbnail;
+    expect(thumbnail).toMatchObject({ width: 160, height: 100 });
+    expect(thumbnail?.path).toMatch(new RegExp(`^${DESIGN_THUMBNAIL_DIRNAME}/[a-f0-9]{64}\\.png$`));
+    // The canvas's own size is what the host lays out; the card gets a small copy.
+    expect(asked).toMatchObject({ width: 320, height: 200, maxEdge: MAX_THUMBNAIL_EDGE });
+    // The reference names a file that is really there, and it survives the
+    // write onto the history entry the renderer reopens.
+    expect(existsSync(path.join(harness.workdir, thumbnail!.path))).toBe(true);
+    expect(recordedOutcome(harness)?.thumbnail).toEqual(thumbnail);
+    // Staging is scratch; the staged payload is gone.
+    expect(readdirSync(path.join(harness.root, 'design-preview-stage'))).toEqual([]);
+  });
+
+  it('records a thumbnail for the candidate it kept, not just for a commit', async () => {
+    const harness = createHarness();
+    const created = await createDesign(harness);
+    await writeArtifact(harness, PAGE);
+    await writeManifest(harness, created.revisionId);
+    await moveBaseline(harness, created.revisionId);
+
+    const attempt = await collectDesignTurnOutcome(withHost(harness, renderingHost()));
+    expect(attempt.status).toBe('recorded');
+    if (attempt.status !== 'recorded' || attempt.outcome.status !== 'candidate') return;
+    expect(attempt.outcome.thumbnail?.path).toMatch(
+      new RegExp(`^${DESIGN_THUMBNAIL_DIRNAME}/[a-f0-9]{64}\\.png$`)
+    );
+    expect(recordedOutcome(harness)?.thumbnail).toEqual(attempt.outcome.thumbnail);
+  });
+
+  it('records the verdict exactly as before when there is no desktop to render it', async () => {
+    const harness = createHarness();
+    const created = await createDesign(harness);
+    await writeArtifact(harness, PAGE);
+    await writeManifest(harness, created.revisionId);
+
+    // No `thumbnail` in the context at all: a machine whose daemon has no render
+    // host. The outcome is complete without an image, and nothing is written.
+    const attempt = await collectDesignTurnOutcome(contextFor(harness));
+    expect(attempt.status).toBe('recorded');
+    if (attempt.status !== 'recorded') return;
+    expect(attempt.outcome).not.toHaveProperty('thumbnail');
+    expect(existsSync(path.join(harness.workdir, DESIGN_THUMBNAIL_DIRNAME))).toBe(false);
   });
 
   it('reports no_artifact and leaves an existing canvas untouched', async () => {

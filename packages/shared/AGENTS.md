@@ -60,6 +60,14 @@ per-turn MCP selection, or Role-based session creation and dispatch.
 - Capability exists only while a host polls within `DESIGN_RENDER_HOST_TTL_MS`, and the poll
   interval must stay well under it. Both ends bound one exchange at 8 items (work out, reports
   back); the daemon's queue ceiling and the request schemas must move together.
+- `maxEdge` on a work item is a bound on the **captured image**, never a smaller canvas: laying
+  the document out at the bound would reflow what the agent authored and produce a different
+  picture. The result card's thumbnail (P2.6) asks for one; the export paths ask for none.
+- A thumbnail is recorded as a **reference** on the durable outcome
+  (`DesignTurnOutcomeThumbnail`), never as bytes, and is read back through the design worker
+  channel — not as a machine RPC. `MAX_DESIGN_TURN_OUTCOME_THUMBNAIL_REFERENCE_LENGTH` and the
+  path pattern are the one shape rule every boundary shares; a reference that does not match is
+  an absent picture, not a caller error.
 
 ## Installation identity
 

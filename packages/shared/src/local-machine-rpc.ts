@@ -170,6 +170,13 @@ export const DesignRenderHostWorkSchema = z
     outputPath: z.string().min(1),
     width: z.number().int().min(1).max(4096),
     height: z.number().int().min(1).max(4096),
+    /**
+     * Longest output edge, when the daemon wants a scaled copy rather than a
+     * full-size render. Absent means "render at `width`x`height`", which is what
+     * the canvas export path does. Bounded below as well as above: a smaller
+     * value is a thumbnail-sized request, and the host preserves aspect ratio.
+     */
+    maxEdge: z.number().int().min(16).max(4096).optional(),
   })
   .strict();
 export type DesignRenderHostWork = z.infer<typeof DesignRenderHostWorkSchema>;

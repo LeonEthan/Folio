@@ -35,10 +35,12 @@ import {
   resolveDesignCandidateStanding,
   resolveDesignResultCard,
   resolveDesignResultCardActions,
+  resolveDesignThumbnail,
   shortDesignId,
   type DesignCandidateStanding,
   type DesignResultNotice,
   type DesignResultStatus,
+  type DesignThumbnailState,
 } from '@/lib/design-turn-result';
 import { Button } from '@/ui/button';
 import { cn } from '@/lib/utils';
@@ -66,6 +68,11 @@ import { cn } from '@/lib/utils';
  *   diagnostics. It is never sent on the card's own initiative, and no model
  *   call is ever retried.
  *
+ * The card also shows the turn's preview when the outcome carries a thumbnail
+ * reference (P2.6): one read through the design channel, rendered as an image
+ * while it is there and omitted when it is not. It describes what the turn
+ * produced, so it is shown whatever later happened to the candidate file.
+ *
  * A turn whose outcome this build cannot read renders nothing.
  */
 
@@ -83,6 +90,9 @@ type DesignCandidateAdoptionAnswer = {
 
 type DesignCandidateDiscardAnswer = { removed?: unknown } | null;
 
+/** What the design channel answered for a recorded thumbnail reference. */
+type DesignThumbnailAnswer = { status?: unknown; dataUri?: unknown };
+
 export type DesignTurnResultCardActions = {
   /** Focus this design's canvas in the side panel. */
   onLocate?: () => void;
@@ -91,6 +101,8 @@ export type DesignTurnResultCardActions = {
   candidateState?: (candidateId: string) => Promise<DesignCandidateStateAnswer>;
   onAdopt?: (candidateId: string) => Promise<DesignCandidateAdoptionAnswer>;
   onDiscard?: (candidateId: string) => Promise<DesignCandidateDiscardAnswer>;
+  /** Read a recorded thumbnail reference's bytes, through the design channel. */
+  thumbnail?: (reference: string) => Promise<DesignThumbnailAnswer>;
 };
 
 /**
@@ -168,6 +180,13 @@ export function DesignTurnResultCard({
         : undefined,
     [artworkId, service]
   );
+  // A read-only fetch of the recorded preview, kept separate from the candidate
+  // group: the image describes what the turn produced, which stays true no
+  // matter what later happened to the candidate file.
+  const readThumbnail = useMemo(
+    () => (service ? (reference: string) => service.thumbnail(artworkId, reference) : undefined),
+    [artworkId, service]
+  );
   const actions = useMemo<DesignTurnResultCardActions>(
     () => ({
       ...(host?.onLocate ? { onLocate: host.onLocate } : {}),
@@ -179,8 +198,16 @@ export function DesignTurnResultCard({
             onDiscard: discardCandidate,
           }
         : {}),
+      ...(readThumbnail ? { thumbnail: readThumbnail } : {}),
     }),
-    [adoptCandidate, discardCandidate, host?.onLocate, host?.onRepair, readCandidateState]
+    [
+      adoptCandidate,
+      discardCandidate,
+      host?.onLocate,
+      host?.onRepair,
+      readCandidateState,
+      readThumbnail,
+    ]
   );
 
   return isLatestUserTurn ? (
@@ -269,6 +296,39 @@ export function DesignTurnResultCardView({
       cancelled = true;
     };
   }, [candidateId, readCandidateState, standingNonce]);
+
+  const thumbnailImage = outcome?.thumbnail;
+  const thumbnailRef = thumbnailImage?.path;
+  const [thumbnail, setThumbnail] = useState<DesignThumbnailState>({ status: 'loading' });
+  const readThumbnail = actions.thumbnail;
+
+  // One read per recorded reference, and only when the durable outcome actually
+  // carries one. A reference this build will not fetch, or an answer that is not
+  // a PNG data URI, leaves the card with no image — never with an error: the
+  // status and hint above already say what the turn produced, and a preview the
+  // card cannot show does not make them any less true.
+  useEffect(() => {
+    if (!thumbnailRef || !readThumbnail) {
+      setThumbnail({ status: 'none' });
+      return undefined;
+    }
+    let cancelled = false;
+    setThumbnail({ status: 'loading' });
+    readThumbnail(thumbnailRef).then(
+      (answer) => {
+        if (!cancelled) setThumbnail(resolveDesignThumbnail(answer));
+      },
+      (error: unknown) => {
+        if (!cancelled) {
+          console.warn('Design thumbnail could not be read', { reference: thumbnailRef, error });
+          setThumbnail({ status: 'none' });
+        }
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [readThumbnail, thumbnailRef]);
 
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [confirmingAdopt, setConfirmingAdopt] = useState(false);
@@ -368,6 +428,19 @@ export function DesignTurnResultCardView({
       <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
         {t(hintCopy.key, hintCopy.defaultValue)}
       </p>
+      {thumbnailImage && thumbnail.status === 'ready' ? (
+        // The recorded pixel size goes on the element as well as the stylesheet,
+        // so the card reserves the right box before the data URI decodes and
+        // never relayouts the conversation under the reader.
+        <img
+          src={thumbnail.dataUri}
+          alt={t('design.result.thumbnailAlt', "Preview of this turn's design")}
+          width={thumbnailImage.width}
+          height={thumbnailImage.height}
+          className="mt-1.5 max-h-40 w-auto max-w-full rounded border border-border/60 bg-muted/30 object-contain"
+          data-design-result-thumbnail
+        />
+      ) : null}
       {outcome?.revisionId || candidateId ? (
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
           {outcome?.revisionId ? (

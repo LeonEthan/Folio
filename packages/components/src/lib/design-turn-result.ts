@@ -17,6 +17,9 @@ import type { TFunction } from 'i18next';
  * - `resolveDesignCandidateStanding` maps a candidate read to what the card may
  *   honestly offer: only a candidate that still exists and differs from the
  *   canvas can be applied; a missing/unreadable/unknown one offers nothing.
+ * - `resolveDesignThumbnail` turns the design channel's answer into the one
+ *   image URL the card will render, so a missing or unexpected answer is an
+ *   absent picture rather than a broken or substituted one.
  * - `redactDesignText` keeps filesystem paths and credential-looking tokens out
  *   of both the rendered diagnostics and the repair request the agent receives.
  * - `buildDesignRepairRequest` composes the repair turn's text from the status
@@ -88,6 +91,47 @@ export const resolveDesignCandidateStanding = (
     if (answer.reason === 'unreadable') return { status: 'unreadable' };
   }
   return { status: 'unknown' };
+};
+
+/**
+ * What the card knows about the preview image of a turn's document.
+ *
+ * `ready` carries the bytes the design channel returned; `none` is every
+ * absence — no reference was recorded, the read failed, or the answer was not
+ * something this build will put in an `<img>` — and the card renders no image
+ * rather than an error, because a missing preview never changes the verdict.
+ */
+export type DesignThumbnailState =
+  | { status: 'loading' }
+  | { status: 'ready'; dataUri: string }
+  | { status: 'none' };
+
+/**
+ * The only image URL this card will render.
+ *
+ * The reference in the durable outcome and the bytes behind it are produced by
+ * this build, but the outcome rides an unvalidated field, so the prefix is
+ * pinned to a PNG data URI: whatever arrives, `src` can never become a remote
+ * URL, a `blob:`, or another media type. Nothing here re-encodes or resizes —
+ * the daemon already bounded the file, and the card lays it out.
+ */
+const DESIGN_THUMBNAIL_DATA_URI_PREFIX = 'data:image/png;base64,';
+/** Matches `MAX_THUMBNAIL_BYTES` after base64 expansion, plus slack. */
+const MAX_DESIGN_THUMBNAIL_DATA_URI_LENGTH = 8 * 1024 * 1024;
+
+/** The subset of the design channel's answer this card consumes. */
+type DesignThumbnailAnswer = { status?: unknown; dataUri?: unknown };
+
+export const resolveDesignThumbnail = (
+  answer: DesignThumbnailAnswer | null | undefined
+): DesignThumbnailState => {
+  if (!answer || typeof answer !== 'object' || answer.status !== 'ok') return { status: 'none' };
+  const { dataUri } = answer;
+  if (typeof dataUri !== 'string' || !dataUri.startsWith(DESIGN_THUMBNAIL_DATA_URI_PREFIX)) {
+    return { status: 'none' };
+  }
+  if (dataUri.length > MAX_DESIGN_THUMBNAIL_DATA_URI_LENGTH) return { status: 'none' };
+  return { status: 'ready', dataUri };
 };
 
 export type DesignResultCardActionAvailability = {

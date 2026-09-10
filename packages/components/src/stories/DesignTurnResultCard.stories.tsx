@@ -16,6 +16,13 @@ const CANDIDATE_ID = sha('c');
 const REVISION_ID = sha('e');
 const ARTWORK_ID = 'storybook-artwork';
 
+/** The thumbnail a recorded outcome points at, and the bytes the channel returns
+    for it: a real 320x200 PNG, so the story shows what the card really renders
+    rather than a placeholder box. */
+const THUMBNAIL = { path: `design-thumbnail/${sha('f')}.png`, width: 320, height: 200 };
+const THUMBNAIL_DATA_URI =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUAAAADICAIAAAAWZq/8AAAD2klEQVR42u3TMRHAIBQFQZzERywxg5CvIiKoqampIyYi0rxib87CtqtX+PeYyfdaydezw5/rJP9m1wAGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIABBhhggAEGGGCAAQYYYIAB/tMHVrvck9v5hk0AAAAASUVORK5CYII=';
+
 /** The store's candidate answer, as the card receives it (extra fields ignored). */
 type CandidateStanding = {
   status?: unknown;
@@ -34,14 +41,21 @@ const outcome = (status: string, extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 
+/** What the design channel answers for a recorded thumbnail reference. */
+type ThumbnailAnswer = { status?: unknown; dataUri?: unknown; reason?: unknown };
+
 /** The actions the card would receive from the conversation surface + design IPC. */
-function cardActions(standing: CandidateStanding): DesignTurnResultCardActions {
+function cardActions(
+  standing: CandidateStanding,
+  thumbnail: ThumbnailAnswer
+): DesignTurnResultCardActions {
   return {
     onLocate: () => undefined,
     onRepair: async () => true,
     candidateState: async () => standing,
     onAdopt: async () => ({ status: 'adopted', revisionId: REVISION_ID }),
     onDiscard: async () => ({ removed: true }),
+    thumbnail: async () => thumbnail,
   };
 }
 
@@ -50,19 +64,22 @@ type StoryProps = {
   generating?: boolean;
   /** The candidate's answer, when the status is `candidate`. */
   standing?: CandidateStanding;
+  /** The thumbnail read's answer, when the outcome carries a reference. */
+  thumbnailAnswer?: ThumbnailAnswer;
 };
 
 function StoryWrapper({
   outcome: value,
   generating = false,
   standing = { status: 'pending' },
+  thumbnailAnswer = { status: 'ok', dataUri: THUMBNAIL_DATA_URI },
 }: StoryProps) {
   return (
     <div className="w-[420px]">
       <DesignTurnResultCardView
         outcome={value}
         generating={generating}
-        actions={cardActions(standing)}
+        actions={cardActions(standing, thumbnailAnswer)}
       />
     </div>
   );
@@ -86,6 +103,22 @@ export const Generating: Story = {
 /** The turn's design was written to the canvas. */
 export const Committed: Story = {
   args: { outcome: outcome('committed', { revisionId: REVISION_ID }) },
+};
+
+/** The same turn, with the preview the desktop rendered for it. */
+export const CommittedWithPreview: Story = {
+  args: {
+    outcome: outcome('committed', { revisionId: REVISION_ID, thumbnail: THUMBNAIL }),
+  },
+};
+
+/** A recorded reference whose file is gone: the card shows no image and is
+    otherwise exactly the same card — a lost preview is never an error. */
+export const PreviewUnavailable: Story = {
+  args: {
+    outcome: outcome('committed', { revisionId: REVISION_ID, thumbnail: THUMBNAIL }),
+    thumbnailAnswer: { status: 'unavailable', reason: 'missing' },
+  },
 };
 
 /** The user saved while the agent worked: the document waits as a candidate. */

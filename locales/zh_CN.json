@@ -3975,6 +3975,7 @@
   "design.result.hint.cancelled": "这一轮被停止，没有收集或写入任何内容。",
   "design.result.revisionRef": "版本 {{revisionId}}",
   "design.result.candidateRef": "候选 {{candidateId}}",
+  "design.result.thumbnailAlt": "本轮设计的预览",
   "design.result.diagnostics.show": "诊断（{{count}}）",
   "design.result.diagnostics.hide": "收起诊断",
   "design.result.locate": "定位到画布",
