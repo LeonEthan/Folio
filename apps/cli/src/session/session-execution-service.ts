@@ -106,6 +106,12 @@ import { resolveResumableAcpSessionId } from './session-dispatch-logic';
 import { resolveSessionLaunchConfig } from './session-launch-config-resolver';
 import type { MachineAccessVerification } from './session-access-retry';
 import {
+  collectDesignTurnOutcome,
+  recordDesignTurnTerminalOutcome,
+  type DesignTurnAttempt,
+} from '@/design/turn-outcome';
+import { getDefaultSessionWorkdir } from './session';
+import {
   GIT_EXECUTABLE_NOT_FOUND_CODE,
   isGitExecutableNotFoundError,
 } from './worktree/git-process-error';
@@ -1925,6 +1931,19 @@ export class SessionExecutionService {
         );
       }
 
+      // P2.3: a stopped design turn never reaches `finalizeTurn`, so its
+      // result card's 已取消 comes from the cancel finalizer. Nothing is
+      // collected: a cancelled turn must not change the canvas.
+      yield* self.tryPromise(() =>
+        self.reportDesignTurnOutcome({
+          sessionId: options.sessionId,
+          sessionDoc: options.sessionDoc,
+          turnId: options.turnId,
+          userTurnId: options.userTurnId,
+          outcome: { status: 'cancelled' },
+        })
+      );
+
       yield* self.ignoreWithWarning(
         options.sessionId,
         'Failed to set cancelled turn status to idle',
@@ -2153,6 +2172,16 @@ export class SessionExecutionService {
       await this.markTurnFailed(options.sessionId, options.sessionDoc, options.userTurnId);
     }
     await this.handleTurnError(options.sessionId, options.sessionDoc, options.error);
+    // P2.3: a design turn that died mid-generation has no artifact to collect
+    // and never reaches `finalizeTurn`, so the result card's 失败 comes from
+    // here. `reportDesignTurnOutcome` is a no-op for non-design sessions.
+    await this.reportDesignTurnOutcome({
+      sessionId: options.sessionId,
+      sessionDoc: options.sessionDoc,
+      turnId: options.runtime.turnId,
+      userTurnId: options.userTurnId,
+      outcome: { status: 'failed', message: options.describe(options.error) },
+    });
     await options.onUnhandledError?.(options.error);
   }
 
@@ -2161,6 +2190,7 @@ export class SessionExecutionService {
     sessionDoc: SessionDocument;
     turnId: string;
     reason: ChatFailedReason;
+    userTurnId?: string;
   }): Promise<void> {
     try {
       await this.handleTurnError(options.sessionId, options.sessionDoc);
@@ -2169,6 +2199,16 @@ export class SessionExecutionService {
         `[${options.sessionId}] Failed to finalize halted turn ${options.turnId} (${options.reason}): ${formatErrorMessage(error)}`
       );
     }
+    // P2.3: halted before/at the provider (memory pressure, failed session
+    // start, sign-in) — the design turn itself failed, and its frozen input
+    // manifest may well exist, so say so instead of leaving the card blank.
+    await this.reportDesignTurnOutcome({
+      sessionId: options.sessionId,
+      sessionDoc: options.sessionDoc,
+      turnId: options.turnId,
+      userTurnId: options.userTurnId,
+      outcome: { status: 'failed', message: `the turn did not run: ${options.reason}` },
+    });
   }
 
   private async prepareLocalProjectBranch(options: {
@@ -2438,6 +2478,81 @@ export class SessionExecutionService {
       });
   }
 
+  /**
+   * P2.3: publish what this design turn produced, at most once per turn.
+   *
+   * The verdict (committed / candidate / no artifact / invalid / cancelled /
+   * failed) is derived from the artifact the agent left in the workdir and
+   * written onto the turn's own history entry, so it survives reopen and the
+   * renderer never has to re-read the workspace. Everything durable happens
+   * inside `apps/cli/src/design/turn-outcome.ts` + the single design committer;
+   * this method only supplies the session shape, the user turn id (the turn
+   * the daemon froze input for) and the stage trace.
+   *
+   * Design sessions only: a session without `SessionMeta.design` returns from
+   * the stage without writing anything. The whole stage is best-effort with
+   * respect to finalization — it can never fail the turn (a durable canvas
+   * change, or none, is already the fact), so an unexpected error is logged
+   * and dropped.
+   */
+  private async reportDesignTurnOutcome(args: {
+    sessionId: SessionId;
+    sessionDoc: SessionDocument;
+    /** The assistant/system turn id — used for the stage name only. */
+    turnId: string;
+    /** The turn-input manifest turn id (user turn); absent for internal turns. */
+    userTurnId: string | undefined;
+    outcome:
+      | { status: 'collect' }
+      | { status: 'cancelled' }
+      | { status: 'failed'; message: string };
+  }): Promise<void> {
+    const { sessionId, sessionDoc, turnId, userTurnId, outcome } = args;
+    // No user turn id: P2.2 froze no turn input, so there is no manifest to
+    // anchor a verdict on and nothing truthful to record.
+    if (!userTurnId) {
+      return;
+    }
+    try {
+      await this.runTurnFinalizationStage(sessionId, turnId, 'designTurnOutcome', async () => {
+        const context = {
+          sessionId,
+          sessionDoc,
+          turnId: userTurnId,
+          workdir: getDefaultSessionWorkdir(sessionId),
+        };
+        const attempt: DesignTurnAttempt =
+          outcome.status === 'collect'
+            ? await collectDesignTurnOutcome(context)
+            : outcome.status === 'cancelled'
+              ? await recordDesignTurnTerminalOutcome({ ...context, status: 'cancelled' })
+              : await recordDesignTurnTerminalOutcome({
+                  ...context,
+                  status: 'failed',
+                  message: outcome.message,
+                });
+        if (attempt.status === 'recorded') {
+          this.deps.logger.debug(
+            `[${sessionId}] design turn ${userTurnId} outcome=${attempt.outcome.status}` +
+              `${attempt.outcome.candidateId ? ` candidate=${attempt.outcome.candidateId.slice(0, 12)}` : ''}` +
+              `${attempt.outcome.revisionId ? ` revision=${attempt.outcome.revisionId.slice(0, 12)}` : ''}`
+          );
+          return;
+        }
+        // Silence for the ordinary case; the other skips are worth a debug line.
+        if (attempt.reason !== 'not_design') {
+          this.deps.logger.debug(
+            `[${sessionId}] design turn ${userTurnId} outcome not recorded: ${attempt.reason}`
+          );
+        }
+      });
+    } catch (error) {
+      this.deps.logger.warn(
+        `[${sessionId}] Failed to record the design outcome of turn ${userTurnId}: ${formatErrorMessage(error)}`
+      );
+    }
+  }
+
   private async finalizeTurn(ctx: FinalizeTurnContext): Promise<void> {
     const {
       sessionId,
@@ -2464,9 +2579,38 @@ export class SessionExecutionService {
 
     const codeCollabHistoryFileDiffPersisted = await this.finalizeTurnOutput(sessionId, turnId);
 
+    const userTurnId = this.turnRuntimeBySession.get(sessionId)?.userTurnId;
+
     if (await stopIfTurnCancelled('ACP finalization')) {
+      // A cancelled turn must not read, commit, or keep anything: the user
+      // asked for the turn to stop, so the canvas stays exactly as it is.
+      await this.reportDesignTurnOutcome({
+        sessionId,
+        sessionDoc,
+        turnId,
+        userTurnId,
+        outcome: { status: 'cancelled' },
+      });
       return;
     }
+
+    // A turn the app itself reports as failed in chat (no agent output at all)
+    // must not silently commit an artifact behind that notice.
+    await this.reportDesignTurnOutcome({
+      sessionId,
+      sessionDoc,
+      turnId,
+      userTurnId,
+      outcome:
+        ctx.producedOutput === false
+          ? {
+              status: 'failed',
+              // The same cause the chat notice names (SILENT_TURN_FAILURE_MESSAGE),
+              // kept short here because this text lands in a diagnostic list.
+              message: 'the agent ended the turn without producing any output',
+            }
+          : { status: 'collect' },
+    });
 
     const githubProject = resolveProjectGitHubRepo(project);
     let branchName: string | null = null;
@@ -2963,6 +3107,7 @@ export class SessionExecutionService {
           sessionDoc,
           turnId: runtime.turnId,
           reason: error.reason,
+          userTurnId: runtime.userTurnId,
         });
         settlement = 'handled';
       } else if (

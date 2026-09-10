@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import type { ContentBlock } from '@agentclientprotocol/sdk';
 import type { Logger } from '../src/utils/logger';
@@ -36,6 +37,12 @@ import { GitExecutableNotFoundError } from '../src/session/worktree/git-process-
 import { LodyOperationStore } from '../src/orchestration/operation-store';
 import { markAssistantTurnFinished } from '../src/lib/assistant-turn-finalize';
 import { shouldWatchSession } from '../src/session/session-dispatch-logic';
+import { designOperation } from '../src/design/store';
+import { sanitizeDesignTurnOutcome } from '@lody/shared';
+import {
+  DESIGN_TURN_INPUT_DIRNAME,
+  DESIGN_TURN_MANIFEST_FILENAME,
+} from '../src/design/turn-input';
 
 const capabilityConfigId = 'config-1' as AgentConfigId;
 
@@ -1155,6 +1162,8 @@ describe('SessionExecutionService', () => {
     dispatchSource?: 'delivery';
     onTurnClaimed?: () => Promise<boolean>;
     onTurnStarted?: () => Promise<boolean>;
+    /** Extra `SessionMeta` fields, e.g. a design association. */
+    sessionMeta?: Record<string, unknown>;
     onTurnSettled?: (
       settlement: 'handled' | 'cancelled' | 'not_started' | 'uncertain'
     ) => Promise<void>;
@@ -1189,7 +1198,7 @@ describe('SessionExecutionService', () => {
     };
     let status = SessionStatusFactory.idle();
     const sessionDoc = {
-      getMetaState: vi.fn(async () => ({ isArchived: false })),
+      getMetaState: vi.fn(async () => ({ isArchived: false, ...options.sessionMeta })),
       setStatus: vi.fn(async (next: typeof status) => {
         status = next;
       }),
@@ -1321,6 +1330,133 @@ describe('SessionExecutionService', () => {
     expect(deps.recordChatFailure).not.toHaveBeenCalled();
     expect(getHistory()[0]?.status).toBe('handled');
     expect(notifySessionCompleted).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * A design session's workspace on disk: the real single committer, the PPTD
+   * project an agent turn would leave at the workdir root, and the turn-input
+   * manifest P2.2 freezes before dispatch. `LODY_DATA_DIR` is what the daemon's
+   * workdir resolution reads, so the stage under test sees the same paths.
+   */
+  const setupDesignWorkspace = async (sessionId: string, options: { pptd?: boolean } = {}) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'folio-design-service-'));
+    const previousDataDir = process.env.LODY_DATA_DIR;
+    process.env.LODY_DATA_DIR = root;
+    const created = await designOperation(root, {
+      operation: 'create',
+      association: {
+        sessionId,
+        name: 'Service test',
+        userId: 'user-1',
+        machineId: 'machine-1',
+        createdAt: '2026-09-10T00:00:00.000Z',
+      },
+      width: 800,
+      height: 600,
+    });
+    const workdir = path.join(root, 'chats', sessionId);
+    fs.mkdirSync(workdir, { recursive: true });
+    const manifestFile = path.join(
+      workdir,
+      DESIGN_TURN_INPUT_DIRNAME,
+      'turn-user-1',
+      DESIGN_TURN_MANIFEST_FILENAME
+    );
+    fs.mkdirSync(path.dirname(manifestFile), { recursive: true });
+    fs.writeFileSync(
+      manifestFile,
+      JSON.stringify({
+        version: 1,
+        turnId: 'turn-user-1',
+        prompt: 'make a poster',
+        canvas: { width: 800, height: 600 },
+        baselineRevisionId: created.revisionId,
+        skillSourceIdentity: 'test',
+        skillDrift: [],
+        references: [],
+      })
+    );
+    if (options.pptd !== false) {
+      fs.writeFileSync(
+        path.join(workdir, 'design.pptd'),
+        'version: v2\ntitle: Service test\nsize: [320, 200]\npages:\n  - pages/main.page\n'
+      );
+      fs.mkdirSync(path.join(workdir, 'pages'), { recursive: true });
+      fs.writeFileSync(
+        path.join(workdir, 'pages', 'main.page'),
+        'background:\n  type: solid\n  color: "#FFFFFF"\nelements:\n' +
+          '  - elementId: title\n    elementType: text\n    bounds: [10, 10, 200, 40]\n' +
+          '    content:\n      text: "Hello"\n      fontSize: 24\n'
+      );
+    }
+    return {
+      root,
+      workdir,
+      created,
+      restore: () => {
+        if (previousDataDir === undefined) delete process.env.LODY_DATA_DIR;
+        else process.env.LODY_DATA_DIR = previousDataDir;
+        fs.rmSync(root, { recursive: true, force: true });
+      },
+    };
+  };
+
+  const recordedDesignOutcome = (history: Array<Record<string, unknown>>) =>
+    sanitizeDesignTurnOutcome(
+      (history.find((entry) => entry.id === 'turn-user-1') as { designOutcome?: unknown } | undefined)
+        ?.designOutcome
+    );
+
+  it('commits a design artifact a completed turn left behind', async () => {
+    // A real uuid: the design association key is the session id (P1 contract).
+    const sessionId = randomUUID();
+    const workspace = await setupDesignWorkspace(sessionId);
+    try {
+      const { getHistory } = await runSilentPromptTurn({
+        sessionId,
+        hasPromptOutputForTurn: true,
+        sessionMeta: { design: { artworkId: sessionId, path: 'design.json' } },
+      });
+
+      const outcome = recordedDesignOutcome(getHistory());
+      expect(outcome?.status).toBe('committed');
+      const stored = await designOperation(workspace.root, { operation: 'read', sessionId });
+      expect(stored.revisionId).toBe(outcome?.revisionId);
+      expect(stored.doc.canvas).toEqual({ width: 320, height: 200 });
+      expect(stored.doc.elements).toHaveLength(1);
+    } finally {
+      workspace.restore();
+    }
+  });
+
+  it('records a failed design outcome for a turn that produced no output', async () => {
+    const sessionId = randomUUID();
+    const workspace = await setupDesignWorkspace(sessionId);
+    try {
+      const { getHistory } = await runSilentPromptTurn({
+        sessionId,
+        hasPromptOutputForTurn: false,
+        sessionMeta: { design: { artworkId: sessionId, path: 'design.json' } },
+      });
+
+      const outcome = recordedDesignOutcome(getHistory());
+      expect(outcome?.status).toBe('failed');
+      expect(outcome?.diagnostics?.[0]?.code).toBe('design_turn_failed');
+      // The artifact on disk was never collected, so the canvas is untouched.
+      const stored = await designOperation(workspace.root, { operation: 'read', sessionId });
+      expect(stored.revisionId).toBe(workspace.created.revisionId);
+      expect(stored.doc.elements).toHaveLength(0);
+    } finally {
+      workspace.restore();
+    }
+  });
+
+  it('leaves a non-design session without any design outcome', async () => {
+    const { getHistory } = await runSilentPromptTurn({
+      sessionId: 'session-no-design',
+      hasPromptOutputForTurn: true,
+    });
+    expect(recordedDesignOutcome(getHistory())).toBeUndefined();
   });
 
   it('binds a Delivery assistant to its system turn without claiming user dispatch state', async () => {

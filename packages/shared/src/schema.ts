@@ -32,6 +32,7 @@ import {
 } from '.';
 import type { PlanEntry } from '@agentclientprotocol/sdk';
 import type { ModelInfo } from './ai';
+import type { DesignTurnOutcome } from './design-turn-outcome';
 import type { MachineProtocolCapabilities } from './machine-protocol-capabilities';
 export * from 'loro-mirror';
 import type { RateLimit } from 'acp-extension-core';
@@ -587,6 +588,13 @@ export const sessionHistorySchema = schema.LoroMap({
   // Send status for user messages - only set when message delivery failed (e.g., timeout)
   // Cleared when message is successfully retried
   sendStatus: schema.String<SessionHistorySendStatus>({ required: false }),
+  /**
+   * What this turn produced for the session's design (P2.3), stamped on the
+   * turn-input manifest's turnId entry once post-turn collection classified it.
+   * Read through `sanitizeDesignTurnOutcome` — it rides an unvalidated Any
+   * field, same trust rule as `modelInfo`/`fileDiff`.
+   */
+  designOutcome: schema.Any({ required: false }),
 });
 
 export type PrStatus = 'open' | 'closed' | 'merged' | 'draft';
@@ -1216,6 +1224,7 @@ export type SessionHistoryInput = Omit<
   | 'items'
   | 'read'
   | 'userId'
+  | 'designOutcome'
 > & {
   items?: Array<MessageContent & { text?: string | undefined }>;
   read?: boolean;
@@ -1223,6 +1232,7 @@ export type SessionHistoryInput = Omit<
   userTurnId?: string | undefined;
   acpTurnId?: string | undefined;
   modelInfo?: ModelInfo | undefined;
+  designOutcome?: DesignTurnOutcome | undefined;
   fileDiff: FileDiff[];
   status?: SessionHistoryStatus;
   inputConfig?: SessionTurnInputConfig | undefined;

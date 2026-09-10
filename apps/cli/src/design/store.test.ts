@@ -3,7 +3,14 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { afterEach, expect, test } from 'vitest';
-import { designOperation, pendingDesigns, acknowledgeDesign } from './store';
+import {
+  designOperation,
+  pendingDesigns,
+  acknowledgeDesign,
+  listDesignCandidates,
+  readDesignCandidate,
+  saveDesignCandidate,
+} from './store';
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -128,5 +135,76 @@ test('durable save, stale writer, retry, independent copy and malformed input pr
   await writeFile(path.join(root, 'chats', association.sessionId, 'design.json'), '{}');
   await expect(
     designOperation(root, { operation: 'create', association, width: 800, height: 600 })
+  ).rejects.toThrow();
+});
+
+test('a candidate is written beside the canvas, addressed by content and never twice', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'folio-design-'));
+  roots.push(root);
+  const association = {
+    sessionId: randomUUID(),
+    name: 'Synthetic',
+    userId: 'local:test',
+    machineId: 'test-machine',
+    createdAt: '2026-09-09T00:00:00.000Z',
+  };
+  const created = await designOperation(root, { operation: 'create', association });
+  const candidate = {
+    artworkId: association.sessionId,
+    turnId: 'turn-1',
+    baselineRevisionId: created.revisionId,
+    createdAt: '2026-09-10T01:00:00.000Z',
+    content: {
+      doc: { ...created.doc, background: { type: 'solid', color: '#123456' } },
+      assets: {},
+    },
+  };
+  const first = await saveDesignCandidate(root, candidate);
+  expect(first.candidateId).toMatch(/^[a-f0-9]{64}$/);
+
+  // Same content, later turn: still one candidate, still the first one's bytes.
+  const again = await saveDesignCandidate(root, {
+    ...candidate,
+    turnId: 'turn-2',
+    createdAt: '2026-09-11T09:00:00.000Z',
+  });
+  expect(again).toEqual(first);
+  const { candidate: stored, file } = await readDesignCandidate(
+    root,
+    association.sessionId,
+    first.candidateId
+  );
+  expect(stored.turnId).toBe('turn-1');
+  expect(stored.content.doc).toEqual(candidate.content.doc);
+  expect(await listDesignCandidates(root, association.sessionId)).toEqual([first]);
+
+  // The candidate is an addition, not a write: the canvas is untouched.
+  expect(
+    await designOperation(root, { operation: 'read', sessionId: association.sessionId })
+  ).toEqual(created);
+
+  // A different design is a different candidate id, and an unreadable one is
+  // reported instead of being adopted on trust.
+  const other = await saveDesignCandidate(root, {
+    ...candidate,
+    content: { doc: created.doc, assets: {} },
+  });
+  expect(other.candidateId).not.toBe(first.candidateId);
+  expect(await listDesignCandidates(root, association.sessionId)).toHaveLength(2);
+  await writeFile(file, '{}');
+  await expect(
+    readDesignCandidate(root, association.sessionId, first.candidateId)
+  ).rejects.toThrow();
+  await rm(path.join(root, 'chats', association.sessionId, 'candidates'), { recursive: true });
+  await expect(readDesignCandidate(root, association.sessionId, first.candidateId)).rejects.toThrow(
+    'not found'
+  );
+  expect(await listDesignCandidates(root, association.sessionId)).toEqual([]);
+  await expect(readDesignCandidate(root, '../outside', first.candidateId)).rejects.toThrow();
+  await expect(
+    readDesignCandidate(root, association.sessionId, '../design.json')
+  ).rejects.toThrow();
+  await expect(
+    saveDesignCandidate(root, { ...candidate, artworkId: '../outside' })
   ).rejects.toThrow();
 });

@@ -1,3 +1,25 @@
+/**
+ * The single design committer.
+ *
+ * Everything that writes `<data root>/chats/<artworkId>/` goes through this
+ * module: the canonical `design.json` (via `designOperation`) and the validated
+ * conflict candidates kept beside it (via `saveDesignCandidate`).
+ *
+ * Two callers, one writer: the Electron-owned CLI worker (`cli/design.js`)
+ * forwards UI save/read/create requests over stdin, and the daemon calls
+ * `designOperation` in-process for post-turn collection (P2.3,
+ * `./turn-outcome.ts`). They are coordinated by content-addressed state only —
+ * sha256 revision ids compared against the caller's baseline — so no lock,
+ * port, or process ownership is shared between them. A caller that loses the
+ * baseline race gets `DESIGN_CONFLICT` and never sees its bytes land; the
+ * daemon turns that into a candidate instead of an overwrite (P2.3).
+ *
+ * `design.json` holds embedded base64 assets so a confirmed save has no
+ * partially committed asset table; the per-file digest of exactly those bytes
+ * is the revisionId. A lost reply is safely retryable when the requested bytes
+ * already landed.
+ */
+
 import {
   sniffStaticV1ImageMime,
   sniffStaticV1FontMime,
@@ -95,6 +117,190 @@ export type DesignRequest = z.input<typeof designRequest>;
 export type DesignPayload = z.output<typeof savedSchema> & { revisionId: string };
 const digest = (bytes: string | Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
+export const DESIGN_CANDIDATES_DIRNAME = 'candidates';
+const candidateFileRe = /^([a-f0-9]{64})\.json$/;
+
+const candidateEnvelope = z
+  .object({
+    version: z.literal(1),
+    /** sha256 of the canonical content bytes — addresses the design, not the envelope. */
+    candidateId: z.string().regex(/^[a-f0-9]{64}$/),
+    artworkId: designId,
+    turnId: z.string().min(1).max(200),
+    /** The revision the agent started from; adopting re-checks against the live one. */
+    baselineRevisionId: z.string().regex(/^[a-f0-9]{64}$/),
+    createdAt: z.string().datetime(),
+    content: designInput,
+  })
+  .strict();
+const saveCandidateRequest = candidateEnvelope.omit({ version: true, candidateId: true });
+export type SaveDesignCandidateRequest = z.input<typeof saveCandidateRequest>;
+export type DesignCandidate = z.output<typeof candidateEnvelope>;
+
+/** Everything a candidate list needs without carrying a second copy of the document. */
+export type DesignCandidateSummary = {
+  candidateId: string;
+  artworkId: string;
+  turnId: string;
+  baselineRevisionId: string;
+  createdAt: string;
+};
+
+const candidateSummary = (candidate: DesignCandidate): DesignCandidateSummary => ({
+  candidateId: candidate.candidateId,
+  artworkId: candidate.artworkId,
+  turnId: candidate.turnId,
+  baselineRevisionId: candidate.baselineRevisionId,
+  createdAt: candidate.createdAt,
+});
+
+/**
+ * Content-addressed without depending on key insertion order: the id must be
+ * stable across processes and reloads for the same produced design.
+ */
+const canonicalContentBytes = (content: z.output<typeof designInput>): Uint8Array => {
+  const assets: Record<string, string> = {};
+  for (const key of Object.keys(content.assets).sort()) {
+    assets[key] = content.assets[key] as string;
+  }
+  return Buffer.from(JSON.stringify({ doc: content.doc, assets }), 'utf8');
+};
+
+/** Temp file + fsync + rename + parent fsync: the only way bytes become visible. */
+async function publishBytesAtomic(directory: string, target: string, bytes: string): Promise<void> {
+  const temporary = path.join(directory, '.' + randomUUID() + '.tmp');
+  try {
+    const file = await open(temporary, 'wx', 0o600);
+    try {
+      await file.writeFile(bytes);
+      await file.sync();
+    } finally {
+      await file.close();
+    }
+    await rename(temporary, target);
+    if (process.platform !== 'win32') {
+      const parent = await open(directory, constants.O_RDONLY);
+      try {
+        await parent.sync();
+      } finally {
+        await parent.close();
+      }
+    }
+  } finally {
+    await unlink(temporary).catch(() => {});
+  }
+}
+
+/** The candidate itself cannot be a symlink, and a missing file is not an error. */
+async function readCandidateFile(file: string): Promise<DesignCandidate | null> {
+  let handle;
+  try {
+    handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW);
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return null;
+    throw error;
+  }
+  try {
+    const stat = await handle.stat();
+    if (!stat.isFile() || stat.size > 64 * 1024 * 1024) throw Error('Invalid design candidate');
+    const parsed = candidateEnvelope.parse(JSON.parse((await handle.readFile()).toString('utf8')));
+    if (digest(canonicalContentBytes(parsed.content)) !== parsed.candidateId)
+      throw Error('Design candidate checksum mismatch');
+    return parsed;
+  } finally {
+    await handle.close();
+  }
+}
+
+async function designChatDirectory(dataRoot: string, artworkId: string): Promise<string> {
+  const directory = path.join(dataRoot, 'chats', artworkId);
+  await mkdir(directory, { recursive: true });
+  if ((await lstat(directory)).isSymbolicLink())
+    throw Error('Design workspace cannot be a symlink');
+  return directory;
+}
+
+async function candidatesDirectory(dataRoot: string, artworkId: string): Promise<string> {
+  const directory = path.join(
+    await designChatDirectory(dataRoot, artworkId),
+    DESIGN_CANDIDATES_DIRNAME
+  );
+  await mkdir(directory, { recursive: true });
+  if ((await lstat(directory)).isSymbolicLink())
+    throw Error('Design candidates directory cannot be a symlink');
+  return directory;
+}
+
+/**
+ * Keep a validated design beside the current canvas instead of overwriting it.
+ *
+ * Written when a post-turn commit loses its baseline (`DESIGN_CONFLICT`, P2.3):
+ * the user saved while the agent worked, so their canvas stays current and the
+ * imported document waits here for an explicit adopt/discard. Idempotent by
+ * content — the id is the digest of the canonical content, and an existing
+ * candidate with that id is left byte-for-byte alone — so re-collecting a turn
+ * cannot accumulate duplicates.
+ */
+export async function saveDesignCandidate(
+  dataRoot: string,
+  raw: unknown
+): Promise<DesignCandidateSummary> {
+  const request = saveCandidateRequest.parse(raw);
+  const candidateId = digest(canonicalContentBytes(request.content));
+  const directory = await candidatesDirectory(dataRoot, request.artworkId);
+  const file = path.join(directory, `${candidateId}.json`);
+  const existing = await readCandidateFile(file);
+  if (existing) return candidateSummary(existing);
+  const envelope: DesignCandidate = candidateEnvelope.parse({
+    version: 1,
+    candidateId,
+    artworkId: request.artworkId,
+    turnId: request.turnId,
+    baselineRevisionId: request.baselineRevisionId,
+    createdAt: request.createdAt,
+    content: request.content,
+  });
+  const bytes = JSON.stringify(envelope);
+  if (bytes.length > 64 * 1024 * 1024) throw Error('Design candidate exceeds 64 MiB');
+  await publishBytesAtomic(directory, file, bytes);
+  return candidateSummary(envelope);
+}
+
+/** Read one candidate, verifying that its content still hashes to its id. */
+export async function readDesignCandidate(
+  dataRoot: string,
+  artworkId: unknown,
+  candidateId: unknown
+): Promise<{ candidate: DesignCandidate; file: string }> {
+  const id = designId.parse(artworkId);
+  const candidate = z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .parse(candidateId);
+  const file = path.join(await candidatesDirectory(dataRoot, id), `${candidate}.json`);
+  const parsed = await readCandidateFile(file);
+  if (!parsed) throw Error('Design candidate not found');
+  return { candidate: parsed, file };
+}
+
+/** Candidates newest-last, skipping anything that is not a candidate file. */
+export async function listDesignCandidates(
+  dataRoot: string,
+  artworkId: unknown
+): Promise<DesignCandidateSummary[]> {
+  const id = designId.parse(artworkId);
+  const directory = await candidatesDirectory(dataRoot, id);
+  const summaries: DesignCandidateSummary[] = [];
+  for (const name of await readdir(directory)) {
+    const match = candidateFileRe.exec(name);
+    if (!match) continue;
+    const parsed = await readCandidateFile(path.join(directory, name));
+    if (!parsed || parsed.candidateId !== match[1]) continue;
+    summaries.push(candidateSummary(parsed));
+  }
+  return summaries.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
 function validateAssets(content: z.output<typeof designInput>) {
   if (new Set(content.doc.elements.map((e) => e.id)).size !== content.doc.elements.length)
     throw Error('Duplicate element IDs');
@@ -165,7 +371,11 @@ function validateAssets(content: z.output<typeof designInput>) {
   return assets;
 }
 
-/** One CLI worker owns all writes; callers serialize requests through its stdin. */
+/**
+ * Read/create/save the current canvas. Callers pass the revisionId they believe
+ * is current as `baseRevisionId`; a save whose baseline moved is rejected with
+ * `DESIGN_CONFLICT` rather than overwriting someone else's work.
+ */
 export async function designOperation(dataRoot: string, raw: unknown): Promise<DesignPayload> {
   const request = designRequest.parse(raw);
   const id = request.operation === 'create' ? request.association.sessionId : request.sessionId;
@@ -246,27 +456,7 @@ export async function designOperation(dataRoot: string, raw: unknown): Promise<D
       }
     }
   }
-  const temporary = path.join(directory, '.' + randomUUID() + '.tmp');
-  try {
-    const file = await open(temporary, 'wx', 0o600);
-    try {
-      await file.writeFile(bytes);
-      await file.sync();
-    } finally {
-      await file.close();
-    }
-    await rename(temporary, current);
-    if (process.platform !== 'win32') {
-      const parent = await open(directory, constants.O_RDONLY);
-      try {
-        await parent.sync();
-      } finally {
-        await parent.close();
-      }
-    }
-  } finally {
-    await unlink(temporary).catch(() => {});
-  }
+  await publishBytesAtomic(directory, current, bytes);
   return { ...saved, revisionId: digest(bytes) };
 }
 

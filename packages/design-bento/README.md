@@ -44,11 +44,14 @@ workspace/relative path after durable save, without rolling back saved content.
 `apps/cli/src/design/store.ts` owns `<Folio data root>/chats/<sessionId>/design.json`.
 The file atomically contains the canonical BentoDoc, referenced content-addressed
 asset bytes, and Session association. Assets are embedded so a confirmed save has
-no partially committed external asset table. The Electron-owned CLI worker processes
-requests sequentially, verifies expected content hashes and semantic kernel commands,
-fsyncs replacement bytes, then acknowledges. A lost reply can be retried; a different
-baseline is a conflict. P1 supports the app's single writer, not external programs
-writing the same file while a commit is in progress.
+no partially committed external asset table. The module is the single committer:
+the Electron-owned CLI worker forwards UI requests over stdin, and the daemon calls
+the same exported operations in-process after a turn (P2.3). Both paths verify
+expected content hashes and semantic kernel commands, fsync replacement bytes, then
+acknowledge. A lost reply can be retried; a different baseline is a conflict — the
+daemon keeps the imported document as a candidate instead of overwriting. Two callers
+still do not mean two writers: commits are coordinated by content only, so a caller
+that loses the baseline race never sees its bytes land.
 
 `design-pending/` contains only unfinished Session associations. UI repair authors
 those through the existing workspace writer, then acknowledges them to the CLI.
