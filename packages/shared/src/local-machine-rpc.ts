@@ -1,4 +1,5 @@
 import { LocalFileResolutionSchema } from './local-file-preview';
+import { PublicImageConnectionSchema } from './image-connection';
 import { z } from 'zod';
 import {
   CodeCollabV2ErrorSchema,
@@ -74,7 +75,69 @@ export type SessionActiveInvocationContextResult = z.infer<
   typeof SessionActiveInvocationContextResultSchema
 >;
 
+/**
+ * The daemon's answers about this machine's image connection (P2.4).
+ *
+ * Two methods rather than one because they have opposite costs: reading the
+ * setting is free and must never touch the network, while testing it makes a
+ * request to the user's own upstream. Keeping them apart means a caller that
+ * only needs the availability gate cannot accidentally trigger a probe, and the
+ * settings button cannot drift into being the thing that decides availability.
+ *
+ * Both carry only the non-secret projection; a reply never contains the key.
+ */
+export const ImageConnectionRpcResultSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('design/image-connection'),
+      /** null when this machine has stored no connection at all. */
+      connection: PublicImageConnectionSchema.nullable(),
+      /**
+       * The availability gate for the asking session, decided by the daemon so
+       * no caller has to re-derive it: true requires `request.ownerSessionId`
+       * to name a session whose meta carries `design` AND that session's
+       * machine to satisfy `isImageConnectionReady`. False means the tool is not
+       * registered — a non-design session, a missing/unreadable session, no
+       * stored row, a switched-off row, or a row with no key yet.
+       */
+      ready: z.boolean(),
+      /**
+       * The credential, and the only place it appears on the wire.
+       *
+       * This method exists for exactly one caller — the built-in MCP server
+       * that has to present the key to the user's own upstream — over the
+       * owner-only machine-local control socket, from the daemon's own child
+       * process running as the same user. Present only when `ready` — which
+       * also requires a design session, so a coding session's answer carries no
+       * key even on a ready machine; the key exists to generate design assets,
+       * and no other session has a use for it. A settings surface must keep
+       * using `connection` (which reports `hasApiKey`) and never request this
+       * field: nothing in the UI needs the secret, and a value that is never
+       * sent cannot be logged.
+       */
+      credential: z.object({ apiKey: z.string().min(1) }).strict().nullable(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('design/image-connection-test'),
+      ok: z.boolean(),
+      modelCount: z.number().int().nonnegative().optional(),
+      error: z.string().min(1).max(500).optional(),
+    })
+    .strict(),
+]);
+export type ImageConnectionRpcResult = z.infer<typeof ImageConnectionRpcResultSchema>;
+
 export const LocalMachineRpcRequestSchema = z.discriminatedUnion('method', [
+  BaseLocalMachineRpcRequestSchema.extend({
+    method: z.literal('design/image-connection'),
+    params: z.object({}).strict(),
+  }).strict(),
+  BaseLocalMachineRpcRequestSchema.extend({
+    method: z.literal('design/image-connection-test'),
+    params: z.object({}).strict(),
+  }).strict(),
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('session/get-active-invocation-context'),
     params: z
@@ -236,6 +299,7 @@ export type LocalMachineRpcRequest = z.infer<typeof LocalMachineRpcRequestSchema
 export type LocalMachineRpcRequestValidated = LocalMachineRpcRequest;
 
 export const LocalMachineRpcResultSchema = z.union([
+  ImageConnectionRpcResultSchema,
   SessionActiveInvocationContextResultSchema,
   CodeCollabV2FileIndexSnapshotSchema,
   CodeCollabV2OpenTextOkSchema,

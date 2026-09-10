@@ -11,6 +11,7 @@ import {
   runWithMcpSessionContext,
   type McpSessionContext,
 } from './lody-mcp-server';
+import { resolveDesignGate } from './design-tools';
 import { canReadProcNetTcp, lookupLoopbackPeerUid } from './loopback-peer-uid';
 import {
   MCP_HTTP_MACHINE_ID_HEADER,
@@ -304,7 +305,15 @@ async function handleRequest(
   // down when the response closes. The MCP client re-initializes per
   // connection, and every tool call carries its full context in headers, so no
   // cross-request state is needed and concurrent sessions cannot interleave.
-  const server = buildLodyMcpServer({ taskToolsEnabled: context.taskToolsEnabled });
+  // One server per request, so the design gate is resolved fresh for every turn
+  // rather than frozen for a session: enabling the image connection takes effect
+  // on the next turn, and disabling it removes the tool just as promptly.
+  const designGate = await resolveDesignGate(context, logger);
+  const server = buildLodyMcpServer({
+    taskToolsEnabled: context.taskToolsEnabled,
+    designGate,
+    resolveGate: async () => await resolveDesignGate(context, logger),
+  });
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

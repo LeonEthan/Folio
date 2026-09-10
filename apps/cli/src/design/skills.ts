@@ -29,8 +29,27 @@ import { fileURLToPath } from 'node:url';
 export const DESIGN_SKILL_TARGET_BASES = ['.claude/skills', '.agents/skills'] as const;
 export const SKILL_MANIFEST_FILENAME = '.folio-managed-files.json';
 
-/** Skill names bundled today. imagegen joins once its image connection gates. */
+/** Skills every design session gets, capability or not. */
 export const DEFAULT_DESIGN_SKILLS = ['graphic-design'] as const;
+
+/**
+ * The skill that only makes sense next to `folio_generate_image` (P2.4).
+ *
+ * Delivered exactly when the tool is: this function is only ever reached for a
+ * session whose meta carries `design` (see `prepareDesignTurn`), the machine
+ * part of the gate is the same `isImageConnectionReady` answer, and the tool
+ * gate applies the same design-session rule, so the agent never reads
+ * instructions for a tool it does not have, and never holds the tool without
+ * the method that says how to use it. The skill's own SKILL.md also covers the
+ * one window this cannot close — a connection switched off after
+ * materialization — so a stale copy still gives an honest answer instead of a
+ * dead tool call.
+ */
+export const IMAGE_DESIGN_SKILL = 'imagegen';
+
+/** The skills to materialize for a session with this image capability. */
+export const designSkillsForImageCapability = (hasImageCapability: boolean): string[] =>
+  hasImageCapability ? [...DEFAULT_DESIGN_SKILLS, IMAGE_DESIGN_SKILL] : [...DEFAULT_DESIGN_SKILLS];
 
 const SKILL_NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
 

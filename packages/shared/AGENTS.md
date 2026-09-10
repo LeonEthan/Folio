@@ -39,6 +39,15 @@ per-turn MCP selection, or Role-based session creation and dispatch.
   edits/deletion cannot change recovery or retry. `SessionMeta.agentRoleId` and
   `agentRoleRevision` are display-only creation provenance.
 
+## Machine RPC: image connection
+
+- `design/image-connection` answers the capability question for ONE session: it carries
+  `ownerSessionId`, and `ready` (with a non-null `credential`) requires that session to have
+  design meta AND the machine's row to be complete and enabled. Absent, deleted, or unreadable
+  session meta is unavailable, and the lookup must stay read-only — never create or write a
+  session document to answer it. `design/image-connection-test` is machine-scoped and carries no
+  session identity: a settings surface must work before any session exists.
+
 ## Installation identity
 
 The public local profile is Folio. Keep its data directory, host endpoint, protocol,

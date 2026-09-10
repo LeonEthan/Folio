@@ -13,8 +13,10 @@ import {
   getMachineFlockBuiltinAgentOptOuts,
   getMachineFlockDeleteLocalProjectEntries,
   getMachineFlockDeleteLocalProjectIds,
+  clearImageConnectionFromFlock,
   getMachineFlockDotlodyPath,
   getMachineFlockDocId,
+  getMachineFlockImageConnection,
   getMachineFlockLocalProjects,
   getMachineFlockRateLimits,
   getMachineFlockSessionLaunchConfig,
@@ -28,6 +30,7 @@ import {
   readMachineFlockRowsFromFlock,
   serializeMachineFlockKey,
   writeAgentConfigToFlock,
+  writeImageConnectionToFlock,
   writeMachineFlockRowToFlock,
   type AgentConfigMeta,
   type MachineFlockKey,
@@ -770,5 +773,76 @@ describe('machine Flock helpers', () => {
         agentType: 'kimi',
       });
     });
+  });
+});
+
+describe('machine image connection row', () => {
+  const connection = {
+    v: 1 as const,
+    enabled: true,
+    baseUrl: 'https://images.example.com/v1',
+    apiKey: 'sk-test-secret',
+    model: 'gpt-image-2',
+    updatedAt: 1_700_000_000_000,
+  };
+
+  it('reads back a row it wrote', () => {
+    const flock = new FakeMachineFlock();
+    expect(writeImageConnectionToFlock(flock, connection, 1700)).toBe(true);
+    expect(flock.commits).toBe(1);
+
+    const rows = readMachineFlockRowsFromFlock(flock, { families: ['imageConnection'] });
+    expect(getMachineFlockImageConnection(rows)).toEqual(connection);
+    expect(getMachineFlockImageConnection(readMachineFlockRowsFromFlock(flock))).toEqual(
+      connection
+    );
+  });
+
+  it('is a no-op when the same value is already stored', () => {
+    const flock = new FakeMachineFlock();
+    writeImageConnectionToFlock(flock, connection, 1700);
+    expect(writeImageConnectionToFlock(flock, connection, 1800)).toBe(false);
+    expect(flock.commits).toBe(1);
+  });
+
+  it('rewrites when a field changes, and clears on request', () => {
+    const flock = new FakeMachineFlock();
+    writeImageConnectionToFlock(flock, connection, 1700);
+    expect(writeImageConnectionToFlock(flock, { ...connection, enabled: false }, 1800)).toBe(true);
+    expect(
+      getMachineFlockImageConnection(readMachineFlockRowsFromFlock(flock))?.enabled
+    ).toBe(false);
+
+    expect(clearImageConnectionFromFlock(flock, 1900)).toBe(true);
+    expect(getMachineFlockImageConnection(readMachineFlockRowsFromFlock(flock))).toBeUndefined();
+    expect(clearImageConnectionFromFlock(flock, 2000)).toBe(false);
+  });
+
+  it('refuses a value the row schema cannot represent', () => {
+    const flock = new FakeMachineFlock();
+    // An unusable base URL must not land: the row is the single truth every
+    // reader trusts, so a bad write is dropped rather than normalized.
+    expect(
+      writeImageConnectionToFlock(flock, { ...connection, baseUrl: 'not-a-url' }, 1700)
+    ).toBe(false);
+    expect(getMachineFlockImageConnection(readMachineFlockRowsFromFlock(flock))).toBeUndefined();
+  });
+
+  it('ignores a stored row with a foreign version', () => {
+    const flock = new FakeMachineFlock();
+    flock.set(machineFlockKeys.imageConnection(), { ...connection, v: 99 });
+    expect(Object.values(readMachineFlockRowsFromFlock(flock))).toEqual([]);
+    expect(getMachineFlockImageConnection(readMachineFlockRowsFromFlock(flock))).toBeUndefined();
+  });
+
+  it('parses the key and serializes it back', () => {
+    expect(parseMachineFlockKey(['imageConnection'])).toEqual({
+      kind: 'imageConnection',
+      key: machineFlockKeys.imageConnection(),
+    });
+    expect(parseMachineFlockKey(['imageConnection', 'extra'])).toBeUndefined();
+    expect(serializeMachineFlockKey(machineFlockKeys.imageConnection())).toBe(
+      JSON.stringify(['imageConnection'])
+    );
   });
 });

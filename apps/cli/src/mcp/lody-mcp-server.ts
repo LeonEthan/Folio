@@ -78,6 +78,8 @@ import {
   ReviewSubmissionSchema,
   hasPendingUserTurnActivation,
   normalizeSessionTurnInputConfig,
+  isImageConnectionReady,
+  type ImageHttpTransport,
 } from '@lody/shared';
 import { makeLocalControlClientAuto } from '@lody/shared/node/local-ipc';
 import {
@@ -142,6 +144,9 @@ import {
   runWithOperationStoreBusyRetry,
 } from '@/orchestration/operation-store';
 import { publishTaskProposal } from '@/mcp/task-proposal';
+import { generateImageAsset } from '@/mcp/image-generation';
+import { EMPTY_DESIGN_GATE, resolveDesignGate, type McpDesignGate } from '@/mcp/design-tools';
+import { fetchImageHttpTransport } from '@/design/image-connection';
 import { version as cliVersion } from '@/pkg';
 import { uploadTaskImages } from '@/lib/task-image-upload';
 import {
@@ -180,6 +185,9 @@ const TASK_EDIT_BODY_TOOL_NAME = 'lody_task_edit_body';
 const TASK_COMMENT_TOOL_NAME = 'lody_task_comment';
 const TASK_IMAGE_UPLOAD_TOOL_NAME = 'lody_task_upload_images';
 const REVIEW_SUBMIT_TOOL_NAME = 'lody_review_submit';
+const GENERATE_IMAGE_TOOL_NAME = 'folio_generate_image';
+const DESIGN_IMAGE_PROMPT_MAX_CHARS = 8_000;
+const DESIGN_IMAGE_SIZE_SPEC_MAX_CHARS = 32;
 const SESSION_FILE_MAX_SIZE_MB = Math.floor(SESSION_FILE_MAX_SIZE_BYTES / (1024 * 1024));
 const SESSION_CONTROL_TIMEOUT_MS = 30_000;
 const LODY_CLI_DEFAULT_TIMEOUT_MS = 10 * 60_000;
@@ -259,6 +267,29 @@ const PreviewToolInputSchema = z
     pid: z.number().int().positive().optional().describe('Optional dev server process id.'),
   })
   .strict();
+
+const GenerateImageToolInputSchema = z
+  .object({
+    prompt: z
+      .string()
+      .trim()
+      .min(1)
+      .max(DESIGN_IMAGE_PROMPT_MAX_CHARS)
+      .describe(
+        'The generation prompt. Describe the asset you need (subject, style, composition, lighting, and any constraints or text to render).'
+      ),
+    size: z
+      .string()
+      .trim()
+      .min(1)
+      .max(DESIGN_IMAGE_SIZE_SPEC_MAX_CHARS)
+      .optional()
+      .describe(
+        'Optional output size passed through to the configured provider, for example "1024x1024". Omit to use the provider default.'
+      ),
+  })
+  .strict();
+type GenerateImageToolInput = z.infer<typeof GenerateImageToolInputSchema>;
 
 const ImageUploadToolInputSchema = z
   .object({
@@ -4029,7 +4060,27 @@ export const __lodyMcpServerInternals = {
   SESSION_CONTROL_TIMEOUT_MS,
 };
 
-export function buildLodyMcpServer(config: { taskToolsEnabled?: boolean } = {}): McpServer {
+export function buildLodyMcpServer(
+  config: {
+    taskToolsEnabled?: boolean;
+    /**
+     * Design capability snapshot (P2.4). Absent means "no image capability",
+     * which is the honest default for every caller that has not asked the
+     * daemon — including every test that is not about this feature. The daemon
+     * decides it from the asking session's identity plus the machine's row, so
+     * one field carries both halves.
+     */
+    designGate?: McpDesignGate;
+    /**
+     * Live re-check of the gate, run immediately before each paid generation so
+     * a connection revoked mid-session cannot be spent. Production callers pass
+     * the daemon lookup; when absent, `designGate` is the whole truth.
+     */
+    resolveGate?: () => Promise<McpDesignGate>;
+    /** Test seam: image generation transport. Production uses the shared fetch transport. */
+    imageTransport?: ImageHttpTransport;
+  } = {}
+): McpServer {
   // The HTTP host is long-lived and the stdio server normally lives for the
   // Agent session. Initialization is idempotent and local-platform telemetry
   // remains hard-disabled inside the analytics layer.
@@ -4038,6 +4089,63 @@ export function buildLodyMcpServer(config: { taskToolsEnabled?: boolean } = {}):
     name: 'lody',
     version: '0.1.0',
   });
+
+  // Design capability (P2.4). Registered unconditionally, then disabled below
+  // unless the asking session is a design session and the machine has a
+  // complete, enabled image connection — the same pattern the Task family uses,
+  // so a disabled tool is genuinely absent from `tools/list` and uncallable, not
+  // merely advertised and then refused.
+  const generateImageTool = server.registerTool(
+    GENERATE_IMAGE_TOOL_NAME,
+    {
+      title: 'Generate an image through Folio image connection',
+      description:
+        "Generate one image with the image connection configured in Folio settings and write it into the current session workspace as a design asset. Use this for product shots, concept art, covers, illustrations, and other raster assets for the design you are building; it is available in design sessions only, and only when the user has configured and enabled an image connection. Returns the workspace-relative asset path (under media/) to reference from the project, plus the sha256 and pixel dimensions. Each call is a paid generation on the user's own account and is never retried automatically, so make one targeted change per call and inspect the result before generating again. If the tool is not in your tool list, image generation is not configured: say so and continue with the assets you have — never ask the user to paste an API key in chat.",
+      inputSchema: GenerateImageToolInputSchema,
+    },
+    async (args: GenerateImageToolInput) => {
+      try {
+        const ctx = getSessionContext();
+        // Re-resolve before every paid call: the tool is registered from a
+        // snapshot, and a connection the user disabled or cleared since would
+        // otherwise turn into a call made on stale consent.
+        const gate = config.resolveGate
+          ? await config.resolveGate()
+          : (config.designGate ?? EMPTY_DESIGN_GATE);
+        const connection = gate.imageConnection;
+        if (connection === null) {
+          return textResult(
+            'Image generation is unavailable: this is not a design session, or the image connection is not configured, is disabled, or is missing its API key. Tell the user to enable it in Folio settings; do not retry.',
+            true
+          );
+        }
+        const asset = await generateImageAsset({
+          settings: connection,
+          prompt: args.prompt,
+          ...(args.size === undefined ? {} : { size: args.size }),
+          workdir: ctx.workdir,
+          transport: config.imageTransport ?? fetchImageHttpTransport,
+        });
+        return jsonTextResult({
+          ok: true,
+          path: asset.path,
+          absolutePath: asset.absolutePath,
+          sha256: asset.sha256,
+          mimeType: asset.mimeType,
+          width: asset.width,
+          height: asset.height,
+          bytes: asset.bytes,
+          note: `Reference "${asset.path}" from the project (relative to the project root), or copy it into the project's media/ directory if you keep one.`,
+        });
+      } catch (error) {
+        // The upstream's own message, or our refusal; never the request header.
+        return textResult(
+          error instanceof Error ? error.message : `Image generation failed: ${String(error)}`,
+          true
+        );
+      }
+    }
+  );
 
   server.registerTool(
     FEEDBACK_TOOL_NAME,
@@ -5141,6 +5249,14 @@ export function buildLodyMcpServer(config: { taskToolsEnabled?: boolean } = {}):
     }
   );
 
+  // Capability presence matches environment presence: a session that is not a
+  // design session, or a machine with no complete, enabled image connection,
+  // means the tool is not published at all. The daemon answers both halves in
+  // one gate (see `resolveDesignGate`), so this stays a single check.
+  if (!isImageConnectionReady(config.designGate?.imageConnection ?? null)) {
+    generateImageTool.disable();
+  }
+
   if (config.taskToolsEnabled !== true) {
     for (const tool of [
       taskImageUploadTool,
@@ -5160,7 +5276,13 @@ export function buildLodyMcpServer(config: { taskToolsEnabled?: boolean } = {}):
 
 export async function runLodyMcpServer(): Promise<void> {
   const context = getSessionContext();
-  await buildLodyMcpServer({ taskToolsEnabled: context.taskToolsEnabled }).connect(
-    new StdioServerTransport()
-  );
+  // The stdio server lives for the whole agent session, so its tool list is
+  // fixed at startup from this session's own gate; `resolveGate` keeps the paid
+  // call itself honest if the connection is switched off afterwards.
+  const designGate = await resolveDesignGate(context);
+  await buildLodyMcpServer({
+    taskToolsEnabled: context.taskToolsEnabled,
+    designGate,
+    resolveGate: async () => await resolveDesignGate(context),
+  }).connect(new StdioServerTransport());
 }

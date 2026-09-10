@@ -13,6 +13,10 @@ import {
   type ManagedBuiltinAgentType,
 } from './ai';
 import type { AgentConfigId, MachineId, SessionId, WorkspaceId } from './ids';
+import {
+  normalizeImageConnectionSettings,
+  type ImageConnectionSettings,
+} from './image-connection';
 import type { LocalProjectWorktreeCleanupItem, LocalProjectWorktreeCleanupResult } from './message';
 import type {
   LocalProjectId,
@@ -249,6 +253,12 @@ export type MachineFlockAgentConfigIndexKey = ['agentConfigIndex', AgentConfigId
 export type MachineFlockAcpCapabilityKey = ['acpCapability', AgentConfigId];
 export type MachineFlockRateLimitKey = ['rateLimit', CliType, string];
 export type MachineFlockBuiltinAgentOptOutKey = ['builtinAgentOptOut', ManagedBuiltinAgentType];
+/**
+ * The machine's image connection (P2.4). One row per machine — the machine is
+ * the flock doc itself, so the key carries no id and two machines may hold
+ * different credentials without a workspace-wide row to coordinate.
+ */
+export type MachineFlockImageConnectionKey = ['imageConnection'];
 /** @deprecated Compatibility read/cleanup only. New writers must not store launch config per session. */
 export type MachineFlockSessionLaunchConfigKey = ['sessionLaunchConfig', SessionId];
 
@@ -265,6 +275,7 @@ export type MachineFlockKey =
   | MachineFlockAcpCapabilityKey
   | MachineFlockRateLimitKey
   | MachineFlockBuiltinAgentOptOutKey
+  | MachineFlockImageConnectionKey
   | MachineFlockSessionLaunchConfigKey;
 
 export type ParsedMachineFlockKey =
@@ -317,6 +328,7 @@ export type ParsedMachineFlockKey =
       key: MachineFlockBuiltinAgentOptOutKey;
       agentType: ManagedBuiltinAgentType;
     }
+  | { kind: 'imageConnection'; key: MachineFlockImageConnectionKey }
   | {
       kind: 'sessionLaunchConfig';
       key: MachineFlockSessionLaunchConfigKey;
@@ -370,6 +382,7 @@ export const machineFlockKeys = {
     'builtinAgentOptOut',
     agentType,
   ],
+  imageConnection: (): MachineFlockImageConnectionKey => ['imageConnection'],
   /** @deprecated Compatibility read/cleanup only. New writers must not store launch config per session. */
   sessionLaunchConfig: (sessionId: SessionId): MachineFlockSessionLaunchConfigKey => [
     'sessionLaunchConfig',
@@ -382,6 +395,10 @@ export const parseMachineFlockKey = (
 ): ParsedMachineFlockKey | undefined => {
   if (key.length === 1 && key[0] === 'dotlodyPath') {
     return { kind: 'dotlodyPath', key: machineFlockKeys.dotlodyPath() };
+  }
+
+  if (key.length === 1 && key[0] === 'imageConnection') {
+    return { kind: 'imageConnection', key: machineFlockKeys.imageConnection() };
   }
 
   if (
@@ -533,6 +550,7 @@ export type MachineFlockRow =
   | { key: MachineFlockAcpCapabilityKey; value: AcpCapabilityCacheEntry }
   | { key: MachineFlockRateLimitKey; value: RateLimit }
   | { key: MachineFlockBuiltinAgentOptOutKey; value: BuiltinAgentOptOut }
+  | { key: MachineFlockImageConnectionKey; value: ImageConnectionSettings }
   | { key: MachineFlockSessionLaunchConfigKey; value: SessionLaunchConfig };
 
 export type MachineFlockRowId = string & { __brand: 'MachineFlockRowId' };
@@ -575,6 +593,7 @@ export type MachineFlockRowFamily =
   | 'acpCapability'
   | 'rateLimit'
   | 'builtinAgentOptOut'
+  | 'imageConnection'
   | 'sessionLaunchConfig';
 
 const MACHINE_FLOCK_ROW_FAMILY_PREFIXES: Record<MachineFlockRowFamily, readonly unknown[]> = {
@@ -590,6 +609,7 @@ const MACHINE_FLOCK_ROW_FAMILY_PREFIXES: Record<MachineFlockRowFamily, readonly 
   acpCapability: ['acpCapability'],
   rateLimit: ['rateLimit'],
   builtinAgentOptOut: ['builtinAgentOptOut'],
+  imageConnection: ['imageConnection'],
   sessionLaunchConfig: ['sessionLaunchConfig'],
 };
 
@@ -680,6 +700,11 @@ const isMachineFlockBuiltinAgentOptOutRow = (
   row: MachineFlockRow
 ): row is Extract<MachineFlockRow, { key: MachineFlockBuiltinAgentOptOutKey }> =>
   row.key[0] === 'builtinAgentOptOut';
+
+const isMachineFlockImageConnectionRow = (
+  row: MachineFlockRow
+): row is Extract<MachineFlockRow, { key: MachineFlockImageConnectionKey }> =>
+  row.key[0] === 'imageConnection';
 
 const isMachineFlockSessionLaunchConfigRow = (
   row: MachineFlockRow
@@ -821,6 +846,61 @@ export function getMachineFlockRateLimits(rows: MachineFlockRowMap): Record<stri
     rateLimits[getMachineFlockRateLimitEntryKey(row.key[1], row.key[2])] = row.value;
   }
   return rateLimits;
+}
+
+/**
+ * This machine's image connection (P2.4), or `undefined` when none is stored.
+ *
+ * Callers must not treat a present-but-incomplete row as capability: ask
+ * `isImageConnectionReady` for that. Absence here means "never configured",
+ * which is a different state from "configured and switched off" in the settings
+ * UI, even though both leave the tool unregistered.
+ */
+export function getMachineFlockImageConnection(
+  rows: MachineFlockRowMap
+): ImageConnectionSettings | undefined {
+  const row = rows[serializeMachineFlockKey(machineFlockKeys.imageConnection())];
+  return row && isMachineFlockImageConnectionRow(row) ? row.value : undefined;
+}
+
+/**
+ * Write the imageConnection row. Returns whether anything changed, so the
+ * caller can skip a sync round trip on a no-op save. An unusable value is
+ * refused here rather than normalized into something plausible — the row is the
+ * single truth the daemon, the MCP tools, and the UI all read.
+ */
+export function writeImageConnectionToFlock(
+  flock: MachineFlockWritableFlock,
+  settings: ImageConnectionSettings,
+  nowMs?: number
+): boolean {
+  const key = machineFlockKeys.imageConnection();
+  const normalized = parseMachineFlockRow(key, settings);
+  if (!normalized) {
+    return false;
+  }
+  const rows = readMachineFlockRowsFromFlock(flock, { prefixes: [key] });
+  if (machineFlockRowsEqual(rows[serializeMachineFlockKey(key)], normalized)) {
+    return false;
+  }
+  flock.set(normalized.key, normalized.value, nowMs);
+  flock.commit();
+  return true;
+}
+
+/** Remove the imageConnection row entirely. Returns whether a row was there. */
+export function clearImageConnectionFromFlock(
+  flock: MachineFlockWritableFlock,
+  nowMs?: number
+): boolean {
+  const key = machineFlockKeys.imageConnection();
+  const rows = readMachineFlockRowsFromFlock(flock, { prefixes: [key] });
+  if (!(serializeMachineFlockKey(key) in rows)) {
+    return false;
+  }
+  flock.delete(key, nowMs);
+  flock.commit();
+  return true;
 }
 
 /** Managed builtin provider types the user removed on this machine, so they must not be auto-registered again. */
@@ -1156,6 +1236,10 @@ export function parseMachineFlockRow(
     case 'builtinAgentOptOut': {
       const optOut = normalizeBuiltinAgentOptOut(value);
       return optOut ? { key: parsedKey.key, value: optOut } : undefined;
+    }
+    case 'imageConnection': {
+      const settings = normalizeImageConnectionSettings(value);
+      return settings ? { key: parsedKey.key, value: settings } : undefined;
     }
     case 'sessionLaunchConfig': {
       const config = normalizeSessionLaunchConfig(value);

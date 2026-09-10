@@ -43,6 +43,7 @@ import { Route as WorkspaceNameAuthSettingsMyMachinesRouteImport } from './route
 import { Route as WorkspaceNameAuthSettingsMcpRouteImport } from './routes/$workspaceName/_auth/settings/mcp'
 import { Route as WorkspaceNameAuthSettingsMachinesRouteImport } from './routes/$workspaceName/_auth/settings/machines'
 import { Route as WorkspaceNameAuthSettingsKeyboardShortcutsRouteImport } from './routes/$workspaceName/_auth/settings/keyboard-shortcuts'
+import { Route as WorkspaceNameAuthSettingsImageConnectionRouteImport } from './routes/$workspaceName/_auth/settings/image-connection'
 import { Route as WorkspaceNameAuthSettingsGithubRouteImport } from './routes/$workspaceName/_auth/settings/github'
 import { Route as WorkspaceNameAuthSettingsGeneralRouteImport } from './routes/$workspaceName/_auth/settings/general'
 import { Route as WorkspaceNameAuthSettingsDevicesRouteImport } from './routes/$workspaceName/_auth/settings/devices'
@@ -241,6 +242,12 @@ const WorkspaceNameAuthSettingsKeyboardShortcutsRoute =
     path: '/keyboard-shortcuts',
     getParentRoute: () => WorkspaceNameAuthSettingsRoute,
   } as any)
+const WorkspaceNameAuthSettingsImageConnectionRoute =
+  WorkspaceNameAuthSettingsImageConnectionRouteImport.update({
+    id: '/image-connection',
+    path: '/image-connection',
+    getParentRoute: () => WorkspaceNameAuthSettingsRoute,
+  } as any)
 const WorkspaceNameAuthSettingsGithubRoute =
   WorkspaceNameAuthSettingsGithubRouteImport.update({
     id: '/github',
@@ -354,6 +361,7 @@ export interface FileRoutesByFullPath {
   '/$workspaceName/settings/devices': typeof WorkspaceNameAuthSettingsDevicesRoute
   '/$workspaceName/settings/general': typeof WorkspaceNameAuthSettingsGeneralRoute
   '/$workspaceName/settings/github': typeof WorkspaceNameAuthSettingsGithubRoute
+  '/$workspaceName/settings/image-connection': typeof WorkspaceNameAuthSettingsImageConnectionRoute
   '/$workspaceName/settings/keyboard-shortcuts': typeof WorkspaceNameAuthSettingsKeyboardShortcutsRoute
   '/$workspaceName/settings/machines': typeof WorkspaceNameAuthSettingsMachinesRoute
   '/$workspaceName/settings/mcp': typeof WorkspaceNameAuthSettingsMcpRoute
@@ -400,6 +408,7 @@ export interface FileRoutesByTo {
   '/$workspaceName/settings/devices': typeof WorkspaceNameAuthSettingsDevicesRoute
   '/$workspaceName/settings/general': typeof WorkspaceNameAuthSettingsGeneralRoute
   '/$workspaceName/settings/github': typeof WorkspaceNameAuthSettingsGithubRoute
+  '/$workspaceName/settings/image-connection': typeof WorkspaceNameAuthSettingsImageConnectionRoute
   '/$workspaceName/settings/keyboard-shortcuts': typeof WorkspaceNameAuthSettingsKeyboardShortcutsRoute
   '/$workspaceName/settings/machines': typeof WorkspaceNameAuthSettingsMachinesRoute
   '/$workspaceName/settings/mcp': typeof WorkspaceNameAuthSettingsMcpRoute
@@ -450,6 +459,7 @@ export interface FileRoutesById {
   '/$workspaceName/_auth/settings/devices': typeof WorkspaceNameAuthSettingsDevicesRoute
   '/$workspaceName/_auth/settings/general': typeof WorkspaceNameAuthSettingsGeneralRoute
   '/$workspaceName/_auth/settings/github': typeof WorkspaceNameAuthSettingsGithubRoute
+  '/$workspaceName/_auth/settings/image-connection': typeof WorkspaceNameAuthSettingsImageConnectionRoute
   '/$workspaceName/_auth/settings/keyboard-shortcuts': typeof WorkspaceNameAuthSettingsKeyboardShortcutsRoute
   '/$workspaceName/_auth/settings/machines': typeof WorkspaceNameAuthSettingsMachinesRoute
   '/$workspaceName/_auth/settings/mcp': typeof WorkspaceNameAuthSettingsMcpRoute
@@ -500,6 +510,7 @@ export interface FileRouteTypes {
     | '/$workspaceName/settings/devices'
     | '/$workspaceName/settings/general'
     | '/$workspaceName/settings/github'
+    | '/$workspaceName/settings/image-connection'
     | '/$workspaceName/settings/keyboard-shortcuts'
     | '/$workspaceName/settings/machines'
     | '/$workspaceName/settings/mcp'
@@ -546,6 +557,7 @@ export interface FileRouteTypes {
     | '/$workspaceName/settings/devices'
     | '/$workspaceName/settings/general'
     | '/$workspaceName/settings/github'
+    | '/$workspaceName/settings/image-connection'
     | '/$workspaceName/settings/keyboard-shortcuts'
     | '/$workspaceName/settings/machines'
     | '/$workspaceName/settings/mcp'
@@ -595,6 +607,7 @@ export interface FileRouteTypes {
     | '/$workspaceName/_auth/settings/devices'
     | '/$workspaceName/_auth/settings/general'
     | '/$workspaceName/_auth/settings/github'
+    | '/$workspaceName/_auth/settings/image-connection'
     | '/$workspaceName/_auth/settings/keyboard-shortcuts'
     | '/$workspaceName/_auth/settings/machines'
     | '/$workspaceName/_auth/settings/mcp'
@@ -869,6 +882,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceNameAuthSettingsKeyboardShortcutsRouteImport
       parentRoute: typeof WorkspaceNameAuthSettingsRoute
     }
+    '/$workspaceName/_auth/settings/image-connection': {
+      id: '/$workspaceName/_auth/settings/image-connection'
+      path: '/image-connection'
+      fullPath: '/$workspaceName/settings/image-connection'
+      preLoaderRoute: typeof WorkspaceNameAuthSettingsImageConnectionRouteImport
+      parentRoute: typeof WorkspaceNameAuthSettingsRoute
+    }
     '/$workspaceName/_auth/settings/github': {
       id: '/$workspaceName/_auth/settings/github'
       path: '/github'
@@ -990,6 +1010,7 @@ interface WorkspaceNameAuthSettingsRouteChildren {
   WorkspaceNameAuthSettingsDevicesRoute: typeof WorkspaceNameAuthSettingsDevicesRoute
   WorkspaceNameAuthSettingsGeneralRoute: typeof WorkspaceNameAuthSettingsGeneralRoute
   WorkspaceNameAuthSettingsGithubRoute: typeof WorkspaceNameAuthSettingsGithubRoute
+  WorkspaceNameAuthSettingsImageConnectionRoute: typeof WorkspaceNameAuthSettingsImageConnectionRoute
   WorkspaceNameAuthSettingsKeyboardShortcutsRoute: typeof WorkspaceNameAuthSettingsKeyboardShortcutsRoute
   WorkspaceNameAuthSettingsMachinesRoute: typeof WorkspaceNameAuthSettingsMachinesRoute
   WorkspaceNameAuthSettingsMcpRoute: typeof WorkspaceNameAuthSettingsMcpRoute
@@ -1023,6 +1044,8 @@ const WorkspaceNameAuthSettingsRouteChildren: WorkspaceNameAuthSettingsRouteChil
     WorkspaceNameAuthSettingsGeneralRoute:
       WorkspaceNameAuthSettingsGeneralRoute,
     WorkspaceNameAuthSettingsGithubRoute: WorkspaceNameAuthSettingsGithubRoute,
+    WorkspaceNameAuthSettingsImageConnectionRoute:
+      WorkspaceNameAuthSettingsImageConnectionRoute,
     WorkspaceNameAuthSettingsKeyboardShortcutsRoute:
       WorkspaceNameAuthSettingsKeyboardShortcutsRoute,
     WorkspaceNameAuthSettingsMachinesRoute:

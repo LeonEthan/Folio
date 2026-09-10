@@ -87,6 +87,9 @@ import {
   type LocalMachineRpcRequestValidated,
   type LocalMachineRpcResponse,
   type LocalMachineRpcResult,
+  type ImageHttpTransport,
+  isImageConnectionReady,
+  toPublicImageConnection,
   type SessionTerminateResponse,
   type SessionForkResponse,
   type SessionForkSpec,
@@ -288,7 +291,16 @@ import { fetchAcpCapabilities, type FetchAcpCapabilitiesOptions } from '@/agent/
 import type { WorkspaceWatchCoordinatorApi } from './code-collab/workspace-watch-coordinator';
 import { appendIssuePrMentionsToPrompt } from '@/session/session-execution-helpers';
 import { getDefaultSessionWorkdir } from '@/session/session';
-import { designSkillPointerLine, materializeDesignSkills } from '@/design/skills';
+import {
+  designSkillPointerLine,
+  designSkillsForImageCapability,
+  materializeDesignSkills,
+} from '@/design/skills';
+import {
+  fetchImageHttpTransport,
+  probeImageConnection,
+  readMachineImageConnection,
+} from '@/design/image-connection';
 import { DesignTurnInputError, materializeDesignTurnInput } from '@/design/turn-input';
 import {
   SessionExecutionService,
@@ -664,6 +676,13 @@ export interface MessageHandlerConfig {
   onProcessLifecycleAction?: (action: MachineProcessLifecycleAction) => void;
   workspaceWatchCoordinator?: WorkspaceWatchCoordinatorApi;
   cloudPort: CloudPort;
+  /**
+   * Network seam for the image-connection settings probe (P2.4). Production
+   * leaves it undefined and gets the real `fetch` transport; a test injects a
+   * stub so no assertion ever depends on a socket, and so the "never billed"
+   * guarantee is checkable without the network.
+   */
+  imageConnectionTransport?: ImageHttpTransport;
 }
 
 export type MessageDispatchSource = 'runtime' | 'local';
@@ -868,6 +887,8 @@ export class MessageHandler {
   // presence scope, so an unbounded Convex call keeps the UI "thinking" after
   // the agent finished (specs/local-first-two-plane.md).
   private static readonly TURN_CLOUD_SIDE_EFFECT_WAIT_MS = 10_000;
+  /** Image-connection probe transport (P2.4); the real fetch transport when unset. */
+  private imageConnectionTransport?: MessageHandlerConfig['imageConnectionTransport'];
 
   private static readonly ACP_INITIAL_UPDATE_BATCH_WINDOW_MS = 10;
   private static readonly ACP_SUBSEQUENT_UPDATE_BATCH_WINDOW_MS = 100;
@@ -2661,10 +2682,20 @@ export class MessageHandler {
     if (!meta?.design) return null;
     const workdir = getDefaultSessionWorkdir(args.sessionId);
 
+    // Capability presence matches environment presence (P2.4): the imagegen
+    // skill is delivered exactly when `folio_generate_image` will be. An
+    // unreadable connection resolves to "no capability" rather than blocking the
+    // turn — the agent then simply does not get the skill, which is the same
+    // state an unconfigured machine is in.
+    const hasImageCapability = await this.hasImageConnection();
+
     let sourceIdentity: string;
     let skillDrift: string[];
     try {
-      const result = materializeDesignSkills({ workdir });
+      const result = materializeDesignSkills({
+        workdir,
+        skills: designSkillsForImageCapability(hasImageCapability),
+      });
       sourceIdentity = result.sourceIdentity;
       skillDrift = result.targets.flatMap((target) =>
         target.drifted.map((file) => path.relative(workdir, path.join(target.dir, file)))
@@ -2705,6 +2736,57 @@ export class MessageHandler {
       );
     }
     return designSkillPointerLine(workdir);
+  }
+
+  /**
+   * Whether the given session is a design session (P2.4).
+   *
+   * The MCP gate asks this so `folio_generate_image` is exposed to design
+   * sessions only: a coding session's workdir is the user's own project, and a
+   * generated asset landed there would be an uninvited write to a code
+   * repository. The read is a raw doc-meta lookup, so asking costs nothing and
+   * never opens, creates, or writes a session document; a missing id, an
+   * absent/deleted document, or an unreadable store all answer `false`.
+   */
+  private async isDesignSession(sessionId: SessionId | undefined): Promise<boolean> {
+    if (!sessionId) return false;
+    try {
+      const record = await this.workspaceDocument.repo.getDocMeta(getSessionRoomId(sessionId));
+      if (!record?.meta || isLoroRepoDocDeleted(record)) return false;
+      return Boolean((record.meta as SessionMeta).design);
+    } catch (error) {
+      this.logger.warn(
+        `[${sessionId}] image capability check could not read the session meta; treating it as a non-design session: ${formatErrorMessage(error)}`
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Whether this machine has a usable image connection right now (P2.4).
+   *
+   * Same predicate the MCP tool gate uses (`isImageConnectionReady`), and — for
+   * the tool — the same session-identity requirement: the skill is only ever
+   * materialized for a session whose meta carries `design`, which is exactly
+   * what `isDesignSession` asks of the tool gate. Failure is "no capability": a
+   * flock document we cannot read is not a machine we may claim can generate
+   * images, and the cost of being wrong in that direction is one absent skill
+   * rather than a prompt that advertises a tool the agent will not find.
+   */
+  private async hasImageConnection(): Promise<boolean> {
+    try {
+      const connection = await readMachineImageConnection(
+        this.workspaceDocument.repo,
+        this.workspaceId,
+        this.machineId
+      );
+      return isImageConnectionReady(connection);
+    } catch (error) {
+      this.logger.warn(
+        `[image-connection] could not read the image connection; imagegen skill stays absent: ${formatErrorMessage(error)}`
+      );
+      return false;
+    }
   }
 
   private async getLocalProjectGitStateForRpc(args: {
@@ -3078,6 +3160,7 @@ export class MessageHandler {
     this.logger.debug(
       `[machine-lifecycle] launchMode=${this.machineLifecycleCapability.launchMode} canRestart=${this.machineLifecycleCapability.canRemoteRestart} canUpgrade=${this.machineLifecycleCapability.canRemoteUpgrade}`
     );
+    this.imageConnectionTransport = config.imageConnectionTransport;
     this.cloudPort = config.cloudPort;
     this.notificationService = this.cloudPort.notifications;
     this.usageTrackingService = this.cloudPort.usage;
@@ -6668,6 +6751,67 @@ export class MessageHandler {
     };
 
     switch (request.method) {
+      // The machine's image connection (P2.4). Both methods read this machine's
+      // own Flock row, so there is no workspace or target selector a caller
+      // could point elsewhere. The read method additionally requires the asking
+      // session to be a design session — an identity predicate, not a selector:
+      // it can only narrow the answer, never read another machine's row.
+      case 'design/image-connection': {
+        const connection = await readMachineImageConnection(
+          this.workspaceDocument.repo,
+          this.workspaceId,
+          this.machineId
+        );
+        // `folio_generate_image` is exposed to design sessions only, so the
+        // asking session is part of the gate rather than an extra check each
+        // caller would have to remember: a coding session resolves to "no
+        // capability" even on a machine whose connection is ready, which is
+        // also the only reason its tool could never land generated assets in
+        // someone's code repository. The settings page's `design/image-connection-test`
+        // stays machine-scoped on purpose — a settings surface belongs to no
+        // session and must keep working before one exists.
+        const designSession = await this.isDesignSession(
+          request.ownerSessionId as SessionId | undefined
+        );
+        const ready = designSession && isImageConnectionReady(connection);
+        return {
+          type: 'design/image-connection' as const,
+          connection: toPublicImageConnection(connection),
+          ready,
+          // Only a ready connection has a key to hand over, and only the
+          // machine-local MCP server asks for it (see the result schema).
+          credential: ready ? { apiKey: connection.apiKey } : null,
+        };
+      }
+      case 'design/image-connection-test': {
+        const connection = await readMachineImageConnection(
+          this.workspaceDocument.repo,
+          this.workspaceId,
+          this.machineId
+        );
+        const result = await probeImageConnection(
+          connection,
+          this.imageConnectionTransport ?? fetchImageHttpTransport
+        );
+        // Endpoint and outcome only: the request header that carried the key is
+        // never an input to a log line.
+        this.logger.debug(
+          `[image-connection] test connection ${
+            result.ok ? `ok (${result.modelCount} models)` : `failed: ${result.error}`
+          }`
+        );
+        return result.ok
+          ? {
+              type: 'design/image-connection-test' as const,
+              ok: true as const,
+              modelCount: result.modelCount,
+            }
+          : {
+              type: 'design/image-connection-test' as const,
+              ok: false as const,
+              error: result.error.slice(0, 500),
+            };
+      }
       case 'code-collab/get-file-index':
         await assertOwner(request.params.sessionId as SessionId);
         return await this.codeCollabV2Service.getFileIndex(request.params);

@@ -20,6 +20,7 @@ import {
   SKILL_MANIFEST_FILENAME,
   SkillMaterializationError,
   designSkillPointerLine,
+  designSkillsForImageCapability,
   materializeDesignSkills,
 } from './skills';
 import { rmSync } from 'node:fs';
@@ -184,5 +185,32 @@ describe('designSkillPointerLine', () => {
     expect(designSkillPointerLine('/tmp/wd')).toBe(
       'Use the skill at /tmp/wd/.claude/skills/graphic-design; read its SKILL.md first.'
     );
+  });
+});
+
+describe('designSkillsForImageCapability', () => {
+  /* The imagegen skill instructs the agent to call `folio_generate_image`, so it
+     is delivered exactly when that tool will be registered — never on its own. */
+  it('adds the imagegen skill only when the machine has image capability', () => {
+    expect(designSkillsForImageCapability(false)).toEqual(['graphic-design']);
+    expect(designSkillsForImageCapability(true)).toEqual(['graphic-design', 'imagegen']);
+  });
+
+  it('materializes both skills from the bundle when capability is present', () => {
+    const root = makeSource(SOURCE_FILES);
+    const imagegenDir = path.join(root, 'imagegen');
+    mkdirSync(imagegenDir, { recursive: true });
+    writeFileSync(path.join(imagegenDir, 'SKILL.md'), '# imagegen\n');
+    const workdir = makeWorkdir();
+    const result = materializeDesignSkills({
+      workdir,
+      sourceDir: root,
+      skills: designSkillsForImageCapability(true),
+    });
+
+    expect(result.skills).toEqual(['graphic-design', 'imagegen']);
+    for (const base of DESIGN_SKILL_TARGET_BASES) {
+      expect(existsSync(path.join(workdir, base, 'imagegen', 'SKILL.md'))).toBe(true);
+    }
   });
 });

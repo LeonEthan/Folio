@@ -22,6 +22,7 @@ export * from './message';
 export * from './ai';
 export * from './message-text-spans';
 export * from './design-turn-outcome';
+export * from './image-connection';
 export * from './deepseek-harness';
 export * from './acp-run-config';
 export * from './acp-startup-budget';

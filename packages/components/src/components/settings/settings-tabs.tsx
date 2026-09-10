@@ -8,6 +8,7 @@ import {
   CreditCard,
   FolderOpen,
   Github,
+  ImageIcon,
   Info,
   Keyboard,
   Monitor,
@@ -30,6 +31,7 @@ export type SettingsTabId =
   | 'machines'
   | 'agents'
   | 'agent-roles'
+  | 'image-connection'
   | 'mcp'
   | 'projects'
   | 'github'
@@ -47,6 +49,7 @@ export type SettingsPath =
   | '/$workspaceName/settings/machines'
   | '/$workspaceName/settings/agents'
   | '/$workspaceName/settings/agent-roles'
+  | '/$workspaceName/settings/image-connection'
   | '/$workspaceName/settings/mcp'
   | '/$workspaceName/settings/projects'
   | '/$workspaceName/settings/github'
@@ -140,6 +143,17 @@ export const SETTINGS_TAB_CONFIGS: SettingsTabConfig[] = [
     path: '/$workspaceName/settings/agent-roles',
   },
   {
+    // Beside the agent catalog on purpose: the image connection is the other
+    // per-machine, user-typed credential the design surfaces read, and it shares
+    // that boundary (this machine's Flock doc) rather than the workspace catalog.
+    id: 'image-connection',
+    section: 'workspace',
+    labelKey: 'settings.tabs.imageConnection',
+    descriptionKey: 'settings.categories.imageConnection.description',
+    icon: ImageIcon,
+    path: '/$workspaceName/settings/image-connection',
+  },
+  {
     id: 'mcp',
     section: 'workspace',
     labelKey: 'settings.tabs.mcp',
@@ -219,6 +233,7 @@ export function getActiveSettingsTabId(pathname: string): SettingsTabId | null {
     ['/settings/agents', 'agents'],
     ['/settings/agent-config', 'agents'],
     ['/settings/agent-roles', 'agent-roles'],
+    ['/settings/image-connection', 'image-connection'],
     ['/settings/mcp', 'mcp'],
     ['/settings/projects', 'projects'],
     ['/settings/github', 'github'],
