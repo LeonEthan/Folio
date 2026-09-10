@@ -3968,7 +3968,7 @@
   "design.result.status.failed": "Failed",
   "design.result.status.cancelled": "Cancelled",
   "design.result.hint.committed": "This turn's design was saved to the canvas.",
-  "design.result.hint.candidate": "You saved the canvas while the agent was working, so this turn's design was kept as a candidate instead of overwriting it.",
+  "design.result.hint.candidate": "The canvas was left untouched: either you saved while the agent was working, or the workspace project was not this turn's own output. It is kept as a candidate to apply or discard.",
   "design.result.hint.invalid": "The artifact failed the storage-layer structure check. It was not written to the canvas and was not repaired.",
   "design.result.hint.no_artifact": "This turn produced no design.pptd; the canvas is unchanged.",
   "design.result.hint.failed": "This turn failed before an artifact could be collected.",

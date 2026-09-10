@@ -3968,7 +3968,7 @@
   "design.result.status.failed": "失败",
   "design.result.status.cancelled": "已取消",
   "design.result.hint.committed": "这一轮的产物已保存到画布。",
-  "design.result.hint.candidate": "你在 Agent 工作期间保存过画布，这一轮的产物作为候选保留了下来，没有覆盖画布。",
+  "design.result.hint.candidate": "画布没有被写入：要么你在 Agent 工作期间保存过画布，要么工作区里的工程并不是这一轮的产出。它作为候选保留，可由你采用或丢弃。",
   "design.result.hint.invalid": "产物未通过存储层的结构校验，没有写入画布，也没有被自动修复。",
   "design.result.hint.no_artifact": "这一轮没有产出 design.pptd，画布未改变。",
   "design.result.hint.failed": "这一轮在收集到产物之前就失败了。",

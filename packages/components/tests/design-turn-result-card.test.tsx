@@ -111,7 +111,7 @@ describe('DesignTurnResultCardView statuses', () => {
   it('gives every durable status its own label and hint', async () => {
     const cases: Array<[string, string, string]> = [
       ['committed', 'Committed', "This turn's design was saved to the canvas."],
-      ['candidate', 'Candidate kept', 'kept as a candidate instead of overwriting it'],
+      ['candidate', 'Candidate kept', 'kept as a candidate to apply or discard'],
       ['invalid', 'Artifact rejected', 'failed the storage-layer structure check'],
       ['no_artifact', 'No artifact', 'produced no design.pptd'],
       ['failed', 'Failed', 'failed before an artifact could be collected'],
@@ -478,11 +478,13 @@ describe('DesignTurnResultCard thumbnail', () => {
     thumbnail: { path: THUMBNAIL_PATH, width: 320, height: 200 },
   });
 
-  const image = () =>
-    container.querySelector<HTMLImageElement>('[data-design-result-thumbnail]');
+  const image = () => container.querySelector<HTMLImageElement>('[data-design-result-thumbnail]');
 
   it('shows the preview the outcome recorded, at the size it recorded', async () => {
-    const actions = { ...fakeActions(), thumbnail: vi.fn(async () => ({ status: 'ok', dataUri: DATA_URI })) };
+    const actions = {
+      ...fakeActions(),
+      thumbnail: vi.fn(async () => ({ status: 'ok', dataUri: DATA_URI })),
+    };
     render(
       <DesignTurnResultCardView
         outcome={committedWithThumbnail}
@@ -503,7 +505,10 @@ describe('DesignTurnResultCard thumbnail', () => {
   });
 
   it('reads nothing, and shows nothing, when the outcome carries no reference', async () => {
-    const actions = { ...fakeActions(), thumbnail: vi.fn(async () => ({ status: 'ok', dataUri: DATA_URI })) };
+    const actions = {
+      ...fakeActions(),
+      thumbnail: vi.fn(async () => ({ status: 'ok', dataUri: DATA_URI })),
+    };
     render(
       <DesignTurnResultCardView
         outcome={outcome('committed', { revisionId: REVISION_ID })}

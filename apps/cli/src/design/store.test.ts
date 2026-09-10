@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { afterEach, expect, test } from 'vitest';
 import { DESIGN_LOCK_FILENAME } from './lock';
 import {
@@ -21,6 +21,18 @@ const roots: string[] = [];
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
+
+/**
+ * A real 1×1 PNG, keyed by its own digest: an asset a synthetic document below
+ * never mentions, which is the shape the intake produces for a reference the
+ * document cannot carry (`theme.tableStyles` fills live in the manifest).
+ */
+const UNUSED_PNG_BYTES = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGM4IScHAAK2AQU0pnWqAAAAAElFTkSuQmCC',
+  'base64'
+);
+const UNUSED_ASSET_KEY = createHash('sha256').update(UNUSED_PNG_BYTES).digest('hex');
+const UNUSED_ASSET_URI = `data:image/png;base64,${UNUSED_PNG_BYTES.toString('base64')}`;
 test('durable save, stale writer, retry, independent copy and malformed input preserve the current drawing', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'folio-design-'));
   roots.push(root);
@@ -421,4 +433,118 @@ test('a kept candidate reports its standing, adopts only on request, and discard
     'not found'
   );
   expect(await readFile(designFile, 'utf8')).toBe(beforeDiscard);
+});
+
+test('a candidate is refused when the canvas could not take it', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'folio-design-'));
+  roots.push(root);
+  const association = {
+    sessionId: randomUUID(),
+    name: 'Synthetic',
+    userId: 'local:test',
+    machineId: 'test-machine',
+    createdAt: '2026-09-09T00:00:00.000Z',
+  };
+  const created = await designOperation(root, { operation: 'create', association });
+  const fixture = JSON.parse(
+    await readFile(
+      new URL('../../../../packages/design-bento/sample.json', import.meta.url),
+      'utf8'
+    )
+  );
+  // Past the store's own element-id bound, which a save enforces. An offer the
+  // canvas would refuse is one an Apply could never accept, so it is refused
+  // here rather than kept as a card that cannot work.
+  const candidate = {
+    artworkId: association.sessionId,
+    turnId: 'turn-1',
+    baselineRevisionId: created.revisionId,
+    createdAt: '2026-09-10T01:00:00.000Z',
+    content: {
+      doc: {
+        ...fixture.doc,
+        elements: [
+          ...fixture.doc.elements,
+          { id: 'x'.repeat(250), kind: 'text', bounds: [0, 0, 10, 10], zIndex: 90 },
+        ],
+      },
+      assets: fixture.assets,
+    },
+  };
+  await expect(saveDesignCandidate(root, candidate)).rejects.toThrow(/200/);
+  expect(await listDesignCandidates(root, association.sessionId)).toEqual([]);
+
+  // The same document without that element is a candidate the canvas can take.
+  const { candidateId } = await saveDesignCandidate(root, {
+    ...candidate,
+    content: { doc: fixture.doc, assets: fixture.assets },
+  });
+  expect(await adoptDesignCandidate(root, association.sessionId, candidateId)).toMatchObject({
+    status: 'adopted',
+    alreadyCurrent: false,
+  });
+});
+
+test('a document is the canvas even when its table carries assets the document does not use', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'folio-design-'));
+  roots.push(root);
+  const association = {
+    sessionId: randomUUID(),
+    name: 'Synthetic',
+    userId: 'local:test',
+    machineId: 'test-machine',
+    createdAt: '2026-09-09T00:00:00.000Z',
+  };
+  const fixture = JSON.parse(
+    await readFile(
+      new URL('../../../../packages/design-bento/sample.json', import.meta.url),
+      'utf8'
+    )
+  );
+  const content = {
+    doc: fixture.doc,
+    // The unused key rides along exactly as the intake sends one: the document
+    // is the same document, and the table it arrives with is not the table the
+    // canvas stores.
+    assets: { ...fixture.assets, [UNUSED_ASSET_KEY]: UNUSED_ASSET_URI },
+  };
+  const created = await designOperation(root, {
+    operation: 'create',
+    association,
+    width: 800,
+    height: 600,
+    copy: content,
+  });
+  // Only what the document replays is stored, so the two tables really do differ.
+  expect(Object.keys(created.assets)).not.toContain(UNUSED_ASSET_KEY);
+
+  const { candidateId } = await saveDesignCandidate(root, {
+    artworkId: association.sessionId,
+    turnId: 'turn-1',
+    baselineRevisionId: created.revisionId,
+    createdAt: '2026-09-10T01:00:00.000Z',
+    content,
+  });
+  const { candidate } = await readDesignCandidate(root, association.sessionId, candidateId);
+  expect(candidate.content.assets[UNUSED_ASSET_KEY]).toBe(UNUSED_ASSET_URI);
+
+  // The candidate *is* the canvas, so the card must read it that way: an
+  // `adopted` verdict is what stops it from offering an Apply that rewrites
+  // identical bytes and leaves the candidate looking pending forever.
+  expect(await readDesignCandidateState(root, association.sessionId, candidateId)).toEqual({
+    status: 'adopted',
+    candidateId,
+    baselineRevisionId: created.revisionId,
+    createdAt: candidate.createdAt,
+    revisionId: created.revisionId,
+  });
+  const designFile = path.join(root, 'chats', association.sessionId, 'design.json');
+  const bytes = await readFile(designFile, 'utf8');
+  expect(await adoptDesignCandidate(root, association.sessionId, candidateId)).toEqual({
+    status: 'adopted',
+    candidateId,
+    revisionId: created.revisionId,
+    alreadyCurrent: true,
+  });
+  expect(await readFile(designFile, 'utf8')).toBe(bytes);
 });

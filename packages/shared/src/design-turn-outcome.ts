@@ -3,8 +3,8 @@
  *
  * A design session's turn is collected and classified after the agent finishes
  * (P2.3, `apps/cli/src/design/turn-outcome.ts`): the PPTD project the agent left
- * in the workspace either committed, lost to a concurrent user save (a
- * candidate), or never became an editable design. That verdict is stamped as
+ * in the workspace either committed, was kept as a candidate, or never became an
+ * editable design. That verdict is stamped as
  * this payload on the history entry whose `id` is the turn-input manifest's
  * turnId, so a client reopening the session renders the same result card
  * without re-reading the workspace, and `status` survives even if the artifact
@@ -19,9 +19,11 @@
  *   `diagnostics` say why; nothing was repaired.
  * - `committed` — the imported document was saved through the single committer;
  *   `revisionId` is the revision that landed.
- * - `candidate` — the user saved while the agent worked, so the validated
- *   document was kept beside the design as a candidate (`candidateId`) instead
- *   of overwriting the current canvas.
+ * - `candidate` — the validated document was kept beside the design
+ *   (`candidateId`) instead of being written to the current canvas. That is the
+ *   verdict when the turn cannot be shown to own the canvas: the user saved while
+ *   the agent worked, or the workspace project is not this turn's own output. The
+ *   card offers it for an explicit apply or discard.
  * - `failed` — the turn failed before an artifact could be collected.
  * - `cancelled` — the user stopped the turn; nothing was collected or written.
  *

@@ -30,7 +30,9 @@
  *
  * P2.5 adds the user's handling of a kept candidate to this module, so the
  * result card never writes on its own: `readDesignCandidateState` reports where
- * a candidate stands against the live canvas, `adoptDesignCandidate` replaces
+ * a candidate stands against the live canvas — by the document and the assets it
+ * actually uses, not by the table it arrived with (`storedAssets`) — and
+ * `adoptDesignCandidate` replaces
  * the canvas through `designOperation` (losing a simultaneous writer is
  * `DESIGN_CONFLICT`, i.e. a refusal that keeps the candidate), and
  * `discardDesignCandidate` deletes the candidate file and nothing else —
@@ -262,12 +264,17 @@ async function candidatesDirectory(dataRoot: string, artworkId: string): Promise
  * content — the id is the digest of the canonical content, and an existing
  * candidate with that id is left byte-for-byte alone — so re-collecting a turn
  * cannot accumulate duplicates.
+ *
+ * A candidate is a document the canvas could take, and that is enforced here
+ * rather than trusted: the content must pass the same rules a save applies,
+ * because an offer this store would refuse is one applying it can never accept.
  */
 export async function saveDesignCandidate(
   dataRoot: string,
   raw: unknown
 ): Promise<DesignCandidateSummary> {
   const request = saveCandidateRequest.parse(raw);
+  validateAssets(request.content);
   const candidateId = digest(canonicalContentBytes(request.content));
   const directory = await candidatesDirectory(dataRoot, request.artworkId);
   const file = path.join(directory, `${candidateId}.json`);
@@ -328,9 +335,73 @@ const candidateIdSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const candidateFile = async (dataRoot: string, artworkId: string, candidateId: string) =>
   path.join(await candidatesDirectory(dataRoot, artworkId), `${candidateId}.json`);
 
+/**
+ * The assets this document would leave stored, i.e. the ones it really uses.
+ *
+ * An incoming table is not the table a canvas holds. The intake builds its table
+ * from every reference the semantic walk can see, and that walk includes places
+ * a document does not carry: `theme.tableStyles` fills live in the manifest, so
+ * a style no element selects still names an image the imported document never
+ * mentions. `validateAssets` — the filter every write goes through — keeps only
+ * what the document replays, which is why the two tables cannot be compared
+ * directly.
+ *
+ * A table that cannot be filtered is compared as it stands. A predicate must not
+ * throw, and equal raw tables are still sound evidence — filtering only ever
+ * drops keys, so two equal tables describe the same document either way.
+ */
+const storedAssets = (content: z.output<typeof designInput>): Record<string, string> => {
+  try {
+    return validateAssets(content);
+  } catch {
+    return content.assets;
+  }
+};
+
+/**
+ * Whether the store could write this document and its assets.
+ *
+ * The rules are the ones a write applies (`designInput` plus `validateAssets`:
+ * schema, kernel replay, asset integrity), so the answer is exactly "a save of
+ * this content would be accepted". The intake is the fail-closed gate for a
+ * *project* and the two do not cover the same vocabulary — the store bounds an
+ * element id the intake leaves free — which is why a caller deciding whether a
+ * document is usable has to ask this one too.
+ */
+export function acceptsDesignContent(raw: unknown): boolean {
+  try {
+    validateAssets(designInput.parse(raw));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** True when the canvas already *is* this candidate's document. */
 const sameDocument = (content: z.output<typeof designInput>, payload: DesignPayload): boolean =>
-  isDeepStrictEqual(content.doc, payload.doc) && isDeepStrictEqual(content.assets, payload.assets);
+  isDeepStrictEqual(content.doc, payload.doc) &&
+  isDeepStrictEqual(storedAssets(content), payload.assets);
+
+/**
+ * Whether the live canvas already holds this document and its assets.
+ *
+ * Read-only, and compared exactly the way `readDesignCandidateState` decides a
+ * candidate is adopted, so a caller gets the same answer the card will get.
+ *
+ * It throws rather than answering when the canvas cannot be read or the document
+ * cannot be parsed: "we could not tell" is not "no", and only the caller knows
+ * which direction is safe for it.
+ */
+export async function canvasHoldsContent(
+  dataRoot: string,
+  artworkId: unknown,
+  raw: unknown
+): Promise<boolean> {
+  const id = designId.parse(artworkId);
+  const content = designInput.parse(raw);
+  const current = await designOperation(dataRoot, { operation: 'read', sessionId: id });
+  return sameDocument(content, current);
+}
 
 /**
  * Where a kept candidate stands against the live canvas (P2.5).

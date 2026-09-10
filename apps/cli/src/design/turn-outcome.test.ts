@@ -28,7 +28,12 @@ import { sanitizeDesignTurnOutcome, type DesignTurnOutcome } from '@lody/shared'
 import type { DesignRenderQueue } from './render-output';
 import { DESIGN_ARTIFACT_ENTRY } from './artifact';
 import { DESIGN_LOCK_FILENAME } from './lock';
-import { designOperation, listDesignCandidates, readDesignCandidate } from './store';
+import {
+  adoptDesignCandidate,
+  designOperation,
+  listDesignCandidates,
+  readDesignCandidate,
+} from './store';
 import { MAX_THUMBNAIL_EDGE, DESIGN_THUMBNAIL_DIRNAME } from './thumbnail';
 import {
   collectDesignTurnOutcome,
@@ -96,6 +101,26 @@ pages:
   - pages/main.page
 `;
 
+/**
+ * The same project, with one table style nothing selects pointing at an image of
+ * its own. The style lives in the manifest, so the image is captured with the
+ * project but never reaches the imported document — the asymmetry a comparison
+ * of whole asset tables gets wrong.
+ */
+const THEMED_MANIFEST = `version: v2
+title: Turn outcome test
+size: [320, 200]
+theme:
+  tableStyles:
+    branded:
+      cellStyle:
+        fill:
+          type: image
+          src: media/extra.png
+pages:
+  - pages/main.page
+`;
+
 const PAGE = `background:
   type: solid
   color: "#FFFFFF"
@@ -127,12 +152,30 @@ const BROKEN_PAGE = PAGE.replace('media/pic.png', 'media/missing.png');
 /** The page above, restyled: one real edit an agent could have made. */
 const RESTYLED_PAGE = PAGE.replace('#1F6B8A', '#7B6B8A');
 
-const files = (page: string): Map<string, Uint8Array> =>
-  new Map<string, Uint8Array>([
-    [DESIGN_ARTIFACT_ENTRY, enc.encode(MANIFEST)],
+/**
+ * The page above with an element id the store refuses and the intake does not
+ * bound (its schema caps an id at 200 characters; the authoring validator only
+ * asks for a non-empty unique string). A project this far apart from the store
+ * is one neither gate can turn into a canvas write.
+ */
+const OVERLONG_ID_PAGE = PAGE.replace('elementId: title', `elementId: ${'t'.repeat(250)}`);
+
+interface ProjectFiles {
+  /** The project's manifest; defaults to `MANIFEST`. */
+  manifest?: string;
+  /** Also write `media/extra.png`, the image only `THEMED_MANIFEST` names. */
+  extraMedia?: boolean;
+}
+
+const files = (page: string, options: ProjectFiles = {}): Map<string, Uint8Array> => {
+  const entries: [string, Uint8Array][] = [
+    [DESIGN_ARTIFACT_ENTRY, enc.encode(options.manifest ?? MANIFEST)],
     ['pages/main.page', enc.encode(page)],
     ['media/pic.png', syntheticPng(8, 8, [31, 107, 138])],
-  ]);
+  ];
+  if (options.extraMedia) entries.push(['media/extra.png', syntheticPng(4, 4, [123, 107, 138])]);
+  return new Map(entries);
+};
 
 const roots: string[] = [];
 afterEach(() => {
@@ -231,9 +274,13 @@ async function createDesign(harness: Harness, options: { width?: number; height?
   return created;
 }
 
-async function writeArtifact(harness: Harness, page: string | null): Promise<void> {
+async function writeArtifact(
+  harness: Harness,
+  page: string | null,
+  options: ProjectFiles = {}
+): Promise<void> {
   if (page === null) return;
-  for (const [rel, bytes] of files(page)) {
+  for (const [rel, bytes] of files(page, options)) {
     const file = path.join(harness.workdir, rel);
     mkdirSync(path.dirname(file), { recursive: true });
     writeFileSync(file, bytes);
@@ -435,11 +482,131 @@ describe('collectDesignTurnOutcome', () => {
     expect(stored.doc.elements).toHaveLength(0);
   });
 
-  it('reports no_artifact, not a re-import, when the turn left the project exactly as dispatched', async () => {
+  it('offers a project the turn left exactly as dispatched, instead of hiding it', async () => {
     const harness = createHarness();
     const created = await createDesign(harness);
-    // A project an earlier turn produced, still sitting in the workspace.
+    // A project an earlier turn produced, still sitting in the workspace. This
+    // turn found it and changed nothing, so it cannot be credited to this turn —
+    // but the workspace is the only place it exists, and a project that is
+    // neither committed nor kept is one the user can never see.
     await writeArtifact(harness, PAGE);
+    await freezeTurnInput(harness);
+
+    const attempt = await collectDesignTurnOutcome(contextFor(harness));
+    expect(attempt.status).toBe('recorded');
+    if (attempt.status !== 'recorded') return;
+    expect(attempt.outcome.status).toBe('candidate');
+    expect(attempt.outcome.candidateId).toMatch(/^[a-f0-9]{64}$/);
+    const candidates = await listDesignCandidates(harness.root, harness.sessionId);
+    expect(candidates).toHaveLength(1);
+    // The offer is the imported project, so adopting it is a real choice.
+    const kept = await readDesignCandidate(
+      harness.root,
+      harness.sessionId,
+      attempt.outcome.candidateId
+    );
+    expect(kept.candidate.content.doc.elements).toHaveLength(3);
+    const stored = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+    expect(stored.revisionId).toBe(created.revisionId);
+    expect(stored.doc.elements).toHaveLength(0);
+  });
+
+  it('stays silent when the offered project is the canvas it was dispatched with', async () => {
+    const harness = createHarness();
+    await createDesign(harness);
+    await writeArtifact(harness, PAGE);
+    await freezeTurnInput(harness);
+
+    const first = await collectDesignTurnOutcome(contextFor(harness));
+    expect(first.status).toBe('recorded');
+    if (first.status !== 'recorded') return;
+    expect(first.outcome.status).toBe('candidate');
+    if (first.outcome.status !== 'candidate') return;
+    // The user adopted the offer, so the canvas now holds that project.
+    await adoptDesignCandidate(harness.root, harness.sessionId, first.outcome.candidateId);
+
+    // A second collection of the same turn (its stamp and receipt both lost) finds
+    // a project unchanged since send that *is* what the canvas holds. There is
+    // nothing left to offer: a candidate of it would be born adopted, so the turn
+    // reports nothing rather than a card about a decision already made.
+    harness.forgetOutcome();
+    rmSync(path.join(harness.workdir, DESIGN_TURN_INPUT_DIRNAME, harness.turnId, 'receipt.json'), {
+      force: true,
+    });
+
+    const second = await collectDesignTurnOutcome(contextFor(harness));
+    expect(second).toEqual({
+      status: 'recorded',
+      outcome: expect.objectContaining({ status: 'no_artifact' }),
+    });
+    // Still exactly the one candidate the first collection kept: reporting
+    // nothing wrote nothing.
+    expect(await listDesignCandidates(harness.root, harness.sessionId)).toEqual([
+      expect.objectContaining({ candidateId: first.outcome.candidateId }),
+    ]);
+  });
+
+  it('recognises the canvas through the media the project carries but never uses', async () => {
+    const harness = createHarness();
+    await createDesign(harness);
+    await writeArtifact(harness, PAGE, { manifest: THEMED_MANIFEST, extraMedia: true });
+    await freezeTurnInput(harness);
+
+    const first = await collectDesignTurnOutcome(contextFor(harness));
+    expect(first.status).toBe('recorded');
+    if (first.status !== 'recorded') return;
+    expect(first.outcome.status).toBe('candidate');
+    if (first.outcome.status !== 'candidate') return;
+    // The captured project names a table style's image in its manifest, so the
+    // candidate's asset table has one entry more than the canvas can hold.
+    const { candidate } = await readDesignCandidate(
+      harness.root,
+      harness.sessionId,
+      first.outcome.candidateId
+    );
+    const adopted = await adoptDesignCandidate(
+      harness.root,
+      harness.sessionId,
+      first.outcome.candidateId
+    );
+    expect(adopted.status).toBe('adopted');
+    const live = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+    expect(Object.keys(live.assets).length).toBeLessThan(
+      Object.keys(candidate.content.assets).length
+    );
+
+    // Collecting the same project again is comparing those two tables for a
+    // second time. The canvas holds it, so there is nothing to offer — the
+    // unused entry must not read as a difference and turn this into a card the
+    // user has to keep discarding.
+    harness.forgetOutcome();
+    rmSync(path.join(harness.workdir, DESIGN_TURN_INPUT_DIRNAME, harness.turnId, 'receipt.json'), {
+      force: true,
+    });
+
+    const second = await collectDesignTurnOutcome(contextFor(harness));
+    expect(second).toEqual({
+      status: 'recorded',
+      outcome: expect.objectContaining({ status: 'no_artifact' }),
+    });
+    expect(await listDesignCandidates(harness.root, harness.sessionId)).toEqual([
+      expect.objectContaining({ candidateId: first.outcome.candidateId }),
+    ]);
+  });
+
+  it('does not blame the turn for a project that was already unimportable when it was sent', async () => {
+    const harness = createHarness();
+    const created = await createDesign(harness);
+    // The broken project predates the turn: it is unchanged since send, so its
+    // missing media is not something this turn did. It is reported as nothing
+    // this turn produced, exactly as a healthy unchanged project would be.
+    await writeArtifact(harness, BROKEN_PAGE);
     await freezeTurnInput(harness);
 
     const attempt = await collectDesignTurnOutcome(contextFor(harness));
@@ -447,12 +614,54 @@ describe('collectDesignTurnOutcome', () => {
       status: 'recorded',
       outcome: expect.objectContaining({ status: 'no_artifact' }),
     });
+    expect(await listDesignCandidates(harness.root, harness.sessionId)).toEqual([]);
     const stored = await designOperation(harness.root, {
       operation: 'read',
       sessionId: harness.sessionId,
     });
     expect(stored.revisionId).toBe(created.revisionId);
-    expect(stored.doc.elements).toHaveLength(0);
+  });
+
+  it('does not blame the turn for an inherited project the store will not take', async () => {
+    const harness = createHarness();
+    const created = await createDesign(harness);
+    // An element id past the store's own bound: the intake accepts it, so only
+    // the store's rules can tell. It predates the turn, so the turn reports what
+    // any unchanged project reports — nothing this turn produced.
+    await writeArtifact(harness, OVERLONG_ID_PAGE);
+    await freezeTurnInput(harness);
+
+    const attempt = await collectDesignTurnOutcome(contextFor(harness));
+    expect(attempt).toEqual({
+      status: 'recorded',
+      outcome: expect.objectContaining({ status: 'no_artifact' }),
+    });
+    expect(await listDesignCandidates(harness.root, harness.sessionId)).toEqual([]);
+    expect(
+      (
+        await designOperation(harness.root, {
+          operation: 'read',
+          sessionId: harness.sessionId,
+        })
+      ).revisionId
+    ).toBe(created.revisionId);
+
+    // The same project, now written *by* this turn: it is the turn's own output,
+    // so its rejection is the turn's to report rather than a state it inherited.
+    harness.forgetOutcome();
+    rmSync(path.join(harness.workdir, DESIGN_TURN_INPUT_DIRNAME, harness.turnId, 'receipt.json'), {
+      force: true,
+    });
+    await writeArtifact(harness, OVERLONG_ID_PAGE.replace('#1F6B8A', '#7B6B8A'));
+
+    const changed = await collectDesignTurnOutcome(contextFor(harness));
+    expect(changed.status).toBe('recorded');
+    if (changed.status !== 'recorded') return;
+    expect(changed.outcome).toMatchObject({
+      status: 'invalid',
+      diagnostics: [expect.objectContaining({ code: 'design_store_failed' })],
+    });
+    expect(await listDesignCandidates(harness.root, harness.sessionId)).toEqual([]);
   });
 
   it('collects the project once the turn actually changed it', async () => {
@@ -477,14 +686,14 @@ describe('collectDesignTurnOutcome', () => {
     expect(stored.doc.elements).toHaveLength(3);
   });
 
-  it('never keeps an earlier turn’s project as a candidate for this turn', async () => {
+  it('leaves the user’s newer save on the canvas when it offers an earlier project', async () => {
     const harness = createHarness();
     const created = await createDesign(harness);
     await writeArtifact(harness, PAGE);
     await freezeTurnInput(harness);
-    // The user saved while this turn ran. Re-importing the project now would
-    // either re-commit a document they moved past, or keep a candidate whose
-    // content is the older document — an invitation to undo their own save.
+    // The user saved while this turn ran. The project still in the workspace is
+    // an older document, so it is offered as a candidate — never committed, which
+    // is what would have overwritten the save they just made.
     await moveBaseline(harness, created.revisionId);
     const userSaved = await designOperation(harness.root, {
       operation: 'read',
@@ -492,11 +701,10 @@ describe('collectDesignTurnOutcome', () => {
     });
 
     const attempt = await collectDesignTurnOutcome(contextFor(harness));
-    expect(attempt).toEqual({
-      status: 'recorded',
-      outcome: expect.objectContaining({ status: 'no_artifact' }),
-    });
-    expect(await listDesignCandidates(harness.root, harness.sessionId)).toEqual([]);
+    expect(attempt.status).toBe('recorded');
+    if (attempt.status !== 'recorded') return;
+    expect(attempt.outcome.status).toBe('candidate');
+    expect(await listDesignCandidates(harness.root, harness.sessionId)).toHaveLength(1);
     const stored = await designOperation(harness.root, {
       operation: 'read',
       sessionId: harness.sessionId,

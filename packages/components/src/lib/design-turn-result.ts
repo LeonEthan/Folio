@@ -277,7 +277,7 @@ const HINT_COPY: Record<DesignResultStatus, DesignResultCopy> = {
   candidate: {
     key: 'design.result.hint.candidate',
     defaultValue:
-      "You saved the canvas while the agent was working, so this turn's design was kept as a candidate instead of overwriting it.",
+      "The canvas was left untouched: either you saved while the agent was working, or the workspace project was not this turn's own output. It is kept as a candidate to apply or discard.",
   },
   invalid: {
     key: 'design.result.hint.invalid',
