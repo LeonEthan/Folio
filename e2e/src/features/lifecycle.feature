@@ -21,5 +21,5 @@
   场景: 用户删除带 ACP 和 Terminal 的 worktree Session
     假如 已配置确定性 Agent 的隔离桌面
     并且 已添加干净的合成 Git 项目
-    当 用户创建 worktree Session 并启动 Terminal
+    当 用户打开已有 worktree Session 并启动 Terminal
     那么 永久删除后 Work 进程、终端和 worktree 被释放

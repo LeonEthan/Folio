@@ -111,7 +111,7 @@
       "owner": "work-lifecycle",
       "feature": "src/features/lifecycle.feature",
       "fixture": "synthetic-git-and-scripted-acp",
-      "fingerprint": "5beb37208e9e503a21177a8291f7f35472d32a9ff241ac459f070a02c413b31c",
+      "fingerprint": "4cec67bb1c90611ff8b87f97bc455da6293474ecc54be5c5d3c7e9fa8a526eaf",
       "ownerPaths": [
         "apps/cli/src/session/worktree/",
         "packages/components/src/components/terminal/",
@@ -119,8 +119,7 @@
       ],
       "actions": [
         { "id": "project.addSyntheticGit" },
-        { "id": "session.enableWorktree" },
-        { "id": "session.createCompleted" },
+        { "id": "session.openLegacyWorktreeCreatedByLocalControl" },
         { "id": "terminal.openAndRunMarker" },
         { "id": "session.archive" },
         { "id": "session.deletePermanent" }

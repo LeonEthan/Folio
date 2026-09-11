@@ -35,8 +35,6 @@ type UseChatLandingDefaultsArgs = {
   setSelectedBranch: (branch: string | null) => void;
   selectedLocalProject: LocalProjectSelection | null;
   setSelectedLocalProject: (selection: LocalProjectSelection | null) => void;
-  selectedLocalBranch: string | null;
-  setSelectedLocalBranch: (branch: string | null) => void;
   /**
    * The Agent Role the composer currently IS, or `undefined` while the Role
    * catalog cannot yet answer. `undefined` keeps whatever is stored: a Role
@@ -76,8 +74,6 @@ export function useChatLandingDefaults({
   setSelectedBranch,
   selectedLocalProject,
   setSelectedLocalProject,
-  selectedLocalBranch,
-  setSelectedLocalBranch,
   selectedAgentRoleId,
 }: UseChatLandingDefaultsArgs) {
   const initializedRef = useRef(false);
@@ -147,11 +143,6 @@ export function useChatLandingDefaults({
           localProjectId,
         });
       }
-    }
-
-    // Apply local branch selection
-    if (stored?.localBranch && !selectedLocalBranch) {
-      setSelectedLocalBranch(stored.localBranch);
     }
 
     // Apply agent selection
@@ -227,12 +218,10 @@ export function useChatLandingDefaults({
     selectedRepo,
     selectedBranch,
     selectedLocalProject,
-    selectedLocalBranch,
     setSelectedAgent,
     setSelectedRepo,
     setSelectedBranch,
     setSelectedLocalProject,
-    setSelectedLocalBranch,
   ]);
 
   // Persist context + target selection defaults for all chat contexts.
@@ -256,7 +245,7 @@ export function useChatLandingDefaults({
       branch: selectedBranch ?? null,
       localMachineId: selectedLocalProject?.machineId ?? null,
       localProjectId: selectedLocalProject?.localProjectId ?? null,
-      localBranch: selectedLocalBranch ?? null,
+      localBranch: previous?.localBranch ?? null,
       agentRoleId:
         selectedAgentRoleId === undefined ? (previous?.agentRoleId ?? null) : selectedAgentRoleId,
     });
@@ -268,7 +257,6 @@ export function useChatLandingDefaults({
     selectedRepo,
     selectedBranch,
     selectedLocalProject,
-    selectedLocalBranch,
     selectedAgentRoleId,
   ]);
 

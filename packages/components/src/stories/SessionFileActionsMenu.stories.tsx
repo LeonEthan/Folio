@@ -15,7 +15,7 @@ const copyPath: SessionFileMenuItem = {
 // machine: the shell actions, with the editor named after the user's pick.
 const LOCAL_ITEMS: SessionFileMenuItem[] = [
   copyPath,
-  { id: 'open-in-editor', label: 'Open in VS Code', icon: ExternalLink, run: fn() },
+  { id: 'open-in-default-app', label: 'Open in default app', icon: ExternalLink, run: fn() },
   { id: 'reveal', label: 'Show in Finder', icon: FolderOpen, run: fn() },
 ];
 

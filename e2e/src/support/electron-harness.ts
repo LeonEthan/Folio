@@ -374,6 +374,8 @@ declare global {
   interface Window {
     ipc?: {
       invoke(channel: string, ...args: unknown[]): Promise<unknown>;
+      send(channel: string, payload?: unknown): void;
+      on(channel: string, listener: (payload: unknown) => void): () => void;
     };
     __LODY_ELECTRON__?: true;
     __LODY_E2E_PERFORMANCE__?: {

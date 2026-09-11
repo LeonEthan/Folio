@@ -54,12 +54,8 @@ import {
   SessionChatInterface,
   type SessionChatInterfaceHandle,
 } from '@/components/sessions/session-chat-interface';
-import { WorktreeIcon } from '@/components/icons/worktree-icon';
-import {
-  getSessionForkDestinationOptions,
-  type SessionForkDestination,
-  type SessionForkWorktreeAvailability,
-} from '@/components/sessions/session-fork-destination-menu';
+
+import { type SessionForkDestination } from '@/components/sessions/session-fork-destination-menu';
 import {
   clearSessionChatInputDrafts,
   setSessionChatInputTextDraft,
@@ -914,10 +910,6 @@ const SessionDetail = ({
   const [pendingForks, setPendingForks] = useState<PendingForkState>(() =>
     readPendingWorktreeForks(sessionId)
   );
-  const [worktreeAvailabilityBySessionId, setWorktreeAvailabilityBySessionId] = useState<
-    Partial<Record<string, 'available' | 'unavailable' | 'checking'>>
-  >({});
-  const worktreeAvailabilityRequestRef = useRef<Set<string>>(new Set());
   const [dirtyForkConfirmation, setDirtyForkConfirmation] = useState<{
     source: SessionMeta;
     turnId: string;
@@ -953,8 +945,6 @@ const SessionDetail = ({
     setDraftTabsState(readPersistedDraftTabs(sessionId));
     setPendingDraftChildSessionIds({});
     setPendingForks(readPendingWorktreeForks(sessionId));
-    setWorktreeAvailabilityBySessionId({});
-    worktreeAvailabilityRequestRef.current = new Set();
     setDirtyForkConfirmation(null);
     setClosingSideSessionIds(new Set());
     setMountedSideSessionIds(new Set());
@@ -1171,24 +1161,6 @@ const SessionDetail = ({
     },
     [sessionMachine?.acpCapabilities]
   );
-  const canForkSessionToWorktree = useCallback(
-    (target: SessionMeta): boolean => {
-      if (
-        !target.agentConfigId ||
-        !target.project ||
-        (target.project.kind !== 'local' && target.project.kind !== 'github')
-      ) {
-        return false;
-      }
-      const capability =
-        sessionMachine?.acpCapabilities?.[getAcpCapabilityCacheKey(target.agentConfigId)];
-      return (
-        getAcpCapabilityCacheEntryAuthority(capability, undefined) === 'authoritative' &&
-        capability?.sessionForkWorktree === true
-      );
-    },
-    [sessionMachine?.acpCapabilities]
-  );
   const handleForkAssistant = useCallback(
     async (
       source: SessionMeta,
@@ -1291,59 +1263,12 @@ const SessionDetail = ({
     }
     return sourceByTarget;
   }, [pendingForks]);
-  const getForkWorktreeAvailability = useCallback(
-    (source: SessionMeta): SessionForkWorktreeAvailability => {
-      if (!canForkSessionToWorktree(source)) return 'hidden';
-      if (source.project?.kind === 'github') return 'available';
-      const cached = worktreeAvailabilityBySessionId[source.id];
-      if (cached === 'unavailable') return 'hidden';
-      if (cached === 'available') return 'available';
-      return 'checking';
-    },
-    [canForkSessionToWorktree, worktreeAvailabilityBySessionId]
-  );
-  const resolveForkWorktreeAvailability = useCallback(
-    async (source: SessionMeta) => {
-      if (!canForkSessionToWorktree(source) || source.project?.kind !== 'local') return;
-      if (!runtime || !user?.id) return;
-      if (worktreeAvailabilityRequestRef.current.has(source.id)) return;
-      worktreeAvailabilityRequestRef.current.add(source.id);
-      setWorktreeAvailabilityBySessionId((current) => ({
-        ...current,
-        [source.id]: 'checking',
-      }));
-      try {
-        const gitState = await runtime.requestLocalProjectGitState(
-          source.machineId,
-          source.project.localProjectId,
-          user.id,
-          { timeoutMs: 15_000 }
-        );
-        const available = gitState?.success === true && gitState.state.git === true;
-        setWorktreeAvailabilityBySessionId((current) => ({
-          ...current,
-          [source.id]: available ? 'available' : 'unavailable',
-        }));
-      } catch {
-        worktreeAvailabilityRequestRef.current.delete(source.id);
-        setWorktreeAvailabilityBySessionId((current) => {
-          const next = { ...current };
-          delete next[source.id];
-          return next;
-        });
-      }
-    },
-    [canForkSessionToWorktree, runtime, user?.id]
-  );
   const handleForkDestination = useCallback(
     (source: SessionMeta, turnId: string, destination: SessionForkDestination = 'shared') => {
       void handleForkAssistant(source, turnId, destination === 'new-worktree' ? 'worktree' : 'tab');
     },
     [handleForkAssistant]
   );
-  useEffect(() => {
-    if (activeTabSession) void resolveForkWorktreeAvailability(activeTabSession);
-  }, [activeTabSession, resolveForkWorktreeAvailability]);
   // Claims the pending fork so exactly one of the two completion paths below
   // acts on it. Stable identity keeps the completion props from churning on
   // every fork state transition.
@@ -3986,7 +3911,7 @@ const SessionDetail = ({
     [handleSidebarTabSelect, handleViewerTabSelect, selectSidePanelTab]
   );
 
-  /* P2.5: a design result card's "show on canvas" reveals this session's design
+  /* The ordinary current-artwork action reveals this session's design
      side-panel tab through the same path the panel's own strip uses. */
   const handleRevealDesignPanel = useCallback(() => {
     handleSidebarTabSelect('design');
@@ -4090,11 +4015,6 @@ const SessionDetail = ({
      browser state, live status). */
   const [mobileTabSheetOpen, setMobileTabSheetOpen] = useState(false);
   const [mobileMenuSheetOpen, setMobileMenuSheetOpen] = useState(false);
-  useEffect(() => {
-    if (mobileMenuSheetOpen && activeTabSession) {
-      void resolveForkWorktreeAvailability(activeTabSession);
-    }
-  }, [activeTabSession, mobileMenuSheetOpen, resolveForkWorktreeAvailability]);
   // Reactive per-conversation live status. Rules-of-hooks forbids calling
   // useAtomValue per tab in a map, so read them all through ONE derived atom
   // keyed on the (memoized) real-session id list (drafts have no live status).
@@ -4719,35 +4639,17 @@ const SessionDetail = ({
     if (!activeSession?.isArchived) {
       if (!activeDraftTab && activeTabSession && canForkSession(activeTabSession)) {
         const pendingFork = pendingForks[activeTabSession.id];
-        const worktreeAvailability = getForkWorktreeAvailability(activeTabSession);
-        if (worktreeAvailability === 'hidden') {
-          mobileMenuActions.push({
-            id: 'fork',
-            icon: pendingFork ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <GitFork className="h-3.5 w-3.5" />
-            ),
-            label: t('sessions.forkSession', 'Fork session'),
-            onClick: handleForkCurrentSession,
-            disabled: pendingFork !== undefined,
-          });
-        } else {
-          for (const option of getSessionForkDestinationOptions(t, worktreeAvailability)) {
-            mobileMenuActions.push({
-              id: `fork-${option.id}`,
-              icon:
-                option.id === 'new-worktree' ? (
-                  <WorktreeIcon className="h-3.5 w-3.5" />
-                ) : (
-                  <Folder className="h-3.5 w-3.5" />
-                ),
-              label: option.label,
-              onClick: () => handleForkCurrentSession(option.id),
-              disabled: pendingFork !== undefined || option.disabled,
-            });
-          }
-        }
+        mobileMenuActions.push({
+          id: 'fork',
+          icon: pendingFork ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <GitFork className="h-3.5 w-3.5" />
+          ),
+          label: t('sessions.forkSession', 'Fork session'),
+          onClick: handleForkCurrentSession,
+          disabled: pendingFork !== undefined,
+        });
       }
       mobileMenuActions.push({
         id: 'rename',
@@ -4990,7 +4892,6 @@ const SessionDetail = ({
                           handleForkDestination(tabSession, turnId, destination)
                       : undefined
                   }
-                  forkWorktreeAvailability={getForkWorktreeAvailability(tabSession)}
                   forkingAssistantMessageId={pendingForks[tabSession.id]?.turnId}
                   onNavigateSession={handleNavigateSession}
                   onConversationPrepared={
@@ -5442,7 +5343,7 @@ const SessionDetail = ({
   ) : null;
 
   /* Right-side window controls for the merged top bar: the parent session's
-     header toolbar (IDE launcher / preview / "…" menu) + the sidebar toggle.
+     header toolbar (current artwork / "…" menu) + the sidebar toggle.
      Rendered by SessionChatInterface (headerVariant="toolbar") so the menu
      keeps root-scoped presentation while selected-tab actions are delegated. */
   const desktopHeaderToolbar = (
@@ -5451,6 +5352,7 @@ const SessionDetail = ({
       workspaceSession={activeSession}
       className="h-full shrink-0"
       headerVariant="toolbar"
+      onRevealDesignPanel={handleRevealDesignPanel}
       headerEndSlot={
         <>
           <TerminalDockToggleButton />
@@ -5468,16 +5370,6 @@ const SessionDetail = ({
       onForkSession={
         !activeDraftTab && activeTabSession && canForkSession(activeTabSession)
           ? handleForkCurrentSession
-          : undefined
-      }
-      forkWorktreeAvailability={
-        activeTabSession ? getForkWorktreeAvailability(activeTabSession) : 'hidden'
-      }
-      onForkWorktreeMenuOpen={
-        activeTabSession
-          ? () => {
-              void resolveForkWorktreeAvailability(activeTabSession);
-            }
           : undefined
       }
       forkingAssistantMessageId={
@@ -5614,7 +5506,6 @@ const SessionDetail = ({
                   ? (turnId, destination) => handleForkDestination(tabSession, turnId, destination)
                   : undefined
               }
-              forkWorktreeAvailability={getForkWorktreeAvailability(tabSession)}
               forkingAssistantMessageId={pendingForks[tabSession.id]?.turnId}
             />
           </div>

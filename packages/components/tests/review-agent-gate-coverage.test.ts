@@ -13,8 +13,11 @@ describe('Folio developer workflow retirement', () => {
     expect(read('components/settings/settings-data-cache.tsx')).not.toContain(
       'getWorkspaceRepositories'
     );
-    // The remaining worktree setup/cleanup consumer still owns this query.
-    expect(read('components/settings/settings-data-cache.tsx')).toContain(
+    // Only the mounted worktree setup/cleanup consumer owns this query.
+    expect(read('components/settings/settings-data-cache.tsx')).not.toContain(
+      'listWorkspaceReposWithStatus'
+    );
+    expect(read('hooks/use-github-project-worktree-admin.ts')).toContain(
       'listWorkspaceReposWithStatus'
     );
   });
@@ -24,10 +27,16 @@ describe('Folio developer workflow retirement', () => {
     expect(conversation).not.toMatch(/useGitHubPrDetails|useAutoReview|AutoReviewMenuItem/);
     expect(conversation).toContain('FloatingPermissionRequest');
     expect(conversation).toContain('SessionChatInputArea');
+    expect(conversation).toContain("t('design.files.currentCanvas', 'Current artwork')");
+    expect(conversation).toContain('onClick={onRevealDesignPanel}');
     const diff = read('components/sessions/session-conversation-diff-panel.tsx');
     expect(diff).not.toMatch(/useGitHubReviewComments|githubCreatePRReviewComment/);
     expect(diff).toContain('useSessionAllChangesDiffData');
     expect(diff).toContain('onSendToChat');
-    expect(read('components/sessions/session-detail.tsx')).not.toContain('PrTabContainer');
+    const detail = read('components/sessions/session-detail.tsx');
+    expect(detail).not.toContain('PrTabContainer');
+    expect(detail).toMatch(
+      /headerVariant="toolbar"\s+onRevealDesignPanel=\{handleRevealDesignPanel\}/
+    );
   });
 });

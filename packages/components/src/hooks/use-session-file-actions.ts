@@ -28,12 +28,7 @@ import {
   resolveSessionLocalProjectRootPath,
   resolveSessionRepoFullName,
 } from '@/lib/session-local-file-source';
-import {
-  buildPathLauncherLaunchInput,
-  getAvailablePathLauncherOptions,
-  readStoredPathLauncherPreference,
-  resolveSelectedPathLauncher,
-} from '@/lib/session-path-launchers';
+
 import {
   resolveMachineDotlodyPath,
   resolveSessionWorkspacePath,
@@ -44,11 +39,9 @@ export type SessionFileLocalHostActionSet = {
   readonly reveal: (filePath: string) => void;
   readonly openLabel: (filePath: string) => string;
   readonly openInDefaultApp: (filePath: string) => void;
-  /** The editor the user picked for "Open in"; null when none is available. */
-  readonly editor: { readonly label: string; readonly open: (filePath: string) => void } | null;
 };
 
-export type SessionFileMenuItemId = 'copy-path' | 'open-in-editor' | 'reveal' | 'download';
+export type SessionFileMenuItemId = 'copy-path' | 'open-in-default-app' | 'reveal' | 'download';
 
 export type SessionFileMenuItem = {
   readonly id: SessionFileMenuItemId;
@@ -175,23 +168,10 @@ export function useSessionFileActions({
     [resolveHostPath, t]
   );
 
-  // Read once per render rather than subscribed: the menus mount on demand, so
-  // they already pick up a preference changed in settings since the last open.
-  const editorLauncher = useMemo(() => {
-    if (!isElectronRenderer) return null;
-    const preference = readStoredPathLauncherPreference();
-    const options = getAvailablePathLauncherOptions({
-      customLaunchers: preference.customLaunchers,
-      isElectron: true,
-      platform,
-    });
-    return resolveSelectedPathLauncher(preference.selectedLauncherId, options);
-  }, [isElectronRenderer, platform]);
-
   // ONE decision for both halves, and `hasHostPath` is the real thing: an
   // Electron renderer on the owning machine still cannot reach a shell until
   // that machine's path metadata resolves. Deriving it from `localHost` was
-  // circular — it offered editor/reveal actions that could only fail while the
+  // circular — it offered open/reveal actions that could only fail while the
   // rows loaded, and hid the download that would have worked.
   const availability = useMemo(
     () =>
@@ -233,36 +213,8 @@ export function useSessionFileActions({
             if (result && !result.opened) reportOpenFailure(result.error === 'not_found');
           })();
         }),
-      editor: editorLauncher
-        ? {
-            label: t('sessions.fileActions.openInEditor', 'Open in {{editor}}', {
-              editor: editorLauncher.label,
-            }),
-            open: (filePath) =>
-              withHostPath(filePath, (path) => {
-                void (async () => {
-                  const services = getIpcServices();
-                  if (!services) return;
-                  const result = await services.app.launchLocalPath(
-                    buildPathLauncherLaunchInput(editorLauncher, path, platform)
-                  );
-                  if (!result.launched) {
-                    toast.error(t('sessions.pathLaunchFailed', 'Failed to open path'));
-                  }
-                })();
-              }),
-          }
-        : null,
     };
-  }, [
-    availability.localHost,
-    editorLauncher,
-    platform,
-    reportOpenFailure,
-    resolveHostPath,
-    session,
-    t,
-  ]);
+  }, [availability.localHost, platform, reportOpenFailure, resolveHostPath, session, t]);
 
   const download = useMemo(() => {
     if (!session || !availability.download || !fileProvider) return null;
@@ -349,16 +301,13 @@ export function useSessionFileActions({
         run: copyPath,
       },
     ];
-    if (localHost?.editor) {
-      const editor = localHost.editor;
-      items.push({
-        id: 'open-in-editor',
-        label: editor.label,
-        icon: ExternalLink,
-        run: editor.open,
-      });
-    }
     if (localHost) {
+      items.push({
+        id: 'open-in-default-app',
+        label: t('sessions.fileActions.openInDefaultApp', 'Open in default app'),
+        icon: ExternalLink,
+        run: localHost.openInDefaultApp,
+      });
       items.push({
         id: 'reveal',
         label: localHost.revealLabel,

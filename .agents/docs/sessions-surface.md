@@ -1,4 +1,4 @@
-# Conversation surface: read receipts, Copy as Markdown, launchers, message list
+# Conversation surface: read receipts, Copy as Markdown, file paths, message list
 
 `session-chat-interface.tsx` and the message-list renderer it drives.
 
@@ -29,22 +29,10 @@ this page is the full text of the rules summarised there.
   the budget returns `overBudget` instead of cutting it. Whatever was trimmed
   must reach the toast (`describeCopiedConversation`); silent truncation reads
   as "I copied everything".
-  Header "Open in" / "Copy Path" launchers live here; shared launcher/path
-  helpers are `../../lib/session-path-launchers.ts`,
-  `../../lib/session-open-in-ide-path.ts`, and `../../lib/session-workspace-path.ts`.
-  Header "Copy path" derives paths from the machine Flock doc `['dotlodyPath']`,
-  falling back to local-project `rootPath`; `MachineMeta.workspacePaths[sessionId]` is
-  legacy fallback only and must not get new writes.
-  Launchers are desktop-bridge only (all `requiresElectron`; the split button is
-  gated on `isElectronRendererForPathLaunch`, Copy Path stays in `SessionHeaderMenu`).
-  Editors launch via their CLI first. VS Code alone falls back, after every CLI
-  candidate fails, to `vscode://file/.../?windowId=_blank`; `_blank` is required
-  because a plain scheme URL reuses the focused window and clobbers other
-  worktrees. VS Code family uses `-n` (it de-dupes by folder, so re-opening focuses
-  the existing window). Zed gets NO flag: `zed <path>` focuses an already-open
-  worktree else opens a new window; its `-n`/`--new` forces a duplicate window
-  every time (per editor `newWindowFlag` in `session-path-launchers.ts`). Warp is
-  url-only (`warp://…new_tab`, via `shell.openExternal`).
+  `SessionHeaderMenu` retains Copy Path through `session-workspace-path.ts`.
+  The visible toolbar wires Current artwork to the existing canvas reveal callback.
+  IDE launchers and native discovery are retired. File actions retain the OS default
+  handler and file-manager reveal through the owning machine's resolved path.
   ACP selectors on existing sessions and child-tab drafts must go through
   `useSessionAcpSelectorContext()`. Session UI that reads ACP capabilities must
   use `useResolvedMachineMeta()` so machine Flock capability rows override

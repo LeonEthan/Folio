@@ -72,3 +72,9 @@ component details.
 GitHub connection and automatic code-review configuration are retired. Settings
 must not mount their subscriptions; existing worktree configuration remains until
 its independent consumer migration. Agent provider authentication remains supported.
+
+## Legacy workspace configuration
+
+Worktree setup/cleanup scripts remain editable for existing Session and CLI
+consumers. Repository status is queried only by mounted project settings, never
+preloaded by the settings root. IDE launcher settings and probes are retired.

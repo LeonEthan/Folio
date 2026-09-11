@@ -34,8 +34,9 @@ preview are not review-only. Generic delegated task automation, Agent execution,
 permissions, diagnostics, rendering preview, image reading, attachment previews,
 process cleanup and recovery remain separate paths. Session PR metadata and review
 Flock schemas remain readable; this change neither rewrites history nor deletes
-working directories. The local worktree-file IPC auth lookup observed in combined
-smoke belongs to the remaining generic project/worktree consumer audit (T25).
+working directories. **Factual correction (T25):** the local owner UI organization query and the
+post-removal worktree-file lookup were independent events, not an IPC auth call
+chain; see [the T25 audit](2026-09-11-design-without-git-ide.md#factual-correction-to-the-earlier-smoke-interpretation).
 
 Removing only visible buttons would leave polling and automatic merge work alive.
 Deleting every module named review or Git would instead break ordinary file

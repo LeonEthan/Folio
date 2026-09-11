@@ -155,8 +155,6 @@ describe('contextType restore vs auto-switch (write ping-pong regression)', () =
       setSelectedBranch: noop,
       selectedLocalProject: null,
       setSelectedLocalProject: noop,
-      selectedLocalBranch: null,
-      setSelectedLocalBranch: noop,
     });
     lastContextType = contextType;
     return null;

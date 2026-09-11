@@ -716,10 +716,13 @@ const AutoFileTreeView = ({
     () => `${buildLocalFileRefreshToken(session)}:${localRetryNonce}`,
     [session, localRetryNonce]
   );
-  const localProjectFileData = useLocalProjectFilePaths(localFilePathsSource, {
-    refreshToken: shouldUseLocalFileList ? localFileRefreshToken : null,
-    refreshOnMount: shouldUseLocalFileList,
-  });
+  const localProjectFileData = useLocalProjectFilePaths(
+    shouldUseLocalFileList ? localFilePathsSource : undefined,
+    {
+      refreshToken: shouldUseLocalFileList ? localFileRefreshToken : null,
+      refreshOnMount: shouldUseLocalFileList,
+    }
+  );
   const handleRetryLocalFiles = useCallback(() => {
     setLocalRetryNonce((nonce) => nonce + 1);
   }, []);

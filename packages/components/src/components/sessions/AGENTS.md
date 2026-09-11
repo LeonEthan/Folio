@@ -1,13 +1,12 @@
 # components/sessions
 
-`CLAUDE.md` is a symlink to this file. Edit `AGENTS.md` only.
+`CLAUDE.md` links here; edit `AGENTS.md` only.
 
 Files: [README.md](README.md). Data: `context/message-flow.md`. Package:
 [../../../AGENTS.md](../../../AGENTS.md). Scopes:
 [components/](components/AGENTS.md), [message-queue/](message-queue/AGENTS.md).
 
-Each rule is compressed; its heading links the full text. Read it before
-changing those files.
+Read each heading's linked rules before editing.
 
 ## [Tabs and `?tab` routing](../../../../../.agents/docs/sessions-tabs-routing.md)
 
@@ -27,12 +26,14 @@ changing those files.
 
 ## [Shell, side panel, side chats](../../../../../.agents/docs/sessions-side-panel.md)
 
-- Desktop file/diff/browser/PR surfaces never split the conversation: they are
-  closeable right-panel tabs. `sidePanelTabs` is the one strip order; every close
-  handler takes its fallback neighbour from it.
+- Desktop file/diff/browser surfaces are closeable right-panel tabs, never split
+  conversations. `sidePanelTabs` owns strip order and each close's fallback neighbour.
+- Human forks share the workspace; no Git probe/new-worktree menu. Keep recovery
+  for previously accepted worktree forks.
+- Keep Current artwork wired in the visible toolbar.
 - A Side Chat is a durable child Session (`childSessionPlacement: 'side-panel'`):
-  no top tab, no sidebar row, but it still rolls up into the parent row. Only its
-  explicit tab `X` deletes it; mount it lazily.
+  no top tab/sidebar row; it rolls up into its parent. Mount lazily; only its tab
+  `X` deletes it.
 - `SessionMeta.openedBySessionId` is presentation-only provenance: never
   `parentSessionId`, never rolled into the opener, never filtered out of the
   list. Navigation carries root + exact tab ids.

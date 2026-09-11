@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
 import { useAuthClient } from '../providers/convex-provider';
+import { useAppCapability } from '@/lib/app-platform';
 
 export type WorkspaceMember = {
   userId: string;
@@ -23,8 +24,8 @@ export function useWorkspaceMembers(): {
   members: WorkspaceMember[];
   isMultiMember: boolean;
 } {
-  const authClient = useAuthClient();
-  const { data: activeOrganization } = authClient.useActiveOrganization();
+  const teamSharingAvailable = useAppCapability('teamSharing');
+  const activeOrganization = useMemberOrganization(teamSharingAvailable);
   const rawMembers = activeOrganization?.members;
 
   return useMemo(() => {
@@ -42,4 +43,14 @@ export function useWorkspaceMembers(): {
     members.sort((a, b) => a.name.localeCompare(b.name));
     return { members, isMultiMember: members.length > 1 };
   }, [rawMembers]);
+}
+
+// Platform capabilities are immutable for a mounted provider, as in useSessionSharing.
+// Local ownership is already represented by the session; no team catalog is needed.
+function useMemberOrganization(teamSharingAvailable: boolean) {
+  if (!teamSharingAvailable) return null;
+  // oxlint-disable-next-line rules-of-hooks
+  const authClient = useAuthClient();
+  // oxlint-disable-next-line rules-of-hooks
+  return authClient.useActiveOrganization().data;
 }

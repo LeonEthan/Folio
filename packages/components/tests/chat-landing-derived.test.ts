@@ -6,7 +6,6 @@ import {
   compareChatLandingRepositoryByRecency,
   getChatLandingSelectionSearch,
   getChatLandingSelectionSyncDecision,
-  getChatLandingBranchSelectorState,
   getChatLandingHasAnyOnlineMachine,
   getChatLandingHintType,
   getChatLandingInitialDataLoading,
@@ -702,131 +701,6 @@ describe('getChatLandingLocalProjectAvailability', () => {
         isDocMetaCacheReady: true,
       })
     ).toBe('available');
-  });
-});
-
-describe('getChatLandingBranchSelectorState', () => {
-  it('shows the branch selector for github context', () => {
-    expect(
-      getChatLandingBranchSelectorState({
-        contextType: 'github',
-        selectedRepo: 'loro-dev/lody',
-        repoBranchesCount: 3,
-        hasRepoDefaultBranch: true,
-        hasSelectedLocalProject: false,
-        selectedLocalProjectId: null,
-        isRuntimeInitializing: false,
-        isLoadingLocalGitState: false,
-        hasLocalGit: false,
-        branchOptionsCount: 0,
-      }).showBranchSelector
-    ).toBe(true);
-  });
-
-  it('hides the local branch selector when no project is selected', () => {
-    expect(
-      getChatLandingBranchSelectorState({
-        contextType: 'local',
-        workdirMode: 'worktree',
-        selectedRepo: undefined,
-        repoBranchesCount: 0,
-        hasRepoDefaultBranch: false,
-        hasSelectedLocalProject: false,
-        selectedLocalProjectId: null,
-        isRuntimeInitializing: false,
-        isLoadingLocalGitState: false,
-        hasLocalGit: true,
-        branchOptionsCount: 3,
-      }).showBranchSelector
-    ).toBe(false);
-  });
-
-  it('hides the local branch selector while git state is loading', () => {
-    expect(
-      getChatLandingBranchSelectorState({
-        contextType: 'local',
-        workdirMode: 'worktree',
-        selectedRepo: undefined,
-        repoBranchesCount: 0,
-        hasRepoDefaultBranch: false,
-        hasSelectedLocalProject: true,
-        selectedLocalProjectId: 'project-1',
-        isRuntimeInitializing: false,
-        isLoadingLocalGitState: true,
-        hasLocalGit: false,
-        branchOptionsCount: 0,
-      }).showBranchSelector
-    ).toBe(false);
-  });
-
-  it('hides branch selection for a direct local project', () => {
-    expect(
-      getChatLandingBranchSelectorState({
-        contextType: 'local',
-        workdirMode: 'local',
-        selectedRepo: undefined,
-        repoBranchesCount: 0,
-        hasRepoDefaultBranch: false,
-        hasSelectedLocalProject: true,
-        selectedLocalProjectId: 'project-1',
-        isRuntimeInitializing: false,
-        isLoadingLocalGitState: false,
-        hasLocalGit: true,
-        branchOptionsCount: 3,
-      }).showBranchSelector
-    ).toBe(false);
-  });
-
-  it('shows enabled base branch selection for explicit worktree mode', () => {
-    const state = getChatLandingBranchSelectorState({
-      contextType: 'local',
-      workdirMode: 'worktree',
-      selectedRepo: undefined,
-      repoBranchesCount: 0,
-      hasRepoDefaultBranch: false,
-      hasSelectedLocalProject: true,
-      selectedLocalProjectId: 'project-1',
-      isRuntimeInitializing: false,
-      isLoadingLocalGitState: false,
-      hasLocalGit: true,
-      branchOptionsCount: 3,
-    });
-
-    expect(state.showBranchSelector).toBe(true);
-    expect(state.isBranchDisabled).toBe(false);
-  });
-
-  it('uses stable selector keys for github and local contexts', () => {
-    expect(
-      getChatLandingBranchSelectorState({
-        contextType: 'github',
-        selectedRepo: 'loro-dev/lody',
-        repoBranchesCount: 1,
-        hasRepoDefaultBranch: false,
-        hasSelectedLocalProject: false,
-        selectedLocalProjectId: null,
-        isRuntimeInitializing: false,
-        isLoadingLocalGitState: false,
-        hasLocalGit: false,
-        branchOptionsCount: 0,
-      }).branchSelectorKey
-    ).toBe('github:loro-dev/lody');
-
-    expect(
-      getChatLandingBranchSelectorState({
-        contextType: 'local',
-        workdirMode: 'worktree',
-        selectedRepo: undefined,
-        repoBranchesCount: 0,
-        hasRepoDefaultBranch: false,
-        hasSelectedLocalProject: true,
-        selectedLocalProjectId: 'project-1',
-        isRuntimeInitializing: false,
-        isLoadingLocalGitState: false,
-        hasLocalGit: true,
-        branchOptionsCount: 1,
-      }).branchSelectorKey
-    ).toBe('local:project-1');
   });
 });
 

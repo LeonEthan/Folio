@@ -12,13 +12,7 @@ import { useConvexErrorMessage } from './use-convex-error-message';
 import type { SettingsWorkspaceRepoWithStatus } from '@/components/settings/settings-data-cache';
 import { useResolvedWorkspaceScope } from './use-resolved-workspace-scope';
 
-/* Self-contained backing store for the mobile GitHub-project Settings tab.
-   The desktop `/settings/projects` page reads the same repos through
-   `SettingsDataCacheProvider`, but that provider only wraps the settings
-   route — the mobile project screen lives under chat-landing, so this hook
-   queries `listWorkspaceReposWithStatus` directly (guarded the same way as
-   `useVisibleLocalProjects`) and owns the per-repo save state. */
-
+// Query only while a project settings consumer is mounted, never at settings-root.
 const EMPTY_WORKTREE_CONFIG: WorktreeSetupScriptConfig = { scripts: {} };
 
 export type GithubProjectWorktreeRow = {

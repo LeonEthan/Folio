@@ -74,8 +74,7 @@ import { cn } from '@/lib/utils';
 import { MobileProjectSettings } from '@/components/mobile/mobile-project-settings';
 import { settingContainerClass } from '.';
 import { AgentIcon, getAgentDisplayName } from '@/components/icons/agent-icon';
-import { useSettingsDataCache } from './settings-data-cache';
-import { useGithubProjectWorktreeSaves } from '@/hooks/use-github-project-worktree-admin';
+
 import {
   AddLocalProjectDialogContainer,
   useAddLocalProjectMachines,
@@ -84,6 +83,7 @@ import { ProjectSkillsTab } from './project-skills-tab';
 import type { ProjectSkillsSource } from '@/hooks/use-project-skills';
 import { useAppCapability } from '@/lib/app-platform';
 import { getVisibleLocalProjectHistoryFailures } from '@/lib/local-project-history-catalog';
+import { useGithubProjectWorktreeAdmin } from '@/hooks/use-github-project-worktree-admin';
 
 export type ProjectSettingsRow = {
   key: string;
@@ -201,10 +201,6 @@ export type ProjectSettingsViewProps = {
   /** Opens the folder picker; a machine id pre-selects that machine. */
   onAddLocalProject?: (machineId?: MachineId | null) => void;
   onAddGitHubProject?: () => void;
-};
-
-const EMPTY_WORKTREE_SETUP: WorktreeSetupScriptConfig = {
-  scripts: {},
 };
 
 export function sortProjectRows(rows: ProjectSettingsRow[]): ProjectSettingsRow[] {
@@ -346,33 +342,22 @@ export function ProjectSettingsComponent({
     onWorktreeSetupChange,
     onWorktreeCleanupChange,
   } = useLocalProjectsAdmin();
-  const { workspaceReposWithStatus, workspaceReposLoading } = useSettingsDataCache();
   const {
-    setupSavingByKey: githubSetupSavingByKey,
-    setupErrorByKey: githubSetupErrorByKey,
-    cleanupSavingByKey: githubCleanupSavingByKey,
-    cleanupErrorByKey: githubCleanupErrorByKey,
+    rowByRepoFullName,
+    isLoading: workspaceReposLoading,
     onWorktreeSetupChange: saveGithubWorktreeSetup,
     onWorktreeCleanupChange: saveGithubWorktreeCleanup,
-  } = useGithubProjectWorktreeSaves();
+  } = useGithubProjectWorktreeAdmin();
 
   const githubSections = useMemo(() => {
     const grouped = new Map<string, GithubProjectSettingsSection>();
-    for (const repo of workspaceReposWithStatus ?? []) {
+    for (const repo of rowByRepoFullName.values()) {
       const [owner] = repo.repoFullName.split('/');
       const ownerName = owner?.trim() || 'GitHub';
       const row: GithubProjectSettingsRow = {
         key: `github:${repo.repoFullName}`,
         owner: ownerName,
-        repoFullName: repo.repoFullName,
-        name: repo.name,
-        private: repo.private,
-        worktreeSetup: repo.worktreeSetup ?? EMPTY_WORKTREE_SETUP,
-        isWorktreeSetupSaving: githubSetupSavingByKey[repo.repoFullName] === true,
-        worktreeSetupError: githubSetupErrorByKey[repo.repoFullName] ?? null,
-        worktreeCleanup: repo.worktreeCleanup ?? EMPTY_WORKTREE_SETUP,
-        isWorktreeCleanupSaving: githubCleanupSavingByKey[repo.repoFullName] === true,
-        worktreeCleanupError: githubCleanupErrorByKey[repo.repoFullName] ?? null,
+        ...repo,
       };
       const section = grouped.get(ownerName);
       if (section) {
@@ -384,13 +369,7 @@ export function ProjectSettingsComponent({
     return Array.from(grouped.values())
       .map((section) => ({ ...section, rows: sortGithubProjectRows(section.rows) }))
       .sort((left, right) => left.owner.localeCompare(right.owner));
-  }, [
-    githubCleanupErrorByKey,
-    githubCleanupSavingByKey,
-    githubSetupErrorByKey,
-    githubSetupSavingByKey,
-    workspaceReposWithStatus,
-  ]);
+  }, [rowByRepoFullName]);
 
   const onGithubWorktreeSetupChange = async (
     row: GithubProjectSettingsRow,

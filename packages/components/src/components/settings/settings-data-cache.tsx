@@ -4,12 +4,8 @@ import { cloudOperations } from '@/lib/cloud-api-operations';
 import type { WorktreeCleanupScriptConfig, WorktreeSetupScriptConfig } from '@lody/shared';
 import { currentWorkspaceIdAtom } from '@/atoms/workspace-context';
 import { useOrganization } from '@/hooks/useOrganization';
-import { useAuthenticatedConvex } from '@/hooks/use-authenticated-convex';
+
 import { useCloudQuery } from '@lody/platform/react';
-import {
-  canRunAuthedWorkspaceQuery,
-  isAuthedWorkspaceQueryLoading,
-} from '@/lib/authed-convex-query';
 
 export type SettingsUsageRange = 'day' | 'week' | 'month' | 'total';
 
@@ -104,27 +100,17 @@ export type SettingsWorkspaceRepoWithStatus = {
 
 type SettingsDataCacheContextValue = {
   workspaceId: string | null;
-  canManageGithub: boolean;
   usageTimelineByRange: Partial<Record<SettingsUsageRange, SettingsUsageTimelineData | undefined>>;
   usageCalendar: SettingsUsageCalendarData | undefined;
-  /** All repos linked to the workspace with enabled status (reactive query). */
-  workspaceReposWithStatus: SettingsWorkspaceRepoWithStatus[] | undefined;
-  workspaceReposLoading: boolean;
 };
 
 const SettingsDataCacheContext = createContext<SettingsDataCacheContextValue | null>(null);
 
 export function SettingsDataCacheProvider({ children }: { children: ReactNode }) {
-  const { activeOrganization, hasAdminPermission } = useOrganization();
+  const { activeOrganization } = useOrganization();
   const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
-  const { isAuthenticated: isConvexAuthenticated, isLoading: isConvexAuthLoading } =
-    useAuthenticatedConvex();
   // Removal clears the atom before Better Auth drops its stale active organization.
   const workspaceId = activeOrganization?.id === currentWorkspaceId ? currentWorkspaceId : null;
-  const canManageGithub = Boolean(workspaceId) && hasAdminPermission;
-
-  const canQuery = canRunAuthedWorkspaceQuery(workspaceId, isConvexAuthenticated);
-
   // Preload all stats ranges once at settings-root level to avoid re-fetch when switching tabs.
   const dayUsage = useCloudQuery(
     cloudOperations.usage.getWorkspaceUsageTimeline,
@@ -147,25 +133,6 @@ export function SettingsDataCacheProvider({ children }: { children: ReactNode })
     workspaceId ? { workspaceId } : 'skip'
   ) as SettingsUsageCalendarData | undefined;
 
-  // Reactive query for all repos with enabled status (used by settings integrations page).
-  // Any workspace member can view; mutations (toggle) still require admin.
-  const workspaceReposWithStatus = useCloudQuery(
-    cloudOperations.github.listWorkspaceReposWithStatus,
-    workspaceId ? { workspaceId } : 'skip'
-  ) as SettingsWorkspaceRepoWithStatus[] | undefined | null;
-
-  // Mirror the chat-landing fix: during idle resume `isAuthenticated` briefly
-  // flips false while Convex reconnects, so `canQuery && ... === undefined`
-  // would falsely report "not loading" and flash the empty-state UI before the
-  // repo list comes back. The shared helper waits on `isConvexAuthLoading`
-  // so the spinner stays up across the reconnect window.
-  const workspaceReposLoading = isAuthedWorkspaceQueryLoading({
-    workspaceId,
-    isConvexAuthLoading,
-    canQuery,
-    queryResult: workspaceReposWithStatus,
-  });
-
   const usageTimelineByRange = useMemo(
     () => ({
       day: dayUsage,
@@ -179,20 +146,10 @@ export function SettingsDataCacheProvider({ children }: { children: ReactNode })
   const value = useMemo<SettingsDataCacheContextValue>(
     () => ({
       workspaceId,
-      canManageGithub,
       usageTimelineByRange,
       usageCalendar,
-      workspaceReposWithStatus: workspaceReposWithStatus ?? undefined,
-      workspaceReposLoading,
     }),
-    [
-      canManageGithub,
-      usageTimelineByRange,
-      usageCalendar,
-      workspaceId,
-      workspaceReposLoading,
-      workspaceReposWithStatus,
-    ]
+    [usageTimelineByRange, usageCalendar, workspaceId]
   );
 
   return (

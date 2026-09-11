@@ -12,14 +12,15 @@ Index and rationale: [README.md](README.md).
 - Desktop project pickers use DropdownMenu with local/GitHub projects by recency.
   Pin no-project/add-local/connect-GitHub actions; mount at most 20 rows (most
   recent if empty, first matches from all options if searching). Scope order:
-  machine → project → worktree/branch. Direct local sessions neither render nor
-  pass a branch; local worktrees and GitHub sessions keep theirs. GitHub projects
+  machine → project. New local design sessions run directly in that directory;
+  no branch discovery, worktree preference restore, or branch/worktree controls.
+  Existing worktree Sessions keep their runtime semantics. GitHub projects
   are machine-independent. Machine changes filter local projects/configs and clear
   incompatible local projects without replacement. Keep mobile pickers independent.
 - Single-member workspaces pass no project-sharing state. Otherwise local project
   options and the selected desktop trigger show only effective `Private`; hide Team
   and unresolved states. Effective access is `machine.sharedWithTeam &&
-  project.sharedWithTeam`. The selected Private segment opens `ProjectShareDialog`;
+project.sharedWithTeam`. The selected Private segment opens `ProjectShareDialog`;
   its project share mutation also shares the machine atomically. Use
   `useConvexErrorMessage` for failures (auth recovery, no raw Convex toast).
   GitHub options have no access badge. A desktop machine option is local only when
@@ -77,16 +78,15 @@ Index and rationale: [README.md](README.md).
   `ConversationDropOverlay` when sidebar drag starts, before `dragenter`. Desktop
   only: mobile passes the handle but installs no HTML5 drop target.
 - Apply `select-none` to composer dropdown/toggle chrome: top/footer selectors,
-  bottom bar, ACP booleans, Workdir/agent/model/branch triggers, mobile inline
+  bottom bar, ACP booleans, agent/model triggers, mobile inline
   triggers, and option rows. Keep prompt, pasted-text editor, and picker search
   selectable/editable; they must not inherit broad `select-none`.
 - Desktop composer/landing menu selections return focus to the prompt
   (`[data-keyboard-nav="composer"]`), never the trigger. Use `lib/menu-focus.ts`
   through `ui/dropdown-menu` and `OptionSelector`, including keep-open run-config
   selections (`event.preventDefault`).
-- Desktop landing's machine/project/branch menus always open upward with collision
-  flipping disabled. Their top-row labels and glyphs, including disabled branch
-  state, share the same neutral foreground level.
+- Desktop landing's machine/project menus always open upward with collision
+  flipping disabled. Their top-row labels and glyphs, share the same neutral foreground level.
 - The ACP provider cycle command uses the same single-machine scope as the visible
   provider menu. Never cycle all workspace configs while retaining the old machine id.
 - Mobile composer pickers rely on `MobileInlinePicker` plus

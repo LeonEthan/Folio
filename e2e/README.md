@@ -17,8 +17,16 @@ signal cannot make the merge gate untrustworthy.
 [`src/support/electron-harness.ts`](./src/support/electron-harness.ts) owns the
 process boundary and isolation. Cucumber World adapts it to scenarios, Page
 Objects own user interaction, and hooks own evidence retention. The harness
-launches the built main entry directly with Playwright Electron; it does not
+launches the built Electron package directory with Playwright Electron; it does not
 start a normal Chromium browser or an Electron Vite web server.
+
+The legacy worktree lifecycle fixture seeds Session metadata through `LoroRepo`
+and the existing local data-plane IPC, then dispatches `session/create` through
+local session control. Its user path still verifies terminal/archive/delete and
+clean-worktree release. New design sessions use a folder directly and have no
+worktree selector; the fixture must not restore that retired UI or weaken dirty
+worktree protection. The standalone `session create` CLI currently requires cloud
+auth configuration, so it is not the local fixture setup API.
 
 Each run uses fresh durable directories and a kernel-assigned loopback port.
 The test-only port override is accepted only when `LODY_E2E=1`, so Electron and

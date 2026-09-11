@@ -198,7 +198,7 @@ describe('local-host actions vs a resolvable host path', () => {
     expect(actions.localHost).not.toBeNull();
     expect(actions.menuItems.map((item) => item.id)).toEqual([
       'copy-path',
-      'open-in-editor',
+      'open-in-default-app',
       'reveal',
     ]);
     // The download is the complement, so it stays away while the shell is reachable.

@@ -79,7 +79,11 @@ describe('SettingsDataCacheProvider', () => {
       );
     });
 
-    expect(mocks.useQuery.mock.calls.length).toBeGreaterThanOrEqual(6);
+    expect(mocks.useQuery.mock.calls.map(([, args]) => args)).toContainEqual({
+      workspaceId: 'workspace-1',
+      range: 'day',
+      granularity: 'hour',
+    });
     expect(mocks.useQuery.mock.calls.every(([, args]) => args !== 'skip')).toBe(true);
 
     mocks.useQuery.mockClear();
@@ -87,7 +91,6 @@ describe('SettingsDataCacheProvider', () => {
       store.set(currentWorkspaceIdAtom, null);
     });
 
-    expect(mocks.useQuery.mock.calls.length).toBeGreaterThanOrEqual(6);
-    expect(mocks.useQuery.mock.calls.every(([, args]) => args === 'skip')).toBe(true);
+    expect(new Set(mocks.useQuery.mock.calls.map(([, args]) => args))).toEqual(new Set(['skip']));
   });
 });

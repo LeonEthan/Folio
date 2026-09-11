@@ -175,11 +175,10 @@ async function runWorkIteration(
   work: WorkSessionPage,
   captureActive?: () => Promise<ScoutCheckpoint['active']>
 ): Promise<ScoutCheckpoint['active'] | null> {
-  await work.enableWorktree();
   const priorPromptEnds = fixture
     .readAcpEvents()
     .filter((event) => event.event === 'prompt-end').length;
-  await work.startSession(`Scout Work lifecycle ${iteration} [SCOUT:REPLY]`);
+  await work.startLegacyWorktreeSession(fixture, `Scout Work lifecycle ${iteration} [SCOUT:REPLY]`);
   const completed = await fixture.waitForAcpEvent('prompt-end', priorPromptEnds + 1);
   const prompt = completed.at(-1) as ScriptedAcpEvent;
   const marker = `lody-scout-terminal-${iteration}`;

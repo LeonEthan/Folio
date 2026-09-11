@@ -25,8 +25,7 @@ this page is the full text of the rules summarised there.
   reaching a shell — `Open in default app` / `Open in browser`
   (`app.openLocalPath` → `shell.openPath`), `Reveal in file manager` /
   `Show in Finder` / `Show in File Explorer` (`app.revealLocalPath`, labelled per
-  host OS), and `Open in <editor>` (the user's `session-path-launchers`
-  preference) — lives in the optional `localHost` half, resolved only for
+  host OS) — lives in the optional `localHost` half, resolved only for
   Electron + the file's machine being this one. `Download file` is the exact
   complement: offered only where `localHost` is absent, because with the real
   file one keystroke away a copy in ~/Downloads is a decoy. It reads through

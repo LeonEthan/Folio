@@ -24,7 +24,6 @@ import {
   Archive,
   ArchiveRestore,
   Check,
-  ChevronDown,
   Copy,
   CornerLeftUp,
   Ellipsis,
@@ -41,7 +40,6 @@ import {
   Monitor,
   Pencil,
   Play,
-  Plus,
   Search,
   Trash2,
   UserRoundCog,
@@ -50,7 +48,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/ui/button';
 import { isMacOSElectronRenderer, useElectronFullscreen } from '@/lib/electron';
-import { getIpcServices } from '@/lib/electron-ipc-client';
+
 import { flushDesignCanvasBeforeSend } from '@/lib/design-canvas-save-gate';
 import { isMac } from '@/lib/commands/platform';
 import { matchesKeyboardEvent, parseBinding } from '@/lib/commands/key-matcher';
@@ -161,19 +159,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import type { Locale } from 'date-fns';
 import { enUS, zhCN } from 'date-fns/locale';
 import { getAppShareUrl } from '@/lib/app-location';
-import { resolveSessionOpenInIdePathTarget } from '@/lib/session-open-in-ide-path';
-import {
-  buildPathLauncherLaunchInput,
-  buildPathLauncherProbes,
-  getAvailablePathLauncherOptions,
-  getPathLauncherId,
-  PATH_LAUNCHER_PREFERENCE_CHANGED_EVENT,
-  PATH_LAUNCHER_PREFERENCE_STORAGE_KEY,
-  readStoredPathLauncherPreference,
-  resolveSelectedPathLauncher,
-  writeStoredPathLauncherPreference,
-  type PathLauncherOption,
-} from '@/lib/session-path-launchers';
+
 import { cn } from '@/lib/utils';
 import type { SessionSharingState } from '@/lib/session-sharing';
 import {
@@ -267,7 +253,7 @@ import {
 } from '@/lib/session-dispatch-state';
 import { shouldMarkSessionRead } from '@/lib/session-read-receipt';
 import { recordSessionRenderTrace, shortTraceId } from '@/lib/session-render-trace';
-import { getPathLauncherIcon } from '@/components/icons/path-launcher-icon';
+
 import { extractIssuePRMentionsFromText } from '@/components/mentions/issue-pr-hash-mention';
 import { SessionSearchProvider } from './session-search-context';
 import {
@@ -363,18 +349,6 @@ function describeCopiedConversation(
     { omitted: trimmed.join(', ') }
   );
 }
-
-// ── Path launcher options for "Open in" split button ──
-
-type ActionId = 'copy-path';
-
-interface ActionOption {
-  id: ActionId;
-  label: string;
-  Icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-}
-
-const ACTION_OPTIONS: ActionOption[] = [{ id: 'copy-path', label: 'Copy Path', Icon: Copy }];
 
 const EMPTY_ASSISTANT_QUICK_ACTIONS: AssistantMessageAction[] = [];
 const DISPATCHING_TIMEOUT_MS = 15_000;
@@ -4885,49 +4859,6 @@ export const SessionChatInterface = memo(
 
     const shouldHideHeader = hideHeader;
 
-    const localProjectId = useMemo(() => {
-      const rawSessionProject = session.project;
-      if (!rawSessionProject || rawSessionProject.kind !== 'local') {
-        return null;
-      }
-      if (typeof rawSessionProject.localProjectId !== 'string') {
-        return null;
-      }
-      const trimmed = rawSessionProject.localProjectId.trim();
-      return trimmed ? (trimmed as LocalProjectId) : null;
-    }, [session.project]);
-
-    const localProjectRootPath = useMemo(() => {
-      if (!isLocalSession || !localProjectId) {
-        return null;
-      }
-      const rawPath = sessionMachineLocalProjects[localProjectId]?.rootPath;
-      if (typeof rawPath !== 'string') {
-        return null;
-      }
-      const trimmed = rawPath.trim();
-      return trimmed || null;
-    }, [isLocalSession, localProjectId, sessionMachineLocalProjects]);
-
-    const worktreePath = useMemo(() => {
-      if (!isLocalSession || !session.isWorktree) return null;
-      return resolveSessionWorkspacePath({
-        sessionId: session.id,
-        ownerSessionId: session.parentSessionId,
-        isWorktree: true,
-        dotlodyPath: machineDotlodyPath,
-        localProjectRootPath,
-        repoFullName,
-      });
-    }, [
-      isLocalSession,
-      localProjectRootPath,
-      machineDotlodyPath,
-      repoFullName,
-      session.id,
-      session.isWorktree,
-      session.parentSessionId,
-    ]);
     const handleFilePathClick = useStableCallback((filePath: string) => {
       onFilePathClick?.(filePath);
     });
@@ -4956,229 +4887,6 @@ export const SessionChatInterface = memo(
       }
       return false;
     });
-    const openInIdeTarget = useMemo(
-      () =>
-        resolveSessionOpenInIdePathTarget({
-          worktreePath,
-          localProjectRootPath,
-        }),
-      [localProjectRootPath, worktreePath]
-    );
-    const openInIdePath = openInIdeTarget?.path ?? null;
-    const openInIdePathSource = openInIdeTarget?.source ?? null;
-    const resolveOpenInIdePath = useCallback(async (): Promise<string | null> => {
-      return openInIdePath;
-    }, [openInIdePath]);
-
-    const [pathLauncherPreference, setPathLauncherPreference] = useState(
-      readStoredPathLauncherPreference
-    );
-    useEffect(() => {
-      if (typeof window === 'undefined') return undefined;
-
-      const refreshPreference = () => {
-        setPathLauncherPreference(readStoredPathLauncherPreference());
-      };
-      const handleStorage = (event: StorageEvent) => {
-        if (event.key === PATH_LAUNCHER_PREFERENCE_STORAGE_KEY) {
-          refreshPreference();
-        }
-      };
-
-      window.addEventListener(PATH_LAUNCHER_PREFERENCE_CHANGED_EVENT, refreshPreference);
-      window.addEventListener('storage', handleStorage);
-      return () => {
-        window.removeEventListener(PATH_LAUNCHER_PREFERENCE_CHANGED_EVENT, refreshPreference);
-        window.removeEventListener('storage', handleStorage);
-      };
-    }, []);
-
-    const isElectronRendererForPathLaunch =
-      typeof window !== 'undefined' && window.__LODY_ELECTRON__ === true;
-    const electronPathLauncherPlatform =
-      typeof window !== 'undefined' ? window.__LODY_PLATFORM__?.os : undefined;
-    const launcherCandidates = useMemo(
-      () =>
-        getAvailablePathLauncherOptions({
-          customLaunchers: pathLauncherPreference.customLaunchers,
-          isElectron: isElectronRendererForPathLaunch,
-          platform: electronPathLauncherPlatform,
-        }),
-      [
-        electronPathLauncherPlatform,
-        isElectronRendererForPathLaunch,
-        pathLauncherPreference.customLaunchers,
-      ]
-    );
-    const [availableLauncherIds, setAvailableLauncherIds] = useState(new Set<string>());
-    useEffect(() => {
-      if (!isElectronRendererForPathLaunch || !openInIdePath) {
-        setAvailableLauncherIds(new Set());
-        return undefined;
-      }
-      const services = getIpcServices();
-      if (!services) return undefined;
-
-      let cancelled = false;
-      const launchers = buildPathLauncherProbes(
-        launcherCandidates,
-        openInIdePath,
-        electronPathLauncherPlatform
-      );
-      void services.app
-        .probePathLaunchers({
-          launchers,
-        })
-        .then(
-          (result) => {
-            if (!cancelled) {
-              setAvailableLauncherIds(new Set(result.availableIds));
-            }
-          },
-          () => {
-            // A failed probe must not advertise launchers whose presence could
-            // not be established.
-            if (!cancelled) setAvailableLauncherIds(new Set());
-          }
-        );
-      return () => {
-        cancelled = true;
-      };
-    }, [
-      launcherCandidates,
-      electronPathLauncherPlatform,
-      isElectronRendererForPathLaunch,
-      openInIdePath,
-    ]);
-    const pathLauncherOptions = useMemo(
-      () =>
-        launcherCandidates.filter((launcher) =>
-          availableLauncherIds.has(getPathLauncherId(launcher))
-        ),
-      [availableLauncherIds, launcherCandidates]
-    );
-    const shouldShowOpenInIdeButton = Boolean(openInIdePath) && pathLauncherOptions.length > 0;
-    const selectedPathLauncher = useMemo(
-      () =>
-        resolveSelectedPathLauncher(pathLauncherPreference.selectedLauncherId, pathLauncherOptions),
-      [pathLauncherOptions, pathLauncherPreference.selectedLauncherId]
-    );
-    const SelectedPathLauncherIcon = getPathLauncherIcon(selectedPathLauncher);
-
-    const persistSelectedPathLauncher = useCallback(
-      (launcherId: string) => {
-        const nextPreference = { ...pathLauncherPreference, selectedLauncherId: launcherId };
-        setPathLauncherPreference(nextPreference);
-        writeStoredPathLauncherPreference(nextPreference);
-      },
-      [pathLauncherPreference]
-    );
-
-    const launchPathWithLauncher = useCallback(
-      async (launcher: PathLauncherOption, analyticsEvent: string) => {
-        const path = await resolveOpenInIdePath();
-        if (!path) return;
-
-        const launcherId = getPathLauncherId(launcher);
-        try {
-          const request = buildPathLauncherLaunchInput(
-            launcher,
-            path,
-            electronPathLauncherPlatform
-          );
-          const analyticsProperties = {
-            // Custom launcher ids are random uuids, so collapse them to a single
-            // `custom` value to keep `ide_id` low-cardinality in analytics;
-            // `launcher_kind` already distinguishes builtin vs custom.
-            ide_id: launcher.kind === 'custom' ? 'custom' : launcherId,
-            launcher_kind: launcher.kind,
-            launch_method: request.kind,
-            path_source: openInIdePathSource,
-          };
-          captureSessionEvent(analyticsEvent, analyticsProperties);
-
-          // Launchers run entirely through the desktop bridge now (CLI spawn with
-          // native protocol fallbacks); web no longer probes local apps.
-          if (!getIpcServices()) {
-            captureSessionEvent('session/open_in_ide_failed', {
-              ...analyticsProperties,
-              reason: 'native_bridge_unavailable',
-            });
-            toast.error(
-              t(
-                'sessions.pathLaunchUnsupported',
-                'This launcher is only available in the desktop app'
-              )
-            );
-            return;
-          }
-
-          const result = await getIpcServices()!.app.launchLocalPath(request);
-          if (!result.launched) {
-            captureSessionEvent('session/open_in_ide_failed', {
-              ...analyticsProperties,
-              reason: result.error,
-            });
-            toast.error(t('sessions.pathLaunchFailed', 'Failed to open path'));
-          }
-        } catch (error) {
-          captureSessionEvent('session/open_in_ide_failed', {
-            ide_id: launcher.kind === 'custom' ? 'custom' : launcherId,
-            launcher_kind: launcher.kind,
-            path_source: openInIdePathSource,
-            reason: getErrorMessage(error),
-          });
-          toast.error(t('sessions.pathLaunchFailed', 'Failed to open path'));
-        }
-      },
-      [
-        captureSessionEvent,
-        electronPathLauncherPlatform,
-        openInIdePathSource,
-        resolveOpenInIdePath,
-        t,
-      ]
-    );
-
-    const handleSelectPathLauncher = useCallback(
-      async (launcher: PathLauncherOption) => {
-        persistSelectedPathLauncher(getPathLauncherId(launcher));
-        await launchPathWithLauncher(launcher, 'session/open_in_ide_selected');
-      },
-      [launchPathWithLauncher, persistSelectedPathLauncher]
-    );
-
-    const handleOpenInIde = useCallback(() => {
-      void launchPathWithLauncher(selectedPathLauncher, 'session/open_in_ide_clicked');
-    }, [launchPathWithLauncher, selectedPathLauncher]);
-
-    const handleCopyPath = useCallback(async () => {
-      const path = await resolveOpenInIdePath();
-      if (!path) {
-        captureSessionEvent('session/path_copy_failed', {
-          reason: 'missing_path',
-        });
-        toast.error(t('sessions.pathCopyFailed', 'Failed to copy path'));
-        return;
-      }
-      try {
-        await navigator.clipboard.writeText(path);
-        captureSessionEvent('session/path_copied', {
-          path_source: openInIdePathSource,
-        });
-      } catch {
-        captureSessionEvent('session/path_copy_failed', {
-          reason: 'clipboard_error',
-        });
-        toast.error(t('sessions.pathCopyFailed', 'Failed to copy path'));
-      }
-    }, [captureSessionEvent, openInIdePathSource, resolveOpenInIdePath, t]);
-
-    const handleOpenPathLauncherSettings = useCallback(() => {
-      captureSessionEvent('session/open_in_ide_manage_clicked');
-      openSettings('preferences');
-    }, [captureSessionEvent, openSettings]);
-
     const handleCopySessionLink = useCallback(async () => {
       try {
         await navigator.clipboard.writeText(getAppShareUrl());
@@ -5201,87 +4909,17 @@ export const SessionChatInterface = memo(
     );
 
     /* Shared header pieces used by both header variants. */
-    const headerLauncherActions = (
-      <>
-        {session.design && onRevealDesignPanel ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-6 px-2 text-xs"
-            onClick={onRevealDesignPanel}
-          >
-            {t('design.files.currentCanvas', 'Current artwork')}
-          </Button>
-        ) : null}
-        {shouldShowOpenInIdeButton && isElectronRendererForPathLaunch && (
-          <div className="flex items-center">
-            <Button
-              className="h-6 px-2 py-1 rounded-r-none border-r-0 gap-1"
-              variant="outline"
-              size="sm"
-              onClick={handleOpenInIde}
-            >
-              <SelectedPathLauncherIcon className="h-3.5 w-3.5" />
-              <span className="text-xs">{selectedPathLauncher.label}</span>
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  className="h-6 px-1 py-1 rounded-l-none"
-                  variant="outline"
-                  size="sm"
-                  aria-label={t('sessions.selectPathLauncher', 'Select launcher')}
-                >
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {pathLauncherOptions.map((launcher) => {
-                  const launcherId = getPathLauncherId(launcher);
-                  const LauncherIcon = getPathLauncherIcon(launcher);
-                  return (
-                    <DropdownMenuItem
-                      key={launcherId}
-                      onClick={() => {
-                        void handleSelectPathLauncher(launcher);
-                      }}
-                    >
-                      <LauncherIcon className="h-3.5 w-3.5" />
-                      {launcher.label}
-                      {launcherId === getPathLauncherId(selectedPathLauncher) && (
-                        <Check className="ml-auto h-3.5 w-3.5" />
-                      )}
-                    </DropdownMenuItem>
-                  );
-                })}
-                <DropdownMenuSeparator />
-                {ACTION_OPTIONS.map((action) => (
-                  <DropdownMenuItem
-                    key={action.id}
-                    onClick={
-                      action.id === 'copy-path'
-                        ? () => {
-                            void handleCopyPath();
-                          }
-                        : undefined
-                    }
-                  >
-                    <action.Icon className="h-3.5 w-3.5" />
-                    {t('sessions.copyPath', action.label)}
-                  </DropdownMenuItem>
-                ))}
-                {isElectronRendererForPathLaunch && (
-                  <DropdownMenuItem onClick={handleOpenPathLauncherSettings}>
-                    <Plus className="h-3.5 w-3.5" />
-                    {t('sessions.managePathLaunchers', 'Add more…')}
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
-      </>
-    );
+    const headerDesignAction =
+      session.design && onRevealDesignPanel ? (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-6 px-2 text-xs"
+          onClick={onRevealDesignPanel}
+        >
+          {t('design.files.currentCanvas', 'Current artwork')}
+        </Button>
+      ) : null;
     const headerMenuNode = (
       <SessionHeaderMenu
         session={session}
@@ -5353,7 +4991,7 @@ export const SessionChatInterface = memo(
                  no PR badge (the strip owns PR). */
               <ErrorBoundary name="SessionChatHeader" variant="inline" resetKeys={[session.id]}>
                 <div className="flex h-full shrink-0 items-center gap-1 pl-1 pr-2">
-                  {headerLauncherActions}
+                  {headerDesignAction}
                   {headerArchivedNode}
                   {headerAccessNode}
                   {headerMenuNode}
@@ -5376,7 +5014,7 @@ export const SessionChatInterface = memo(
                   }
                   desktopActionsSlot={
                     <div className={cn('flex shrink-0 items-center gap-2', isMobile && 'hidden')}>
-                      {headerLauncherActions}
+                      {headerDesignAction}
                       {headerGitHubActions}
                       {headerArchivedNode}
                       {headerAccessNode}

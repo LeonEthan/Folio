@@ -33,7 +33,7 @@ import { ClearCacheConfirmDialog, useClearCache } from './clear-cache';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { isMobileKeyboardAction } from '@/lib/mobile-keyboard-action';
 import { MobileGeneralSettings } from '@/components/mobile/mobile-general-settings';
-import { PathLaunchersSettings } from './path-launchers-setting';
+
 import { QueuedMessageBehaviorControl } from './queued-message-behavior-control';
 import { CliDaemonSetting } from './cli-daemon-setting';
 import { useAppCapability } from '@/lib/app-platform';
@@ -795,12 +795,6 @@ export function GeneralSettingsComponent() {
         )}
 
         {githubIntegrationAvailable ? <AutoArchiveSection /> : null}
-
-        {isElectron && (
-          <div id="path-launchers" className="scroll-mt-24">
-            <PathLaunchersSettings isElectron={isElectron} platform={electronPlatform} />
-          </div>
-        )}
 
         {/* Clear local cache stays last in General settings. */}
         <div className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border/70 bg-card/60 text-sm">

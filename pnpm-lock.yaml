@@ -558,12 +558,18 @@ importers:
       '@cucumber/cucumber':
         specifier: ^13.2.1
         version: 13.2.1
+      '@lody/shared':
+        specifier: workspace:*
+        version: link:../packages/shared
       '@playwright/test':
         specifier: ^1.58.2
         version: 1.58.2
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.12
+      loro-repo:
+        specifier: 'catalog:'
+        version: 0.20.0(patch_hash=74be8ab90bed65c9ce8b0d7cb32f8cafdbd0ecda6d9b7c8048836600d116d357)(@loro-dev/flock-wasm@0.4.3)(@loro-dev/flock@4.4.4)(@loro-dev/streams-crdt@0.15.1(@loro-dev/flock-wasm@0.4.3)(loro-crdt@1.15.1))(@types/better-sqlite3@7.6.13)(better-sqlite3@13.0.3)(loro-crdt@1.15.1)
       tsx:
         specifier: ^4.23.5
         version: 4.23.7

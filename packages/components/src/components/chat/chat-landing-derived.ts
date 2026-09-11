@@ -171,20 +171,6 @@ export interface ChatLandingHasOnlineMachineArgs {
   isMachineOnline: (machineId: string) => boolean;
 }
 
-export interface ChatLandingBranchSelectorStateArgs {
-  contextType: SessionContextType;
-  workdirMode?: 'local' | 'worktree';
-  selectedRepo?: string;
-  repoBranchesCount: number;
-  hasRepoDefaultBranch: boolean;
-  hasSelectedLocalProject: boolean;
-  selectedLocalProjectId?: string | null;
-  isRuntimeInitializing: boolean;
-  isLoadingLocalGitState: boolean;
-  hasLocalGit: boolean;
-  branchOptionsCount: number;
-}
-
 export interface ChatLandingSubmitDisabledArgs {
   submitting: boolean;
   hasBlockingImages: boolean;
@@ -495,43 +481,6 @@ export function getChatLandingHasAnyOnlineMachine({
   }
 
   return false;
-}
-
-export function getChatLandingBranchSelectorState({
-  contextType,
-  workdirMode = 'local',
-  selectedRepo,
-  repoBranchesCount,
-  hasRepoDefaultBranch,
-  hasSelectedLocalProject,
-  selectedLocalProjectId,
-  isRuntimeInitializing,
-  isLoadingLocalGitState,
-  hasLocalGit,
-  branchOptionsCount,
-}: ChatLandingBranchSelectorStateArgs) {
-  const showBranchSelector =
-    contextType === 'github' ||
-    (contextType === 'local' &&
-      workdirMode === 'worktree' &&
-      hasSelectedLocalProject &&
-      hasLocalGit);
-
-  const isBranchDisabled =
-    contextType === 'github'
-      ? !selectedRepo || (repoBranchesCount === 0 && !hasRepoDefaultBranch)
-      : isRuntimeInitializing || isLoadingLocalGitState || branchOptionsCount === 0;
-
-  const branchSelectorKey =
-    contextType === 'github'
-      ? `github:${selectedRepo ?? 'none'}`
-      : `local:${selectedLocalProjectId ?? 'none'}`;
-
-  return {
-    showBranchSelector,
-    isBranchDisabled,
-    branchSelectorKey,
-  };
 }
 
 export function getChatLandingSubmitDisabled({

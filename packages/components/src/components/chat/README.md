@@ -17,7 +17,9 @@ reasoning behind those rules.
 - `chat-landing-view.tsx` — the render-only landing layout around `ChatComposer`.
 - `chat-landing-derived.ts` — derived landing selection state.
 - `chat-landing-selectors.tsx`, `unified-project-selector.tsx` — wrappers over the
-  shared selector primitives for the project and branch controls.
+  shared selector primitives for project controls and selector styling.
+  New local design submissions use the selected folder directly without Git discovery;
+  old branch and worktree preferences do not steer new designs.
 - `attachment-add-menu.tsx` — the composer's single "+" menu, including the
   per-turn MCP selection.
 - `comment-reference-*` and `visual-annotation-reference-*` — attachment chip

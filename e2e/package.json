@@ -17,6 +17,8 @@
   },
   "devDependencies": {
     "@agentclientprotocol/sdk": "catalog:",
+    "@lody/shared": "workspace:*",
+    "loro-repo": "catalog:",
     "@cucumber/cucumber": "^13.2.1",
     "@playwright/test": "^1.58.2",
     "@types/node": "catalog:",

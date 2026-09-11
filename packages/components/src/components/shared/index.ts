@@ -13,12 +13,6 @@ export { buildAcpSelectorOptions } from './acp-selector-options';
 export type { AcpSelectorOptions } from './acp-selector-options';
 export { AgentActivityIndicator, type AgentActivityTone } from './agent-activity-indicator';
 export {
-  WorkdirModeSelector,
-  WorktreeCheckboxPill,
-  type WorkdirMode,
-  type WorktreeCheckboxPillProps,
-} from './workdir-mode-selector';
-export {
   TabPillStrip,
   TAB_PILL_ACTIVE_CLASS,
   TAB_PILL_INACTIVE_CLASS,

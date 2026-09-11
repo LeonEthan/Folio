@@ -10,7 +10,7 @@ this page is the full text of the rules summarised there.
 - Desktop top bar is ONE merged row (no repo-title header row): `SessionTabBar`
   with `leftSlot` (sidebar expand + macOS traffic-light inset via `className`)
   and `rightSlot` = a `SessionChatInterface headerVariant="toolbar"` instance
-  (IDE launcher / Browser / "…" menu / sidebar toggle — no title, no PR badge).
+  (Browser / "…" menu / sidebar toggle — no title, no PR badge).
   All macOS traffic-light insets (sidebar `h-[72px] pt-7` header, this bar's
   `pl-[4.5rem]`, `reserveMacTrafficLightInset`, landing `left-[96px]`, and the
   root drag strip) are gated on `!useElectronFullscreen()` — the main process

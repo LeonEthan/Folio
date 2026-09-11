@@ -1,5 +1,8 @@
 import { existsSync } from 'node:fs';
+import { LoroRepo } from 'loro-repo';
+import { LOCAL_LORO_DATA_PLANE_PROTOCOL_VERSION } from '@lody/shared/local-loro-data-plane';
 import { expect, type Page } from '@playwright/test';
+import type { WorkSessionFixture } from '../fixtures/work-session-fixture.js';
 
 type TerminalSnapshot = {
   terminalId: string;
@@ -76,11 +79,142 @@ export class WorkSessionPage {
     await this.page.keyboard.press('Escape');
   }
 
-  async enableWorktree(): Promise<void> {
-    const checkbox = this.page.getByRole('checkbox', { name: /^(Use worktree|使用 worktree)$/u });
-    await expect(checkbox).toBeEnabled({ timeout: 30_000 });
-    await checkbox.check();
-    await expect(checkbox).toBeChecked();
+  async startLegacyWorktreeSession(
+    fixture: WorkSessionFixture,
+    initialPrompt: string
+  ): Promise<string> {
+    // This is legacy-fixture setup through the existing local control contract.
+    // New design sessions deliberately expose no worktree selector.
+    const seedRequest = await this.page.evaluate(
+      async ({ projectRoot, command, args, prompt }) => {
+        if (!window.ipc) throw new Error('Electron IPC is unavailable');
+        const [cliRaw, platformRaw] = await Promise.all([
+          window.ipc.invoke('cli.getState'),
+          window.ipc.invoke('localPlatform.getSnapshot'),
+        ]);
+        const cli = cliRaw as { runtime?: { machineId?: string } };
+        const platform = platformRaw as { userId: string; workspace: { workspaceId: string } };
+        const machineId = cli.runtime?.machineId;
+        if (!machineId || !platform.userId) throw new Error('Local runtime identity is not ready');
+        const project = (await window.ipc.invoke('localProjects.control', {
+          type: 'local-project/add',
+          machineId,
+          rootPath: projectRoot,
+          workspace: platform.workspace.workspaceId,
+        })) as { ok: boolean; result?: { localProjectId?: string } };
+        if (!project.ok || !project.result?.localProjectId)
+          throw new Error('Fixture project is unavailable');
+        const sessionId = crypto.randomUUID();
+        return {
+          type: 'session/create' as const,
+          sessionId,
+          machineId,
+          workspaceId: platform.workspace.workspaceId,
+          project: {
+            kind: 'local' as const,
+            localProjectId: project.result.localProjectId,
+            useWorktree: true,
+          },
+          acpSessionConfig: {
+            prompt,
+            cliType: 'custom' as const,
+            agentType: 'custom',
+            customAcp: { command, args },
+          },
+          userId: platform.userId,
+          userName: 'Lody E2E',
+          userEmail: 'e2e@lody.invalid',
+        };
+      },
+      {
+        projectRoot: fixture.projectRoot,
+        command: process.execPath,
+        args: [fixture.scriptedAcpEntry, fixture.acpEventLogPath],
+        prompt: initialPrompt,
+      }
+    );
+    const sessionId = seedRequest.sessionId;
+    const repo = await LoroRepo.create({});
+    let metaBundle: unknown;
+    try {
+      await repo.upsertDocMeta(`session-${sessionId}`, {
+        id: sessionId,
+        machineId: seedRequest.machineId,
+        userId: seedRequest.userId,
+        createdAt: new Date().toISOString(),
+        isArchived: false,
+        isWorktree: true,
+        cliType: 'custom',
+        agentType: 'custom',
+        project: seedRequest.project,
+      });
+      metaBundle = repo.getMeta().exportJson();
+    } finally {
+      await repo.destroy();
+    }
+    const seedPeer = await this.page.evaluate(
+      async ({ message, bundle, protocolVersion }) => {
+        const ipc = window.ipc!;
+        const peerId = crypto.randomUUID();
+        const requestId = crypto.randomUUID();
+        const envelope = { protocolVersion, workspaceId: message.workspaceId, peerId };
+        ipc.send('loro.subscribe', null);
+        await new Promise<void>((resolve, reject) => {
+          const unsubscribe = ipc.on('loro.event', (raw: unknown) => {
+            const event = raw as {
+              peerId?: string;
+              requestId?: string;
+              type?: string;
+              error?: string;
+            };
+            if (event.peerId !== peerId || event.requestId !== requestId) return;
+            if (event.type === 'joined') {
+              unsubscribe();
+              resolve();
+            }
+            if (event.type === 'error') {
+              unsubscribe();
+              reject(new Error(event.error));
+            }
+          });
+          ipc.send('loro.send', { ...envelope, type: 'join', requestId, room: { scope: 'meta' } });
+        });
+        ipc.send('loro.send', {
+          ...envelope,
+          type: 'update',
+          room: { scope: 'meta' },
+          payload: { kind: 'flock-json', bundle },
+        });
+        return envelope;
+      },
+      {
+        message: seedRequest,
+        bundle: metaBundle,
+        protocolVersion: LOCAL_LORO_DATA_PLANE_PROTOCOL_VERSION,
+      }
+    );
+    await this.page.evaluate((id) => {
+      window.location.hash = `/local/sessions/${encodeURIComponent(id)}`;
+    }, sessionId);
+    await expect(this.page).toHaveURL(new RegExp(`#/local/sessions/${sessionId}(?:\\?.*)?$`, 'u'));
+    try {
+      await expect(
+        this.page.getByRole('button', { name: /^(More actions|更多操作)$/u }).last()
+      ).toBeVisible({ timeout: 30_000 });
+      await this.page.evaluate(async (message) => {
+        const result = (await window.ipc!.invoke('sessionControl.send', {
+          requestId: crypto.randomUUID(),
+          message,
+        })) as { ok?: boolean; error?: string };
+        if (!result.ok) throw new Error(result.error ?? 'Local session fixture was rejected');
+      }, seedRequest);
+    } finally {
+      await this.page.evaluate(
+        (envelope) => window.ipc!.send('loro.send', { ...envelope, type: 'detach' }),
+        seedPeer
+      );
+    }
+    return sessionId;
   }
 
   async startSession(prompt: string): Promise<string> {

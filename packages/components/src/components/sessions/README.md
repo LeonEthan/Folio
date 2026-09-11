@@ -27,7 +27,7 @@ What each file in this directory is responsible for. Binding rules live in
 
 | File                                                            | Responsibility                                                                                                                                      |
 | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `session-chat-interface.tsx`                                    | Conversation surface: stream, header variants, read receipts, launchers                                                                             |
+| `session-chat-interface.tsx`                                    | Conversation surface: stream, header variants, read receipts, file-path actions                                                                     |
 | [`chat-share-image-dialog.tsx`](chat-share-image-dialog.tsx)    | Selected-message card styling, historical metadata, PNG export, and local image copying; [draft contract](../../../../../specs/chat-share-image.md) |
 | `draft-session-chat-interface.tsx`                              | Draft variant of the conversation surface                                                                                                           |
 | `session-chat-input-area.tsx`                                   | Composer: attachments, run-config footer, submit                                                                                                    |
@@ -39,7 +39,7 @@ What each file in this directory is responsible for. Binding rules live in
 | `floating-permission-request.tsx`, `ask-user-question-card.tsx` | Floating permission requests and agent questions                                                                                                    |
 | `design-file-receipt.tsx`                                       | Durable save receipts and diagnostics; original files open through the ordinary file viewer                                                         |
 | `notification-permission-prompt.tsx`                            | Notification permission ask                                                                                                                         |
-| `session-fork-destination-menu.tsx`                             | Fork target choice (shared workspace tab vs. new worktree)                                                                                          |
+| `session-fork-destination-menu.tsx`                             | Legacy fork target presentation; current human forks share the workspace                                                                            |
 | `rename-session-dialog.tsx`                                     | Session rename dialog                                                                                                                               |
 
 ## Info bar, status, and session actions
