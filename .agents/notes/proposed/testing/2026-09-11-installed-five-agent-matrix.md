@@ -338,7 +338,6 @@ were not exercised by this runner. These records remain unchanged in
 lines 1271–1282. No real account authentication is inferred from synthetic
 configuration, startup or the runner's exit status.
 
-
 ### Pi user-configured extension authorization follow-up
 
 These two additional rounds used the unchanged installed `b86a1c92` app and
@@ -394,7 +393,6 @@ removal interval, strengthening the recreation finding without identifying the
 writer. `Session.getWorkdir()` can recreate an absent default workdir through
 `ensureDefaultSessionWorkdir`, but source reachability is not evidence that this
 caller performed the observed write. The lifecycle failure remains unresolved.
-
 
 ### Codex ordinary-capability follow-up preparation and initial failures
 
@@ -492,7 +490,6 @@ the matched actual spawn, still recorded zero loads, and stopped at its guard
 before any model request. Its original harness cleanup succeeded. Neither
 control establishes Electron/fuse causation or coverage of every process, and
 neither is a product lifecycle repair. No installed bytes were modified.
-
 
 ### Kimi and Grok ordinary-capability first rounds
 
@@ -1052,3 +1049,64 @@ attached image and correlate the new image delivery to that file's actual native
 tool result; otherwise an existing attachment can falsely satisfy a file-read
 assertion. Full T28 and the previously observed HTTP-cancellation failure remain
 unresolved.
+
+### Independent PNG read-path comparison
+
+The next pair starts without a composer attachment and verifies zero image blocks
+across every role in the first main-model request. A deterministic 256×256 PNG
+with the same 1,330 bytes/hash above is created exclusively by the synthetic
+fixture in the actual session authoring directory. The provider then requests
+native `read_file` for that file; only new image blocks accompanying its
+`native_reference` tool result count as success. The normal `5b21c6a` package,
+native Grok 1.0.13, image bytes, provider behavior and 120-second assertion are
+identical; only the external initialize-frame contrast changes the read capability.
+
+| Capability and evidence | Observed result |
+| --- | --- |
+| Existing `readTextFile=true`, transparent wrapper; handle 69857, `folio-t28-grok-input-lPtZB6/evidence` | Failed with exit 1. Native session `01a091a4-13f6-7ac1-ad0f-df5f91797d9e` requests `fs/read_text_file`, ID 0, for the independent PNG. The host returns a 2,168-byte UTF-8 string, then the native tool reports a binary-file error; subsequent model requests have no image blocks. Owned cleanup finishes at 18:06:01.876Z. |
+| External `readTextFile=false`, `writeTextFile=true`; handle 1521, `folio-t28-grok-input-FFuLi0/evidence` | Passed with exit 0. The initial main request 5 has no images. Native session `01a091a6-72fa-7640-a33d-414b8deff39b` completes `native_reference` without a reverse file RPC. Requests 6–8 contain its tool-role PNG image with exact original bytes; the following skill read and visible completion also succeed. Owned cleanup finishes at 18:06:43.242Z; an independent process check finds all 13 recorded owned processes absent. |
+
+Root independently reproduced the first response by UTF-8 decoding and re-encoding
+the PNG: SHA-256
+`70eb8ca7365fdf28998835094e40cc1b90e5951aba3b9d2bad68ece3a82764da`.
+The successful contrast's images are in the **tool** role; counting user-role
+images alone would incorrectly report zero. This comparison establishes the
+specific reading-path incompatibility and a working native path. It is not a
+product fix, a normal unwrapped release pass, a permission/write regression or
+proof of Grok design-hook support. Standard ACP text responses must remain text;
+any product adaptation requires the unchanged native path and existing permission
+behavior to be verified together. The HTTP-cancellation failure remains separate.
+
+
+### Normal Grok native-read repair acceptance
+
+The [native-read repair](../../implemented/bug-fix/2026-09-12-grok-native-file-read.md)
+uses builtin Grok's native reader while retaining host text writes and all other
+providers' negotiation. Exact product source
+`81d54b6194017ba91aaec78509f9364ef743aa5f` passed the full repository check after
+removing inherited Claude provider environment only in the check child process;
+the first environment-contaminated check remains a failed record. Source, text
+RPC contracts and tests were not changed to hide that failure. Root reviewed and
+fast-forwarded the exact checked code.
+
+Build/package handle 44930 and installation 2232 exited zero. The normal private
+round is `folio-t28-81d54b61-njxrk821`; root independently hashed the DMG and
+installed ASAR and directly extracted the ASAR manifest to verify Folio 0.76.0,
+its normal entry and that source commit:
+
+- DMG: `aac7aa4c81056acae144b8e0521535dca1d031c86b484ea7074b4362afbe50d2`.
+- ASAR: `93609f470b607c88e41452dfdd80bf1a28e34dbffc957c9832ba0d91ef503aef`.
+
+Both following rounds directly launch the unchanged pinned Grok 1.0.13 executable,
+without either diagnostic wrapper. Only provider responses are synthetic/local.
+
+| Round | Executed result |
+| --- | --- |
+| `grok-native-image-fixed-1.log`, handle 47383, `folio-t28-grok-input-tvSRo6/evidence` | Exit 0. Main request 5 has no image in any role; the independent native read's tool result carries the exact 1,330-byte PNG in requests 6–8. Native SKILL reading and visible completion pass. Owned cleanup finishes at 18:22:54.579Z. |
+| `grok-native-permission-fixed-1.log`, handle 56905, `folio-t28-grok-ordinary-94z2bY/evidence` | Exit 0. Native SKILL and marker reads succeed. Actual No returns a correlated write refusal and preserves the original file; Yes returns native success and writes exactly the expected 23 bytes. Root independently reads those retained bytes. Owned cleanup finishes at 18:23:42.336Z. A no-tool request 13 remains unclassified and is not counted as main execution evidence. |
+
+These results close this local image-file routing defect and establish its tested
+text/permission compatibility. They do not complete T28, repeat all five-Agent
+cases, establish paid image-service quality or fix the known HTTP cancellation
+and native generation-hook gaps. Earlier failures and other package identities
+remain unchanged.

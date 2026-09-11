@@ -50,7 +50,7 @@ path is stated. These are local review artifacts, not portable CI attachments.
 | 1. Three complete scene journeys and separate human verdicts | `folio-t29-poster-tmUzEb`, `folio-t29-infographic-W8bEBY`, `folio-t29-long-image-OPseXd`, each `evidence/result.json`, exit 0 with clean teardown. Native Claude receives the attached bytes, reads/writes drafts, renders and actually reads the PNG; DOM edits are flushed before continuation, observed preview matches the new background/manual text, formal save/reopen and decoded PNG/JPEG succeed. | These are synthetic-provider and programmatic UI runs. The procedure's richer physical edits, creative quality, reference use and separate visual/editing judgments remain human work. |
 | 2. Roundtrip, isolation, flush, whole-lifecycle multi-instance readonly, version conflict/resubmit/continue | Existing authoring roundtrip, CLI sync/turn-outcome and canvas-access tests; three native journeys assert actual continuation Read tool-result contains MANUAL text and both canonical hosts reject execution-time mutation. `folio-root-processing-poster-j0P1Ss` proves both canonical hosts reject mutation during actual finalization. T28's installed native Pi/Claude probes cover their recorded conflict/resubmit/recovery cases. | Earlier b86 Pi rounds retain teardown failures; the later normal dcc3c975 cold/resubmit and zero-Bento quit rounds pass at their recorded scope. Full recovery was not repeated on that package. Hook completeness remains blocked for three other Agents. The controlled finalization contention is explicitly disclosed below. |
 | 3. File lifecycle, consumers, exact-source import and no loops | Native scenes exercise multipart writes, missing dependency retaining the last valid frame, page rename, continuous writes and close/reopen/Refresh. Long-image commits a background turn with no Bento consumers. Installed b86 P1 validates native source changes and exact clicked-source import against refresh/version changes. `design-canvas-sync-core.test.mjs` tests shared consumers, dirty/closed publication suppression and dependency reconciliation; `design-source-preview.test.tsx` tests reconnection/finished-history refresh without a new design-preview event and subscription release. Source previews leave canonical content unchanged before formal commit. | Reconnection/turn-end compensation is deterministic evidence, not injected OS-event loss. Native scenes are not a separate proof of closing one of two simultaneous source-preview consumers; that boundary uses the existing deterministic test. No new watcher fault engine is warranted. |
-| 4. No CLI, image configuration failure, disk failure, cancel/quit/reopen, old content, render/read and retired thumbnails | Poster terminates its actual daemon, observes stopped/readonly state and preserved canonical content, then restarts successfully. All scenes exercise real EACCES preserving unsaved edits, then successful save. Infographic cancels, quits the full app and restarts the same durable profile with a new PID/endpoint before explicit native continuation. T13 image-connection tests and b86 image probe own explicit configuration failures. Native Read consumes a legacy PNG, and render output is actually read; file inventories remain unchanged with no dedicated thumbnail producer, including background work. The bounded legacy-file supplement also opens the PNG through the installed ordinary image-preview dialog. | Daemon unavailable is not physical absence of a bundled executable. Original JSON and historical receipt behavior retain T07 deterministic evidence; their native UI path is not established. Absence of a result card does not itself prove every historical receipt UI path. |
+| 4. No CLI, image configuration failure, disk failure, cancel/quit/reopen, old content, render/read and retired thumbnails | Poster terminates its actual daemon, observes stopped/readonly state and preserved canonical content, then restarts successfully. All scenes exercise real EACCES preserving unsaved edits, then successful save. Infographic cancels, quits the full app and restarts the same durable profile with a new PID/endpoint before explicit native continuation. T13 image-connection tests and b86 image probe own explicit configuration failures. Native Read consumes a legacy PNG, and render output is actually read; file inventories remain unchanged with no dedicated thumbnail producer, including background work. The bounded legacy-file supplement also opens the PNG through the installed ordinary image-preview dialog; a later `5b21c6a` round opens the original-format JSON in the ordinary file editor and preserves its exact bytes. The `81d54b6` historical-receipt round opens that receipt’s original-file button and preserves history, canonical content and JSON. | Daemon unavailable is not physical absence of a bundled executable. Historical receipt UI evidence uses a synthetic old-format entry through existing offline storage APIs; it does not establish migration of every real historical profile. |
 | 5. Existing deterministic facilities and separate native/human evidence | Reuses the Electron harness, resource probe, authoring intake/projection and P0/P1 verification. External synthetic probes identify new cross-behavior failures without a second regression registry, scheduler or product test protocol. Raw traces/scripts/requests are retained per round. | Native macOS evidence does not establish Windows/Linux or human behavior. Prior deterministic coverage is retained at its actual scope, not postponed wholesale or promoted to a native verdict. |
 | 6. Measurements, acceptable range, user/release guidance | Nine installed samples and process trees in `e2e/artifacts/acceptance/design-measurement-lbmkAx`; all samples and export-write failures retained. README and procedure distinguish operation timings, hardware and Agent limits. | Three samples per scene cannot establish p95, leaks, maximum scale or universal acceptable thresholds. The target user's latency/memory tolerance and visual/editing assessment remain pending. |
 | 7. Preparation only, no implicit publication or human approval | The local package is ad-hoc signed; no public release, notarization, Developer ID authorization or update system. Human fields remain pending. | Release decision is pending. |
@@ -197,3 +197,61 @@ The log is `/tmp/folio-t29-legacy-ui-1.log`; its execution handle was 40199.
 The harness and product were unchanged, no model call was sent, and the persistent
 human review profile was not touched. UI ownership was released after successful
 teardown. This supplement changes no earlier immutable result or human field.
+
+### Original JSON through the ordinary file viewer
+
+The normal `5b21c6a` installed package subsequently passed a bounded JSON round,
+handle 42712, with evidence in `folio-t29-legacy-json-K62tb0/evidence` and
+normal-package log `t29-legacy-json-native-3.log`. An existing scripted ACP fixture
+supplied a Markdown file link; this is a synthetic UI test, not a native model or
+replayed historical Session. The original JSON format came from T07's existing
+`historical-candidate.fixture.ts` and the Bento sample, validated with the existing
+candidate reader. Production candidate creation remained absent.
+
+Clicking the actual **Open agent file** button opened the existing Monaco file
+view, showing version 1, candidate identity, the synthetic historical turn and
+original document/assets. Root also inspected the captured screenshot. The JSON
+was byte-identical before/after, with SHA-256
+`30a5f4e8727dd371743e53652d33dfe75823f637572e5aef9ab948d8ac5ee7e4`;
+re-reading the original file through the compatibility reader preserved identity.
+Diagnostics reported no failures, and the normal harness completed owned-process,
+endpoint and directory checks at 18:12:30.004Z. Exit-time socket closure messages
+remain in the evidence and are not removed from logs.
+
+The preceding `t29-legacy-json-native-2` attempt exited 1 **before App launch**:
+its fixture path validation omitted the `@` in the actual Node 22 executable path.
+Its original JSON and failure record remain at `folio-t29-legacy-json-4wanEQ`.
+The next script added only that literal path character; source-visibility, exact
+file bytes and teardown assertions were unchanged. Neither round supplies old
+Folio `designOutcome` storage; ordinary JSON reachability establishes only that
+narrower criterion. The separate historical receipt round below uses the existing
+offline storage API to exercise the missing UI path.
+
+### Historical receipt opens its original JSON
+
+The normal `81d54b6` installed package passed handle 15509, with evidence in
+`/tmp/folio-hist-JYtVG6/evidence` and package log
+`t29-history-receipt-native-2.log`. After the app closed and all owned processes
+exited, the fixture used existing `SessionDocument.initOffline`, `updateHistory`
+and repository flush APIs to seed a new isolated profile. Its one handled user
+entry and version-1 candidate outcome follow the original `f243a1ae` production
+shape and test fixture. No real history or raw database encoding was altered.
+
+Reopening the installed app displayed the actual historical receipt. Clicking
+its original-file button opened that JSON in Monaco; root inspected the captured
+screenshot. The final offline comparison found the exact same history, canonical
+document and original JSON bytes, SHA-256
+`03f86706b63229d716dfe17772929029c9d108f5b577df1eabcaa8877af34ce3`.
+Full CLI logs through quit and the unchanged one-entry handled history show no
+automatic prompt dispatch during this observed interval. Diagnostics were empty,
+owned-process and endpoint checks passed, and teardown finished at
+18:32:12.740Z. This is synthetic native UI evidence, not a human quality verdict
+or a guarantee about unobserved future sessions.
+
+The earlier handle 99786 exited 1 during fixture preparation: the existing history
+reader adds an own `inputConfig: undefined` property that the expected object
+omitted. Its seeded profile and failure remain in `/tmp/folio-hist-MbNcWw`; no
+receipt interaction ran. The next fresh fixture accounts only for that known
+normalization, retaining strict history, canonical-content and byte comparisons.
+Runtime code and the human review profile were unchanged. Full T29 acceptance and
+human judgments remain pending.
