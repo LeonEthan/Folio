@@ -19,6 +19,7 @@ import { materializeDesignTurnInput } from '../src/design/turn-input';
 import { collectDesignTurnOutcome } from '../src/design/turn-outcome';
 import type { SessionMeta, SessionHistoryInput } from '@lody/shared';
 
+const subagentProbe = process.env.FOLIO_PROBE_SUBAGENT === '1';
 const resubmit = true;
 const executable = process.env.FOLIO_PROBE_CLAUDE;
 if (!executable) throw Error('Set FOLIO_PROBE_CLAUDE to the pinned Claude executable');
@@ -82,6 +83,16 @@ await materializeDesignTurnInput({
   skillSourceIdentity: 'a'.repeat(64),
   dataRoot: root,
 });
+const ordinary = path.join(root, 'ordinary.txt');
+if (subagentProbe) {
+  await writeFile(ordinary, 'ordinary-before');
+  // A published projection is readable without granting the parent read evidence.
+  for (const [file, bytes] of files) {
+    const target = path.join(workspace.projectionWorkdir, file);
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, bytes);
+  }
+}
 const frozenPath = path.join(workspace.inputWorkdir, 'design-input/probe-turn/manifest.json');
 const frozen = await readFile(frozenPath);
 const service = new DesignSyncService({
@@ -93,7 +104,8 @@ const service = new DesignSyncService({
 });
 const adapter = new ClaudeDesignHooks(service);
 const generationDurations: number[] = [];
-const events: { phase: string; tool?: string; ok: boolean; error?: string }[] = [];
+const events: { phase: string; tool?: string; agentId?: string; ok: boolean; error?: string }[] =
+  [];
 const socket = path.join(root, 'control.sock');
 const control = createServer(async (req, res) => {
   const chunks: Buffer[] = [];
@@ -114,6 +126,7 @@ const control = createServer(async (req, res) => {
   events.push({
     phase: request.params.event.event ?? request.params.event.phase,
     tool: request.params.event.tool,
+    agentId: request.params.event.agentId,
     ok: !error,
     ...(error ? { error } : {}),
   });
@@ -163,6 +176,8 @@ for (const [directory, label] of [
 }
 let requests = 0;
 let absentRequests = 0;
+let childRequests = 0;
+let parentRequests = 0;
 const provider = createServer(async (req, res) => {
   const chunks: Buffer[] = [];
   for await (const chunk of req) chunks.push(Buffer.from(chunk));
@@ -187,7 +202,78 @@ const provider = createServer(async (req, res) => {
     input,
   });
   let content: unknown[];
-  if (noHooks)
+  if (subagentProbe) {
+    const isChild = JSON.stringify(body.messages[0]).includes('SUBAGENT_NATIVE_CHILD');
+    const step = isChild ? childRequests++ : parentRequests++;
+    console.log('SUBAGENT_REQUEST', { isChild, step });
+    if (!isChild)
+      content =
+        step === 0
+          ? [
+              tool(
+                'Agent',
+                {
+                  subagent_type: 'general-purpose',
+                  run_in_background: false,
+                  description: 'Synthetic native boundary',
+                  prompt: 'SUBAGENT_NATIVE_CHILD: Execute synthetic tool fixture.',
+                },
+                0
+              ),
+            ]
+          : step === 1
+            ? [
+                tool(
+                  'Write',
+                  {
+                    file_path: path.join(workspace.artifactWorkdir, 'design.pptd'),
+                    content: 'INVALID PARENT BORROWED READ',
+                  },
+                  0
+                ),
+              ]
+            : [{ type: 'text', text: 'Parent completed.' }];
+    else if (step === 0)
+      content = [
+        tool('Bash', { command: `printf ordinary-shell > '${path.join(root, 'shell.txt')}'` }, 0),
+        tool('Read', { file_path: ordinary }, 1),
+        ...[...files.keys()].map((f, i) =>
+          tool('Read', { file_path: path.join(workspace.projectionWorkdir, f) }, i + 2)
+        ),
+      ];
+    else if (step === 1)
+      content = [
+        tool(
+          'Edit',
+          { file_path: ordinary, old_string: 'ordinary-before', new_string: 'ordinary-after' },
+          0
+        ),
+        tool(
+          'Write',
+          { file_path: path.join(root, 'ordinary-created.txt'), content: 'ordinary-created' },
+          1
+        ),
+        tool(
+          'Write',
+          {
+            file_path: path.join(workspace.artifactWorkdir, 'design.pptd'),
+            content: 'INVALID SUBAGENT DRAFT',
+          },
+          2
+        ),
+        tool(
+          'Edit',
+          {
+            file_path: path.join(workspace.projectionWorkdir, 'pages/design.page'),
+            old_string: '#223344',
+            new_string: '#FFFFFF',
+          },
+          3
+        ),
+        tool('mcp__lody__folio_resubmit_draft', {}, 4),
+      ];
+    else content = [{ type: 'text', text: 'Child completed.' }];
+  } else if (noHooks)
     content =
       n === 0
         ? [...files.keys()].map((f, i) =>
@@ -429,113 +515,144 @@ try {
   const existing = await readFile(marker, 'utf8');
   assert(existing.includes('project'));
   assert(existing.includes('user'));
-  assert(service.getAttempt()?.explicitResubmission);
-  assert.equal(
-    service.getAttempt()?.artifactDigest,
-    JSON.parse(frozen.toString()).artifactAtSend.digest
-  );
-  assert.deepEqual(await readFile(frozenPath), frozen);
-  let history: SessionHistoryInput[] = [
-    { id: 'probe-turn', role: 'user', content: [], timestamp: 1 } as SessionHistoryInput,
-  ];
-  const outcome = await collectDesignTurnOutcome({
-    sessionId,
-    turnId: 'probe-turn',
-    workdir: workspace.inputWorkdir,
-    workspaceRoot: root,
-    dataRoot: root,
-    designReadBaseline: service.getAttempt(),
-    sessionDoc: {
-      getMetaState: async () =>
-        ({
-          id: sessionId,
-          cliType: 'builtin',
-          agentType: 'claude',
-          userId: 'local:probe',
-          design: { artworkId: sessionId, path: 'design.json' },
-        }) as SessionMeta,
-      getHistory: async () => history,
-      updateHistory: async (update) => {
-        history = update(history);
-      },
-    },
-  });
-  assert.equal(outcome.status, 'recorded');
-  if (outcome.status === 'recorded') assert.equal(outcome.outcome.status, 'committed');
-  const final = await designOperation(root, { operation: 'read', sessionId });
-  assert.equal(final.doc.background.color, '#556677');
-  await materializeDesignTurnInput({
-    workdir: workspace.inputWorkdir,
-    artifactWorkdir: workspace.artifactWorkdir,
-    artworkId: sessionId,
-    turnId: 'absent-turn',
-    prompt: 'NO_HOOK_SCENARIO',
-    skillSourceIdentity: 'a'.repeat(64),
-    dataRoot: root,
-  });
-  const unhooked = (await call('session/new', {
-    cwd: root,
-    mcpServers: [],
-    _meta: {
-      lody: {
-        sessionConfig: {
-          version: 1,
-          configOptionValues: { model: 'claude-sonnet-4-6', _permission: 'bypassPermissions' },
+  if (subagentProbe) {
+    console.log(JSON.stringify({ events, parentRequests, childRequests, root }));
+    assert.equal(await readFile(path.join(root, 'shell.txt'), 'utf8'), 'ordinary-shell');
+    assert.equal(await readFile(ordinary, 'utf8'), 'ordinary-after');
+    assert.equal(
+      await readFile(path.join(root, 'ordinary-created.txt'), 'utf8'),
+      'ordinary-created'
+    );
+    assert.equal(service.getAttempt(), undefined);
+    assert(events.some((e) => e.agentId && e.phase === 'PostToolUse' && e.tool === 'Bash' && e.ok));
+    assert(events.some((e) => e.agentId && e.tool === 'Write' && !e.ok));
+    assert(events.some((e) => e.agentId && e.tool === 'Edit' && !e.ok));
+    assert(events.some((e) => e.agentId && e.tool === 'mcp__lody__folio_resubmit_draft' && !e.ok));
+    assert(
+      events.some(
+        (e) => !e.agentId && e.tool === 'Write' && e.error?.includes('DESIGN_READ_REQUIRED')
+      )
+    );
+    assert.equal(
+      await readFile(path.join(workspace.projectionWorkdir, 'pages/design.page'), 'utf8'),
+      Buffer.from(files.get('pages/design.page')!).toString()
+    );
+    assert.equal(
+      await readFile(path.join(workspace.artifactWorkdir, 'design.pptd'), 'utf8'),
+      Buffer.from(files.get('design.pptd')!).toString()
+    );
+    console.log(
+      JSON.stringify({ status: 'passed', subagentProbe, parentRequests, childRequests, root })
+    );
+  } else {
+    assert(service.getAttempt()?.explicitResubmission);
+    assert.equal(
+      service.getAttempt()?.artifactDigest,
+      JSON.parse(frozen.toString()).artifactAtSend.digest
+    );
+    assert.deepEqual(await readFile(frozenPath), frozen);
+    let history: SessionHistoryInput[] = [
+      { id: 'probe-turn', role: 'user', content: [], timestamp: 1 } as SessionHistoryInput,
+    ];
+    const outcome = await collectDesignTurnOutcome({
+      sessionId,
+      turnId: 'probe-turn',
+      workdir: workspace.inputWorkdir,
+      workspaceRoot: root,
+      dataRoot: root,
+      designReadBaseline: service.getAttempt(),
+      sessionDoc: {
+        getMetaState: async () =>
+          ({
+            id: sessionId,
+            cliType: 'builtin',
+            agentType: 'claude',
+            userId: 'local:probe',
+            design: { artworkId: sessionId, path: 'design.json' },
+          }) as SessionMeta,
+        getHistory: async () => history,
+        updateHistory: async (update) => {
+          history = update(history);
         },
       },
-    },
-  })) as { sessionId: string };
-  await call('session/prompt', {
-    sessionId: unhooked.sessionId,
-    prompt: [{ type: 'text', text: 'NO_HOOK_SCENARIO' }],
-  });
-  let absentHistory: SessionHistoryInput[] = [
-    { id: 'absent-turn', role: 'user', content: [], timestamp: 2 } as SessionHistoryInput,
-  ];
-  const refused = await collectDesignTurnOutcome({
-    sessionId,
-    turnId: 'absent-turn',
-    workdir: workspace.inputWorkdir,
-    workspaceRoot: root,
-    dataRoot: root,
-    sessionDoc: {
-      getMetaState: async () =>
-        ({
-          id: sessionId,
-          cliType: 'builtin',
-          agentType: 'claude',
-          userId: 'local:probe',
-          design: { artworkId: sessionId, path: 'design.json' },
-        }) as SessionMeta,
-      getHistory: async () => absentHistory,
-      updateHistory: async (update) => {
-        absentHistory = update(absentHistory);
+    });
+    assert.equal(outcome.status, 'recorded');
+    if (outcome.status === 'recorded') assert.equal(outcome.outcome.status, 'committed');
+    const final = await designOperation(root, { operation: 'read', sessionId });
+    assert.equal(final.doc.background.color, '#556677');
+    await materializeDesignTurnInput({
+      workdir: workspace.inputWorkdir,
+      artifactWorkdir: workspace.artifactWorkdir,
+      artworkId: sessionId,
+      turnId: 'absent-turn',
+      prompt: 'NO_HOOK_SCENARIO',
+      skillSourceIdentity: 'a'.repeat(64),
+      dataRoot: root,
+    });
+    const unhooked = (await call('session/new', {
+      cwd: root,
+      mcpServers: [],
+      _meta: {
+        lody: {
+          sessionConfig: {
+            version: 1,
+            configOptionValues: { model: 'claude-sonnet-4-6', _permission: 'bypassPermissions' },
+          },
+        },
       },
-    },
-  });
-  assert.equal(refused.status, 'recorded');
-  if (refused.status === 'recorded') assert.equal(refused.outcome.status, 'invalid');
-  assert.equal(
-    (await designOperation(root, { operation: 'read', sessionId })).revisionId,
-    final.revisionId
-  );
-  assert(
-    (await readFile(path.join(workspace.artifactWorkdir, 'pages/design.page'), 'utf8')).includes(
-      '#AABBCC'
-    )
-  );
-  console.log(
-    JSON.stringify({
-      status: 'passed',
-      boundary:
-        'Real Claude2.1.258/SDK0.3.258/ACP0.70.0 + native command hooks and shared service/store; synthetic provider/MCP/control host; no Electron claim',
-      requests,
-      absentRequests,
-      hookAbsenceProtected: true,
-      events,
-      root,
-    })
-  );
+    })) as { sessionId: string };
+    await call('session/prompt', {
+      sessionId: unhooked.sessionId,
+      prompt: [{ type: 'text', text: 'NO_HOOK_SCENARIO' }],
+    });
+    let absentHistory: SessionHistoryInput[] = [
+      { id: 'absent-turn', role: 'user', content: [], timestamp: 2 } as SessionHistoryInput,
+    ];
+    const refused = await collectDesignTurnOutcome({
+      sessionId,
+      turnId: 'absent-turn',
+      workdir: workspace.inputWorkdir,
+      workspaceRoot: root,
+      dataRoot: root,
+      sessionDoc: {
+        getMetaState: async () =>
+          ({
+            id: sessionId,
+            cliType: 'builtin',
+            agentType: 'claude',
+            userId: 'local:probe',
+            design: { artworkId: sessionId, path: 'design.json' },
+          }) as SessionMeta,
+        getHistory: async () => absentHistory,
+        updateHistory: async (update) => {
+          absentHistory = update(absentHistory);
+        },
+      },
+    });
+    assert.equal(refused.status, 'recorded');
+    if (refused.status === 'recorded') assert.equal(refused.outcome.status, 'invalid');
+    assert.equal(
+      (await designOperation(root, { operation: 'read', sessionId })).revisionId,
+      final.revisionId
+    );
+    assert(
+      (await readFile(path.join(workspace.artifactWorkdir, 'pages/design.page'), 'utf8')).includes(
+        '#AABBCC'
+      )
+    );
+    console.log(
+      JSON.stringify({
+        status: 'passed',
+        boundary:
+          'Real Claude2.1.258/SDK0.3.258/ACP0.70.0 + native command hooks and shared service/store; synthetic provider/MCP/control host; no Electron claim',
+        requests,
+        absentRequests,
+        hookAbsenceProtected: true,
+        events,
+        root,
+      })
+    );
+  }
 } finally {
   child.kill();
   await exited.catch(() => {});

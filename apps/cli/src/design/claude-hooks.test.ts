@@ -91,18 +91,75 @@ it('only final successful complete batch delivery advances eligibility', async (
         .join('\n'),
     });
   }
+  await event({ event: 'UserPromptSubmit', agentId: 'child' });
+  await event({ event: 'PostToolUseFailure', callId: 'r0', agentId: 'child' });
+  await event({ event: 'PostToolBatch', calls, agentId: 'child' });
   await expect(write()).rejects.toThrow('DESIGN_READ_REQUIRED');
   await event({ event: 'PostToolBatch', calls });
   await expect(write()).resolves.toBeUndefined();
   await expect(adapter.resubmit()).rejects.toThrow('missing unambiguous native call');
 });
 
-it('rejects unverified runtime and subagent evidence', async () => {
-  const { event, adapter } = await setup();
+it('rejects unverified runtime', async () => {
+  const { adapter } = await setup();
   await expect(
     adapter.handle({ phase: 'claude', event: 'UserPromptSubmit', runtimeVersion: 'unknown' })
   ).rejects.toThrow('verified runtime');
+});
+
+it('preserves ordinary subagent tools without granting parent read evidence', async () => {
+  const { event, write, workspace, adapter } = await setup();
+  const child = (input: Omit<ClaudeDesignHook, 'phase' | 'runtimeVersion' | 'agentId'>) =>
+    event({ ...input, agentId: 'child' });
+  for (const tool of ['Bash', 'Read', 'Write', 'Edit', 'mcp__other__tool']) {
+    await expect(
+      child({ event: 'PreToolUse', tool, path: 'ordinary.txt', callId: tool })
+    ).resolves.toBeUndefined();
+    await child({ event: 'PostToolUse', tool, callId: tool });
+  }
+  await child({ event: 'UserPromptSubmit' });
+  const calls = [];
+  for (const [i, file] of ['design.pptd', 'pages/design.page'].entries()) {
+    const target = path.join(workspace.projectionWorkdir, file),
+      id = `child-read-${i}`;
+    await event({ event: 'PreToolUse', tool: 'Read', path: target, callId: id });
+    await child({ event: 'PreToolUse', tool: 'Read', path: target, callId: id });
+    await child({ event: 'PostToolUse', tool: 'Read', callId: id });
+    // The child's complete returned text still cannot attest parent delivery.
+    calls.push({
+      id,
+      response: (await readFile(target, 'utf8'))
+        .split('\n')
+        .map((line, n) => `${n + 1}\t${line}`)
+        .join('\n'),
+    });
+  }
+  await child({ event: 'PostToolBatch', calls });
+  await child({ event: 'PostToolUseFailure', callId: 'unrelated' });
+  await event({ event: 'PostToolBatch', calls });
+  await expect(write()).rejects.toThrow('DESIGN_READ_REQUIRED');
+  await expect(adapter.resubmit()).rejects.toThrow('missing unambiguous native call');
+});
+
+it('refuses only controlled subagent mutations and resubmission', async () => {
+  const { event, workspace } = await setup();
+  for (const target of [
+    path.join(workspace.projectionWorkdir, 'design.pptd'),
+    path.join(workspace.artifactWorkdir, 'design.pptd'),
+    path.join(workspace.artifactWorkdir, 'pages/design.page'),
+    path.join(workspace.artifactWorkdir, 'media/image.png'),
+  ])
+    for (const tool of ['Write', 'Edit']) {
+      await expect(
+        event({ event: 'PreToolUse', agentId: 'child', tool, path: target, callId: 'mutation' })
+      ).rejects.toThrow('DESIGN_MAIN_SESSION_REQUIRED');
+    }
   await expect(
-    event({ event: 'PreToolUse', tool: 'Read', callId: 'child', path: 'file', agentId: 'subagent' })
-  ).rejects.toThrow('main Claude session');
+    event({
+      event: 'PreToolUse',
+      agentId: 'child',
+      tool: 'mcp__lody__folio_resubmit_draft',
+      callId: 'resubmit',
+    })
+  ).rejects.toThrow('DESIGN_MAIN_SESSION_REQUIRED');
 });

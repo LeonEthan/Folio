@@ -36,3 +36,7 @@ PostToolBatch to fence generations; individual tool completion cannot advance it
 Require successful final batch Read output. Select runtime policy from private
 launch registration, and keep the native-version pin distinct from ACP/SDK pins.
 MCP resubmission consumes the original native call identity; it never invents one.
+
+Subagent events cannot change main-session read evidence or generation state.
+Allow unrelated subagent tools; reject only native Write/Edit to shared controlled
+design paths and design resubmission. This is not a shell/custom-tool sandbox.

@@ -127,6 +127,8 @@ read output, while pre-hook errors/timeouts allow execution. See the
 [Kimi boundary evidence](../../../../.agents/notes/proposed/architecture/2026-09-11-kimi-design-hook-boundary.md).
 Ordinary ACP support does not establish design-hook support.
 
+Grok design-hook support is not enabled. The [1.0.13 native audit](../../../../.agents/notes/proposed/architecture/2026-09-11-grok-design-hook-runtime-gap.md) records working tool callbacks but no usable generation boundary; file hooks and SDK notifications have different completion semantics.
+
 Completed caches written before metadata schema v1 remain reusable through a separate strict
 legacy schema; their old `name`/`version`/`platform` fields are normalized in memory and only
 the trusted runtime definition's command and host requirement are inferred. Repacked Node

@@ -57,6 +57,20 @@ export class DesignSyncService {
     return operation;
   }
 
+  /** Shared lexical scope for native adapters; classifying a path creates no evidence. */
+  classifyToolPath(filePath: string) {
+    const { workspace } = this.context;
+    const absolute = path.resolve(workspace.workspaceRoot, filePath);
+    const projectionPath = path.relative(workspace.projectionWorkdir, absolute);
+    const inProjection =
+      projectionPath !== '' &&
+      !path.isAbsolute(projectionPath) &&
+      !projectionPath.split(path.sep).includes('..');
+    const draftPath = path.relative(workspace.artifactWorkdir, absolute).split(path.sep).join('/');
+    const inDraft = draftPath === 'design.pptd' || /^(pages|media)\//.test(draftPath);
+    return { projectionPath, inProjection, inDraft };
+  }
+
   private async current(): Promise<DesignPayload> {
     this.context.assertActive();
     return this.context.read
@@ -126,14 +140,7 @@ export class DesignSyncService {
       return;
     }
     const { workspace, artworkId } = this.context;
-    const absolute = path.resolve(workspace.workspaceRoot, event.path);
-    const projectionPath = path.relative(workspace.projectionWorkdir, absolute);
-    const inProjection =
-      projectionPath !== '' &&
-      !path.isAbsolute(projectionPath) &&
-      !projectionPath.split(path.sep).includes('..');
-    const draftPath = path.relative(workspace.artifactWorkdir, absolute).split(path.sep).join('/');
-    const inDraft = draftPath === 'design.pptd' || /^(pages|media)\//.test(draftPath);
+    const { projectionPath, inProjection, inDraft } = this.classifyToolPath(event.path);
     if (event.tool !== 'read') {
       if (inProjection) throw Error('DESIGN_INPUT_READ_ONLY: write the separate authoring draft');
       if (!inDraft) return;

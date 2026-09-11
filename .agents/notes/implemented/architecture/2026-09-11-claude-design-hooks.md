@@ -76,7 +76,7 @@ hook absence and deterministic service failures were tested; a stalled real
 35-second hook was not used as a timing-based acceptance test.
 
 Deterministic tests cover failed/cancelled/missing/partial/rewritten delivery,
-same-batch rejection, missing resubmission identity and runtime/subagent rejection.
+same-batch rejection, missing resubmission identity, runtime checks and subagent isolation.
 Collector tests cover Claude output without live facts and a final atomic version
 race. These checks do not establish paid-model design quality or support for
 unverified operating systems/runtime versions. Electron acceptance evidence is
@@ -84,8 +84,9 @@ recorded below.
 
 ### Desktop acceptance
 
-The existing Electron harness launched the packaged local app directory with
-isolated user data, data root and endpoint. Through the actual provider settings
+The existing Electron harness launched the production-built local app directory
+with isolated user data, data root and endpoint. This was a development launch,
+not an installed distribution. Through the actual provider settings
 UI it selected the pinned Claude executable and synthetic local endpoint. The
 probe inserted a shape in Bento, saved through real IPC, read that projection,
 observed a same-batch Write refusal, then wrote and naturally committed while
@@ -109,3 +110,27 @@ it does not drop enterprise model routing or forward arbitrary environment keys.
 The final native probe also launched a second ACP session with our hooks absent:
 actual native tools wrote a valid changed draft, but final collection rejected the
 missing live baseline, preserved the canonical revision and retained draft bytes.
+
+### Subagent scope correction
+
+An initial wildcard handler rejected every hook payload containing `agent_id`,
+which also blocked ordinary delegated Bash and file operations. Actual pinned
+native execution reproduced that failure. The corrected adapter ignores subagent
+reads, results and batch events so they cannot alter the main session's evidence
+or generation. It permits ordinary subagent tools and refuses only native
+Write/Edit on controlled projection/draft paths and `folio_resubmit_draft`.
+The shared service's existing lexical path classification is reused unchanged;
+no subagent synchronization engine or creative workflow was introduced.
+
+Run `probe-claude-design.ts` with `FOLIO_PROBE_SUBAGENT=1` to exercise this boundary.
+The actual Claude 2.1.258 `Agent` tool uses `run_in_background: false` so the
+synthetic parent's next operation waits for its child. Native hooks identify child
+PreToolUse/PostToolUse/PostToolBatch with `agent_id`. The child successfully runs
+Bash and ordinary Read/Edit/Write, reads the complete published projection, then
+receives refusals for draft Write, projection Edit and MCP resubmission. The
+parent's subsequent Write still receives `DESIGN_READ_REQUIRED`, and controlled
+bytes remain unchanged. The local run recorded three child and three parent
+model requests in `/tmp/t17-subagent-after.log`; only the model/control/MCP peers
+are synthetic. Deterministic tests additionally cover colliding child call IDs
+and child batch/failure events without erasing or advancing parent evidence.
+Arbitrary shell/custom-tool access remains outside this native path guard.

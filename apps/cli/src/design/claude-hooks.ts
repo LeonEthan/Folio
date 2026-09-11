@@ -49,10 +49,22 @@ export class ClaudeDesignHooks {
   }
 
   private async apply(event: ClaudeDesignHook) {
-    if (event.agentId)
-      throw Error(
-        'Design hooks require the main Claude session; subagent reads cannot authorize its writes'
-      );
+    if (event.agentId) {
+      // Delegation remains available. Its reads/results/batches never touch the
+      // parent's generation or evidence, and its controlled mutations stay denied.
+      if (event.event === 'PreToolUse') {
+        const scope = event.path ? this.service.classifyToolPath(event.path) : undefined;
+        if (
+          event.tool === 'mcp__lody__folio_resubmit_draft' ||
+          ((event.tool === 'Write' || event.tool === 'Edit') &&
+            (scope?.inProjection || scope?.inDraft))
+        )
+          throw Error(
+            'DESIGN_MAIN_SESSION_REQUIRED: perform this design mutation in the main Claude session'
+          );
+      }
+      return;
+    }
     if (event.event === 'UserPromptSubmit') {
       this.calls.clear();
       await this.advance(event.runtimeVersion);
