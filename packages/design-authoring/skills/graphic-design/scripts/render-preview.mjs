@@ -8,7 +8,7 @@
 // Visual rendering is NOT done by this script. Preview rendering goes through
 // the `folio_render_preview` MCP tool when the app's render provider is
 // connected; call that tool, then open the PNG it returns. This script exists
-// so a project that would fail intake never reaches that step.
+// as an optional local structural check, not a prerequisite for rendering.
 
 import path from 'node:path';
 import { existsSync } from 'node:fs';
@@ -48,6 +48,6 @@ console.log(
 );
 console.log(
   'render-preview: visual rendering is provided by the folio_render_preview MCP tool. ' +
-    'If that tool is not connected in this session, no preview can be produced here; ' +
-    'report that visual review is incomplete instead of substituting another renderer.'
+    'This script does not render or review images. If that tool is absent, only that tool ' +
+    'is unavailable; use other actual Agent image capabilities as appropriate.'
 );

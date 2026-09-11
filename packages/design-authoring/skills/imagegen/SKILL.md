@@ -1,8 +1,8 @@
 ---
 name: imagegen
-description: "Use when the user asks to generate or edit images through Folio's image connection (for example: generate image, product shots, concept art, covers, or batch variants); calls the folio_generate_image MCP tool, which is registered only when an image connection is configured and enabled in Folio settings."
+description: "Use when the user asks to generate images through Folio's image connection (for example: generate image, product shots, concept art, covers, or batch variants); calls the folio_generate_image MCP tool, which is registered only when an image connection is configured and enabled in Folio settings."
 metadata:
-  short-description: Generate and edit images via Folio's image connection
+  short-description: Generate images via Folio's image connection
 ---
 
 # Image Generation Skill
@@ -16,40 +16,40 @@ MCP tool, which talks to the user's configured OpenAI-Images-compatible connecti
 
 `folio_generate_image` is registered only when the user has configured and enabled an
 image connection (base URL, API key, model) in Folio settings. If the tool is not in
-your tool list, the connection is absent or disabled: do not attempt raw HTTP or
-substitute another path — tell the user image generation is not configured and that
-they can enable it in settings, then continue with the assets you have. Never ask the
-user to paste an API key in chat; keys live in the app's settings storage.
+your tool list, that tool is unavailable for this session. Folio settings can enable
+its connection; assess other capabilities from the actual tools available to your
+Agent, without inferring that all image generation or image reading is unavailable.
+Never ask the user to paste an API key in chat; keys live in the app's settings storage.
 
 ## When to use
 
 - Generate a new image (concept art, product shot, cover, website hero)
 - Batch runs (many prompts, or many variants across prompts)
 
-## Workflow
+## Using generated assets
 
-1. Collect inputs up front: prompt(s), exact text (verbatim), constraints/avoid list.
-2. Augment the prompt into a short labeled spec (structure + constraints) without
-   inventing new creative requirements.
-3. Call `folio_generate_image` with the augmented prompt. The tool writes the returned
-   bytes verbatim to the workspace asset area and returns the path — never re-encode
-   or convert API images yourself.
-4. For a graphic-design project, place the final asset under the project's `media/`
-   directory and reference it from there.
-5. Inspect outputs (open/view images) and validate: subject, style, composition, text
-   accuracy, and avoid items.
-6. Iterate: make a single targeted prompt change, re-run, re-check.
-7. Report the final prompt used together with the asset path.
+Choose your own prompting, inspection, and iteration approach for the task. Useful
+inputs include exact text, subject, composition, intended use, and constraints.
+`folio_generate_image` writes returned bytes to the workspace asset area and
+returns their path. For graphic-design, place the asset under the project's
+`media/` and reference it there. Open outputs with an actual image-reading tool to
+judge the result and decide whether further changes are useful. Report material
+limits and the resulting asset path.
+
+Prompt templates and taxonomy below are optional aids. They do not prescribe a
+creative sequence, number of reviews, or automatic paid retries. The current tool
+accepts a text prompt for generation; it does not accept source images for editing.
+Edit and multi-image examples in the references are prompting knowledge, not a
+claim that this connection exposes those operations.
 
 ## Prompt augmentation
 
-Reformat user prompts into a structured, production-oriented spec. Only make implicit
+A structured, production-oriented spec can help clarify a prompt. Only make implicit
 details explicit; do not invent new requirements.
 
-## Use-case taxonomy (exact slugs)
+## Optional use-case taxonomy
 
-Classify each request into one of these buckets and keep the slug consistent across
-prompts and references.
+These buckets organize the examples; use them when helpful.
 
 Generate:
 
@@ -91,11 +91,10 @@ Avoid: <negative constraints>
 Augmentation rules:
 
 - Keep it short; add only details the user already implied or provided elsewhere.
-- Always classify the request into a taxonomy slug above and tailor
-  constraints/composition to that bucket. Use the slug to find the matching example in
+- The taxonomy slugs help find matching examples in
   [references/sample-prompts.md](references/sample-prompts.md).
 - For a broad request (e.g., "generate images for this website"), use judgment to
-  propose tasteful, context-appropriate assets and map each to a taxonomy slug.
+  propose tasteful, context-appropriate assets using the examples as inspiration.
 - If any critical detail is missing and blocks success, ask a question; otherwise
   proceed.
 
@@ -120,7 +119,7 @@ Constraints: no logos, no text, no watermark
 - Use camera/composition language for photorealism.
 - Quote exact text and specify typography + placement.
 - For tricky words, spell them letter-by-letter and require verbatim rendering.
-- Iterate with single-change follow-ups.
+- Targeted follow-ups can help identify which change improved an image.
 - If results feel “tacky”, add a brief “Avoid:” line (stock-photo vibe; cheesy lens
   flare; oversaturated neon; harsh bloom; oversharpening; clutter) and specify
   restraint (“editorial”, “premium”, “subtle”).

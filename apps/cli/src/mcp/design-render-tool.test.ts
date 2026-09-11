@@ -133,6 +133,16 @@ const textOf = (result: CallToolResult): string =>
   result.content.map((part) => (part.type === 'text' ? part.text : '')).join('\n');
 
 describe('folio_render_preview gate', () => {
+  it('publishes image-reading guidance without imposing a creative gate', async () => {
+    await withServer({ renderHost: true }, async (client) => {
+      const tool = (await client.listTools()).tools.find((entry) => entry.name === TOOL_NAME);
+      expect(tool?.description).toContain('actual image-reading tool');
+      expect(tool?.description).toContain('Choose review depth and iterations');
+      expect(tool?.description).toContain('other Agent image capabilities may still be available');
+      expect(tool?.description).toContain('not completion or commit gates');
+    });
+  });
+
   it('is absent from the published tool list while no desktop is polling', async () => {
     const names = await listToolNames();
     expect(names).not.toContain(TOOL_NAME);

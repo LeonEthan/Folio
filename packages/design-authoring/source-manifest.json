@@ -59,9 +59,8 @@
     },
     "skills/graphic-design/references/general-poster.md": {
       "upstreamPath": "skills/graphic-design/references/general-poster.md",
-      "derivation": "verbatim",
-      "upstreamSha256": "1ce83687a07955264f97447866ed98cfb3892ccdebeab3725960262d4d94afe3",
-      "sha256": "1ce83687a07955264f97447866ed98cfb3892ccdebeab3725960262d4d94afe3"
+      "derivation": "adapted",
+      "upstreamSha256": "1ce83687a07955264f97447866ed98cfb3892ccdebeab3725960262d4d94afe3"
     },
     "skills/graphic-design/references/replication.md": {
       "upstreamPath": "skills/graphic-design/references/replication.md",

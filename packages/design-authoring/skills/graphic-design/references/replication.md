@@ -17,42 +17,27 @@ closed rectangle stays inside that canvas: a block flush with the bottom edge us
 `y = canvasH - h`. If the exact dimensions exceed a real platform resource limit,
 rescale proportionally and report the change; do not substitute a habitual preset.
 
-## Inspect in one pass
+## Reference analysis helpers
 
-Run the pack once, from this skill's directory:
-
-```sh
-node ../scripts/reference-pack.mjs pack <reference-image> <work>/inspect
-```
-
-Then read the artifacts it writes: `meta.json` (pixel dimensions and palette hexes),
-`grid.png` (overview with original-coordinate grid for bounds), `bands.png`
-(enlarged vertical bands for dense text, icons, badges, and edges), and
-`palette.png`. That pack is the section list, the color samples, and the coordinate
-reference — one pass, already on disk.
-
-Extract each distinct photograph or product shot into the project's `media/` with
-the same tool:
+Choose available image-reading and analysis methods to suit the reference. The
+optional reference pack can supply dimensions, a coordinate grid, enlarged bands,
+and palette swatches. From this skill's directory:
 
 ```sh
-node ../scripts/reference-pack.mjs crop <reference-image> <x,y,w,h> <project>/media/<name>.png
+node scripts/reference-pack.mjs pack <reference-image> <work>/inspect
+node scripts/reference-pack.mjs crop <reference-image> <x,y,w,h> <project>/media/<name>.png
 ```
 
-Its bounds are validated against the image and the output is re-encoded clean, so
-crops are safe to embed and to re-inspect. After a crop is saved under `media/`,
-author from its path. Write the `.page` immediately after the pack and crops exist.
-Further crops or color samples happen only to correct a written element.
+The pack writes `meta.json`, `grid.png`, `bands.png`, and `palette.png` for supported
+PNG input. Crops check image bounds and re-encode the selected region as PNG.
+These are aids; neither their use nor a particular number of inspections is required.
+Further measurement, sampling, or cropping may be useful at any point.
 
-The tool is dependency-free Node: PNG references are fully supported, while JPEG and
-other formats report dimensions in `meta.json` but must be converted to PNG before
-grid/bands/palette/crop. If conversion is impossible, measure from the reference
-directly and report the reduced precision.
-
-Do not write pixel-probing scripts (row/column scans, point color sampling,
-edge hunts) against the reference: the grid's original-coordinate labels, the
-palette hexes, and your reading of `grid.png` / `bands.png` are the measurement.
-If a value cannot be read from them, estimate it from the grid and correct it
-against the written element later.
+This dependency-free script supports non-interlaced 8-bit gray/RGB/RGBA/palette PNG raster
+operations. JPEG/GIF/BMP/WEBP report dimensions only; other PNG encodings or formats
+may require a supported analysis copy for grid/bands/palette/crop. This script's
+limits do not limit the Agent's other image tools. Keep original assets and use
+other available tools directly when useful; report consequential uncertainty.
 
 Unclear wording, unavailable fonts, hidden geometry, and ambiguous layers are
 fidelity limits: preserve known content and report consequential assumptions.
@@ -89,28 +74,18 @@ Match the observable reference as closely as the evidence and Active Profile per
 Do not invent off-style decoration to fill uncertain regions. Keep a concise record of
 material deviations that affect fidelity or editability.
 
-## Verify in two loops
+## Visual fidelity
 
-These loops run on a written project. If the `.page` is not on disk, return to writing
-it.
+The optional `scripts/finalize.mjs` helper checks syntax; it does not establish
+visual fidelity. When rendering with `folio_render_preview`, open the resulting
+PNG with an actual image-reading tool. Useful questions include:
 
-First run `node ../scripts/finalize.mjs <project>/design.pptd.tmp` and fix every
-diagnostic until the draft is promoted: font family, shape names, in-canvas bounds,
-flat `src` / `shapeName` / `bold` fields, and `cropShape` object shape. Folio's
-save/reopen and official export run after the session.
+- Is there unintended stretching, blur, clipping, or crop drift?
+- Is text readable, with key subjects, logos, and facts visible?
+- Are alignment, spacing, layering, and color consistent with the reference?
+- Are missing objects and material fidelity differences understood?
 
-Then, when the `folio_render_preview` MCP tool is connected, render the project through
-it, open the PNG with the image-reading tool, and inspect it at overview and detail
-scales:
-
-- no unintended stretching, blur, clipping, or crop drift;
-- no text covering key subjects, logos, or facts;
-- readable contrast, type size, line height, and information density;
-- reference-consistent alignment, spacing, layering, and color;
-- no unintended occlusion or unexplained missing objects;
-- fidelity differences are understood and reported.
-
-A passing validator does not prove visual fidelity, contrast, or editability. Any page
-or asset correction invalidates the visual review: rerender and reopen the PNG. Stop
-when the accepted target is met or the remaining gap is an explicit profile or
-source-evidence limitation.
+Choose review depth and iterations according to the task. View updated renders
+when needed to judge edits; no fixed review count or analysis sequence applies.
+Tool absence describes only that tool, not all Agent visual capabilities. Report
+actual inspection and remaining source-evidence or capability limits honestly.

@@ -8,8 +8,9 @@ platform's machine-readable Active Profile and its conformance tests.
 
 Folio creates and edits one **static visual canvas** through a Bento-derived editor
 and renderer. Graphic-PPTD is the Agent-facing authoring format; after a successful
-import, the platform visual document remains the single editable truth. There is no
-editable two-way synchronization with the source.
+import, the platform visual document remains the single editable truth. PPTD v3 can
+project its editable state losslessly; the projection and Agent drafts are not a
+second editable truth.
 
 The target vocabulary is high-coverage static graphic semantics, including where useful:
 
@@ -85,6 +86,7 @@ unverified input fails closed rather than degrading to something that merely ren
 
 The full upstream PPTD language catalogue is deliberately **not** bundled with this
 skill: it documents a Candidate family that is not Active here, and its presence does
-not expand the Active Profile. The authoring membership in
-[pptd-authoring.md](pptd-authoring.md) is the complete write-time vocabulary; anything
-it does not declare is unsupported and must be left out or reported as a limitation.
+not expand the Active Profile. The version guidance and v2 example in
+[pptd-authoring.md](pptd-authoring.md) describe the bundled format guidance; an
+existing v3 projection also carries editable fields not enumerated in that compact
+guide. Preserve those fields rather than assuming their omission means unsupported.

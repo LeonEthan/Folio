@@ -1,14 +1,27 @@
 # Graphic-PPTD Authoring Guide
 
-This is a compact workflow guide. Read
+This is a compact format guide. Read
 [graphic-canvas-profile.md](graphic-canvas-profile.md) first. Write from the
-membership below; Folio's intake validator enforces it after your turn.
+version-specific guidance below; Folio's intake validator enforces it after your turn.
 
-If a field or combination is not in this membership, leave it out. No upstream PPTD
+Do not invent fields or combine syntax from different versions. No upstream PPTD
 catalogue is bundled with this skill; such catalogues describe future Candidate work,
 not an authoring permission.
 
-## Static-v1 semantic facts
+## PPTD versions
+
+The bundled minimal example uses PPTD v2. Existing editable documents can be
+projected as lossless PPTD v3: a `version: v3` manifest with `size`, one `pages`
+entry, optional `title` and `customFonts`; a page with `background`, `elements`,
+and optional `diagnostics`. v3 elements use `elementId` and `elementType` and
+otherwise preserve the Bento v4 fields, including structured `text`, `table`,
+and `chart`, literal styles, and flat `groupId`. Preserve existing fields and
+array order when editing a v3 projection; its asset `src` paths remain under
+`media/`. Do not apply v2 HTML text or theme syntax to v3 structured fields.
+Unknown fields and versions fail explicitly. This guide does not enumerate
+every v3 field; use the existing projected document and structural diagnostics.
+
+## Static-v1 semantic facts (v2)
 
 The machine source for derivable defaults and modeled vocabularies is the platform's
 contracts package (`static-v1`); validators, importers, editor commands, UI, and
@@ -32,7 +45,7 @@ a missing style or name is an error rather than a placeholder permission.
 
 ## Write-time membership
 
-Scan every element before treating the project as done:
+The v2 format includes these structural constraints:
 
 - `fontFamily` is omitted (static-v1 derives MiSans) or is exactly `MiSans`.
 - Every `shapeName` is one of `rect`, `roundRect`, `ellipse`, `oval`, `triangle`,
@@ -54,9 +67,8 @@ pages/<name>.page # the one canvas
 media/*           # optional local raster/vector assets
 ```
 
-The manifest must reference exactly one `.page`. Write the `.page` first, then the
-manifest. Keep all dependencies inside the project. Image and vector asset paths are
-relative, remain under `media/`, and must not resolve to remote URLs or escape the
+The manifest must reference exactly one `.page`. Keep all dependencies inside the
+project. Image and vector asset paths are relative, remain under `media/`, and must not resolve to remote URLs or escape the
 project.
 
 ## Minimal structural example
@@ -99,13 +111,12 @@ Two geometry habits the editor rewards:
 
 ## Validation and handoff
 
-In session, the done check is executable: run
-`node ../scripts/finalize.mjs <project>/design.pptd.tmp` and fix every diagnostic
-until it promotes the draft to `design.pptd`. It invokes the same validator Folio
-runs at intake after your turn, so a clean finalize means the write-time membership
-above held. It does not prove the composition: when the `folio_render_preview` MCP
-tool is connected, render through it and open the PNG before reporting completion.
-Save/reopen, editing, and official export still run after the session.
+`node scripts/finalize.mjs <project>/design.pptd[.tmp]` (from the skill directory)
+is an optional structural self-check. It can promote a clean `.tmp`, but writing
+`design.pptd` directly is supported. Neither this helper nor a review sequence is
+a completion or commit requirement. Folio independently checks the collected
+project and versions. When rendering through `folio_render_preview`, open the
+PNG with an actual image-reading tool to judge composition and decide on edits.
 
 Any silent drop, placeholder, reset after reopen, or mismatch between preview and export
 is a failed capability, even if the source parsed. Remove the unsupported semantics,

@@ -6,7 +6,7 @@ or DSL syntax.
 
 ## Frame the communication problem
 
-Before composing, establish:
+Useful context for composition includes:
 
 - what the viewer should see, understand, remember, or do;
 - the audience, viewing distance, medium, and available reading time;
@@ -15,23 +15,22 @@ Before composing, establish:
   hierarchy, object structure, data, or atmosphere;
 - which images, data, and facts are supplied or can be verified.
 
-Form a short working brief with the core message, primary focus, reading order, visual
-concept, color roles, type hierarchy, image treatment, and the main failure mode to
+If useful, form a short working brief with the core message, primary focus, reading
+order, visual concept, color roles, type hierarchy, image treatment, and the main failure mode to
 avoid. Keep it in working notes unless the user asks for a durable design brief; do not
 create a second source of truth for the finished design.
 
-## Explore before committing
+## Composition alternatives
 
-Consider two or three substantively different directions before writing the page. Vary
-at least two of these:
+Alternative directions can help clarify a broad brief. Possible dimensions include:
 
 - primary medium: image, typography, object, data, relationship diagram, or abstraction;
 - information structure: sequence, comparison, hierarchy, local zoom, layered section,
   matrix, or single scene;
 - spatial organization: full-bleed, off-axis, symmetric, dense, spacious, or zoned.
 
-At least one direction should treat the whole canvas as one visual field rather than
-dividing every item into equal cards. Compare candidates by subject recognition,
+Consider treating the whole canvas as one visual field rather than
+dividing every item into equal cards. Compare directions by subject recognition,
 thumbnail memorability, information capacity, coexistence with text, and attainable
 editability. Choose a direction because it carries the content, not because it is easy to
 implement.
@@ -96,7 +95,7 @@ rules, object groups, or typographic rhythm first.
 
 ## Review the rendered canvas
 
-Review the full-canvas overview first, then inspect details at actual output size:
+An overview and details at actual output size can reveal different issues:
 
 - Is the subject and primary focus immediately clear?
 - Does the reading order match the intended message?

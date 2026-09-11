@@ -1,11 +1,14 @@
 /**
- * Design skill materializer tests. Synthetic bundled skill trees only; the
- * real bundle bytes are irrelevant to the sync discipline.
+ * Design skill sync discipline and actual packaged/materialized Agent materials.
  */
 
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import {
+  cpSync,
   existsSync,
+  readdirSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -22,6 +25,7 @@ import {
   designSkillPointerLine,
   designSkillsForImageCapability,
   materializeDesignSkills,
+  resolveBundledSkillSourceDir,
 } from './skills';
 import { rmSync } from 'node:fs';
 
@@ -183,7 +187,7 @@ describe('materializeDesignSkills', () => {
 describe('designSkillPointerLine', () => {
   it('points at the .claude project skill dir', () => {
     expect(designSkillPointerLine('/tmp/wd')).toBe(
-      'Use the skill at /tmp/wd/.claude/skills/graphic-design; read its SKILL.md first.'
+      'Design format and optional helpers: /tmp/wd/.claude/skills/graphic-design/SKILL.md. Choose your own creative methods and review.'
     );
   });
 });
@@ -212,5 +216,79 @@ describe('designSkillsForImageCapability', () => {
     for (const base of DESIGN_SKILL_TARGET_BASES) {
       expect(existsSync(path.join(workdir, base, 'imagegen', 'SKILL.md'))).toBe(true);
     }
+  });
+});
+
+describe('packaged design materials', () => {
+  it('stages the real bundle, materializes both skills, and keeps human edits', () => {
+    const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
+    const staged = makeWorkdir();
+    for (const [script, args] of [
+      ['packages/design-authoring/scripts/build.mjs', []],
+      ['apps/cli/scripts/copy-design-skills.js', [staged]],
+    ] as const) {
+      const result = spawnSync(process.execPath, [path.join(repository, script), ...args], {
+        cwd: repository,
+        encoding: 'utf8',
+      });
+      expect(result.status, result.stderr).toBe(0);
+    }
+    const sourceDir = resolveBundledSkillSourceDir(path.join(staged, 'index.js'));
+    const workdir = makeWorkdir();
+    const skills = designSkillsForImageCapability(true);
+    const first = materializeDesignSkills({ workdir, sourceDir, skills });
+    const materials: string[] = [];
+    for (const target of first.targets) {
+      const manifest = JSON.parse(
+        readFileSync(path.join(target.dir, SKILL_MANIFEST_FILENAME), 'utf8')
+      ) as Record<string, string>;
+      for (const rel of Object.keys(manifest)) {
+        const bytes = readFileSync(path.join(target.dir, rel));
+        expect(sha256Hex(bytes)).toBe(manifest[rel]);
+        expect(
+          bytes.equals(readFileSync(path.join(sourceDir, path.basename(target.dir), rel)))
+        ).toBe(true);
+        if (rel.endsWith('.md')) materials.push(bytes.toString('utf8'));
+      }
+    }
+    const text = materials.join('\n');
+    expect(text).not.toMatch(
+      /inspect → draft|inspect once|inspect in one pass|verify in two loops|never script pixel|do not write pixel-probing|rerun until|done check is executable|review is incomplete|never substitute another renderer/i
+    );
+    expect(text).toContain('Choose your own analysis, drafting, and review methods');
+    expect(text).toContain('You may write `design.pptd` directly');
+    expect(text).toContain('actual image-reading tool');
+    expect(text).toContain('version: v3');
+    expect(text).toContain('does not accept source images for editing');
+
+    // Directly authored final files are valid without running finalize, and the
+    // shipped helper executes from the materialized tree with its bundled library.
+    const graphic = path.join(workdir, '.agents/skills/graphic-design');
+    cpSync(path.join(graphic, 'examples/minimal'), workdir, { recursive: true });
+    writeFileSync(
+      path.join(workdir, 'design.pptd'),
+      readFileSync(path.join(workdir, 'poster.pptd'))
+    );
+    const intake = spawnSync(
+      process.execPath,
+      [path.join(graphic, 'scripts/render-preview.mjs'), path.join(workdir, 'design.pptd')],
+      { cwd: workdir, encoding: 'utf8' }
+    );
+    expect(intake.status, intake.stderr).toBe(0);
+    expect(intake.stdout).toContain('intake OK');
+    expect(intake.stdout).toContain('This script does not render or review images');
+    expect(readdirSync(workdir)).not.toContain('design.pptd.tmp');
+
+    const edited = path.join(workdir, '.claude/skills/graphic-design/SKILL.md');
+    writeFileSync(edited, '# Human-owned design instructions\n');
+    const second = materializeDesignSkills({ workdir, sourceDir, skills });
+    expect(second.sourceIdentity).toBe(first.sourceIdentity);
+    expect(second.targets.find((target) => target.dir === path.dirname(edited))?.drifted).toEqual([
+      'SKILL.md',
+    ]);
+    expect(readFileSync(edited, 'utf8')).toBe('# Human-owned design instructions\n');
+    expect(readFileSync(path.join(graphic, 'SKILL.md'), 'utf8')).toContain(
+      'Choose your own analysis, drafting, and review methods'
+    );
   });
 });

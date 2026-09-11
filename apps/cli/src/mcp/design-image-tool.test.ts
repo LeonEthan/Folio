@@ -146,6 +146,16 @@ const textOf = (result: CallToolResult): string =>
   result.content.map((part) => (part.type === 'text' ? part.text : '')).join('\n');
 
 describe('folio_generate_image gate', () => {
+  it('publishes autonomous image guidance while preserving paid-call disclosure', async () => {
+    await withServer({ designGate: readyGate }, async (client) => {
+      const tool = (await client.listTools()).tools.find((entry) => entry.name === TOOL_NAME);
+      expect(tool?.description).toContain('actual image-reading tool');
+      expect(tool?.description).toContain('only this generation tool is unavailable');
+      expect(tool?.description).toContain('never retried automatically');
+      expect(tool?.description).not.toContain('make one targeted change per call');
+    });
+  });
+
   it('is absent from the published tool list when no connection is configured', async () => {
     const names = await listToolNames();
     expect(names).not.toContain(TOOL_NAME);

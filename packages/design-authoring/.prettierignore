@@ -12,7 +12,7 @@ src/validate.ts
 # Build outputs are regenerated, never hand-edited.
 src/generated/
 skills/graphic-design/scripts/lib/
-# Verbatim upstream reference material.
+# Preserve upstream reference layouts; provenance is in source-manifest.json.
 skills/graphic-design/references/
 skills/imagegen/references/
 node_modules/

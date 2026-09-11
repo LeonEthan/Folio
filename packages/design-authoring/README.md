@@ -60,16 +60,27 @@ self-contained in a materialized session workdir:
   import) locally, then reports honestly that visual rendering is provided by the
   `folio_render_preview` MCP tool when connected.
 - `scripts/reference-pack.mjs` — dependency-free Node port of the upstream Pillow
-  inspection tool (pack: meta/grid/bands/palette; crop). PNG is fully decoded via
-  `node:zlib`; JPEG/GIF/BMP/WEBP report dimensions but raster artifacts require
+  inspection tool (pack: meta/grid/bands/palette; crop). Supported non-interlaced
+  8-bit gray/RGB/RGBA/palette PNG is decoded via `node:zlib`; JPEG/GIF/BMP/WEBP report dimensions but raster artifacts require
   PNG. Ported because neither Folio nor the migrated intake covers reference-image
-  measurement, grid overlay, palette extraction, or raster cropping, and the
-  reconstruction workflow needs them.
+  measurement, grid overlay, palette extraction, or raster cropping. These are
+  optional reconstruction aids.
 
 `skills/imagegen/` keeps the upstream prompting method, rewritten for the
 `folio_generate_image` MCP tool (registered only when the user configures and
 enables an image connection). Runtime per-file `VENDOR.lock` freezing is replaced
 by this package's build-time source manifest.
+
+The materials describe capabilities and optional design methods, without fixed
+inspection/drafting/review order, analysis restrictions, or review counts. Rendering
+instructions retain actual image reading and autonomous corrections; missing tools
+are described individually. `finalize` is optional and never a turn/commit gate.
+PPTD v2 examples and v3 projection guidance remain version-specific. The image skill
+currently describes text-to-image generation; edit support belongs to T09.
+
+The CLI staging/materialization integration test reads the delivered files, runs
+the bundled intake helper without finalize, and preserves user-edited materials
+on repeated sync. See the [decision and evidence](../../.agents/notes/implemented/simplification/2026-09-11-autonomous-design-skills.zh.md).
 
 ## Build and test
 

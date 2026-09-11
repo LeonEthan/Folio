@@ -253,7 +253,7 @@ describe('MessageHandler design turn-input wiring', () => {
       expect(manifest.prompt).toBe('make a poster');
       expect(blocks).toContainEqual({
         type: 'text',
-        text: `make a poster\n\nUse the skill at ${workdir}/.claude/skills/graphic-design; read its SKILL.md first.`,
+        text: `make a poster\n\nDesign format and optional helpers: ${workdir}/.claude/skills/graphic-design/SKILL.md. Choose your own creative methods and review.`,
       });
       expect(manifest.canvas).toEqual({ width: 1024, height: 768 });
       expect(typeof manifest.baselineRevisionId).toBe('string');
@@ -328,7 +328,7 @@ describe('MessageHandler design turn-input wiring', () => {
       expect(blocks).toEqual([
         {
           type: 'text',
-          text: `internal\n\nUse the skill at ${workdir}/.claude/skills/graphic-design; read its SKILL.md first.`,
+          text: `internal\n\nDesign format and optional helpers: ${workdir}/.claude/skills/graphic-design/SKILL.md. Choose your own creative methods and review.`,
         },
       ]);
       expect(fs.existsSync(path.join(workdir, 'design-input'))).toBe(false);
