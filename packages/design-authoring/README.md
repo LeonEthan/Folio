@@ -1,8 +1,8 @@
 # Design authoring intake
 
-`@folio/design-authoring` migrates the PPTD **intake** subset of the upstream
+`@folio/design-authoring` migrates the PPTD **intake and projection** subset of the upstream
 authoring pipeline into Folio: fail-closed PPTD snapshot validation, PPTD →
-BentoDoc v4 import, BentoDoc schema-version migration, and secure authoring
+BentoDoc v4 import, lossless BentoDoc → PPTD v3 projection, BentoDoc schema-version migration, and secure authoring
 snapshot collection. It also carries the bundled Agent skills
 (`skills/graphic-design`, `skills/imagegen`) that the CLI materializes into
 design-session workdirs.
@@ -81,3 +81,37 @@ corepack pnpm --filter @folio/design-authoring test       # build first, then vi
 
 The CLI build (`prepare:design-authoring`) runs the same build before staging
 skill directories into the CLI dist; see `apps/cli/scripts/copy-design-skills.js`.
+
+## Editable projection (PPTD v3)
+
+`exportPptd(document, assets)` returns an in-memory `Map<string, Uint8Array>`
+containing `design.pptd`, `pages/design.page`, and exactly the referenced media.
+It never writes or commits; callers own workspace synchronization. Pass that map
+to the existing `intakeAuthoring('design.pptd', snapshot)` to recover the exact
+BentoDoc and content-addressed bytes. Unused asset-table entries are not document
+references and are not copied. Export checks source hashes before writing bytes.
+
+The versioned manifest keeps `size`, `pages`, optional `title` and `customFonts`.
+Each v3 page contains `background`, `elements`, and optional `diagnostics`.
+Elements keep the authoring names `elementId` and `elementType`; remaining fields
+use the existing Bento v4 schema directly, including structured `text`, `table`
+and `chart`. Asset-bearing `src` fields are local `media/<name>` paths.
+Styles are literals. Groups are the existing flat `groupId`, not nested nodes.
+No schemaVersion, canonical blob, fallback raster, edit log or parallel document
+is embedded. Array order and explicit zIndex, absent optional values, empty text
+runs, crop values and every shadow layer survive unchanged.
+
+PPTD v2 remains supported by the existing validator and importer, including
+HTML rich text, themes and seriesDefaults resolution. v3 preserves their
+resulting literal editable state; it does not recreate theme names or unresolved
+seriesDefaults. Unknown versions and unknown fields fail explicitly. v3 uses
+existing kernel replay and chart invariants for structure, with exact asset-byte
+validation. Replay results are discarded, so normalization never repairs output.
+`PPTD_PROJECTION_CAPABILITIES` maps all active frozen v1 capability rows to this
+projection without changing the original v2 profile or enabling editor features.
+
+The [field audit and evidence](../../.agents/notes/implemented/architecture/2026-09-11-pptd-editable-roundtrip.zh.md)
+records the full scope. `tests/roundtrip.test.ts` covers every element kind, all
+13 chart types, rich text/table fields, semantic assets, v2 compatibility,
+edit/undo/redo, and unknown nested fields. Visual quality and hook delivery are
+outside these data-conversion tests.

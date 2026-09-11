@@ -32,3 +32,6 @@ export {
   FROZEN_CAPABILITY_MATRIX,
   CapabilityMatrixHashMismatchError,
 } from './capability-matrix.ts';
+
+export { exportPptd } from './pptd-v3.ts';
+export { PPTD_PROJECTION_CAPABILITIES } from './projection-capabilities.ts';

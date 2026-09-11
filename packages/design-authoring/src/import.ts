@@ -92,6 +92,7 @@ import type {
   PptdTextStyle,
   PptdTheme,
   ValidatedPptd,
+  ValidatedPptdV2,
 } from "./contracts.ts";
 import {
   resolveStaticV1IconMembership,
@@ -99,6 +100,8 @@ import {
   staticV1FontRegistrationFamilyError,
   staticV1UnregisteredFontFamilies,
 } from "./contracts.ts";
+import { isPptdV3 } from "./contracts.ts";
+import { importV3 } from "./pptd-v3.ts";
 import { staticV1LatexSyntaxError } from "./latex.ts";
 import { parseRichText } from "./richtext.ts";
 import { listSemanticAssetRefs } from "./semantic-assets.ts";
@@ -123,6 +126,11 @@ function numericEncodeChannel(type: string, channel: string): boolean {
 }
 
 export function importPptd(validated: ValidatedPptd, assets: AssetIndex): ImportResult {
+  if (isPptdV3(validated)) return importV3(validated, assets);
+  return importV2(validated, assets);
+}
+
+function importV2(validated: ValidatedPptdV2, assets: AssetIndex): ImportResult {
   // BentoDoc 只有单画布语义；多页在 validator 已被 E011 拒绝，此处为不可达守卫。
   if (validated.pages.length !== 1) {
     throw new Error(`BentoDoc models exactly one page; got ${validated.pages.length}`);

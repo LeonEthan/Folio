@@ -17,3 +17,10 @@
   import only `node:*` builtins or the bundled `scripts/lib/folio-pptd.mjs`.
 - `src/generated/` and `skills/graphic-design/scripts/lib/` are build outputs;
   never edit them by hand.
+
+- PPTD v2 admission remains frozen. v3 projection reuses the existing Bento v4
+  editable fields and kernel replay through `contracts.ts`; replay validates
+  but never repairs output. Keep exact run boundaries, optional values, IDs,
+  array/z order, flat groups and asset bytes. Only schema asset locations may
+  be rewritten. Update `projection-capabilities.ts` and roundtrip fixtures with
+  any supported field change; never add a second canonical blob to the format.

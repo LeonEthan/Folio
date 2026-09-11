@@ -74,3 +74,12 @@ semantic controls expose these limits. `src/product-session.ts` and `src/image.t
 are local overlays of the pinned adapters; the builder applies them after copying
 vendor sources. The source manifest records relative kernel imports and stricter
 TypeScript adaptations. Original upstream identity and licenses remain unchanged.
+
+## PPTD projection contract
+
+`vendor/packages/contracts/src/pptd-v3.ts` is a Folio-authored source adaptation
+of the pinned Bento v4 types for lossless authoring projection. It adds no editor
+capability and leaves the upstream frozen v1 capability matrix intact. The
+conversion and projection capability mapping belong to `@folio/design-authoring`;
+see its [README](../design-authoring/README.md#editable-projection-pptd-v3).
+The source manifest pins this additional file separately and records its origin.

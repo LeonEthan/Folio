@@ -65,6 +65,7 @@ import {
   staticV1SvgPathSyntaxError,
 } from "./contracts.ts";
 import { FROZEN_CAPABILITY_MATRIX } from "./capability-matrix.ts";
+import { validateV3 } from "./pptd-v3.ts";
 import { parseRichText } from "./richtext.ts";
 import { staticV1LatexSyntaxError } from "./latex.ts";
 import { validateProductBoundaryFile, validateProductBoundarySnapshot } from "./product-boundary.ts";
@@ -2182,13 +2183,20 @@ function finishValidation(
     if (raw !== undefined) report(ctx, "PPTD-E001", manifestFile, "", "manifest 必须是 YAML 映射");
     return { ok: false, diagnostics: ctx.diagnostics };
   }
+  if (raw.version === "v3") {
+    return validateV3(raw, manifestFile, loadPage, (rel) => {
+      if (ctx.snapshot) return ctx.snapshot.get(rel);
+      try { return new Uint8Array(readFileSync(path.resolve(ctx.projectRoot!, rel))); }
+      catch { return undefined; }
+    });
+  }
   // Page-level excluded aliases do not create manifest vocabulary.  The
   // manifest's only excluded path is the matrix-derived pages cardinality
   // check below (common.multiPage).
   checkUnknownFields(ctx, raw, MANIFEST_FIELDS, manifestFile, "");
 
   if (raw.version !== "v2") {
-    report(ctx, "PPTD-E001", manifestFile, "version", "version 必填且必须为 \"v2\"");
+    report(ctx, "PPTD-E001", manifestFile, "version", "version 必填且必须为 \"v2\" 或 \"v3\"");
   }
   if (raw.title !== undefined && typeof raw.title !== "string") {
     report(ctx, "PPTD-E001", manifestFile, "title", "title 必须是字符串");

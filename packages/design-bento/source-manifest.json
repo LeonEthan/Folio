@@ -88,10 +88,12 @@
     "patches/a1a2-native-mutation-seal.patch": "5c6091d214350174c11ba5ee3f951029bcfa45524db13d8e553a4f5b95dcf9b5",
     "patches/gd4c-frame-decorators.patch": "8aca515c15e81ccd9ab2058443da598a80bfd8ade095748897c9df5741ac8d87",
     "vendor/packages/contracts/capability-matrix/v1.json": "a96c9959ba6beeb66aca16fa8f48da3993b394ea526ca979c5949aab8e2dfd48",
-    "vendor/packages/contracts/capability-matrix/loader.ts": "f9a222b94901e28961ce440f28be0cc678ca1c834e05b13cbe694d5500eef8cc"
+    "vendor/packages/contracts/capability-matrix/loader.ts": "f9a222b94901e28961ce440f28be0cc678ca1c834e05b13cbe694d5500eef8cc",
+    "vendor/packages/contracts/src/pptd-v3.ts": "60ca3db47e42cd667fbd080f6a5fd1f4fb6816325f132742606295d8bfb16522"
   },
   "localAdaptations": [
     "kernel imports use relative paths for CLI validation; original source commit remains recorded above",
-    "chart invariant default label table asserts its existing required entry under noUncheckedIndexedAccess"
+    "chart invariant default label table asserts its existing required entry under noUncheckedIndexedAccess",
+    "Folio-authored pptd-v3.ts reuses the pinned BentoDoc v4 fields for lossless PPTD projection; upstream files and the frozen v1 profile remain unchanged"
   ]
 }

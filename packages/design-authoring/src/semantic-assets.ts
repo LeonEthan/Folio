@@ -11,7 +11,8 @@
  * byte-for-byte so `unsupported` attribution is preserved.
  */
 
-import type { ValidatedPptd } from "./contracts.ts";
+import { isPptdV3, type ValidatedPptd } from "./contracts.ts";
+import { mapV3Assets } from "./pptd-v3.ts";
 
 export interface SemanticAssetRef {
   /** media/ relative path as authored. */
@@ -33,6 +34,10 @@ function fillRef(fill: unknown): string | undefined {
 
 export function listSemanticAssetRefs(validated: ValidatedPptd, pagePath: string): SemanticAssetRef[] {
   const out: SemanticAssetRef[] = [];
+  if (isPptdV3(validated)) {
+    mapV3Assets(validated, (ref, _kind, path) => { out.push({ ref, path }); return ref; });
+    return out;
+  }
   const at = (sub: string): string => `${pagePath}#${sub}`;
   const page = validated.pages[0];
   if (page === undefined) return out;
