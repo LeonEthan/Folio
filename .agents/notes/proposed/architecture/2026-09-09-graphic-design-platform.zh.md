@@ -367,15 +367,17 @@ P2-A3 已列为 T10，在参考图完整旅程前完成。非 PNG 分析副本�
 | T01 / #3 | `2f01848` | [旧 PPTD 被动提升已删除](../../implemented/simplification/2026-09-11-unchanged-pptd-outcome.md)：确定未变化时为 `no_artifact`，保留原文件和历史回执；41 项确定性测试及全仓检查通过。冲突候选的停止仍属 T06 |
 | T02 / #4 | `a360bde` | [画布只读与派发保存握手已交付](../../implemented/architecture/2026-09-11-canvas-serial-execution.zh.md)：所有所属实例只读至实际执行及产物处理结束；真实 Electron 验证多实例另存/关闭不丢其他稿件。全仓检查通过；P1 使用合成 idle 上下文，完全无桌面确认的设计派发明确失败，未称五种 Agent 或安装包已验证 |
 | T03 / #5 | `a31f83e` | [PPTD v3 数据往返已交付](../../implemented/architecture/2026-09-11-pptd-editable-roundtrip.zh.md)：保留现有 Bento v4 编辑字段及素材，v2 继续导入；分组仍是 flat groupId。91 项格式测试及全仓检查通过，不代替 workspace、hook 或像素验收 |
+| T04 / #6 | `36eda31` | [设计文件路径已贯通实际 workspace](../../implemented/architecture/2026-09-11-design-workspace-paths.md)：准备、渲染、图像素材和采集共用可信 Session 路径；项目内按作品/会话隔离草稿，保留旧输入与文件，投影只预留固定位置。全仓检查及技能物化通过；工作目录变更时明确拒绝，不宣称自动迁移或真实 Agent 已验证 |
 | T09 / #11 | `85bf76b` | [图像生成与编辑 MCP 已交付](../../implemented/feature/2026-09-11-image-generation-editing.zh.md)：用户显式配置 model，生成与 multipart 编辑共用连接、gate 和素材落地；89 项定向测试及全仓检查通过。未调用真实付费图像服务，不宣称服务兼容性或视觉质量已验证 |
 | T10 / #12 | `18ce599` | [本地参考图接线已交付](../../implemented/feature/2026-09-11-local-reference-attachments.zh.md)：首条附件、同字节参考快照/ACP 图片、历史受控读回有确定性证据，并完成一次真实 Codex ACP 合成图识别；未宣称安装包或其余四种 Agent 已验证 |
 | T11 / #13 | `35cda47` | [强制创作步骤已删除](../../implemented/simplification/2026-09-11-autonomous-design-skills.zh.md)：技能、派发提示和工具说明保留格式要求及可选帮助，创作与评审由 Agent 决定。构建后实际技能物化、直接 PPTD intake 及全仓检查通过；图像能力的后续准确说明由 T09 一并更新 |
+| T23 / #25 | `bf6c424` | [首次设计引导与设置已收敛](../../implemented/feature/2026-09-11-first-design-onboarding.md)：复用设计初始化与现有草稿恢复，保留用户 Agent/model，图像表单使用共享校验。全仓检查及隔离桌面引导、设置、保存/导出探针通过；原生会话烟测使用合成 ACP，首次引导卸载后的创建由组件测试覆盖，未验证商用模型调用 |
 | T26 / #28 | `bed33d8` | [Folio 品牌与公开帮助已对齐](../../implemented/feature/2026-09-11-folio-public-help.md)：英文隔离桌面的标题、侧栏、About、原生 Help 已核验；既有身份和用户名称保留。中文运行态切换及签名/发布未验证，首次设计引导仍属 T23 |
 | T27 / #29 | `cc255db`、`7cac0d3` | [实际包资源与保存/导出已核验](../../implemented/testing/2026-09-11-packaged-design-verification.md)：修复依赖收集和跨产品更新身份；macOS arm64 DMG 安装副本通过 P0/P1、真实像素导出及异常保稿。Windows/Linux 仅跨宿主构建与资源证据；该包早于 T02，最终组合仍由 T28/T29 验收，未公证或发布 |
 
-已本地集成 8/29 项。T04、T07、T23 分别推进实际工作目录贯通、旧内容读回与结果卡清退、设置及首次设计引导；共同修改同一文件时串行接线。未完成的 hook、候选/缩略图清退、预览和完整旅程要求保持不变。
+已本地集成 10/29 项。T05、T07、T24 分别推进 Pi 读写 hook、旧内容读回与结果卡清退、纯开发产品链路清理；共同修改同一文件时串行接线。未完成的 hook、候选/缩略图清退、预览和完整旅程要求保持不变。
 
-以上八项组合已通过主分支完整 `pnpm check`，包括类型、lint、测试及公开/平台边界检查。联合检查修正了新增 Electron 多实例探针的两处变量遮蔽；该修正不改变探针行为。单项真实运行证据仍限于各自记录的源码组合，不据此宣称最终安装包或全部 Agent 已验收。
+以上十项组合已通过主分支完整 `pnpm check`，包括类型、lint、测试及公开/平台边界检查。前一批联合检查修正了新增 Electron 多实例探针的两处变量遮蔽；该修正不改变探针行为。单项真实运行证据仍限于各自记录的源码组合，不据此宣称最终安装包或全部 Agent 已验收。
 
 ## 已确认删减与剩余实施项
 
