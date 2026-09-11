@@ -47,6 +47,23 @@ was open with no comments. Its seven criteria are retained:
 7. Update affected documentation and the owning decision record; run checks
    proportionate to the risk and disclose missing validation.
 
+## Current acceptance status
+
+This summary uses the scoped installed rounds recorded below, each with its own
+package source and runtime identity. It does not imply that every behavior was
+repeated on one latest package, or replace a failed historical result. Full T28
+remains blocked; the preparation and replacement-package tables below are history.
+
+| Original criterion | Established evidence | Remaining limit |
+| --- | --- | --- |
+| 1. Runtime, ACP, launch, tools and platform | Five-Agent identities and actual installed launch records are retained per round. | These records do not establish another platform or commercial authentication. |
+| 2. Per-Agent workflow | Discovery, reference reading, skills and permissions have scoped evidence for all five; Pi permission and cancellation/explicit continuation now include successful cleanup. | Codex/Kimi/Grok lack the full native design-hook workflow. Grok cancellation acknowledgement and continuation are observed, but its held HTTP connection fails the transport-close check. |
+| 3. Read/write facts, negatives and final protection | Pi/Claude read, stale-write and same-byte attempts; both hook-error/uncovered-path negatives; Claude user-disabled hooks; independent final CAS for Codex/Kimi/Grok. | Pi extension absence has no established configuration-only route. The three runtime hook gaps remain; final CAS cannot replace those hooks. |
+| 4. Configured image service and actual image reading | Claude, Codex, Kimi and Grok have synthetic Folio generate/edit and actual native image-reading evidence. Rendering and watched source updates have their separate recorded rounds. | Pi ACP does not expose Folio MCP tools. No paid-service quality or human visual judgment is inferred. |
+| 5. Installed versus development evidence | Normal package identities, isolated installed launches and scoped outcomes are distinguished from development and diagnostic runs. | Only each recorded combination is supported by that evidence; the user chooses the Agent. |
+| 6. Existing facilities and private synthetic evidence | Existing harness and provider fixtures are reused; captured conversations remain outside Git. | No new test engine or public transcript artifact is introduced. |
+| 7. Documentation and checks | This owning matrix and affected instructions retain outcomes, failures and check records. | Documentation and green checks do not close the runtime or human acceptance gaps. |
+
 ## Preparation inventory
 
 These are inspected local runtime files and pinned source identities, **not yet
@@ -1625,3 +1642,39 @@ user-configured native extension through the desktop controls. Both Pi ACP selec
 options use `allow_once`; No is enforced by the extension. This is not a native
 ACP `reject_once` option or a built-in Manual mode. The historical selector and
 cleanup failures remain unchanged, and full T28 is still incomplete.
+
+### Pi cancellation and explicit continuation after the shutdown repair
+
+The original desktop recovery probe calls `heldResponse.destroy()` immediately
+after clicking Stop. Its cancellation receipts and preservation checks therefore
+do not establish that the native runtime closes the held model connection. The
+bounded follow-up reuses the existing initial/manual-edit setup and cancellation
+recovery branch, observes actual response closure, and leaves forced connection
+cleanup in `finally`. It does not repeat the unrelated failure/conflict branches,
+cold-cache mode, extra resubmission mode or optional Claude switch. The explicit
+continuation's own native resubmission remains part of this recovery path.
+
+Handle 1993 exited zero on normal package source `81d54b6`, Pi 0.85.1 and
+pi-acp 0.0.33. Evidence is `folio-t05-desktop-P7k4H4/evidence`, package log
+`pi-cancel-recovery-native-1.log`. The isolated ACP cache is prepared. Request 9
+closes at 20:47:55.732Z after Stop, before fixture cleanup, without the provider
+ending its response. Both before- and after-cleanup records retain that same
+native close event. The actual cancelled receipt follows at 20:47:55.790Z.
+
+The installed canvas stays read-only through execution, then unlocks after the
+cancelled result. The original canonical revision and draft are preserved.
+Reloading does not call the model or change those bytes. The next explicit user
+turn reads both the current projection and preserved draft through four actual
+native read results, then invokes `folio_resubmit_draft`. Root inspected these
+results: the current page still contains `#8899AA`, while the retained draft
+contains `#445566`. Natural completion commits that retained draft, with a real
+receipt at 20:47:58.195Z and matching final canonical background; no draft rewrite
+is required to manufacture a new attempt.
+
+Twelve model requests are retained, including one auxiliary title request that
+emits no tools. Root inspected the transport records, cancellation and commit
+receipts, native continuation results and final canonical payload. Normal cleanup
+finishes at 20:47:59.577Z, and all 16 recorded owned processes are independently
+absent. This supplies the missing successful installed Pi cancellation and
+explicit-continuation round, including a real transport-close observation.
+Earlier failed rounds and the separate Grok transport failure remain unchanged.
