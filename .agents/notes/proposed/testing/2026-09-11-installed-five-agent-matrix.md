@@ -1459,3 +1459,56 @@ response nor proves tools execute after cancellation. No host recovery engine,
 runtime patch, timeout extension or successful-cancellation claim is substituted
 for the failed transport assertion. The original T21 Pi/Claude recovery evidence
 remains separate; this Grok limit remains open in the installed matrix.
+
+### Claude hook-negative fixture: provider selector
+
+Handle 39067 exited one before creating the Claude configuration. The fixture
+looked for `Claude Code`, whereas the actual Agent option and existing Claude
+desktop probe use `Claude`. Evidence is
+`folio-t28-claude-negative-Vctl6H/evidence`, package log
+`claude-hook-negative-native-1.log`. Root inspected the retained UI and original
+probe selector. No model request, projection fault or native hook negative ran;
+normal owned cleanup finished at 20:14:47.397Z. The failed round remains intact.
+The next fixture changes only this selector and keeps the planned negative
+assertions and existing time limits.
+
+The selector-corrected round, handle 71330, exited zero with normal cleanup at
+20:16:44.146Z. Evidence is `folio-t28-claude-negative-58C3ef/evidence`, package
+log `claude-hook-negative-native-2.log`. Its first four model requests carry
+the actual native tool catalog. The correlated Read result reports a real
+`PreToolUse:Read` hook error containing `design directory is redirected`; after
+the fixture restores the projection path, the controlled Write reports
+`PreToolUse:Write` / `DESIGN_READ_REQUIRED` and does not create its target.
+Native Bash then copies the valid synthetic poster. Actual final collection
+returns `invalid` / `design_read_baseline_missing`, preserves those exact draft
+bytes and leaves canonical content unchanged. Root inspected both hook results
+and the final receipt.
+
+This establishes the target negative behavior, but not an error-free round.
+Requests 5 and 6 have no tools and are native title requests with a structured
+title response schema. Their `<session>` text contains the fixture marker, so
+the fixture misclassifies them as main requests and logs two provider errors.
+The original exit-zero result and these errors are both retained. Subsequent
+classification must use the actual tool catalog and title schema, and provider
+errors must affect the round verdict after requests drain. These checks cover
+functioning hooks that fail and an uncovered Bash operation; they do not prove
+behavior with the runtime's hooks absent or the corresponding Pi combination.
+
+The corrected v3 round, handle 70570, exits zero without provider or cleanup
+errors. Evidence is `folio-t28-claude-negative-ocVfWa/evidence`, package log
+`claude-hook-negative-native-3.log`. Main requests 1–4 retain the actual Read,
+Write and Bash catalog; request 5 is the native title request and receives the
+JSON required by its real response schema. Any provider failure now participates
+in the final round verdict after the existing request drain.
+
+The projection path initially does not exist. The owned regular-file obstruction
+causes the actual packaged pre-read hook to return `design directory is redirected`
+before any read attestation; the fixture restores that original absent state.
+The next controlled Write reports `DESIGN_READ_REQUIRED` and creates no file.
+Native Bash then writes the three exact valid poster files, but final collection
+records `design_read_baseline_missing`, preserves the draft and leaves the full
+canonical payload unchanged. Root inspected the actual hook errors, successful
+Bash result, final receipt and request classifications. Normal owned cleanup
+finishes at 20:19:03.833Z, and all 12 recorded owned processes are independently
+absent. This completes the scoped installed Claude hook-error/uncovered-path
+negative, without promoting Pi or absent-runtime-hook behavior to passed.
