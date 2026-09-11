@@ -1,3 +1,6 @@
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ACPSessionId, SessionId } from '@lody/shared';
 import type { AuthMethod, InitializeResponse, NewSessionResponse } from '@agentclientprotocol/sdk';
@@ -46,12 +49,12 @@ const createSilentLogger = (): Logger => ({
   close: async () => {},
 });
 
-function createClient(agentType = 'kimi'): AgentClient {
+function createClient(agentType = 'kimi', cliType: 'builtin' | 'custom' = 'builtin'): AgentClient {
   return new AgentClient({
     sessionId: 'agent-client-auth-test' as SessionId,
     logger: createSilentLogger(),
     terminalManager: {} as never,
-    agentConfig: { cliType: 'builtin', agentType },
+    agentConfig: { cliType, agentType },
     onUpdateMessage: vi.fn(),
     onRequestPermission: vi.fn(async () => ({
       outcome: { outcome: 'cancelled' as const },
@@ -129,7 +132,7 @@ describe('AgentClient Kimi authentication and resume', () => {
     expect(connectionMocks.resumeSession).not.toHaveBeenCalled();
   });
 
-  it('lets builtin Grok use its local terminal runner', async () => {
+  it('lets builtin Grok use native reads and its local terminal runner', async () => {
     const client = createClient('grok');
 
     await client.startSession({} as never, '/tmp');
@@ -138,11 +141,53 @@ describe('AgentClient Kimi authentication and resume', () => {
       expect.objectContaining({
         clientCapabilities: expect.objectContaining({
           terminal: false,
+          fs: { readTextFile: false, writeTextFile: true },
           auth: { terminal: true },
         }),
       })
     );
   });
+
+  it.each([
+    ['builtin', 'kimi'],
+    ['builtin', 'claude'],
+    ['builtin', 'codex'],
+    ['builtin', 'pi'],
+    ['custom', 'grok'],
+  ] as const)('retains host file capabilities for %s %s', async (cliType, agentType) => {
+    const client = createClient(agentType, cliType);
+    await client.startSession({} as never, '/tmp');
+    expect(connectionMocks.initialize).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientCapabilities: expect.objectContaining({
+          fs: { readTextFile: true, writeTextFile: true },
+        }),
+      })
+    );
+  });
+
+  it.each(['grok', 'kimi'])(
+    'preserves standard UTF-8 write and line read behavior for %s',
+    async (agentType) => {
+      const directory = await mkdtemp(join(tmpdir(), 'folio-acp-file-'));
+      try {
+        const client = createClient(agentType);
+        const session = await client.startSession({} as never, directory);
+        const path = join(directory, 'synthetic.txt');
+        const content = 'first\n你好 synthetic\nlast\n';
+        await client.writeTextFile({ sessionId: session.sessionId, path, content });
+        expect(await readFile(path, 'utf8')).toBe(content);
+        expect(await client.readTextFile({ sessionId: session.sessionId, path })).toEqual({
+          content,
+        });
+        expect(
+          await client.readTextFile({ sessionId: session.sessionId, path, line: 2, limit: 1 })
+        ).toEqual({ content: '你好 synthetic' });
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    }
+  );
 
   it('negotiates legacy model state into a session/set_model request', async () => {
     connectionMocks.newSession.mockResolvedValue({

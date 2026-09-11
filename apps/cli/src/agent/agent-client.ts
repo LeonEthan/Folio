@@ -1769,9 +1769,13 @@ export class AgentClient implements acp.Client {
                   boolean: {},
                 },
               },
-              // Advertise file tools so agents can use structured reads/writes instead of shelling out.
+              // Grok must read files natively: delegating PNG reads to the standard
+              // UTF-8 text RPC loses binary data before its image handling.
               fs: {
-                readTextFile: true,
+                readTextFile: !(
+                  this.options.agentConfig?.cliType === 'builtin' &&
+                  this.options.agentConfig.agentType === 'grok'
+                ),
                 writeTextFile: true,
               },
               // Form elicitation is how acp-extension-claude >= 0.44.0 surfaces
