@@ -1,3 +1,4 @@
+import { buildDesignElementMentionRewrites } from './design-element-mention';
 import * as React from 'react';
 import {
   applyTextRewrites,
@@ -73,6 +74,7 @@ export type ExpandedMentionPrompt = {
  * it is a type error here rather than a missing chip in production.
  */
 const REWRITTEN_SPAN_KINDS = [
+  'design_element',
   'skill',
   'session',
   'agent_role',
@@ -134,6 +136,7 @@ export function useMentionPromptExpansion({
         ...buildPastedTextRewrites(pastedTextDrafts),
         ...skillRewrites(text),
         ...buildSessionMentionRewrites(text, mentions),
+        ...buildDesignElementMentionRewrites(text, mentions),
         ...buildAgentRoleMentionRewrites(text, mentions, agentRoleItems),
         ...buildVerbatimMentionRewrites(text, mentions),
       ]),

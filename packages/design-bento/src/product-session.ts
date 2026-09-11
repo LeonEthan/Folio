@@ -11,6 +11,7 @@ export function createProductSession(options: {
   const editorInstanceId = new URLSearchParams(location.search).get('editorInstance') ?? '';
   const embedded = window.parent !== window && /^[a-f0-9-]{36}$/.test(editorInstanceId);
   let revisionId = options.revisionId;
+  let selection: unknown[] = [];
   let editSeq = 0;
   let savedSeq = 0;
   let pendingText = false;
@@ -178,6 +179,7 @@ export function createProductSession(options: {
   });
   Object.assign(window, { folio: {
     setReadonly,
+    selection() { return selection; },
     state() { return { dirty: dirty(), composing, saving: saving !== undefined, readonly, revisionId }; },
     async flush(permit: string) {
       writePermit = permit;
@@ -201,6 +203,6 @@ export function createProductSession(options: {
       try { if (readonly) throw Error('Canvas is read-only'); await flush(); return { ok: true }; }
       catch (cause) { return { ok: false, error: cause instanceof Error ? cause.message : '保存失败' }; }
     },
-    selection(elements: unknown[]) { emit('selection', { elements }); },
+    selection(elements: unknown[]) { selection = elements; emit('selection', { elements }); },
   };
 }

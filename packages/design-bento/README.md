@@ -95,3 +95,8 @@ existing visible-turn owner waits for all artwork instances and keeps them reado
 through provider completion and artifact processing; hiding a view changes no ownership.
 Unexpected dirty content blocks reload rather than being discarded. The original
 store CAS remains independent. See the [implementation note](../../.agents/notes/implemented/architecture/2026-09-11-canvas-serial-execution.zh.md), including the headless limitation.
+
+The generic `folio.selection()` bridge exposes the existing stable selection IDs.
+Electron captures those IDs, flushes, and pairs them with the saved canonical
+revision before inserting a normal composer mention. Bento has no conversation or
+reference lifecycle; source previews cannot supply element references.

@@ -1,3 +1,7 @@
+import {
+  DesignElementReferenceSchema,
+  validateDesignElementReferences
+} from '@lody/shared/design-element-reference'
 import { isDeepStrictEqual } from 'node:util'
 import { app, BrowserWindow, WebContentsView, session, dialog } from 'electron'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
@@ -279,6 +283,37 @@ export async function saveDesign(id: string) {
   if (designCanvasAccess.isReadonly(id)) throw Error('Canvas is read-only; edits are retained')
   await designCanvasAccess.prepareForSend(id)
 }
+/** Capture only the visible canonical editor, after its ordinary save finishes. */
+export async function getDesignSelection(id: string, hostId: string) {
+  await queryCanvasState?.()
+  if (designCanvasAccess.isReadonly(id))
+    throw Error('Wait for execution to finish before referencing elements')
+  const record = records.get(hostId)
+  if (!record || record.artworkId !== id || !hosts.has(hostId))
+    throw Error('Current artwork is not visible')
+  const selection: unknown = await record.view.webContents.executeJavaScript(
+    'window.folio.selection()'
+  )
+  if (!Array.isArray(selection) || selection.length === 0)
+    throw Error('Select an element in the current artwork first')
+  await saveDesign(id)
+  if (designCanvasAccess.isReadonly(id) || records.get(hostId) !== record || !hosts.has(hostId))
+    throw Error('Artwork changed while selecting; select the current elements again')
+  const state = await record.view.webContents.executeJavaScript('window.folio.state()')
+  const saved = await designRequest({ operation: 'read', sessionId: id })
+  const reference = DesignElementReferenceSchema.parse({
+    artworkId: id,
+    baselineRevisionId: state?.revisionId,
+    elementIds: selection.map((element: unknown) =>
+      typeof element === 'object' && element !== null && 'id' in element ? element.id : undefined
+    )
+  })
+  validateDesignElementReferences([reference], id, saved)
+  if (designCanvasAccess.isReadonly(id) || records.get(hostId) !== record || !hosts.has(hostId))
+    throw Error('Artwork changed while selecting; select the current elements again')
+  return reference
+}
+
 export async function saveDesignForDispatch(id: string) {
   await queryCanvasState?.()
   await designCanvasAccess.prepareForSend(id)

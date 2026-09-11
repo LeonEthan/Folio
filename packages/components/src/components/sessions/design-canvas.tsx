@@ -1,3 +1,4 @@
+import type { DesignElementReference } from '@lody/shared/design-element-reference';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAtomValue } from 'jotai';
 import { useBlocker, useNavigate } from '@tanstack/react-router';
@@ -73,11 +74,13 @@ export function DesignCanvas({
   active,
   workspaceSlug,
   name,
+  onReferenceSelection,
 }: {
   sessionId: string;
   active: boolean;
   workspaceSlug: string;
   name: string;
+  onReferenceSelection?: (reference: DesignElementReference) => void;
 }) {
   const { t } = useTranslation();
   const host = useRef<HTMLDivElement>(null);
@@ -235,6 +238,16 @@ export function DesignCanvas({
         }
       </style>
       <div className="flex flex-wrap items-center gap-2 border-b p-2">
+        {onReferenceSelection && <Button size="sm" variant="outline" disabled={busy || preview} onClick={() => run(async () => {
+          const service = getIpcServices()?.design;
+          if (!service) throw Error('Local workspace is not ready');
+          const generation = attachmentGeneration.current;
+          const reference = await service.selection(sessionId, hostId);
+          if (generation !== attachmentGeneration.current) throw Error(t('design.selectionChanged', 'Artwork view changed; select the current elements again'));
+          setFocused(false);
+          onReferenceSelection(reference);
+        })}>{t('design.referenceSelection', 'Reference selected elements')}</Button>}
+
         <Button size="sm" variant={preview ? 'outline' : 'default'} onClick={() => switchPreview(false)}>
           {t('design.currentCanvas', 'Current artwork')}
         </Button>

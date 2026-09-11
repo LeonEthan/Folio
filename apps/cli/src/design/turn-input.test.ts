@@ -1,3 +1,4 @@
+import { formatDesignElementReference } from '@lody/shared/design-element-reference';
 /**
  * Design turn-input manifest tests (P2.2). Synthetic designs and synthetic
  * image bytes only; the manifest is the integrity anchor for P2.3, so these
@@ -69,6 +70,109 @@ async function setupDesign(options: { width?: number; height?: number } = {}) {
 }
 
 describe('materializeDesignTurnInput', () => {
+  it('freezes valid stable targets with attachments and rejects changed or deleted targets before manifest creation', async () => {
+    const { root, sessionId, workdir } = await setupDesign();
+    const original = await designOperation(root, { operation: 'read', sessionId });
+    const saved = await designOperation(root, {
+      operation: 'save',
+      sessionId,
+      baseRevisionId: original.revisionId,
+      content: {
+        doc: {
+          ...original.doc,
+          elements: [
+            {
+              id: 'target',
+              kind: 'shape',
+              bounds: [10, 10, 80, 80],
+              zIndex: 0,
+              shapeName: 'rect',
+              fill: { type: 'solid', color: '#112233' },
+            },
+          ],
+        },
+        assets: original.assets,
+      },
+    });
+    const reference = {
+      artworkId: sessionId,
+      baselineRevisionId: saved.revisionId,
+      elementIds: ['target'],
+    };
+    const options = {
+      workdir,
+      artworkId: sessionId,
+      prompt: formatDesignElementReference(reference),
+      skillSourceIdentity: 'a'.repeat(64),
+      dataRoot: root,
+      references: [{ bytes: pngBytes(1), mimeType: 'image/png' }],
+    };
+    const manifest = await materializeDesignTurnInput({ ...options, turnId: 'valid' });
+    expect(manifest.prompt).toBe(options.prompt);
+    expect(manifest.references).toHaveLength(1);
+    for (const [turnId, changed, error] of [
+      ['other', { ...reference, artworkId: 'other' }, 'another artwork'],
+      ['stale', { ...reference, baselineRevisionId: 'f'.repeat(64) }, 'stale'],
+      ['deleted', { ...reference, elementIds: ['deleted'] }, 'deleted'],
+    ] as const) {
+      await expect(
+        materializeDesignTurnInput({
+          ...options,
+          turnId,
+          prompt: formatDesignElementReference(changed),
+        })
+      ).rejects.toThrow(error);
+      await expect(
+        readFile(path.join(workdir, 'design-input', turnId, 'manifest.json'))
+      ).rejects.toThrow();
+    }
+  });
+
+  it('keeps the frozen marker but blocks recovery after canonical changes', async () => {
+    const { root, sessionId, workdir } = await setupDesign();
+    const original = await designOperation(root, { operation: 'read', sessionId });
+    const saved = await designOperation(root, {
+      operation: 'save',
+      sessionId,
+      baseRevisionId: original.revisionId,
+      content: {
+        doc: {
+          ...original.doc,
+          elements: [
+            { id: 'target', kind: 'shape', bounds: [10, 10, 80, 80], zIndex: 0, shapeName: 'rect' },
+          ],
+        },
+        assets: original.assets,
+      },
+    });
+    const options = {
+      workdir,
+      artworkId: sessionId,
+      turnId: 'recover',
+      prompt: formatDesignElementReference({
+        artworkId: sessionId,
+        baselineRevisionId: saved.revisionId,
+        elementIds: ['target'],
+      }),
+      skillSourceIdentity: 'a'.repeat(64),
+      dataRoot: root,
+    };
+    await materializeDesignTurnInput(options);
+    const file = path.join(workdir, 'design-input', 'recover', 'manifest.json');
+    const frozen = await readFile(file, 'utf8');
+    await designOperation(root, {
+      operation: 'save',
+      sessionId,
+      baseRevisionId: saved.revisionId,
+      content: {
+        doc: { ...saved.doc, background: { type: 'solid', color: '#010203' } },
+        assets: saved.assets,
+      },
+    });
+    await expect(materializeDesignTurnInput(options)).rejects.toThrow('stale');
+    expect(await readFile(file, 'utf8')).toBe(frozen);
+  });
+
   it('freezes prompt, canvas, baseline revision, skill identity and verified reference copies', async () => {
     const { root, sessionId, workdir } = await setupDesign({ width: 1200, height: 628 });
     const image = pngBytes(7);

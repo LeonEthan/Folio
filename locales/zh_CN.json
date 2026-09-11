@@ -4014,5 +4014,10 @@
   "design.previewAutomaticUnavailable": "自动更新不可用，请使用“刷新预览”。",
   "design.previewReady": "正在显示本次观测的文档和素材。",
   "design.previewRefreshing": "正在读取文件…",
-  "design.previewWaiting": "等待有效文件；保留上一有效预览（如有）。"
+  "design.previewWaiting": "等待有效文件；保留上一有效预览（如有）。",
+  "design.referenceSelection": "引用选中元素",
+  "design.selectedElements": "选中元素（{{count}}）",
+  "design.finishComposition": "请先完成输入法输入，再添加元素引用",
+  "design.selectionChanged": "画稿视图已变化，请重新选择当前元素",
+  "design.referenceConversationUnavailable": "请先打开此画稿的对话，再引用元素"
 }

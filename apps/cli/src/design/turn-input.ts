@@ -1,3 +1,7 @@
+import {
+  readDesignElementReferences,
+  validateDesignElementReferences,
+} from '@lody/shared/design-element-reference';
 /**
  * Design-turn input materialization (P2.2), and the one directory a turn owns.
  *
@@ -281,6 +285,13 @@ export async function materializeDesignTurnInput(
         'design workspace changed since dispatch; frozen input and drafts were preserved'
       );
     }
+    const references = readDesignElementReferences(frozen.prompt);
+    if (references.length)
+      validateDesignElementReferences(
+        references,
+        opts.artworkId,
+        await designOperation(dataRoot, { operation: 'read', sessionId: opts.artworkId })
+      );
     return frozen;
   }
 
@@ -296,6 +307,12 @@ export async function materializeDesignTurnInput(
       { cause: error }
     );
   }
+
+  validateDesignElementReferences(
+    readDesignElementReferences(opts.prompt),
+    opts.artworkId,
+    baseline
+  );
 
   const artifactAtSend = artifactAtSendRecord(
     await readDesignArtifact(opts.artifactWorkdir ?? workdir)

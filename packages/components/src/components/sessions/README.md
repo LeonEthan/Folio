@@ -102,3 +102,9 @@ artwork and a readonly, unsubmitted source preview. Refresh uses frozen document
 asset bytes; waiting/error states retain the last valid preview. Current-artwork
 copy/export actions are disabled while viewing source files. The preview never
 unlocks or destroys the editor and does not declare Agent completion.
+
+“Reference selected elements” on Current artwork inserts an ordinary mention into
+the existing composer. It saves pending canvas edits first, retains the resulting
+revision through draft restoration, and restores input focus. Subsequent edits,
+deletions or artwork changes invalidate the mention explicitly at send; remove it
+and reselect. Unsubmitted previews cannot supply these references.

@@ -25,3 +25,7 @@ Keep render policy in Node-testable `design-render-host-core.ts`: no retries, re
 per-turn thumbnails or thumbnail IPC. Previews/PNG/JPEG use canvas dimensions.
 Historical files resolve by artwork/digest in the worker; local resources serve
 original bytes and embedded assets.
+
+Element references originate only from visible canonical selections while idle.
+Capture IDs before flush and pair them with its saved revision; never rebase stored
+composer references. Validate artwork, revision and IDs again before dispatch.

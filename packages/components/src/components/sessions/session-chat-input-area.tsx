@@ -1,3 +1,4 @@
+import type { DesignElementReference } from '@lody/shared/design-element-reference';
 import { getMachineMetaByIdAtomFamily } from '@/atoms';
 import { machineSupportsLocalSessionAttachments } from '@lody/shared';
 import {
@@ -488,6 +489,7 @@ export type SessionChatInputAreaHandle = {
    * written (archived draft, unknown/own session, already mentioned), so the
    * caller can leave the gesture unacknowledged instead of implying a change.
    */
+  insertDesignElementMention: (reference: DesignElementReference, label: string) => boolean;
   insertSessionMention: (sessionId: string) => boolean;
   /** Role identity committed in the currently rendered composer. */
   getAgentRoleSelection: (
@@ -1647,6 +1649,7 @@ export const SessionChatInputArea = memo(
         toggleVisualAnnotationReference,
         handleImageDrop,
         insertSessionMention,
+        insertDesignElementMention: (reference, label) => !isArchived && (mentionActionsRef.current?.insertDesignElementMention(reference, label) ?? false),
         getAgentRoleSelection: (runConfigOverrides) =>
           resolveTurnAgentRoleForRunConfig({
             turnSelection: agentRoleTurnSelectionRef.current,
@@ -1663,6 +1666,7 @@ export const SessionChatInputArea = memo(
         toggleVisualAnnotationReference,
         handleImageDrop,
         insertSessionMention,
+        isArchived,
       ]
     );
 

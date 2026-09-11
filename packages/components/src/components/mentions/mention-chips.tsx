@@ -85,6 +85,7 @@ const CHIP_KINDS: ReadonlySet<string> = new Set([
   'pr',
   'mention',
   'pasted_text',
+  'design_element',
 ]);
 
 /**

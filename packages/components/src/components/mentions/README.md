@@ -41,3 +41,8 @@ rules live in [AGENTS.md](AGENTS.md); the pipeline and its reasoning live in
   taken from the pinned VS Code source identified in its header; AGENTS.md states
   what must survive an update.
 - `mention-analytics.ts` centralizes mention analytics event helpers.
+
+`design-element-mention.ts` reuses imperative mention insertion and persisted ranges
+for canonical Bento selection. Expansion sends artwork, saved baseline and stable
+IDs as an ordinary prompt marker; the transcript reuses the frozen mention span.
+No display label resolves an element. The canvas toolbar is the selection source.

@@ -22,6 +22,7 @@ import {
 } from '../../services/design-source-preview'
 import { getIpcServiceDeps } from '../ipc-service-deps'
 import {
+  getDesignSelection,
   attachDesign,
   hideDesign,
   destroyDesign,
@@ -78,6 +79,10 @@ export class DesignIpc extends IpcService {
   @IpcMethod() async read(sessionId: string) {
     owner()
     return designRequest({ operation: 'read', sessionId: id.parse(sessionId) })
+  }
+  @IpcMethod() async selection(sessionId: string, hostId: string) {
+    owner()
+    return getDesignSelection(id.parse(sessionId), id.parse(hostId))
   }
   @IpcMethod() async save(sessionId: string) {
     owner()

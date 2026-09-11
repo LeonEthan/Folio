@@ -1,3 +1,4 @@
+import { formatDesignElementReference } from '@lody/shared/design-element-reference';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const getIpcServicesMock = vi.hoisted(() => vi.fn());
@@ -53,4 +54,16 @@ describe('flushDesignCanvasBeforeSend', () => {
 
     await expect(flushDesignCanvasBeforeSend('artwork-9')).rejects.toThrow('DESIGN_CONFLICT');
   });
+});
+
+it('validates the post-flush saved baseline and retains stale reference identity', async () => {
+  const reference = { artworkId: 'art', baselineRevisionId: 'a'.repeat(64), elementIds: ['title'] };
+  const prompt = formatDesignElementReference(reference);
+  let saved = false;
+  getIpcServicesMock.mockReturnValue({ design: {
+    save: async () => { saved = true; },
+    read: async () => { expect(saved).toBe(true); return { revisionId: 'b'.repeat(64), doc: { elements: [{ id: 'title' }] } }; },
+  } });
+  await expect(flushDesignCanvasBeforeSend('art', prompt)).rejects.toThrow('stale');
+  expect(reference.baselineRevisionId).toBe('a'.repeat(64));
 });

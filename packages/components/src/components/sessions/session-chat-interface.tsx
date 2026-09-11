@@ -1,3 +1,4 @@
+import type { DesignElementReference } from '@lody/shared/design-element-reference';
 import {
   MessageSelectionContext,
   MessageSelectionToolbar,
@@ -1782,6 +1783,7 @@ export type SessionChatInterfaceHandle = {
   ) => void;
   openSearch: () => void;
   getLastAssistantTurnId: () => string | null;
+  insertDesignElementMention: (reference: DesignElementReference, label: string) => boolean;
   insertSessionMention: (sessionId: string) => boolean;
 };
 
@@ -3748,7 +3750,7 @@ export const SessionChatInterface = memo(
         // and the composer draft is left untouched.
         if (session.design) {
           try {
-            await flushDesignCanvasBeforeSend(session.design.artworkId);
+            await flushDesignCanvasBeforeSend(session.design.artworkId, normalized.filter((block) => block.type === 'text').map((block) => block.text).join('\n'));
           } catch (error) {
             captureSessionEvent('session/input_blocked', {
               reason: 'design_save_failed',
@@ -4370,6 +4372,7 @@ export const SessionChatInterface = memo(
         startShareImageSelection: shareSelection.start,
         openSearch,
         getLastAssistantTurnId: () => lastCompletedAssistantMessageId,
+        insertDesignElementMention: (reference, label) => inputAreaRef.current?.insertDesignElementMention(reference, label) ?? false,
         insertSessionMention: (sessionId: string) => {
           return inputAreaRef.current?.insertSessionMention(sessionId) ?? false;
         },

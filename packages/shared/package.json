@@ -12,6 +12,10 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
+    "./design-element-reference": {
+      "types": "./src/design-element-reference.ts",
+      "import": "./src/design-element-reference.ts"
+    },
     "./acp-startup-budget": {
       "types": "./src/acp-startup-budget.ts",
       "import": "./src/acp-startup-budget.ts"

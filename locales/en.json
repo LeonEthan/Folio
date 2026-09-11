@@ -4014,5 +4014,10 @@
   "design.previewAutomaticUnavailable": "Automatic updates unavailable. Use Refresh preview.",
   "design.previewReady": "Showing the observed document and assets.",
   "design.previewRefreshing": "Reading files…",
-  "design.previewWaiting": "Waiting for valid files. The last valid preview, if any, is retained."
+  "design.previewWaiting": "Waiting for valid files. The last valid preview, if any, is retained.",
+  "design.referenceSelection": "Reference selected elements",
+  "design.selectedElements": "Selected elements ({{count}})",
+  "design.finishComposition": "Finish composing text before adding an element reference",
+  "design.selectionChanged": "Artwork view changed; select the current elements again",
+  "design.referenceConversationUnavailable": "Open this artwork’s conversation before referencing elements"
 }

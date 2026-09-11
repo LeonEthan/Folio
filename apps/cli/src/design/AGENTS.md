@@ -26,3 +26,7 @@ Root and CLI instructions apply. `CLAUDE.md` links to this file.
 
 See [runtime and files](README.md) and the
 [decision](../../../../.agents/notes/implemented/architecture/2026-09-11-pi-design-hooks.md).
+
+- Element mentions carry artwork, saved revision and stable IDs in ordinary prompt
+  text. Frozen-input creation and recovery validate them against canonical; stale
+  references fail explicitly and never choose replacement targets.

@@ -113,3 +113,8 @@ Closing the last consumer releases watching and cached payloads; reopening, reco
 manual refresh and observed turn finalization reconcile independently. Invalid drafts
 retain the last valid surface; watcher errors retain manual refresh. Formal turn
 collection and exports remain independent.
+
+Element-reference prompt markers are validated during `turn-input.ts` materialization
+and frozen-input recovery against the actual artwork revision and stable IDs.
+A stale marker blocks dispatch without changing its identity or selecting a replacement.
+The original prompt and ordinary attachments remain the frozen input.

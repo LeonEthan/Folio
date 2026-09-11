@@ -158,4 +158,19 @@ describe('inserting a session mention from outside the composer', () => {
     expect(value).toBe('hello');
     expect(ranges).toHaveLength(0);
   });
+  it('inserts canonical element identity as a real focused mention and refuses active IME', async () => {
+    const reference = { artworkId: 'art', baselineRevisionId: 'a'.repeat(64), elementIds: ['chosen'] };
+    await render('Change');
+    const input = container.querySelector('textarea')!;
+    await act(async () => input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true })));
+    expect(() => handle?.insertDesignElementMention(reference, 'Selected elements (1)')).toThrow('Finish composing');
+    expect(value).toBe('Change');
+    await act(async () => input.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true })));
+    await act(async () => { handle?.insertDesignElementMention(reference, 'Selected elements (1)'); });
+    await render(value);
+    expect(value).toBe('Change @Selected elements (1) ');
+    expect(document.activeElement).toBe(input);
+    expect(ranges).toEqual([{ start: 7, end: 29, value: JSON.stringify(reference), kind: 'design_element' }]);
+  });
+
 });

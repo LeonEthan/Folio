@@ -1,3 +1,4 @@
+import { readDesignElementReferences, validateDesignElementReferences } from '@lody/shared/design-element-reference';
 import { getIpcServices } from './electron-ipc-client';
 
 /**
@@ -11,8 +12,13 @@ import { getIpcServices } from './electron-ipc-client';
  * unsaved edits. Rejects on a real save failure; callers must block the send,
  * keep the user's draft, and surface the error (P1 save-failure semantics).
  */
-export async function flushDesignCanvasBeforeSend(artworkId: string): Promise<void> {
+export async function flushDesignCanvasBeforeSend(artworkId: string, prompt = ''): Promise<void> {
   const design = getIpcServices()?.design;
-  if (!design) return;
+  const references = readDesignElementReferences(prompt);
+  if (!design) {
+    if (references.length) throw Error('Cannot validate element references without the local artwork');
+    return;
+  }
   await design.save(artworkId);
+  if (references.length) validateDesignElementReferences(references, artworkId, await design.read(artworkId));
 }

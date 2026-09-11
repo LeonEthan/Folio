@@ -1,3 +1,5 @@
+import type { DesignElementReference } from '@lody/shared/design-element-reference';
+import { buildDesignElementMentionInsertion } from './design-element-mention';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
@@ -496,6 +498,7 @@ function AgentRoleMentionHydrator({
  * re-slugging every visible session on every session-list tick.
  */
 export type CombinedMentionTextareaHandle = {
+  insertDesignElementMention: (reference: DesignElementReference, label: string) => boolean;
   /**
    * Append a session mention. Returns false when nothing was written: an
    * unknown/archived/own session, or one the draft already mentions.
@@ -512,15 +515,24 @@ export type CombinedMentionTextareaHandle = {
 function MentionActionsBridge({
   actionsRef,
   items,
+  composing,
 }: {
+  composing: React.RefObject<boolean>;
   actionsRef: React.Ref<CombinedMentionTextareaHandle>;
   items: readonly SessionMentionItem[];
 }) {
+  const { t } = useTranslation();
   const context = useMentionContext('MentionActionsBridge');
   const { mentions, onMentionInsert } = context;
   React.useImperativeHandle(
     actionsRef,
     () => ({
+      insertDesignElementMention: (reference, label) => {
+        if (composing.current) throw Error(t('design.finishComposition', 'Finish composing text before adding an element reference'));
+        if (mentions.some((mention) => mention.kind === 'design_element' && mention.value === JSON.stringify(reference))) return false;
+        onMentionInsert(buildDesignElementMentionInsertion(reference, label));
+        return true;
+      },
       insertSessionMention: (sessionId: string) => {
         // Session mentions being disabled IS an empty list, so the lookup is
         // also the enablement check — there is nothing to mention.
@@ -532,7 +544,7 @@ function MentionActionsBridge({
         return true;
       },
     }),
-    [items, mentions, onMentionInsert]
+    [items, mentions, onMentionInsert, composing, t]
   );
 
   return null;
@@ -840,6 +852,7 @@ export const CombinedMentionTextarea = React.forwardRef<
       value,
     ]);
 
+    const composing = React.useRef(false);
     const enableCommandMentions = Boolean(availableCommands && availableCommands.length > 0);
     const hasExternalMentionSupport =
       externalMentions.length > 0 || Boolean(onExternalMentionsChange) || Boolean(onMentionClick);
@@ -857,7 +870,7 @@ export const CombinedMentionTextarea = React.forwardRef<
       enableSkillMentions ||
       enableSessionMentions ||
       enableAgentRoleMentions;
-    const enableMentions = enableAtMentions || enableCommandMentions || hasExternalMentionSupport;
+    const enableMentions = enableAtMentions || enableCommandMentions || hasExternalMentionSupport || Boolean(mentionActionsRef);
 
     // `/` trigger is only active when the entire input is a slash command (e.g. "" or "/review")
     const isSlashOnly = !value || /^\/\S*$/.test(value);
@@ -932,7 +945,7 @@ export const CombinedMentionTextarea = React.forwardRef<
             enabled={enableAgentRoleMentions}
           />
           {mentionActionsRef ? (
-            <MentionActionsBridge actionsRef={mentionActionsRef} items={sessionItems} />
+            <MentionActionsBridge actionsRef={mentionActionsRef} items={sessionItems} composing={composing} />
           ) : null}
           {enableSkillMentions ? (
             <SkillMentionHydrator
@@ -965,6 +978,8 @@ export const CombinedMentionTextarea = React.forwardRef<
           containerClassName={containerClassName}
           className={cn('resize-none', className)}
           {...props}
+          onCompositionStart={(event) => { composing.current = true; props.onCompositionStart?.(event); }}
+          onCompositionEnd={(event) => { composing.current = false; props.onCompositionEnd?.(event); }}
         />
         <TwoLevelMentionMenu
           fileData={fileData}

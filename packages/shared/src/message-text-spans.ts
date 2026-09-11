@@ -38,6 +38,7 @@ export const MESSAGE_TEXT_SPAN_KINDS = [
   'command',
   'agent_role',
   'pasted_text',
+  'design_element',
 ] as const;
 
 export type MessageTextSpanKind = (typeof MESSAGE_TEXT_SPAN_KINDS)[number];
