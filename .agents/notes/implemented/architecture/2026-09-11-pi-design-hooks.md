@@ -135,6 +135,14 @@ bounded RPC continuation schema passed its regression. The native large probe
 parses the exact production request schema before dispatch, closing the coverage
 gap between a direct service host and the real daemon's offset/limit contract.
 
+The integrated main revision `9944930` passed the full checks again and a freshly
+built desktop replay of the same native Pi journey. It retained the manual shape,
+rejected the early write, committed revision
+`202122bd4472a61d8eae891a58105b3f1463ad33247ef31e9bd628eceecab2d9`, and restored
+canvas editing after finalization. The root inspected the native canvas capture;
+the external model remained synthetic. This replay includes the already integrated
+result-card, thumbnail and PR workflow removals, but no later preview changes.
+
 The wire preserves native numeric read parameters; positive-integer range checks
 apply only after the service identifies a projection read. Native ordinary-file
 behavior (including offset zero) is left to Pi. Final schema/service regressions
