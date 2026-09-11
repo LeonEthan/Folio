@@ -5,8 +5,7 @@
  * in the session workdir and classifies it into one durable verdict:
  *
  *   missing design.pptd            -> no_artifact (canvas untouched)
- *   unchanged since send, = canvas -> no_artifact (nothing this turn produced)
- *   unchanged since send, ≠ canvas -> candidate  (offered, never committed)
+ *   unchanged since send          -> no_artifact (nothing this turn produced)
  *   structure/collection failure   -> invalid (+ bounded diagnostics)
  *   imported and saved             -> committed (revisionId)
  *   baseline moved under us        -> candidate  (kept beside the canvas)
@@ -28,14 +27,11 @@
  *   it is never committed and never credited to this turn. Without that check a
  *   turn whose agent wrote nothing would re-import the previous turn's project
  *   and report it as its own.
- * - An unattributable project is offered, not hidden. It becomes a candidate —
- *   the canvas stays exactly as it was, and adopt-or-discard is the user's call —
- *   because a project this collection cannot attribute is one the user has no
- *   other way to see. Two cases take `no_artifact` instead: the canvas already
- *   holds that exact document (the candidate would be born adopted and mean
- *   nothing), and the project does not import — by the intake's rules or by the
- *   store's own, which bound different vocabularies; a state that predates the
- *   turn is not this turn's failure to report.
+ * - Proven unchanged projects return before import or canvas comparison. Their
+ *   files, existing candidates, and historical receipts remain untouched. A
+ *   missing dispatch digest is not proof of no change: legacy manifests keep
+ *   their existing validation and atomic save path. An explicit resubmission
+ *   needs separate attempt evidence; identical rewrites do not establish it.
  * - Validation is storage-layer structure only — schema, Bento kernel replay,
  *   asset integrity, and the intake's own fail-closed snapshot rules. Semantic
  *   checks the agent could have run itself (its `finalize.mjs`, preview
@@ -101,12 +97,7 @@ import { DESIGN_ARTIFACT_ENTRY, readDesignArtifact } from './artifact';
 import { buildAssetDataUris } from './authoring-assets';
 import { DESIGN_BUSY, type DesignLockTiming } from './lock';
 import type { DesignRenderQueue } from './render-output';
-import {
-  acceptsDesignContent,
-  canvasHoldsContent,
-  designOperation,
-  saveDesignCandidate,
-} from './store';
+import { designOperation, saveDesignCandidate } from './store';
 import { captureDesignThumbnail, type DesignThumbnailSubject } from './thumbnail';
 import {
   DESIGN_TURN_INPUT_DIRNAME,
@@ -433,32 +424,6 @@ async function recordTurnOutcome(
 type DesignTurnContent = { doc: Record<string, unknown>; assets: Record<string, string> };
 
 /**
- * Whether the live canvas already holds exactly this document.
- *
- * The comparison is the store's own (`canvasHoldsContent`), so "yes" means a
- * candidate made from this document would come back `adopted` the moment it was
- * read — including for the assets the document does not use, which this module's
- * table carries (the intake enumerates `theme.tableStyles` fills too) and the
- * store does not.
- *
- * A canvas that cannot be read is not evidence that it holds this document, so
- * every failure answers `false` — the safe direction: offering a document the
- * canvas already has costs the user one discard, while hiding one they have no
- * other way to see is unrecoverable.
- */
-async function canvasHoldsDocument(
-  dataRoot: string,
-  artworkId: string,
-  content: DesignTurnContent
-): Promise<boolean> {
-  try {
-    return await canvasHoldsContent(dataRoot, artworkId, content);
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Collect this turn's artifact, classify it, and commit, keep, or reject it.
  */
 export async function collectDesignTurnOutcome(
@@ -514,33 +479,19 @@ export async function collectDesignTurnOutcome(
         ]);
       }
 
-      // The workspace still holds exactly the project the turn was dispatched
-      // with, so nothing on disk was written by this turn: it is an earlier
-      // turn's work. It is never committed — this turn holds no evidence that the
-      // canvas is its to write — and never thrown away either, because a project
-      // the collection cannot attribute is one the user has no other way to see.
-      // What is left is to offer it (a candidate, the canvas untouched) unless the
-      // canvas already holds it, which is decided below, once it has imported.
+      // Only a matching dispatch digest proves that this turn produced nothing.
+      // Do not import or offer an earlier project's contents just because the
+      // current canvas differs. Legacy manifests without this evidence continue
+      // through the existing validation and atomic version check below.
       const unchangedSinceSend =
         manifestFile.manifest.artifactAtSend?.status === 'present' &&
         manifestFile.manifest.artifactAtSend.digest === artifact.digest;
-
-      /**
-       * The verdict for a project this turn neither produced nor changed.
-       *
-       * It covers the project's own import failures too: a project that does not
-       * import, unchanged since dispatch, was in that state before the turn ran,
-       * so reporting it as this turn's `invalid` would blame a turn for a state it
-       * inherited.
-       */
-      const asDispatched = (): DesignTurnCollection => ({
-        outcome: { ...base, status: 'no_artifact' },
-      });
+      if (unchangedSinceSend) return { outcome: { ...base, status: 'no_artifact' } };
 
       /**
        * Keep a validated document beside the canvas for an explicit adopt or
        * discard. Never a commit: this turn's evidence that the canvas is its to
-       * write has not held up, or the document is not this turn's output at all.
+       * write has not held up.
        */
       const keepCandidate = async (content: DesignTurnContent): Promise<DesignTurnCollection> => {
         try {
@@ -565,11 +516,9 @@ export async function collectDesignTurnOutcome(
       const snapshot = artifact.snapshot;
       const intake = intakeAuthoring(DESIGN_ARTIFACT_ENTRY, snapshot);
       if (intake.status === 'invalid') {
-        if (unchangedSinceSend) return asDispatched();
         return invalid(intake.diagnostics.map(({ code, message }) => ({ code, message })));
       }
       if (intake.status === 'unsupported') {
-        if (unchangedSinceSend) return asDispatched();
         return invalid(intake.issues.map(({ code, message }) => ({ code, message })));
       }
 
@@ -583,22 +532,7 @@ export async function collectDesignTurnOutcome(
           assets: buildAssetDataUris(intake.assets),
         };
       } catch (error) {
-        if (unchangedSinceSend) return asDispatched();
         return invalid([{ code: 'design_asset_failed', message: errorMessage(error) }]);
-      }
-
-      if (unchangedSinceSend) {
-        // A project this store would refuse is a state the turn inherited, not a
-        // turn that produced something broken. The intake above is not that gate:
-        // it is the fail-closed one for the *project*, and the two do not bound
-        // the same vocabulary (the store caps an element id the intake leaves
-        // free), so both are asked before anything is offered.
-        if (!acceptsDesignContent(content)) return asDispatched();
-        // Otherwise the only case with nothing to offer: the canvas already is
-        // this document, so a candidate of it would be born adopted and mean
-        // nothing.
-        if (await canvasHoldsDocument(dataRoot, artworkId, content)) return asDispatched();
-        return await keepCandidate(content);
       }
 
       try {

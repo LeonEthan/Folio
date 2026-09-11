@@ -26,14 +26,9 @@ import type {
 } from '@lody/shared';
 import { sanitizeDesignTurnOutcome, type DesignTurnOutcome } from '@lody/shared';
 import type { DesignRenderQueue } from './render-output';
-import { DESIGN_ARTIFACT_ENTRY } from './artifact';
+import { DESIGN_ARTIFACT_ENTRY, readDesignArtifact } from './artifact';
 import { DESIGN_LOCK_FILENAME } from './lock';
-import {
-  adoptDesignCandidate,
-  designOperation,
-  listDesignCandidates,
-  readDesignCandidate,
-} from './store';
+import { designOperation, listDesignCandidates, readDesignCandidate } from './store';
 import { MAX_THUMBNAIL_EDGE, DESIGN_THUMBNAIL_DIRNAME } from './thumbnail';
 import {
   collectDesignTurnOutcome,
@@ -374,7 +369,7 @@ async function moveBaseline(harness: Harness, revisionId: string): Promise<void>
 }
 
 describe('collectDesignTurnOutcome', () => {
-  it('commits a valid artifact and records the revision that landed', async () => {
+  it('keeps legacy manifests without dispatch content evidence on the validated commit path', async () => {
     const harness = createHarness();
     const created = await createDesign(harness);
     await writeArtifact(harness, PAGE);
@@ -401,6 +396,30 @@ describe('collectDesignTurnOutcome', () => {
     expect(stored.doc.elements).toHaveLength(3);
     expect(recordedOutcome(harness)).toEqual(attempt.outcome);
   });
+
+  it.each(['absent', 'rejected'] as const)(
+    'does not infer unchanged contents from %s dispatch evidence',
+    async (status) => {
+      const harness = createHarness();
+      const created = await createDesign(harness);
+      await writeManifest(harness, created.revisionId);
+      const manifestPath = path.join(
+        harness.workdir,
+        DESIGN_TURN_INPUT_DIRNAME,
+        harness.turnId,
+        DESIGN_TURN_MANIFEST_FILENAME
+      );
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+      manifest.artifactAtSend =
+        status === 'absent' ? { status } : { status, message: 'snapshot unavailable at dispatch' };
+      writeFileSync(manifestPath, JSON.stringify(manifest));
+      await writeArtifact(harness, PAGE);
+      expect(await collectDesignTurnOutcome(contextFor(harness))).toMatchObject({
+        status: 'recorded',
+        outcome: { status: 'committed' },
+      });
+    }
+  );
 
   it('records a reference to the thumbnail the desktop rendered for the commit', async () => {
     const harness = createHarness();
@@ -482,30 +501,19 @@ describe('collectDesignTurnOutcome', () => {
     expect(stored.doc.elements).toHaveLength(0);
   });
 
-  it('offers a project the turn left exactly as dispatched, instead of hiding it', async () => {
+  it('does not promote unchanged workspace contents that differ from the canvas', async () => {
     const harness = createHarness();
     const created = await createDesign(harness);
-    // A project an earlier turn produced, still sitting in the workspace. This
-    // turn found it and changed nothing, so it cannot be credited to this turn —
-    // but the workspace is the only place it exists, and a project that is
-    // neither committed nor kept is one the user can never see.
-    await writeArtifact(harness, PAGE);
+    await writeArtifact(harness, PAGE, { manifest: THEMED_MANIFEST, extraMedia: true });
     await freezeTurnInput(harness);
+    const before = await readDesignArtifact(harness.workdir);
 
-    const attempt = await collectDesignTurnOutcome(contextFor(harness));
-    expect(attempt.status).toBe('recorded');
-    if (attempt.status !== 'recorded') return;
-    expect(attempt.outcome.status).toBe('candidate');
-    expect(attempt.outcome.candidateId).toMatch(/^[a-f0-9]{64}$/);
-    const candidates = await listDesignCandidates(harness.root, harness.sessionId);
-    expect(candidates).toHaveLength(1);
-    // The offer is the imported project, so adopting it is a real choice.
-    const kept = await readDesignCandidate(
-      harness.root,
-      harness.sessionId,
-      attempt.outcome.candidateId
-    );
-    expect(kept.candidate.content.doc.elements).toHaveLength(3);
+    expect(await collectDesignTurnOutcome(contextFor(harness))).toMatchObject({
+      status: 'recorded',
+      outcome: { status: 'no_artifact' },
+    });
+    expect(await listDesignCandidates(harness.root, harness.sessionId)).toEqual([]);
+    expect(await readDesignArtifact(harness.workdir)).toEqual(before);
     const stored = await designOperation(harness.root, {
       operation: 'read',
       sessionId: harness.sessionId,
@@ -514,90 +522,68 @@ describe('collectDesignTurnOutcome', () => {
     expect(stored.doc.elements).toHaveLength(0);
   });
 
-  it('stays silent when the offered project is the canvas it was dispatched with', async () => {
+  it('preserves an existing candidate when identical bytes are rewritten after dispatch', async () => {
     const harness = createHarness();
-    await createDesign(harness);
+    const created = await createDesign(harness);
+    await writeManifest(harness, created.revisionId);
     await writeArtifact(harness, PAGE);
-    await freezeTurnInput(harness);
-
+    await moveBaseline(harness, created.revisionId);
     const first = await collectDesignTurnOutcome(contextFor(harness));
-    expect(first.status).toBe('recorded');
-    if (first.status !== 'recorded') return;
+    if (first.status !== 'recorded') throw Error('outcome missing');
     expect(first.outcome.status).toBe('candidate');
-    if (first.outcome.status !== 'candidate') return;
-    // The user adopted the offer, so the canvas now holds that project.
-    await adoptDesignCandidate(harness.root, harness.sessionId, first.outcome.candidateId);
-
-    // A second collection of the same turn (its stamp and receipt both lost) finds
-    // a project unchanged since send that *is* what the canvas holds. There is
-    // nothing left to offer: a candidate of it would be born adopted, so the turn
-    // reports nothing rather than a card about a decision already made.
+    const receiptPath = path.join(
+      harness.workdir,
+      DESIGN_TURN_INPUT_DIRNAME,
+      harness.turnId,
+      'receipt.json'
+    );
+    const receipt = readFileSync(receiptPath);
+    const candidates = await listDesignCandidates(harness.root, harness.sessionId);
+    const candidate = await readDesignCandidate(
+      harness.root,
+      harness.sessionId,
+      first.outcome.candidateId!
+    );
+    // Old receipts still restore their historical candidate verdict, even after
+    // the dispatch snapshot would otherwise classify these bytes as unchanged.
+    await freezeTurnInput(harness);
     harness.forgetOutcome();
-    rmSync(path.join(harness.workdir, DESIGN_TURN_INPUT_DIRNAME, harness.turnId, 'receipt.json'), {
-      force: true,
-    });
-
-    const second = await collectDesignTurnOutcome(contextFor(harness));
-    expect(second).toEqual({
+    expect(await collectDesignTurnOutcome(contextFor(harness))).toEqual(first);
+    // A distinct turn has independent dispatch evidence; merely rewriting the
+    // same bytes does not create an explicit resubmission attempt.
+    harness.turnId = 'turn-outcome-2';
+    harness.history.push({ ...harness.history[0]!, id: harness.turnId, designOutcome: undefined });
+    await freezeTurnInput(harness);
+    await writeArtifact(harness, PAGE);
+    expect(await collectDesignTurnOutcome(contextFor(harness))).toMatchObject({
       status: 'recorded',
-      outcome: expect.objectContaining({ status: 'no_artifact' }),
+      outcome: { status: 'no_artifact' },
     });
-    // Still exactly the one candidate the first collection kept: reporting
-    // nothing wrote nothing.
-    expect(await listDesignCandidates(harness.root, harness.sessionId)).toEqual([
-      expect.objectContaining({ candidateId: first.outcome.candidateId }),
-    ]);
+    expect(await listDesignCandidates(harness.root, harness.sessionId)).toEqual(candidates);
+    expect(
+      await readDesignCandidate(harness.root, harness.sessionId, first.outcome.candidateId!)
+    ).toEqual(candidate);
+    expect(harness.history[0]?.designOutcome).toEqual(first.outcome);
+    expect(readFileSync(receiptPath)).toEqual(receipt);
   });
 
-  it('recognises the canvas through the media the project carries but never uses', async () => {
+  it('reports no_artifact when unchanged content already equals the canvas', async () => {
     const harness = createHarness();
-    await createDesign(harness);
-    await writeArtifact(harness, PAGE, { manifest: THEMED_MANIFEST, extraMedia: true });
-    await freezeTurnInput(harness);
-
-    const first = await collectDesignTurnOutcome(contextFor(harness));
-    expect(first.status).toBe('recorded');
-    if (first.status !== 'recorded') return;
-    expect(first.outcome.status).toBe('candidate');
-    if (first.outcome.status !== 'candidate') return;
-    // The captured project names a table style's image in its manifest, so the
-    // candidate's asset table has one entry more than the canvas can hold.
-    const { candidate } = await readDesignCandidate(
-      harness.root,
-      harness.sessionId,
-      first.outcome.candidateId
-    );
-    const adopted = await adoptDesignCandidate(
-      harness.root,
-      harness.sessionId,
-      first.outcome.candidateId
-    );
-    expect(adopted.status).toBe('adopted');
-    const live = await designOperation(harness.root, {
-      operation: 'read',
-      sessionId: harness.sessionId,
-    });
-    expect(Object.keys(live.assets).length).toBeLessThan(
-      Object.keys(candidate.content.assets).length
-    );
-
-    // Collecting the same project again is comparing those two tables for a
-    // second time. The canvas holds it, so there is nothing to offer — the
-    // unused entry must not read as a difference and turn this into a card the
-    // user has to keep discarding.
-    harness.forgetOutcome();
-    rmSync(path.join(harness.workdir, DESIGN_TURN_INPUT_DIRNAME, harness.turnId, 'receipt.json'), {
-      force: true,
-    });
-
-    const second = await collectDesignTurnOutcome(contextFor(harness));
-    expect(second).toEqual({
+    const created = await createDesign(harness);
+    await writeManifest(harness, created.revisionId);
+    await writeArtifact(harness, PAGE);
+    expect(await collectDesignTurnOutcome(contextFor(harness))).toMatchObject({
       status: 'recorded',
-      outcome: expect.objectContaining({ status: 'no_artifact' }),
+      outcome: { status: 'committed' },
     });
-    expect(await listDesignCandidates(harness.root, harness.sessionId)).toEqual([
-      expect.objectContaining({ candidateId: first.outcome.candidateId }),
-    ]);
+    harness.turnId = 'turn-outcome-2';
+    harness.history.push({ ...harness.history[0]!, id: harness.turnId, designOutcome: undefined });
+    await freezeTurnInput(harness);
+    expect(await collectDesignTurnOutcome(contextFor(harness))).toMatchObject({
+      status: 'recorded',
+      outcome: { status: 'no_artifact' },
+    });
+    expect(await listDesignCandidates(harness.root, harness.sessionId)).toEqual([]);
   });
 
   it('does not blame the turn for a project that was already unimportable when it was sent', async () => {
@@ -686,14 +672,13 @@ describe('collectDesignTurnOutcome', () => {
     expect(stored.doc.elements).toHaveLength(3);
   });
 
-  it('leaves the user’s newer save on the canvas when it offers an earlier project', async () => {
+  it('leaves the user’s newer save untouched without offering an unchanged project', async () => {
     const harness = createHarness();
     const created = await createDesign(harness);
     await writeArtifact(harness, PAGE);
     await freezeTurnInput(harness);
     // The user saved while this turn ran. The project still in the workspace is
-    // an older document, so it is offered as a candidate — never committed, which
-    // is what would have overwritten the save they just made.
+    // an older document: it produces neither a candidate nor a commit.
     await moveBaseline(harness, created.revisionId);
     const userSaved = await designOperation(harness.root, {
       operation: 'read',
@@ -703,8 +688,8 @@ describe('collectDesignTurnOutcome', () => {
     const attempt = await collectDesignTurnOutcome(contextFor(harness));
     expect(attempt.status).toBe('recorded');
     if (attempt.status !== 'recorded') return;
-    expect(attempt.outcome.status).toBe('candidate');
-    expect(await listDesignCandidates(harness.root, harness.sessionId)).toHaveLength(1);
+    expect(attempt.outcome.status).toBe('no_artifact');
+    expect(await listDesignCandidates(harness.root, harness.sessionId)).toHaveLength(0);
     const stored = await designOperation(harness.root, {
       operation: 'read',
       sessionId: harness.sessionId,
