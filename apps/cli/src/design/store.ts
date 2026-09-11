@@ -355,7 +355,7 @@ export async function designOperation(
   const request = designRequest.parse(raw);
   const id = request.operation === 'create' ? request.association.sessionId : request.sessionId;
   const directory = path.join(dataRoot, 'chats', id);
-  await mkdir(directory, { recursive: true });
+  if (request.operation !== 'read') await mkdir(directory, { recursive: true });
   if ((await lstat(directory)).isSymbolicLink())
     throw Error('Design workspace cannot be a symlink');
   const current = path.join(directory, 'design.json');

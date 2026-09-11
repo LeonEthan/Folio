@@ -4,11 +4,11 @@ import {
 } from '@lody/shared/design-element-reference'
 import { isDeepStrictEqual } from 'node:util'
 import { app, BrowserWindow, WebContentsView, session, dialog } from 'electron'
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { randomUUID, createHash } from 'node:crypto'
 import { readFile, open, rename, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
-import { createInterface } from 'node:readline'
+import { DesignWorker, quitDesignWorker } from './design-worker'
 import type { DesignPayload, DesignRequest } from '../../../../cli/src/design/store'
 import { openDesignCanvasNeedsReload, selectCanvasInstance } from './design-canvas-sync-core'
 import { DesignCanvasAccess, type CanvasInstance } from './design-canvas-access'
@@ -38,9 +38,14 @@ const recordsFor = (id: string) => [...records.values()].filter((record) => reco
 const loading = new Map<string, Promise<RecordEntry>>()
 const syncing = new Map<string, Promise<void>>()
 const hosts = new Map<string, string>()
-let worker: ChildProcessWithoutNullStreams | undefined
-let pending: { resolve(value: unknown): void; reject(error: Error): void } | undefined
-let queue: Promise<unknown> = Promise.resolve()
+const designWorker = new DesignWorker(() =>
+  spawn(process.execPath, [join(resources(), 'cli/design.js')], {
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+    stdio: ['pipe', 'pipe', 'pipe']
+  })
+)
+
+export const shutdownDesignWorker = () => designWorker.close()
 
 export function designRequest<T = DesignPayload>(
   request:
@@ -51,52 +56,7 @@ export function designRequest<T = DesignPayload>(
     | ({ operation: 'candidate-file' } & DesignCandidateRequest),
   beforeSend?: () => void
 ): Promise<T> {
-  const result = queue
-    .catch(() => {})
-    .then(
-      () =>
-        new Promise<T>((resolve, reject) => {
-          beforeSend?.()
-          if (!worker) {
-            const child = spawn(process.execPath, [join(resources(), 'cli/design.js')], {
-              env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
-              stdio: ['pipe', 'pipe', 'pipe']
-            })
-            worker = child
-            const lines = createInterface({ input: child.stdout })
-            lines.on('line', (line) => {
-              const current = pending
-              pending = undefined
-              try {
-                const response = JSON.parse(line)
-                if (response.ok) current?.resolve(response.value)
-                else current?.reject(Error(response.error))
-              } catch {
-                current?.reject(Error('Invalid design service response'))
-              }
-            })
-            child.stderr.resume()
-            const failed = () => {
-              if (worker !== child) return
-              worker = undefined
-              pending?.reject(Error('Design service stopped; retry to check the saved drawing'))
-              pending = undefined
-              lines.close()
-            }
-            child.once('error', failed)
-            child.once('exit', failed)
-          }
-          pending = { resolve: (value) => resolve(value as T), reject }
-          worker.stdin.write(JSON.stringify(request) + '\n', (error) => {
-            if (error) {
-              pending = undefined
-              reject(error)
-            }
-          })
-        })
-    )
-  queue = result
-  return result
+  return designWorker.request<T>(request, beforeSend)
 }
 
 export async function surface(
@@ -631,15 +591,18 @@ export async function renameDesign(id: string, name: string) {
   await syncDesignCanvasFromStore(id)
   return renamed
 }
-export function hasOpenDesigns() {
-  return records.size > 0
-}
 export async function prepareDesignQuit(): Promise<boolean> {
-  for (const id of new Set([...records.values()].map((entry) => entry.artworkId)))
-    if (!(await leaveDesign(id))) return false
-  for (const key of [...records.keys()]) destroyDesignInstance(key)
-  worker?.stdin.end()
-  return true
+  return quitDesignWorker(
+    designWorker,
+    async () => {
+      for (const id of new Set([...records.values()].map((entry) => entry.artworkId)))
+        if (!(await leaveDesign(id))) return false
+      return true
+    },
+    () => {
+      for (const key of [...records.keys()]) destroyDesignInstance(key)
+    }
+  )
 }
 
 async function unfreezeDesigns() {

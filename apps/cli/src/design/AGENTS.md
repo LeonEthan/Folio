@@ -51,3 +51,6 @@ proof for collection, and route error/missing proof through existing turn failur
   Turn input, bind persisted ACP ID to its actual provider, and never resume an ID
   across providers. Replace the idle runtime under the existing turn guard; retiring
   callbacks cannot finalize or write into its replacement. Reuse history replay.
+
+Reading a missing canonical artwork must not create its directory. Keep directory
+creation in mutation operations and preserve their independent validation and CAS.

@@ -1,5 +1,5 @@
 import { verifyDesign } from './services/design-verification'
-import { hasOpenDesigns, prepareDesignQuit } from './services/design-service'
+import { prepareDesignQuit, shutdownDesignWorker } from './services/design-service'
 import { startDesignCanvasHost } from './services/design-canvas-host-service'
 import { startDesignRenderHost } from './services/design-render-host-service'
 import { verifyDesignSample } from './services/design-sample-verification'
@@ -202,9 +202,11 @@ if (hasSingleInstanceLock) {
           await designCanvasAccess.update([])
         })
         await verifyDesign(p1Probe.slice('--folio-p1-verify='.length))
+        await shutdownDesignWorker()
         app.exit(0)
       } catch (error) {
         console.error(error)
+        await shutdownDesignWorker()
         app.exit(1)
       }
       return
@@ -213,9 +215,11 @@ if (hasSingleInstanceLock) {
     if (designProbe) {
       try {
         await verifyDesignSample(designProbe.slice('--folio-p0-verify='.length))
+        await shutdownDesignWorker()
         app.exit(0)
       } catch (error) {
         console.error(error)
+        await shutdownDesignWorker()
         app.exit(1)
       }
       return
@@ -349,15 +353,19 @@ if (hasSingleInstanceLock) {
     })
 
     let designQuitPending = false
+    let designShutdownComplete = false
     let cliShutdownComplete = false
     app.on('before-quit', (event) => {
-      if (hasOpenDesigns()) {
+      if (!designShutdownComplete) {
         event.preventDefault()
         if (!designQuitPending) {
           designQuitPending = true
           void prepareDesignQuit()
             .then((ready) => {
-              if (ready) app.quit()
+              if (ready) {
+                designShutdownComplete = true
+                app.quit()
+              }
             })
             .catch((error) => console.error('Design save failed', error))
             .finally(() => {
@@ -405,10 +413,13 @@ if (hasSingleInstanceLock) {
       publicBrowserService.destroyAll()
     })
   })
-  void appReady.catch((error: unknown) => {
+  void appReady.catch(async (error: unknown) => {
     recordE2EBootDiagnostic('failed', error)
     console.error('[Electron] Fatal error while creating the main window', error)
-    if (!IS_E2E) app.exit(1)
+    if (!IS_E2E) {
+      await shutdownDesignWorker()
+      app.exit(1)
+    }
   })
 }
 

@@ -171,3 +171,8 @@ payload and submits it to the unchanged `designOperation` save after canvas flus
 The store repeats structural/assets validation and atomic version checks, including
 same-content lost-reply idempotence. Import does not write authoring files or claim
 Agent read evidence.
+
+Missing canonical reads reject without creating a session directory. The Electron
+owner drains accepted design-worker operations and awaits child exit on application
+quit, after the existing cancellable editor flush. See the
+[shutdown fix](../../../../.agents/notes/implemented/bug-fix/2026-09-12-design-worker-shutdown.md).

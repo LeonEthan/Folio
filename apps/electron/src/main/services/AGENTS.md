@@ -37,3 +37,7 @@ composer references. Validate artwork, revision and IDs again before dispatch.
 Image context actions check image kinds in that saved canonical document, then
 insert only a target mention and editable prompt into the ordinary composer.
 They never mutate the artwork or dispatch a separate image job.
+
+Application quit flushes editors before sealing design-worker requests; cancelled
+flush leaves the service usable. Even with no open editor, drain accepted requests,
+end worker input and await child exit before quitting. A closed worker never restarts.

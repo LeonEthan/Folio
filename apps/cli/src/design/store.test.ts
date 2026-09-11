@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, symlink, writeFile, lstat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
@@ -259,4 +259,14 @@ test('a document is the canvas even when its table carries assets the document d
       content: candidate.content,
     })
   ).toEqual(created);
+});
+
+test('reading a missing drawing never creates its session directory', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'folio-missing-design-'));
+  roots.push(root);
+  const id = randomUUID();
+  await expect(designOperation(root, { operation: 'read', sessionId: id })).rejects.toMatchObject({
+    code: 'ENOENT',
+  });
+  await expect(lstat(path.join(root, 'chats'))).rejects.toMatchObject({ code: 'ENOENT' });
 });
