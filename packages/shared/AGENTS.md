@@ -109,3 +109,9 @@ rendering gates; its MCP call must consume an already observed native tool call.
 Design continuation freezes `ACPSessionConfig.agentConfigId`; normalization and
 dispatch preserve it. `SessionMeta.acpSessionAgentConfigId` identifies the provider
 that owns the persisted ACP ID, independently of the next selected provider.
+
+## Isolated title defaults
+
+Unconfigured title models retain the new ACP session's current model; catalog order
+never chooses a model or endpoint. Persist model keys only for explicit title
+selections. Preserve existing stored overrides without inferring their provenance.

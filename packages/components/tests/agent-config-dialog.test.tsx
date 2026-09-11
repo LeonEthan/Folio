@@ -865,6 +865,9 @@ describe('AgentConfigDialog', () => {
 
       await vi.waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
       expect(onRefreshCapabilities).toHaveBeenCalledOnce();
+      expect(
+        onSubmit.mock.calls[0]?.[0]?.titleGeneration?.configOptionValues ?? {}
+      ).not.toHaveProperty('model');
       expect(onSubmit.mock.invocationCallOrder[0]).toBeLessThan(
         onRefreshCapabilities.mock.invocationCallOrder[0]!
       );
@@ -1010,6 +1013,38 @@ describe('AgentConfigDialog', () => {
     await renderEditingBuiltin(overrides);
 
     expect(findSignInAgainButton()).toBeUndefined();
+  });
+
+  it('preserves an existing explicit title model equal to the displayed current model', async () => {
+    let submitted;
+    await renderDialog(
+      {
+        kind: 'edit',
+        config: {
+          id: codexConfigId,
+          machineId,
+          name: 'Codex',
+          cliType: 'builtin',
+          agentType: 'codex',
+          env: {},
+          titleGeneration: { configOptionValues: { model: 'gpt-5.6-sol' } },
+        } as AgentConfigMeta,
+      },
+      createCodexMachine(),
+      async (payload) => {
+        submitted = payload;
+      }
+    );
+    const save = Array.from(document.body.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Save'
+    );
+    if (!save) throw Error('Expected Save');
+    await act(async () => {
+      save.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(submitted).toMatchObject({
+      titleGeneration: { configOptionValues: { model: 'gpt-5.6-sol' } },
+    });
   });
 
   it('saves a normalized title reasoning effort after the title model changes', async () => {

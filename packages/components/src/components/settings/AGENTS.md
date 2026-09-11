@@ -78,3 +78,6 @@ its independent consumer migration. Agent provider authentication remains suppor
 Worktree setup/cleanup scripts remain editable for existing Session and CLI
 consumers. Repository status is queried only by mounted project settings, never
 preloaded by the settings root. IDE launcher settings and probes are retired.
+
+Title defaults do not persist an inferred model. Existing title model overrides,
+including values equal to the displayed current model, remain explicit on save.

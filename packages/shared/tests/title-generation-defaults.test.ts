@@ -53,9 +53,9 @@ describe('computeTitleGenerationDefaults', () => {
     ]),
   ];
 
-  it('selects the last-listed model for claude', () => {
+  it('leaves the current Claude model unchanged', () => {
     const result = computeTitleGenerationDefaults('builtin', 'claude', claudeOptions);
-    expect(result['model']).toBe('claude-opus-4-0-20250514');
+    expect(result).not.toHaveProperty('model');
   });
 
   it('selects the least-privileged mode for claude', () => {
@@ -63,9 +63,9 @@ describe('computeTitleGenerationDefaults', () => {
     expect(result['mode']).toBe('plan');
   });
 
-  it('selects the last-listed codex model', () => {
+  it('leaves the current Codex model unchanged', () => {
     const result = computeTitleGenerationDefaults('builtin', 'codex', codexOptions);
-    expect(result['model']).toBe('gpt-5.3-codex-spark');
+    expect(result).not.toHaveProperty('model');
   });
 
   it('selects read-only mode for codex when available', () => {
@@ -78,7 +78,7 @@ describe('computeTitleGenerationDefaults', () => {
     expect(result['reasoning_effort']).toBe('low');
   });
 
-  it('uses the last-listed model when no static preferred option exists', () => {
+  it('does not infer a model override from catalog order', () => {
     const noHaikuOptions: AcpConfigOptionSummary[] = [
       makeOption('model', 'model', 'claude-sonnet-4-5-20250514', [
         { value: 'claude-sonnet-4-5-20250514', name: 'Claude Sonnet 4.5' },
@@ -86,7 +86,7 @@ describe('computeTitleGenerationDefaults', () => {
       ]),
     ];
     const result = computeTitleGenerationDefaults('builtin', 'claude', noHaikuOptions);
-    expect(result['model']).toBe('claude-opus-4-0-20250514');
+    expect(result).not.toHaveProperty('model');
   });
 
   it('uses the same runtime selection for other ACP agents', () => {
@@ -97,12 +97,12 @@ describe('computeTitleGenerationDefaults', () => {
       ]),
     ];
     const result = computeTitleGenerationDefaults('registry', 'custom-agent', options);
-    expect(result['model']).toBe('other-model');
+    expect(result).not.toHaveProperty('model');
   });
 
   it('treats Interactive Claude as a registry provider, not a builtin default source', () => {
     const result = computeTitleGenerationDefaults('registry', 'claude-p', claudeOptions);
-    expect(result['model']).toBe('claude-opus-4-0-20250514');
+    expect(result).not.toHaveProperty('model');
     expect(result['mode']).toBe('plan');
   });
 

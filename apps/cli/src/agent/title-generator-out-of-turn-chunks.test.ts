@@ -238,3 +238,50 @@ it('passes startup cancellation to the existing owner and waits for its teardown
   childExited.resolve();
   expect(await title).toBeNull();
 });
+
+it.each([undefined, 'explicit-model'])(
+  'keeps runtime model unless title override is explicit (%s)',
+  async (override) => {
+    let currentModel = 'private-provider-model';
+    let promptedModel;
+    const configOptions = [
+      {
+        id: 'model',
+        name: 'Model',
+        category: 'model',
+        type: 'select',
+        currentValue: currentModel,
+        options: [
+          { value: currentModel, name: currentModel },
+          { value: 'explicit-model', name: 'Other endpoint' },
+        ],
+      },
+    ];
+    mocks.startLocalAcpAgent.mockImplementation(async (options: Record<string, never>) => ({
+      agentProcess: {} as never,
+      acpSessionId: SESSION_ID,
+      sessionResponse: { sessionId: SESSION_ID, configOptions },
+      client: {
+        setSessionConfigOption: async (_id: string, key: string, value: string) => {
+          if (key === 'model') currentModel = value;
+          return configOptions;
+        },
+        prompt: async () => {
+          promptedModel = currentModel;
+          (options.onUpdateMessage as (msg: AcpSessionNotification) => void)(agentChunk(TITLE));
+          return { stopReason: 'end_turn' };
+        },
+      } as never,
+    }));
+    expect(
+      await generateTitleIsolated({
+        cliType: 'builtin',
+        agentType: 'grok',
+        taskPrompt: 'Synthetic task',
+        logger: createSilentLogger(),
+        titleConfig: override ? { configOptionValues: { model: override } } : undefined,
+      })
+    ).toBe(TITLE);
+    expect(promptedModel).toBe(override ?? 'private-provider-model');
+  }
+);

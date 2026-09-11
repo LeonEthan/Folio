@@ -1020,7 +1020,7 @@ const selectByLowestRank = (
  * Computes runtime title-generation configOptionValues from current ACP capabilities.
  *
  * These are not agent-specific hardcoded defaults. When the user has not configured title
- * generation, choose the least-privileged mode, the last listed model, and the smallest
+ * generation, preserve the runtime model and choose the least-privileged mode and smallest
  * reasoning effort from the agent's current configOptions.
  */
 export function computeTitleGenerationDefaults(
@@ -1034,10 +1034,7 @@ export function computeTitleGenerationDefaults(
       continue;
     }
 
-    if (opt.category === 'model') {
-      const lastOption = opt.options.length > 0 ? opt.options[opt.options.length - 1] : undefined;
-      defaults[opt.id] = lastOption?.value ?? opt.currentValue;
-    } else if (opt.category === 'mode') {
+    if (opt.category === 'mode') {
       defaults[opt.id] =
         selectByLowestRank(opt.options, leastPermissionModeRank) ?? opt.currentValue;
     } else if (opt.id === 'reasoning_effort' || opt.category === 'thought_level') {

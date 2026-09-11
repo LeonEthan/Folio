@@ -199,3 +199,9 @@ Isolated title runs accept cancellation through the existing startup gate and fi
 through the owned child shutdown barrier. MessageHandler drains both session-title
 and branch-name callers before closing documents; cancellation cannot publish a title
 or derive a fallback branch name. See the [owning note](../../../../.agents/notes/implemented/bug-fix/2026-09-11-drain-isolated-title-agents.md).
+
+Without a saved title model override, isolated title generation keeps the actual
+new ACP session's current model; list order does not imply a cheaper model or the
+same endpoint. Permission and reasoning defaults remain independent. Existing saved
+overrides are retained because their provenance cannot be inferred; users can still
+explicitly select another title model in the existing settings field.
