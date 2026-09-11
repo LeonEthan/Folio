@@ -16,6 +16,7 @@ import {
   ImageGenerationError,
   buildImageGenerationRequest,
   generateImageAsset,
+  editImageAsset,
   readImageDimensions,
   writeGeneratedImageAsset,
 } from './image-generation';
@@ -379,4 +380,127 @@ describe('writeGeneratedImageAsset', () => {
 
     await expect(writeGeneratedImageAsset(workdir, png)).rejects.toThrow(/refusing to overwrite/);
   });
+});
+
+describe('image edits', () => {
+  it.each([false, true])(
+    'uploads ordered source bytes and optional mask (%s), preserving the artwork',
+    async (withMask) => {
+      const workdir = await mkdtemp(path.join(os.tmpdir(), 'folio-edit-'));
+      const first = pngFixture(4, 3);
+      const second = pngFixture(8, 6);
+      const output = pngFixture(12, 9);
+      await writeFile(path.join(workdir, 'first.png'), first);
+      await writeFile(path.join(workdir, 'reference.png'), second);
+      await writeFile(path.join(workdir, 'mask.png'), first);
+      await writeFile(path.join(workdir, 'design.pptd'), 'existing artwork');
+      const transport: ImageHttpTransport = async (request) => {
+        expect(request.url).toBe('https://images.example.com/v1/images/edits');
+        expect(request.method).toBe('POST');
+        expect(request.body).toBeUndefined();
+        expect(request.headers['content-type']).toBeUndefined();
+        expect(request.multipart?.fields).toEqual({
+          model: settings.model,
+          prompt: 'preserve first, borrow second palette',
+          n: '1',
+          size: '1024x1024',
+        });
+        expect(
+          request.multipart?.files.map((file) => [
+            file.field,
+            file.mimeType,
+            Buffer.from(file.bytes),
+          ])
+        ).toEqual([
+          ['image[]', 'image/png', first],
+          ['image[]', 'image/png', second],
+          ...(withMask ? [['mask', 'image/png', first]] : []),
+        ]);
+        return jsonResponse(200, { data: [{ b64_json: output.toString('base64') }] });
+      };
+      const asset = await editImageAsset({
+        settings,
+        transport,
+        workdir,
+        prompt: 'preserve first, borrow second palette',
+        images: ['first.png', 'reference.png'],
+        size: '1024x1024',
+        ...(withMask ? { mask: 'mask.png' } : {}),
+      });
+      expect(await readFile(asset.absolutePath)).toEqual(output);
+      expect(await readFile(path.join(workdir, 'design.pptd'), 'utf8')).toBe('existing artwork');
+      expect(await readFile(path.join(workdir, 'first.png'))).toEqual(first);
+    }
+  );
+
+  it('refuses empty models, missing inputs, outside paths, symlinks, invalid masks and excess bytes before transport', async () => {
+    const workdir = await mkdtemp(path.join(os.tmpdir(), 'folio-edit-invalid-'));
+    await writeFile(path.join(workdir, 'image.png'), pngFixture(2, 2));
+    await writeFile(path.join(workdir, 'mask.png'), pngFixture(3, 3));
+    await writeFile(path.join(workdir, 'not-image'), 'not an image');
+    const outside = await mkdtemp(path.join(os.tmpdir(), 'folio-outside-'));
+    await writeFile(path.join(outside, 'source.png'), pngFixture(2, 2));
+    await symlink(outside, path.join(workdir, 'outside'));
+    await writeFile(
+      path.join(workdir, 'huge.png'),
+      Buffer.alloc(IMAGE_GENERATION_MAX_IMAGE_BYTES + 1)
+    );
+    const transport: ImageHttpTransport = async () => {
+      throw new Error('unexpected network');
+    };
+    const options = { settings, workdir, transport, prompt: 'edit', images: ['image.png'] };
+    await expect(
+      editImageAsset({ ...options, settings: { ...settings, model: ' ' } })
+    ).rejects.toThrow('explicit model');
+    await expect(editImageAsset({ ...options, images: [] })).rejects.toThrow('requires 1');
+    await expect(editImageAsset({ ...options, images: ['missing.png'] })).rejects.toThrow('ENOENT');
+    await expect(
+      editImageAsset({ ...options, images: [path.join(outside, 'source.png')] })
+    ).rejects.toThrow('inside');
+    await expect(editImageAsset({ ...options, images: ['outside/source.png'] })).rejects.toThrow(
+      'inside'
+    );
+    await expect(editImageAsset({ ...options, images: ['not-image'] })).rejects.toThrow(
+      'must be PNG'
+    );
+    await expect(editImageAsset({ ...options, mask: 'not-image' })).rejects.toThrow('mask must be');
+    await expect(editImageAsset({ ...options, mask: 'mask.png' })).rejects.toThrow('dimensions');
+    await expect(editImageAsset({ ...options, images: ['huge.png'] })).rejects.toThrow('no larger');
+  });
+
+  it('preserves unsupported-edit errors and redacts thrown transport credentials without falling back', async () => {
+    const workdir = await mkdtemp(path.join(os.tmpdir(), 'folio-edit-error-'));
+    await writeFile(path.join(workdir, 'image.png'), pngFixture(2, 2));
+    const requests: string[] = [];
+    const transport: ImageHttpTransport = async (request) => {
+      requests.push(request.url);
+      return jsonResponse(400, { error: { message: `edits unsupported ${SECRET_KEY}` } });
+    };
+    const options = { settings, workdir, transport, prompt: 'edit', images: ['image.png'] };
+    await expect(editImageAsset(options)).rejects.toThrow('HTTP 400: edits unsupported [redacted]');
+    expect(requests).toEqual(['https://images.example.com/v1/images/edits']);
+    await expect(
+      editImageAsset({
+        ...options,
+        transport: async () => {
+          throw new Error(`transport ${SECRET_KEY}`);
+        },
+      })
+    ).rejects.toThrow('transport [redacted]');
+  });
+});
+
+it('refuses non-http and embedded-credential returned URLs before downloading', async () => {
+  const workdir = await mkdtemp(path.join(os.tmpdir(), 'folio-invalid-result-url-'));
+  for (const url of ['file:///tmp/source.png', 'https://user:password@images.example/output.png']) {
+    const requests: string[] = [];
+    const transport: ImageHttpTransport = async (request) => {
+      requests.push(request.url);
+      return jsonResponse(200, { data: [{ url }] });
+    };
+    await expect(
+      generateImageAsset({ settings, workdir, transport, prompt: 'generate' })
+    ).rejects.toThrow('http(s) without embedded credentials');
+    expect(requests).toEqual(['https://images.example.com/v1/images/generations']);
+  }
 });

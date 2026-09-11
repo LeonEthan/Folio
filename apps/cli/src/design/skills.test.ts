@@ -259,7 +259,9 @@ describe('packaged design materials', () => {
     expect(text).toContain('You may write `design.pptd` directly');
     expect(text).toContain('actual image-reading tool');
     expect(text).toContain('version: v3');
-    expect(text).toContain('does not accept source images for editing');
+    expect(text).toContain('folio_edit_image');
+    expect(text).toContain('Folio has no default model');
+    expect(text).toContain('Files are uploaded as multipart data');
 
     // Directly authored final files are valid without running finalize, and the
     // shipped helper executes from the materialized tree with its bundled library.

@@ -3,7 +3,6 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import { useTranslation } from 'react-i18next';
 import { KeyRound, Link2, Loader2, Plug, Sparkles, Trash2 } from 'lucide-react';
 import {
-  IMAGE_CONNECTION_DEFAULT_MODEL,
   IMAGE_CONNECTION_VERSION,
   ImageConnectionRpcResultSchema,
   getMachineFlockDocId,
@@ -85,7 +84,7 @@ export function createImageConnectionFormDraft(
     baseUrl: stored?.baseUrl ?? '',
     apiKey: '',
     clearApiKey: false,
-    model: stored?.model ?? IMAGE_CONNECTION_DEFAULT_MODEL,
+    model: stored?.model ?? '',
   };
 }
 
@@ -116,9 +115,10 @@ export function buildImageConnectionSettings(
 }
 
 /** Which field the user still has to fix; the component maps these to copy. */
-export function imageConnectionDraftIssues(
-  draft: ImageConnectionFormDraft
-): { baseUrl: boolean; model: boolean } {
+export function imageConnectionDraftIssues(draft: ImageConnectionFormDraft): {
+  baseUrl: boolean;
+  model: boolean;
+} {
   const baseUrl = draft.baseUrl.trim();
   const usableUrl =
     baseUrl.length > 0 &&
@@ -270,9 +270,7 @@ export function ImageConnectionForm({
                 spellCheck={false}
                 className="h-9 font-mono text-xs"
                 placeholder={
-                  hasStoredKey
-                    ? t('settings.imageConnection.apiKeyPlaceholderStored')
-                    : 'sk-...'
+                  hasStoredKey ? t('settings.imageConnection.apiKeyPlaceholderStored') : 'sk-...'
                 }
                 value={draft.apiKey}
                 onChange={(event) =>
@@ -310,9 +308,7 @@ export function ImageConnectionForm({
             hint={
               issues.model
                 ? t('settings.imageConnection.invalidModel')
-                : t('settings.imageConnection.modelHint', {
-                    model: IMAGE_CONNECTION_DEFAULT_MODEL,
-                  })
+                : t('settings.imageConnection.modelHint')
             }
           >
             <Input
@@ -321,7 +317,7 @@ export function ImageConnectionForm({
               autoComplete="off"
               spellCheck={false}
               className="h-9 font-mono text-xs"
-              placeholder={IMAGE_CONNECTION_DEFAULT_MODEL}
+              required
               value={draft.model}
               onChange={(event) =>
                 setDraft((current) => ({ ...current, model: event.target.value }))
@@ -348,14 +344,10 @@ export function ImageConnectionForm({
               ) : (
                 <Plug className="h-3.5 w-3.5" aria-hidden="true" />
               )}
-              {testing
-                ? t('settings.imageConnection.testing')
-                : t('settings.imageConnection.test')}
+              {testing ? t('settings.imageConnection.testing') : t('settings.imageConnection.test')}
             </Button>
             {testBlockedReason ? (
-              <p className="text-[11px] leading-snug text-muted-foreground">
-                {testBlockedReason}
-              </p>
+              <p className="text-[11px] leading-snug text-muted-foreground">{testBlockedReason}</p>
             ) : null}
           </div>
           <ImageConnectionTestSummary state={testState} />
@@ -442,10 +434,7 @@ export function ImageConnectionSetting() {
     return rowsByWorkspace[String(runtime.workspaceId)]?.[String(machineId)];
   }, [rowsByWorkspace, runtime, machineId]);
 
-  const stored = useMemo(
-    () => (rows ? getMachineFlockImageConnection(rows) : undefined),
-    [rows]
-  );
+  const stored = useMemo(() => (rows ? getMachineFlockImageConnection(rows) : undefined), [rows]);
 
   // Seed the shared cache from this machine's document. The settings modal can be
   // the first surface to touch this row family, so it must not depend on some
@@ -457,7 +446,9 @@ export function ImageConnectionSetting() {
     const workspaceId = runtime.workspaceId;
     void (async () => {
       try {
-        const handle = await runtime.repo.openFlockDoc(getMachineFlockDocId(workspaceId, machineId));
+        const handle = await runtime.repo.openFlockDoc(
+          getMachineFlockDocId(workspaceId, machineId)
+        );
         const localRows = readMachineFlockRowsFromFlock(handle.flock, {
           families: ['imageConnection'],
         });

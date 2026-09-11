@@ -1,5 +1,5 @@
 /**
- * `folio_generate_image` plumbing (P2.4).
+ * Built-in image generation/edit plumbing.
  *
  * Three separable pieces, kept in one module because they share one contract:
  *
@@ -29,6 +29,8 @@
 
 import {
   IMAGE_CONNECTION_GENERATIONS_PATH,
+  IMAGE_CONNECTION_EDITS_PATH,
+  isImageConnectionReady,
   imageConnectionUrl,
   type ImageConnectionSettings,
   type ImageHttpRequest,
@@ -38,7 +40,7 @@ import {
 import { redactCredential } from '@/design/image-connection';
 import { createHash, randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
-import { lstat, mkdir, open, readFile, rename, unlink } from 'node:fs/promises';
+import { lstat, mkdir, open, readFile, realpath, rename, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import {
   sniffStaticV1ImageMime,
@@ -97,8 +99,15 @@ export async function generateImageAsset(
   return await writeGeneratedImageAsset(options.workdir, bytes);
 }
 
-async function requestImageBytes(options: GenerateImageOptions): Promise<Uint8Array> {
-  const response = await callUpstream(options.transport, buildImageGenerationRequest(options));
+async function requestImageBytes(
+  options: GenerateImageOptions,
+  request?: ImageHttpRequest
+): Promise<Uint8Array> {
+  const response = await callUpstream(
+    options.transport,
+    request ?? buildImageGenerationRequest(options),
+    options.settings.apiKey
+  );
   if (response.status < 200 || response.status >= 300) {
     throw new ImageGenerationError(
       `image generation failed: HTTP ${response.status}${describeBody(
@@ -121,13 +130,14 @@ async function requestImageBytes(options: GenerateImageOptions): Promise<Uint8Ar
 
 async function callUpstream(
   transport: ImageHttpTransport,
-  request: ImageHttpRequest
+  request: ImageHttpRequest,
+  credential: string
 ): Promise<ImageHttpResponse> {
   try {
     return await transport(request);
   } catch (error) {
     throw new ImageGenerationError(
-      `image generation failed: ${error instanceof Error ? error.message : String(error)}`
+      `image generation failed: ${redactCredential(error instanceof Error ? error.message : String(error), credential)}`
     );
   }
 }
@@ -136,16 +146,35 @@ async function downloadGeneratedImage(
   options: GenerateImageOptions,
   url: string
 ): Promise<Uint8Array> {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    throw new ImageGenerationError('image generation failed: the returned image URL is invalid');
+  }
+  if (
+    !['http:', 'https:'].includes(parsedUrl.protocol) ||
+    parsedUrl.username ||
+    parsedUrl.password
+  ) {
+    throw new ImageGenerationError(
+      'image generation failed: returned image URL must use http(s) without embedded credentials'
+    );
+  }
   // The URL comes from the configured upstream; this is a plain GET of the bytes
   // it already produced, not a second generation. Bounded and non-redirecting
   // for the same reasons the API call is.
-  const response = await callUpstream(options.transport, {
-    url,
-    method: 'GET',
-    headers: { accept: 'image/*' },
-    timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
-    maxBytes: IMAGE_GENERATION_MAX_IMAGE_BYTES,
-  });
+  const response = await callUpstream(
+    options.transport,
+    {
+      url,
+      method: 'GET',
+      headers: { accept: 'image/*' },
+      timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
+      maxBytes: IMAGE_GENERATION_MAX_IMAGE_BYTES,
+    },
+    options.settings.apiKey
+  );
   if (response.status < 200 || response.status >= 300) {
     throw new ImageGenerationError(
       `image generation failed: fetching the returned image failed with HTTP ${response.status}`
@@ -167,6 +196,13 @@ async function downloadGeneratedImage(
 export function buildImageGenerationRequest(
   options: Pick<GenerateImageOptions, 'settings' | 'prompt' | 'size'>
 ): ImageHttpRequest {
+  if (!isImageConnectionReady(options.settings)) {
+    throw new ImageGenerationError(
+      'Image connection is incomplete or disabled: configure URL, API key and an explicit model in Folio settings.'
+    );
+  }
+  if (options.prompt.trim().length === 0)
+    throw new ImageGenerationError('prompt must not be empty');
   const size = options.size?.trim();
   if (size !== undefined && size.length > MAX_SIZE_SPEC_CHARS) {
     throw new ImageGenerationError(`size is longer than ${MAX_SIZE_SPEC_CHARS} characters`);
@@ -188,6 +224,113 @@ export function buildImageGenerationRequest(
       accept: 'application/json',
     },
     body: JSON.stringify(body),
+    timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
+    maxBytes: IMAGE_GENERATION_MAX_RESPONSE_BYTES,
+  };
+}
+
+/** Input paths are workspace-local files; uploads never dereference URLs or outside symlinks. */
+export interface EditImageOptions extends GenerateImageOptions {
+  images: string[];
+  mask?: string;
+}
+
+export const IMAGE_EDIT_MAX_INPUTS = 16;
+export const IMAGE_EDIT_MAX_TOTAL_BYTES = 64 * 1024 * 1024;
+
+export async function editImageAsset(options: EditImageOptions): Promise<GeneratedImageAsset> {
+  const request = await buildImageEditRequest(options);
+  const bytes = await requestImageBytes(options, request);
+  return await writeGeneratedImageAsset(options.workdir, bytes);
+}
+
+export async function buildImageEditRequest(options: EditImageOptions): Promise<ImageHttpRequest> {
+  // Share configuration/prompt/size validation, without sending a generation request.
+  const generation = buildImageGenerationRequest(options);
+  if (options.images.length < 1 || options.images.length > IMAGE_EDIT_MAX_INPUTS) {
+    throw new ImageGenerationError(
+      `edit requires 1 to ${IMAGE_EDIT_MAX_INPUTS} source/reference images`
+    );
+  }
+  const root = await realpath(options.workdir);
+  const files: NonNullable<ImageHttpRequest['multipart']>['files'] = [];
+  let total = 0;
+  const appendFile = async (input: string, field: string, index: number) => {
+    const candidate = path.resolve(root, input);
+    if (!isWithin(root, candidate) || !isWithin(root, await realpath(candidate))) {
+      throw new ImageGenerationError('image input must be a file inside the session workspace');
+    }
+    const handle = await open(candidate, constants.O_RDONLY | constants.O_NOFOLLOW);
+    try {
+      const stat = await handle.stat();
+      if (!stat.isFile() || stat.size === 0 || stat.size > IMAGE_GENERATION_MAX_IMAGE_BYTES) {
+        throw new ImageGenerationError(
+          `image input must be a nonempty regular file no larger than ${IMAGE_GENERATION_MAX_IMAGE_BYTES} bytes`
+        );
+      }
+      total += stat.size;
+      if (total > IMAGE_EDIT_MAX_TOTAL_BYTES)
+        throw new ImageGenerationError('image inputs exceed 64 MiB total');
+      // Read a bounded snapshot, even if the file grows concurrently.
+      const bytes = Buffer.alloc(stat.size + 1);
+      let length = 0;
+      while (length < bytes.length) {
+        const read = await handle.read(bytes, length, bytes.length - length, length);
+        if (read.bytesRead === 0) break;
+        length += read.bytesRead;
+      }
+      if (length !== stat.size)
+        throw new ImageGenerationError('image input changed while reading; reread before retrying');
+      const content = bytes.subarray(0, length);
+      const mimeType =
+        sniffStaticV1ImageMime(content) ??
+        (content.toString('ascii', 0, 4) === 'RIFF' && content.toString('ascii', 8, 12) === 'WEBP'
+          ? 'image/webp'
+          : null);
+      if (mimeType === null || (field === 'mask' && mimeType !== 'image/png')) {
+        throw new ImageGenerationError(
+          field === 'mask'
+            ? 'mask must be a PNG image'
+            : 'source/reference image must be PNG, JPEG, GIF or WebP'
+        );
+      }
+      files.push({
+        field,
+        filename: `${field === 'mask' ? 'mask' : `image-${index}`}.${mimeType === 'image/webp' ? 'webp' : EXTENSION_BY_MIME[mimeType]}`,
+        mimeType,
+        bytes: content,
+      });
+    } finally {
+      await handle.close();
+    }
+  };
+  for (const [index, input] of options.images.entries()) await appendFile(input, 'image[]', index);
+  if (options.mask !== undefined) {
+    await appendFile(options.mask, 'mask', 0);
+    const source = files[0];
+    const mask = files.at(-1);
+    const sourceType = source ? sniffStaticV1ImageMime(source.bytes) : null;
+    const sourceSize = source && sourceType ? readImageDimensions(source.bytes, sourceType) : null;
+    const maskSize = mask ? readImageDimensions(mask.bytes, 'image/png') : null;
+    if (
+      sourceSize &&
+      maskSize &&
+      (sourceSize.width !== maskSize.width || sourceSize.height !== maskSize.height)
+    ) {
+      throw new ImageGenerationError('mask dimensions must match the first source image');
+    }
+  }
+  const fields: Record<string, string> = {
+    model: options.settings.model,
+    prompt: options.prompt,
+    n: '1',
+  };
+  if (options.size?.trim()) fields.size = options.size.trim();
+  return {
+    url: imageConnectionUrl(options.settings, IMAGE_CONNECTION_EDITS_PATH),
+    method: 'POST',
+    headers: { authorization: generation.headers.authorization ?? '', accept: 'application/json' },
+    multipart: { fields, files },
     timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
     maxBytes: IMAGE_GENERATION_MAX_RESPONSE_BYTES,
   };

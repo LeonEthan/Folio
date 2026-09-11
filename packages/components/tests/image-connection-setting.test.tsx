@@ -3,11 +3,7 @@
 import { act, createElement, type ComponentProps } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  IMAGE_CONNECTION_DEFAULT_MODEL,
-  IMAGE_CONNECTION_VERSION,
-  type ImageConnectionSettings,
-} from '@lody/shared';
+import { IMAGE_CONNECTION_VERSION, type ImageConnectionSettings } from '@lody/shared';
 
 import en from '../../../locales/en.json';
 import {
@@ -39,7 +35,7 @@ const storedConnection = (
   enabled: true,
   baseUrl: 'https://api.openai.com/v1',
   apiKey: STORED_KEY,
-  model: IMAGE_CONNECTION_DEFAULT_MODEL,
+  model: 'saved-custom-model',
   updatedAt: NOW_MS,
   ...overrides,
 });
@@ -49,28 +45,35 @@ const draftOf = (overrides: Partial<ImageConnectionFormDraft> = {}): ImageConnec
   baseUrl: 'https://api.openai.com/v1',
   apiKey: '',
   clearApiKey: false,
-  model: IMAGE_CONNECTION_DEFAULT_MODEL,
+  model: 'saved-custom-model',
   ...overrides,
 });
 
 describe('image connection form values', () => {
-  it('starts a new connection on the shipped default model with an empty key', () => {
+  it('requires a user-selected model for a new connection', () => {
     const draft = createImageConnectionFormDraft(undefined);
     expect(draft).toEqual({
       enabled: true,
       baseUrl: '',
       apiKey: '',
       clearApiKey: false,
-      model: IMAGE_CONNECTION_DEFAULT_MODEL,
+      model: '',
     });
-    expect(IMAGE_CONNECTION_DEFAULT_MODEL).toBe('gpt-image-2');
+    expect(imageConnectionDraftIssues(draft).model).toBe(true);
+    expect(
+      buildImageConnectionSettings(
+        { ...draft, baseUrl: 'https://images.example/v1', apiKey: 'synthetic' },
+        undefined,
+        NOW_MS
+      )
+    ).toBeUndefined();
   });
 
   it('never seeds the draft with the stored key', () => {
     const draft = createImageConnectionFormDraft(storedConnection());
     expect(draft.apiKey).toBe('');
     expect(draft.baseUrl).toBe('https://api.openai.com/v1');
-    expect(draft.model).toBe(IMAGE_CONNECTION_DEFAULT_MODEL);
+    expect(draft.model).toBe('saved-custom-model');
   });
 
   it('keeps the stored key unless the draft replaces or clears it', () => {
@@ -97,7 +100,7 @@ describe('image connection form values', () => {
       enabled: false,
       baseUrl: 'https://api.openai.com/v1',
       apiKey: 'sk-new',
-      model: IMAGE_CONNECTION_DEFAULT_MODEL,
+      model: 'saved-custom-model',
       updatedAt: NOW_MS,
     });
 
@@ -202,10 +205,7 @@ describe('ImageConnectionForm', () => {
 
   const typeInto = async (input: HTMLInputElement, value: string) => {
     await act(async () => {
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        'value'
-      )?.set;
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
       setter?.call(input, value);
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
@@ -275,9 +275,7 @@ describe('ImageConnectionForm', () => {
     const onTest = vi.fn();
     const nothingStored = await renderForm({ onTest });
     expect(button(nothingStored, copy('settings.imageConnection.test')).disabled).toBe(true);
-    expect(nothingStored.textContent).toContain(
-      copy('settings.imageConnection.testNeedsSaved')
-    );
+    expect(nothingStored.textContent).toContain(copy('settings.imageConnection.testNeedsSaved'));
 
     await act(async () => {
       root?.render(

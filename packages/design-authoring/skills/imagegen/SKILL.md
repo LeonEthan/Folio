@@ -1,20 +1,20 @@
 ---
 name: imagegen
-description: "Use when the user asks to generate images through Folio's image connection (for example: generate image, product shots, concept art, covers, or batch variants); calls the folio_generate_image MCP tool, which is registered only when an image connection is configured and enabled in Folio settings."
+description: "Use when the user asks to generate or edit images through Folio's image connection (for example: generate image, product shots, concept art, covers, or batch variants); calls folio_generate_image or folio_edit_image, which is registered only when an image connection is configured and enabled in Folio settings."
 metadata:
-  short-description: Generate images via Folio's image connection
+  short-description: Generate and edit images via Folio's image connection
 ---
 
-# Image Generation Skill
+# Image Generation and Editing Skill
 
-Generates images for the current design work (product shots, concept art, covers,
-website heroes, illustrations, infographic art). Calls the `folio_generate_image`
-MCP tool, which talks to the user's configured OpenAI-Images-compatible connection
-(default model `gpt-image-2`).
+Generates and edits images for the current design work (product shots, concept art, covers,
+website heroes, illustrations, infographic art). Calls `folio_generate_image` or
+`folio_edit_image`, which talk to the user's configured OpenAI-Images-compatible connection
+using the model explicitly selected by the user; Folio has no default model.
 
 ## Availability
 
-`folio_generate_image` is registered only when the user has configured and enabled an
+`folio_generate_image` and `folio_edit_image` are registered only when the user has configured and enabled an
 image connection (base URL, API key, model) in Folio settings. If the tool is not in
 your tool list, that tool is unavailable for this session. Folio settings can enable
 its connection; assess other capabilities from the actual tools available to your
@@ -24,7 +24,8 @@ Never ask the user to paste an API key in chat; keys live in the app's settings 
 ## When to use
 
 - Generate a new image (concept art, product shot, cover, website hero)
-- Batch runs (many prompts, or many variants across prompts)
+- Edit an existing image or combine references, optionally with a PNG mask
+- Variants within the user’s requested scope; each call may be billed
 
 ## Using generated assets
 
@@ -37,10 +38,27 @@ judge the result and decide whether further changes are useful. Report material
 limits and the resulting asset path.
 
 Prompt templates and taxonomy below are optional aids. They do not prescribe a
-creative sequence, number of reviews, or automatic paid retries. The current tool
-accepts a text prompt for generation; it does not accept source images for editing.
-Edit and multi-image examples in the references are prompting knowledge, not a
-claim that this connection exposes those operations.
+creative sequence, number of reviews, or automatic paid retries.
+
+## Tool inputs and provider limits
+
+- `folio_generate_image`: `prompt`, optional `size` (provider-defined).
+- `folio_edit_image`: `prompt`, `images` (1–16 workspace source/reference paths in
+  prompt order), optional `mask` and `size`. Files are uploaded as multipart data
+  to `/images/edits`; copy outside references into the workspace first. Each file
+  is limited to 16 MiB and the combined inputs to 64 MiB by Folio.
+- Masks are PNG files for the first image. Transparent areas indicate regions to
+  edit; match the first image’s dimensions and the configured provider’s rules.
+  A mask guides the model; it is not a guarantee of exact pixel preservation.
+- Both tools save a new asset. They do not replace or commit the current artwork;
+  decide whether and how to use the result in PPTD.
+
+Provider/model support for editing, multiple images, masks, sizes and input formats
+varies. Failures are returned as errors; Folio never changes models, substitutes a
+generation call for an edit, or retries paid requests automatically. Successful
+`/models` discovery in Settings does not establish image endpoint support.
+Returned assets currently must be PNG, JPEG or GIF for Bento intake. Inspect the
+actual result and report relevant service limitations.
 
 ## Prompt augmentation
 

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  IMAGE_CONNECTION_DEFAULT_MODEL,
   IMAGE_CONNECTION_GENERATIONS_PATH,
   IMAGE_CONNECTION_MAX_API_KEY_LENGTH,
   IMAGE_CONNECTION_MODELS_PATH,
@@ -20,7 +19,7 @@ const stored = (overrides: Partial<ImageConnectionSettings> = {}): ImageConnecti
   enabled: true,
   baseUrl: 'https://images.example.com/v1',
   apiKey: 'sk-test-secret',
-  model: IMAGE_CONNECTION_DEFAULT_MODEL,
+  model: 'saved-custom-model',
   updatedAt: 1_700_000_000_000,
   ...overrides,
 });
@@ -30,7 +29,9 @@ describe('normalizeImageConnectionBaseUrl', () => {
     expect(normalizeImageConnectionBaseUrl('https://api.openai.com/v1/')).toBe(
       'https://api.openai.com/v1'
     );
-    expect(normalizeImageConnectionBaseUrl('https://api.openai.com')).toBe('https://api.openai.com');
+    expect(normalizeImageConnectionBaseUrl('https://api.openai.com')).toBe(
+      'https://api.openai.com'
+    );
   });
 
   it('accepts http for a local gateway', () => {
@@ -86,6 +87,8 @@ describe('isImageConnectionReady', () => {
     expect(isImageConnectionReady(stored())).toBe(true);
     expect(isImageConnectionReady(stored({ enabled: false }))).toBe(false);
     expect(isImageConnectionReady(stored({ apiKey: '' }))).toBe(false);
+    expect(isImageConnectionReady(stored({ model: ' ' }))).toBe(false);
+    expect(isImageConnectionReady(stored({ baseUrl: 'nope' }))).toBe(false);
     expect(isImageConnectionReady(undefined)).toBe(false);
     expect(isImageConnectionReady(null)).toBe(false);
   });
@@ -97,7 +100,7 @@ describe('toPublicImageConnection', () => {
     expect(publicValue).toEqual({
       enabled: true,
       baseUrl: 'https://images.example.com/v1',
-      model: IMAGE_CONNECTION_DEFAULT_MODEL,
+      model: 'saved-custom-model',
       hasApiKey: true,
       updatedAt: 1_700_000_000_000,
     });

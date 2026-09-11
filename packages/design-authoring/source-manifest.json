@@ -149,6 +149,8 @@
     "skills/amazon-aplus (out of scope)"
   ],
   "localAdaptations": {
+    "skills/imagegen/SKILL.md": "T09: explicit user model, generation and multipart edit tools, source/mask and provider limits; retains autonomous creation guidance",
+    "skills/imagegen/references/prompting.md": "T09: model-neutral prompting and generate/edit capability description",
     "src/pptd-v3.ts": "Folio PPTD v3 bidirectional projection; uses pinned contracts and kernel through src/contracts.ts, no upstream serializer copied",
     "src/projection-capabilities.ts": "Derived v3 representation mapping for every active row of the unchanged frozen v1 matrix",
     "src/validate.ts": "Version dispatcher preserves pinned v2; v3 reuses kernel acceptance domains",

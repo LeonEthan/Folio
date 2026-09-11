@@ -67,7 +67,7 @@ self-contained in a materialized session workdir:
   optional reconstruction aids.
 
 `skills/imagegen/` keeps the upstream prompting method, rewritten for the
-`folio_generate_image` MCP tool (registered only when the user configures and
+`folio_generate_image` and `folio_edit_image` MCP tools (registered only when the user configures and
 enables an image connection). Runtime per-file `VENDOR.lock` freezing is replaced
 by this package's build-time source manifest.
 
@@ -75,8 +75,9 @@ The materials describe capabilities and optional design methods, without fixed
 inspection/drafting/review order, analysis restrictions, or review counts. Rendering
 instructions retain actual image reading and autonomous corrections; missing tools
 are described individually. `finalize` is optional and never a turn/commit gate.
-PPTD v2 examples and v3 projection guidance remain version-specific. The image skill
-currently describes text-to-image generation; edit support belongs to T09.
+PPTD v2 examples and v3 projection guidance remain version-specific. The image skill describes text generation and multipart edits with workspace
+references and an optional mask. Both use the user’s required model without a
+product default and return assets without committing artwork.
 
 The CLI staging/materialization integration test reads the delivered files, runs
 the bundled intake helper without finalize, and preserves user-edited materials

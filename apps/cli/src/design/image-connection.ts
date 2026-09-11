@@ -109,8 +109,8 @@ function upstreamMessage(bytes: Uint8Array, credential: string): string {
 /**
  * Check that the configured credential can reach the configured endpoint.
  *
- * Hits `GET {baseUrl}/models` — the OpenAI-compatible discovery endpoint every
- * Images-compatible server exposes, and one that never bills. An incomplete
+ * Hits `GET {baseUrl}/models`, a common OpenAI-compatible discovery endpoint.
+ * This probe does not verify image generation or edit support. An incomplete
  * connection is refused before any request is built, so an "enabled but no key"
  * row cannot turn into an unauthenticated call to someone's server.
  */
@@ -125,7 +125,7 @@ export async function probeImageConnection(
   try {
     response = await transport(buildImageModelsRequest(settings));
   } catch (error) {
-    return { ok: false, error: errorText(error) };
+    return { ok: false, error: redactCredential(errorText(error), settings.apiKey) };
   }
   if (response.status < 200 || response.status >= 300) {
     const detail = upstreamMessage(response.bytes, settings.apiKey);
@@ -177,10 +177,23 @@ export const fetchImageHttpTransport: ImageHttpTransport = async (request) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), request.timeoutMs);
   try {
+    const multipart = request.multipart;
+    const form = multipart ? new FormData() : undefined;
+    if (form && multipart) {
+      for (const [name, value] of Object.entries(multipart.fields)) form.append(name, value);
+      for (const file of multipart.files) {
+        form.append(
+          file.field,
+          new Blob([new Uint8Array(file.bytes)], { type: file.mimeType }),
+          file.filename
+        );
+      }
+    }
+    const body = form ?? request.body;
     const response = await fetch(request.url, {
       method: request.method,
       headers: request.headers,
-      ...(request.body === undefined ? {} : { body: request.body }),
+      ...(body === undefined ? {} : { body }),
       signal: controller.signal,
       redirect: 'error',
     });

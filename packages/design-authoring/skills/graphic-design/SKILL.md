@@ -92,6 +92,6 @@ assumptions honestly.
 - Presentation narrative, multiple slides, masters, speaker notes, transitions,
   animations, and PPT/PPTX import, export, or round-trip.
 - Business-vertical dimensions, copy rules, and compliance policies.
-- Image generation. The imagegen skill describes `folio_generate_image` when that
-  tool is available. Place generated project assets under `media/`. A materialized
+- Image generation and editing. The imagegen skill describes `folio_generate_image`
+  and `folio_edit_image` when available. Place image assets under `media/`. A materialized
   skill does not itself establish tool availability; use the actual tool list.

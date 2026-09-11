@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -410,5 +410,49 @@ describe('folio_generate_image call', () => {
     );
     expect(extra.isError).toBe(true);
     expect(textOf(extra)).not.toContain(SECRET_KEY);
+  });
+});
+
+describe('folio_edit_image', () => {
+  it('shares the generation gate including an explicitly empty model', async () => {
+    expect(await listToolNames()).not.toContain('folio_edit_image');
+    expect(await listToolNames(readyGate)).toContain('folio_edit_image');
+    const connection = readyGate.imageConnection;
+    if (!connection) throw new Error('missing fixture connection');
+    const gate = { imageConnection: { ...connection, model: '' } };
+    const names = await listToolNames(gate);
+    expect(names).not.toContain('folio_generate_image');
+    expect(names).not.toContain('folio_edit_image');
+  });
+
+  it('validates edit inputs and returns a workspace asset from actual uploaded files', async () => {
+    const workdir = await mkdtemp(path.join(os.tmpdir(), 'folio-edit-mcp-'));
+    const png = pngFixture(4, 3);
+    await writeFile(path.join(workdir, 'source.png'), png);
+    const uploaded: string[] = [];
+    const transport: ImageHttpTransport = async (request) => {
+      uploaded.push(request.url);
+      expect(Buffer.from(request.multipart?.files[0]?.bytes ?? [])).toEqual(png);
+      return jsonResponse(200, { data: [{ b64_json: png.toString('base64') }] });
+    };
+    await withServer(
+      { designGate: readyGate, imageTransport: transport, workdir },
+      async (client) => {
+        const invalid = await client.callTool({
+          name: 'folio_edit_image',
+          arguments: { prompt: 'edit', images: [] },
+        });
+        expect(invalid.isError).toBe(true);
+        const result = (await client.callTool({
+          name: 'folio_edit_image',
+          arguments: { prompt: 'edit', images: ['source.png'] },
+        })) as CallToolResult;
+        expect(result.isError).toBeFalsy();
+        const payload = JSON.parse(textOf(result));
+        expect(await readFile(path.join(workdir, payload.path))).toEqual(png);
+        expect(textOf(result)).not.toContain(SECRET_KEY);
+      }
+    );
+    expect(uploaded).toEqual(['https://images.example.com/v1/images/edits']);
   });
 });

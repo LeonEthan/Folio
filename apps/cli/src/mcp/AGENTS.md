@@ -46,7 +46,7 @@ Parent instructions apply.
   servers publish no Task tools, and a still-resident Agent whose next Turn disables the feature
   is rejected at every Task handler. Task-originated automation explicitly freezes `true` so it
   can update and comment on the Task it is executing.
-- INVARIANT: `folio_generate_image` is design-sessions-only; `folio_render_preview` needs a polling
+- INVARIANT: `folio_generate_image` and `folio_edit_image` are design-sessions-only; `folio_render_preview` needs a polling
   Folio desktop. Both gates are the daemon's: send `ownerSessionId`, and treat a missing gate as
   unregistered — absent from `tools/list`, never advertised-then-refused. Contract:
   `packages/shared/AGENTS.md`.
@@ -86,3 +86,7 @@ Parent instructions apply.
   agent-noticed follow-up → proposal card), and that split lives in the tool descriptions on
   purpose. The proposal writer hydrates the Session doc, flushes locally, and confirms remote sync
   before `ok`.
+
+- Image generate/edit use the user-selected model with no product default. Edits upload
+  bounded workspace files through the existing image transport; results are assets only,
+  never artwork commits. Preserve upstream failures without automatic paid retries.

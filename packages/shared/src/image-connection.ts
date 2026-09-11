@@ -1,9 +1,9 @@
 /**
  * The machine-scoped image connection (P2.4).
  *
- * One OpenAI-Images-compatible endpoint the owning machine may call to generate
+ * One OpenAI-Images-compatible endpoint the owning machine may call to generate or edit
  * images for design work: base URL, API key, model, and an enable switch. It is
- * deliberately the minimum that makes `folio_generate_image` usable — no
+ * deliberately the minimum that makes the built-in image tools usable — no
  * per-request knobs, no advanced options.
  *
  * ## Where it lives
@@ -32,9 +32,6 @@
 import { z } from 'zod';
 
 export const IMAGE_CONNECTION_VERSION = 1;
-
-/** The model used when the user has not chosen one. */
-export const IMAGE_CONNECTION_DEFAULT_MODEL = 'gpt-image-2';
 
 export const IMAGE_CONNECTION_MAX_URL_LENGTH = 2048;
 export const IMAGE_CONNECTION_MAX_API_KEY_LENGTH = 8192;
@@ -122,8 +119,7 @@ export function normalizeImageConnectionBaseUrl(value: unknown): string | undefi
 /**
  * Read a stored row. Returns `undefined` — not a defaulted value — for anything
  * this build cannot use, so callers branch on absence instead of on a sentinel.
- * An empty `model` is not a shape we repair: the default is applied where the
- * user creates the connection, not where we read it.
+ * An empty `model` is not repaired: the user must choose it explicitly.
  */
 export function normalizeImageConnectionSettings(
   value: unknown
@@ -166,7 +162,12 @@ export function normalizeImageConnectionSettings(
 export function isImageConnectionReady(
   settings: ImageConnectionSettings | undefined | null
 ): settings is ImageConnectionSettings {
-  return settings != null && settings.enabled && settings.apiKey.length > 0;
+  return (
+    settings != null &&
+    settings.enabled &&
+    settings.apiKey.trim().length > 0 &&
+    normalizeImageConnectionSettings(settings) !== undefined
+  );
 }
 
 /** Drop the secret before the value leaves the machine's own processes. */
@@ -198,6 +199,7 @@ export const IMAGE_CONNECTION_MODELS_PATH = '/models';
 
 /** The generation endpoint. Paid; only `folio_generate_image` calls it. */
 export const IMAGE_CONNECTION_GENERATIONS_PATH = '/images/generations';
+export const IMAGE_CONNECTION_EDITS_PATH = '/images/edits';
 
 /**
  * The one network seam both callers use.
@@ -220,6 +222,11 @@ export type ImageHttpRequest = {
   headers: Record<string, string>;
   /** JSON request body, already serialized. Absent for GET. */
   body?: string;
+  /** Multipart edits: the transport owns encoding and its boundary header. */
+  multipart?: {
+    fields: Record<string, string>;
+    files: Array<{ field: string; filename: string; mimeType: string; bytes: Uint8Array }>;
+  };
   timeoutMs: number;
   /** Hard cap on the response body; exceeding it is an error, never a truncation. */
   maxBytes: number;

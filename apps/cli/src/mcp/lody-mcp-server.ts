@@ -144,7 +144,7 @@ import {
   runWithOperationStoreBusyRetry,
 } from '@/orchestration/operation-store';
 import { publishTaskProposal } from '@/mcp/task-proposal';
-import { generateImageAsset } from '@/mcp/image-generation';
+import { generateImageAsset, editImageAsset, IMAGE_EDIT_MAX_INPUTS } from '@/mcp/image-generation';
 import {
   EMPTY_DESIGN_GATE,
   requestDesignRenderPreview,
@@ -192,6 +192,7 @@ const TASK_COMMENT_TOOL_NAME = 'lody_task_comment';
 const TASK_IMAGE_UPLOAD_TOOL_NAME = 'lody_task_upload_images';
 const REVIEW_SUBMIT_TOOL_NAME = 'lody_review_submit';
 const GENERATE_IMAGE_TOOL_NAME = 'folio_generate_image';
+const EDIT_IMAGE_TOOL_NAME = 'folio_edit_image';
 const RENDER_PREVIEW_TOOL_NAME = 'folio_render_preview';
 const DESIGN_IMAGE_PROMPT_MAX_CHARS = 8_000;
 const DESIGN_IMAGE_SIZE_SPEC_MAX_CHARS = 32;
@@ -297,6 +298,25 @@ const GenerateImageToolInputSchema = z
   })
   .strict();
 type GenerateImageToolInput = z.infer<typeof GenerateImageToolInputSchema>;
+const EditImageToolInputSchema = GenerateImageToolInputSchema.extend({
+  images: z
+    .array(z.string().trim().min(1).max(4096))
+    .min(1)
+    .max(IMAGE_EDIT_MAX_INPUTS)
+    .describe(
+      'Paths to source/reference images inside the session workspace, in prompt order. The files are uploaded to the configured provider.'
+    ),
+  mask: z
+    .string()
+    .trim()
+    .min(1)
+    .max(4096)
+    .optional()
+    .describe(
+      'Optional workspace PNG mask for the first image; transparent areas indicate edits. Match the first image dimensions and provider requirements.'
+    ),
+}).strict();
+type EditImageToolInput = z.infer<typeof EditImageToolInputSchema>;
 
 const ImageUploadToolInputSchema = z
   .object({
@@ -4112,6 +4132,55 @@ export function buildLodyMcpServer(
   // complete, enabled image connection — the same pattern the Task family uses,
   // so a disabled tool is genuinely absent from `tools/list` and uncallable, not
   // merely advertised and then refused.
+  const runImageTool = async (args: GenerateImageToolInput | EditImageToolInput) => {
+    try {
+      const ctx = getSessionContext();
+      // Re-resolve before every paid call: the tool is registered from a
+      // snapshot, and a connection the user disabled or cleared since would
+      // otherwise turn into a call made on stale consent.
+      const gate = config.resolveGate
+        ? await config.resolveGate()
+        : (config.designGate ?? EMPTY_DESIGN_GATE);
+      const connection = gate.imageConnection;
+      if (connection === null) {
+        return textResult(
+          'Image generation is unavailable: this is not a design session, or the image connection is not configured, is disabled, or is missing its URL, API key or explicit model. Tell the user to enable it in Folio settings; do not retry.',
+          true
+        );
+      }
+      const common = {
+        settings: connection,
+        prompt: args.prompt,
+        ...(args.size === undefined ? {} : { size: args.size }),
+        workdir: ctx.workdir,
+        transport: config.imageTransport ?? fetchImageHttpTransport,
+      };
+      const asset = await ('images' in args
+        ? editImageAsset({
+            ...common,
+            images: args.images,
+            ...(args.mask === undefined ? {} : { mask: args.mask }),
+          })
+        : generateImageAsset(common));
+      return jsonTextResult({
+        ok: true,
+        path: asset.path,
+        absolutePath: asset.absolutePath,
+        sha256: asset.sha256,
+        mimeType: asset.mimeType,
+        width: asset.width,
+        height: asset.height,
+        bytes: asset.bytes,
+        note: `Reference "${asset.path}" from the project (relative to the project root), or copy it into the project's media/ directory if you keep one.`,
+      });
+    } catch (error) {
+      // The upstream's own message, or our refusal; never the request header.
+      return textResult(
+        error instanceof Error ? error.message : `Image generation failed: ${String(error)}`,
+        true
+      );
+    }
+  };
   const generateImageTool = server.registerTool(
     GENERATE_IMAGE_TOOL_NAME,
     {
@@ -4120,48 +4189,17 @@ export function buildLodyMcpServer(
         "Generate one image with the image connection configured in Folio settings and write it into the current session workspace as a design asset. Use this for product shots, concept art, covers, illustrations, and other raster assets for the design you are building; it is available in design sessions only, and only when the user has configured and enabled an image connection. Returns the workspace-relative asset path (under media/) to reference from the project, plus the sha256 and pixel dimensions. Each call is a paid generation on the user's own account and is never retried automatically. Use an actual image-reading tool to judge outputs and choose further work according to the task. If this tool is absent, only this generation tool is unavailable; assess other Agent capabilities from the tools actually available. Never ask the user to paste an API key in chat.",
       inputSchema: GenerateImageToolInputSchema,
     },
-    async (args: GenerateImageToolInput) => {
-      try {
-        const ctx = getSessionContext();
-        // Re-resolve before every paid call: the tool is registered from a
-        // snapshot, and a connection the user disabled or cleared since would
-        // otherwise turn into a call made on stale consent.
-        const gate = config.resolveGate
-          ? await config.resolveGate()
-          : (config.designGate ?? EMPTY_DESIGN_GATE);
-        const connection = gate.imageConnection;
-        if (connection === null) {
-          return textResult(
-            'Image generation is unavailable: this is not a design session, or the image connection is not configured, is disabled, or is missing its API key. Tell the user to enable it in Folio settings; do not retry.',
-            true
-          );
-        }
-        const asset = await generateImageAsset({
-          settings: connection,
-          prompt: args.prompt,
-          ...(args.size === undefined ? {} : { size: args.size }),
-          workdir: ctx.workdir,
-          transport: config.imageTransport ?? fetchImageHttpTransport,
-        });
-        return jsonTextResult({
-          ok: true,
-          path: asset.path,
-          absolutePath: asset.absolutePath,
-          sha256: asset.sha256,
-          mimeType: asset.mimeType,
-          width: asset.width,
-          height: asset.height,
-          bytes: asset.bytes,
-          note: `Reference "${asset.path}" from the project (relative to the project root), or copy it into the project's media/ directory if you keep one.`,
-        });
-      } catch (error) {
-        // The upstream's own message, or our refusal; never the request header.
-        return textResult(
-          error instanceof Error ? error.message : `Image generation failed: ${String(error)}`,
-          true
-        );
-      }
-    }
+    runImageTool
+  );
+  const editImageTool = server.registerTool(
+    EDIT_IMAGE_TOOL_NAME,
+    {
+      title: 'Edit images through Folio image connection',
+      description:
+        "Edit one image using a prompt and one or more workspace source/reference image files, with an optional PNG mask for the first image. Uploads the actual files to the user's configured OpenAI Images-compatible /images/edits endpoint using their explicitly selected model. Supported input formats and mask/size limits depend on that service and model; failures are reported without model fallback, generation fallback or automatic paid retries. Each call can be billed. Returns a new workspace media asset for the Agent to read and optionally use in PPTD; it does not replace or commit the current artwork. Available only in design sessions with a complete enabled image connection. Never request an API key in chat.",
+      inputSchema: EditImageToolInputSchema,
+    },
+    runImageTool
   );
 
   // Preview rendering (P2.4b). Registered unconditionally and disabled below
@@ -5314,6 +5352,7 @@ export function buildLodyMcpServer(
   // one gate (see `resolveDesignGate`), so this stays a single check.
   if (!isImageConnectionReady(config.designGate?.imageConnection ?? null)) {
     generateImageTool.disable();
+    editImageTool.disable();
   }
 
   // Preview rendering needs a desktop, not a credential: the gate is "is a
