@@ -298,6 +298,7 @@ export type PreparedSessionLaunchConfigSnapshot = {
 };
 
 export interface ISession {
+  getDesignHookRuntime?(): 'pi' | 'claude' | undefined;
   agentClient: AgentClient | null;
   acpSessionId: ACPSessionId | null;
   sessionId: SessionId;
@@ -1421,7 +1422,9 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
         session.createAgent(
           this.buildCreateAgentConfig(session, config, launch, {
             designHooks:
-              config.agentType === 'pi-acp' && Boolean((await sessionDoc.getMetaState())?.design),
+              (config.agentType === 'pi-acp' ||
+                (config.agentCliType === 'builtin' && config.agentType === 'claude')) &&
+              Boolean((await sessionDoc.getMetaState())?.design),
             resumeSessionId: requestedResumeSessionId,
             forkSessionId: requestedForkSessionId,
             forkSessionTurnId: requestedForkSessionTurnId,

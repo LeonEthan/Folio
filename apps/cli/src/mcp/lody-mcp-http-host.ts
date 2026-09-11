@@ -11,7 +11,7 @@ import {
   runWithMcpSessionContext,
   type McpSessionContext,
 } from './lody-mcp-server';
-import { resolveDesignGate, resolveRenderHost } from './design-tools';
+import { resolveDesignResubmit, resolveDesignGate, resolveRenderHost } from './design-tools';
 import { canReadProcNetTcp, lookupLoopbackPeerUid } from './loopback-peer-uid';
 import {
   MCP_HTTP_MACHINE_ID_HEADER,
@@ -310,9 +310,11 @@ async function handleRequest(
   // on the next turn, and disabling it removes the tool just as promptly.
   const designGate = await resolveDesignGate(context, logger);
   const renderHost = await resolveRenderHost(context, logger);
+  const designResubmit = await resolveDesignResubmit(context);
   const server = buildLodyMcpServer({
     taskToolsEnabled: context.taskToolsEnabled,
     designGate,
+    designResubmit,
     renderHost,
     resolveGate: async () => await resolveDesignGate(context, logger),
     resolveRenderHost: async () => await resolveRenderHost(context, logger),

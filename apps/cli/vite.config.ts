@@ -71,6 +71,7 @@ export default defineConfig({
       // better-sqlite3 external, just like the main CLI entry.
       input: {
         design: path.resolve(__dirname, 'src/design-entry.ts'),
+        'claude-design-hook': path.resolve(__dirname, 'src/claude-design-hook.ts'),
         'pi-design-launcher': path.resolve(__dirname, 'src/pi-design-launcher.ts'),
         'pi-design-extension': path.resolve(__dirname, 'src/design/pi-extension.ts'),
         'design-sample': path.resolve(__dirname, 'src/design-sample-entry.ts'),

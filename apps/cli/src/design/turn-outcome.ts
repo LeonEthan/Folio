@@ -301,10 +301,11 @@ async function recordTurnOutcome(
 
   let manifestFile = await readTurnManifest(workdir, ctx.turnId);
   if (manifestFile.kind === 'missing') {
-    if (meta.agentType !== 'pi-acp') return { status: 'skipped', reason: 'no_manifest' };
+    if (meta.agentType !== 'pi-acp' && !(meta.cliType === 'builtin' && meta.agentType === 'claude'))
+      return { status: 'skipped', reason: 'no_manifest' };
     manifestFile = {
       kind: 'unreadable',
-      message: 'Pi design turn input is missing; draft preserved',
+      message: 'Design turn input is missing; draft preserved',
     };
   }
 
@@ -335,7 +336,8 @@ async function recordTurnOutcome(
     workdir: artifactWorkdir,
     dataRoot,
     manifestFile,
-    requiresReadBaseline: meta.agentType === 'pi-acp',
+    requiresReadBaseline:
+      meta.agentType === 'pi-acp' || (meta.cliType === 'builtin' && meta.agentType === 'claude'),
   });
 
   try {

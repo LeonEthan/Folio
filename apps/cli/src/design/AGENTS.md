@@ -30,3 +30,9 @@ See [runtime and files](README.md) and the
 - Element mentions carry artwork, saved revision and stable IDs in ordinary prompt
   text. Frozen-input creation and recovery validate them against canonical; stale
   references fail explicitly and never choose replacement targets.
+
+Claude session hooks preserve existing settings. Use native UserPromptSubmit and
+PostToolBatch to fence generations; individual tool completion cannot advance it.
+Require successful final batch Read output. Select runtime policy from private
+launch registration, and keep the native-version pin distinct from ACP/SDK pins.
+MCP resubmission consumes the original native call identity; it never invents one.

@@ -1,3 +1,4 @@
+import type { claudeDesignSettings } from '@/design/claude-launch';
 import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -574,6 +575,7 @@ function extractImageGenerationContentFields(content: unknown): {
  * Synchronous: everything that needs I/O already happened in the load phase.
  */
 export interface AgentClientOptions {
+  claudeDesignHookSettings?: ReturnType<typeof claudeDesignSettings>;
   sessionId: SessionId;
   workspaceId?: WorkspaceId;
   machineId?: MachineId;
@@ -1607,9 +1609,11 @@ export class AgentClient implements acp.Client {
           }
         : {}),
     };
-    if (clientIdentifier === undefined && Object.keys(lody).length === 0) return {};
+    const claude = this.options.claudeDesignHookSettings;
+    if (clientIdentifier === undefined && Object.keys(lody).length === 0 && !claude) return {};
     return {
       _meta: {
+        ...(claude ? { claudeCode: { options: { settings: claude } } } : {}),
         ...(clientIdentifier !== undefined ? { clientIdentifier } : {}),
         ...(Object.keys(lody).length > 0 ? { lody } : {}),
       },

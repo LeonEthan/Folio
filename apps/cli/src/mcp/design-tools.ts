@@ -1,3 +1,4 @@
+import { DesignToolHookResultSchema } from '@lody/shared/local-machine-rpc';
 /**
  * Availability of the built-in design tools (P2.4).
  *
@@ -293,4 +294,30 @@ async function callDesignRpc(
     logger?.debug(`design rpc ${method} failed: ${errorMessage(error)}`);
     return { ok: false, error: errorMessage(error) };
   }
+}
+
+export async function requestDesignResubmit(context: DesignGateContext, capability = false) {
+  const response = await Effect.runPromise(
+    makeLocalControlClientAuto({ socketPath: context.localControlSocketPath }).machineRpc(
+      {
+        method: 'design/tool-hook',
+        machineId: context.machineId,
+        workspaceId: context.workspaceId,
+        ownerSessionId: context.sessionId,
+        params: {
+          version: 1,
+          event: { phase: capability ? 'resubmit-capability' : 'claude-resubmit' },
+        },
+      },
+      { timeoutMs: DESIGN_GATE_TIMEOUT_MS }
+    )
+  );
+  if (!response.ok) throw Error(response.error);
+  const answer = DesignToolHookResultSchema.parse(response.result);
+  if (!answer.ok) throw Error(answer.error ?? 'Design resubmission unavailable');
+  return answer.supported;
+}
+
+export async function resolveDesignResubmit(context: DesignGateContext) {
+  return requestDesignResubmit(context, true).catch(() => false);
 }

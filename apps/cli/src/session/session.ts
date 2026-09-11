@@ -1,3 +1,4 @@
+import { prepareClaudeDesignLaunch } from '@/design/claude-launch';
 import EventEmitter from 'eventemitter3';
 import { ACPSessionId, getServerNow, MachineId, SessionId } from '@lody/shared';
 import type { CreateAgentConfig, ISession, SessionMonitorRuntimeInfo } from './session-manager';
@@ -114,6 +115,10 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
   private readonly sandbox: SessionSandbox;
   private gitIdentity: { id: string; name: string; email: string };
   public agentClient: AgentClient | null = null;
+  private designHookRuntime: 'pi' | 'claude' | undefined;
+  getDesignHookRuntime() {
+    return this.designHookRuntime;
+  }
   public acpSessionId: ACPSessionId | null = null;
   private acpCapabilities: AcpCapabilitiesResult | null = null;
   private acpCapabilitySourceVersion: string | null = null;
@@ -494,6 +499,15 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
           })
         : undefined;
     if (piLaunch) env = piLaunch.env;
+    const claudeLaunch =
+      callbacks.cliType === 'builtin' && callbacks.agentType === 'claude' && callbacks.designHooks
+        ? prepareClaudeDesignLaunch(env, {
+            machineId: this.config.machineId,
+            workspaceId: this.config.workspaceId,
+          })
+        : undefined;
+    if (claudeLaunch) env = claudeLaunch.env;
+    this.designHookRuntime = claudeLaunch ? 'claude' : piLaunch ? 'pi' : undefined;
     const launcher: AcpLauncher = resolveAcpLauncher(callbacks.command);
     const spawnAnalyticsProps = {
       cliType: callbacks.cliType,
@@ -625,6 +639,7 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
       let acpCapabilities: AcpCapabilitiesResult;
       try {
         const started = await createAcpClient({
+          claudeDesignHookSettings: claudeLaunch?.settings,
           stream,
           workdir: this.getWorkdir(),
           logger: this.logger,

@@ -121,6 +121,11 @@ Grok launches the pinned `acp-extension-grok` compatibility adapter with an offi
 unmodified R2-managed runtime in `GROK_PATH`; the submodule owns the private-wire contract
 and minimum official version. Kimi is different: `packages/acp-extension-kimi` owns the
 Lody-maintained runtime source and implements the shared `acp-extension-core` contract.
+Its pinned `0.39.1-lody.f255222661c9` artifact does not yet support Folio design
+read/generation attestation: native post-tool hooks are asynchronous and truncate
+read output, while pre-hook errors/timeouts allow execution. See the
+[Kimi boundary evidence](../../../../.agents/notes/proposed/architecture/2026-09-11-kimi-design-hook-boundary.md).
+Ordinary ACP support does not establish design-hook support.
 
 Completed caches written before metadata schema v1 remain reusable through a separate strict
 legacy schema; their old `name`/`version`/`platform` fields are normalized in memory and only

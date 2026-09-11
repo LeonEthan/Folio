@@ -1,3 +1,5 @@
+import { ClaudeDesignHooks } from '@/design/claude-hooks';
+import claudeRuntimeManifest from '@/agent/claude-runtime-manifest.json';
 import {
   resolveDesignContext,
   ensureDesignDirectory,
@@ -907,7 +909,7 @@ export class MessageHandler {
   private readonly designCanvasHost = new DesignCanvasHost();
   private readonly designSyncServices = new Map<
     string,
-    { turnId: string; canvasTurnId: string; service: DesignSyncService }
+    { turnId: string; canvasTurnId: string; service: DesignSyncService; claude?: ClaudeDesignHooks }
   >();
 
   private static readonly ACP_INITIAL_UPDATE_BATCH_WINDOW_MS = 10;
@@ -7020,6 +7022,20 @@ export class MessageHandler {
             ok: true,
           };
         try {
+          const hookRuntime = this.sessionManager.getSession(sessionId)?.getDesignHookRuntime?.();
+          if (request.params.event.phase === 'resubmit-capability')
+            return {
+              type: 'design/tool-hook' as const,
+              version: 1 as const,
+              supported: hookRuntime === 'claude',
+              ok: true,
+            };
+          if (
+            !hookRuntime ||
+            ['claude', 'claude-resubmit'].includes(request.params.event.phase) !==
+              (hookRuntime === 'claude')
+          )
+            throw Error('Design hook does not match the launched runtime');
           const invocation = this.executionService.getActiveInvocationContext(sessionId);
           const turnId = invocation?.sourceTurnId;
           const canvasTurnId = this.executionService.getActiveDesignCanvasTurnId(sessionId);
@@ -7049,11 +7065,20 @@ export class MessageHandler {
                 workspace,
                 dataRoot: getLodyDataDir(),
                 assertActive,
+                runtimeVersion:
+                  hookRuntime === 'claude' ? claudeRuntimeManifest.version : undefined,
               }),
             };
+            if (hookRuntime === 'claude') entry.claude = new ClaudeDesignHooks(entry.service);
             this.designSyncServices.set(sessionId, entry);
           }
-          await entry.service.handle(request.params.event);
+          if (request.params.event.phase === 'claude-resubmit') {
+            if (!entry.claude) throw Error('Claude hook adapter missing');
+            await entry.claude.resubmit();
+          } else if (request.params.event.phase === 'claude') {
+            if (!entry.claude) throw Error('Claude hook adapter missing');
+            await entry.claude.handle(request.params.event);
+          } else await entry.service.handle(request.params.event);
           return {
             type: 'design/tool-hook' as const,
             version: 1 as const,

@@ -71,6 +71,7 @@ import { withLoopbackNoProxy } from '@lody/shared/proxy-env';
 import { withAcpSessionStartSlot } from './acp-session-start-gate';
 
 export type CreateAcpClientOptions = {
+  claudeDesignHookSettings?: AgentClientOptions['claudeDesignHookSettings'];
   stream: Stream;
   workdir: string;
   logger: Logger;
@@ -121,6 +122,7 @@ export const createAcpClient = async (options: CreateAcpClientOptions) => {
   const sessionId = options.sessionId ?? (uuidV4() as SessionId);
   options.logger.debug(`[${sessionId}] createAcpClient: creating AgentClient`);
   const client = new AgentClient({
+    claudeDesignHookSettings: options.claudeDesignHookSettings,
     logger: options.logger,
     sessionId,
     workspaceId: options.workspaceId,

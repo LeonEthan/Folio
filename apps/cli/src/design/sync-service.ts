@@ -46,6 +46,8 @@ export class DesignSyncService {
       dataRoot: string;
       assertActive: () => void;
       read?: () => Promise<DesignPayload>;
+      /** Native version chosen by the trusted launch owner, never a hook caller. */
+      runtimeVersion?: string;
     }
   ) {}
 
@@ -68,9 +70,9 @@ export class DesignSyncService {
   private async apply(event: DesignToolEvent): Promise<void> {
     this.context.assertActive();
     if (event.phase === 'generation') {
-      if (event.runtimeVersion !== '0.85.1')
+      if (event.runtimeVersion !== (this.context.runtimeVersion ?? '0.85.1'))
         throw Error(
-          'Folio design hooks currently require verified Pi 0.85.1; choose that runtime explicitly'
+          `Folio design hooks require verified runtime ${this.context.runtimeVersion ?? '0.85.1'}; choose that runtime explicitly`
         );
       this.baseline.beginGeneration(event.generation);
       const artifact = await readDesignArtifactDigest(this.context.workspace.artifactWorkdir);

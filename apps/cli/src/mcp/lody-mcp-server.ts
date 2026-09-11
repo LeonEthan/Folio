@@ -1,3 +1,4 @@
+import { requestDesignResubmit, resolveDesignResubmit } from './design-tools';
 import { spawn } from 'child_process';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { createHash, randomUUID } from 'node:crypto';
@@ -4029,6 +4030,7 @@ export const __lodyMcpServerInternals = {
 export function buildLodyMcpServer(
   config: {
     taskToolsEnabled?: boolean;
+    designResubmit?: boolean;
     /**
      * Design capability snapshot (P2.4). Absent means "no image capability",
      * which is the honest default for every caller that has not asked the
@@ -4147,6 +4149,27 @@ export function buildLodyMcpServer(
   // Preview rendering (P2.4b). Registered unconditionally and disabled below
   // unless a Folio desktop is polling this machine, so the agent that cannot
   // render never sees the tool rather than discovering it by failing.
+  if (config.designResubmit)
+    server.registerTool(
+      'folio_resubmit_draft',
+      {
+        title: 'Explicitly resubmit preserved design draft',
+        description:
+          'After reading the complete current projection and comparing your preserved draft, explicitly start a new attempt with its exact existing bytes. This does not commit or finish the turn. Later edits must be generated after this call; natural completion validates and atomically saves. Useful for retaining identical bytes after a conflict.',
+        inputSchema: z.object({}).strict(),
+      },
+      async () => {
+        try {
+          if (!(await requestDesignResubmit(getSessionContext())))
+            throw Error('Design resubmission unavailable');
+          return textResult(
+            'Exact preserved draft and delivered current baseline bound to a new attempt. Nothing committed; continue editing or finish naturally.'
+          );
+        } catch (error) {
+          return mcpErrorResult(error);
+        }
+      }
+    );
   const renderPreviewTool = server.registerTool(
     RENDER_PREVIEW_TOOL_NAME,
     {
@@ -5198,9 +5221,11 @@ export async function runLodyMcpServer(): Promise<void> {
   // call itself honest if the connection is switched off afterwards.
   const designGate = await resolveDesignGate(context);
   const renderHost = await resolveRenderHost(context);
+  const designResubmit = await resolveDesignResubmit(context);
   await buildLodyMcpServer({
     taskToolsEnabled: context.taskToolsEnabled,
     designGate,
+    designResubmit,
     renderHost,
     resolveGate: async () => await resolveDesignGate(context),
     resolveRenderHost: async () => await resolveRenderHost(context),

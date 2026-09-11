@@ -98,3 +98,10 @@ Sessions. An omitted turn resolves today's expected entry even before creation.
 Supplied turns require the frozen original root and an existing regular entry;
 never substitute today's draft, trust a manifest path as authority or start an
 Agent. Ordinary file preview transports bytes.
+
+## Native design hooks
+
+`design/tool-hook` runtime policy comes from the live Session launch, never caller
+provider names. Native adapters translate verified generation/delivery events into
+one shared baseline service. Resubmission capability is independent of image and
+rendering gates; its MCP call must consume an already observed native tool call.

@@ -95,6 +95,18 @@ can read that receipt, current projection and unchanged draft. Ordinary changes 
 regeneration use the same intake/assets/atomic-save pipeline. P1 manual save-copy
 and read-only historical candidate JSON remain available.
 
+Claude Code uses the existing bundled ACP `0.70.0`, SDK `0.3.258` and verified
+native `2.1.258`. The selected executable is checked at launch. Session command
+hooks are appended through ACP settings, preserving native user/project/local
+configuration. `UserPromptSubmit` and awaited `PostToolBatch` fence generations;
+complete final numbered Read results require a successful native post-tool event.
+Native Edit/Write use the shared guard; Bash and arbitrary MCP tools do not
+establish read coverage. The optional `folio_resubmit_draft` MCP tool consumes the
+original native call's generation and exact draft snapshot, with final collection
+independently checking evidence and canonical versions. No upstream adapter patch,
+new runtime, global settings edit or mandatory completion tool is introduced.
+See the [Claude decision and evidence](../../../../.agents/notes/implemented/architecture/2026-09-11-claude-design-hooks.md).
+
 Codex hook integration remains blocked at the pinned CLI `0.153.4` / ACP `1.10.0`:
 native pre/post tool events do not supply the required awaited model-generation
 fence. Interactive `write_stdin` has no separate prehook, and Bash posthook text

@@ -118,7 +118,10 @@ export const ImageConnectionRpcResultSchema = z.discriminatedUnion('type', [
        * field: nothing in the UI needs the secret, and a value that is never
        * sent cannot be logged.
        */
-      credential: z.object({ apiKey: z.string().min(1) }).strict().nullable(),
+      credential: z
+        .object({ apiKey: z.string().min(1) })
+        .strict()
+        .nullable(),
     })
     .strict(),
   z
@@ -245,21 +248,31 @@ export const DesignRenderRpcResultSchema = z.discriminatedUnion('type', [
 export type DesignRenderRpcResult = z.infer<typeof DesignRenderRpcResultSchema>;
 
 /** Desktop acknowledgement of a generic canvas flush, fenced by the execution owner. */
-export const DesignCanvasReportSchema = z.object({
-  artworkId: z.string().uuid(), turnId: z.string().min(1).max(200),
-  ok: z.boolean(), error: z.string().max(500).optional(),
-}).strict();
+export const DesignCanvasReportSchema = z
+  .object({
+    artworkId: z.string().uuid(),
+    turnId: z.string().min(1).max(200),
+    ok: z.boolean(),
+    error: z.string().max(500).optional(),
+  })
+  .strict();
 export type DesignCanvasReport = z.infer<typeof DesignCanvasReportSchema>;
-export const DesignCanvasStateSchema = z.object({
-  artworkId: z.string().uuid(), turnId: z.string().min(1).max(200),
-  preparing: z.boolean(),
-}).strict();
+export const DesignCanvasStateSchema = z
+  .object({
+    artworkId: z.string().uuid(),
+    turnId: z.string().min(1).max(200),
+    preparing: z.boolean(),
+  })
+  .strict();
 export type DesignCanvasState = z.infer<typeof DesignCanvasStateSchema>;
-export const DesignCanvasHostResultSchema = z.object({
-  type: z.literal('design/canvas-host'), version: z.literal(1),
-  machine: z.object({ protocolCapabilities: z.record(z.string(), z.number()) }).strict(),
-  active: z.array(DesignCanvasStateSchema),
-}).strict();
+export const DesignCanvasHostResultSchema = z
+  .object({
+    type: z.literal('design/canvas-host'),
+    version: z.literal(1),
+    machine: z.object({ protocolCapabilities: z.record(z.string(), z.number()) }).strict(),
+    active: z.array(DesignCanvasStateSchema),
+  })
+  .strict();
 
 /** Read-only historical draft location; byte transport stays with ordinary file preview. */
 export const DesignSourcePathResultSchema = z.discriminatedUnion('ok', [
@@ -275,7 +288,38 @@ export const DesignSourcePathResultSchema = z.discriminatedUnion('ok', [
     .strict(),
 ]);
 
+export const ClaudeDesignHookSchema = z
+  .object({
+    phase: z.literal('claude'),
+    event: z.enum([
+      'UserPromptSubmit',
+      'PreToolUse',
+      'PostToolUse',
+      'PostToolUseFailure',
+      'PostToolBatch',
+    ]),
+    runtimeVersion: z.string().min(1).max(100),
+    agentId: z.string().max(200).optional(),
+    callId: z.string().max(200).optional(),
+    tool: z.string().max(200).optional(),
+    path: z.string().max(4096).optional(),
+    offset: z.number().optional(),
+    limit: z.number().optional(),
+    calls: z
+      .array(
+        z
+          .object({ id: z.string().min(1).max(200), response: z.string().max(100_000).optional() })
+          .strict()
+      )
+      .max(100)
+      .optional(),
+  })
+  .strict();
+
 export const DesignToolHookEventSchema = z.discriminatedUnion('phase', [
+  ClaudeDesignHookSchema,
+  z.object({ phase: z.literal('resubmit-capability') }).strict(),
+  z.object({ phase: z.literal('claude-resubmit') }).strict(),
   z
     .object({
       phase: z.literal('resubmit'),
@@ -334,7 +378,9 @@ export const LocalMachineRpcRequestSchema = z.discriminatedUnion('method', [
   }).strict(),
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('design/canvas-host'),
-    params: z.object({ version: z.literal(1), reports: z.array(DesignCanvasReportSchema).max(100) }).strict(),
+    params: z
+      .object({ version: z.literal(1), reports: z.array(DesignCanvasReportSchema).max(100) })
+      .strict(),
   }).strict(),
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('design/image-connection'),

@@ -1133,25 +1133,29 @@ describe('recordDesignTurnTerminalOutcome', () => {
   });
 });
 
-it('refuses Pi output without live content-bound read/write facts even with a valid manifest', async () => {
-  const harness = createHarness();
-  const meta = await harness.sessionDoc.getMetaState();
-  if (!meta) throw Error('Synthetic meta missing');
-  meta.agentType = 'pi-acp';
-  const created = await createDesign(harness);
-  await writeArtifact(harness, PAGE);
-  await writeManifest(harness, created.revisionId);
-  const outcome = await collectDesignTurnOutcome(contextFor(harness));
-  expect(outcome).toMatchObject({
-    status: 'recorded',
-    outcome: { status: 'invalid', diagnostics: [{ code: 'design_read_baseline_missing' }] },
-  });
-  expect(
-    (await designOperation(harness.root, { operation: 'read', sessionId: harness.sessionId }))
-      .revisionId
-  ).toBe(created.revisionId);
-  expect((await readDesignArtifact(harness.workdir)).status).toBe('present');
-});
+it.each(['pi-acp', 'claude'])(
+  'refuses %s output without live content-bound facts even with a valid manifest',
+  async (agentType) => {
+    const harness = createHarness();
+    const meta = await harness.sessionDoc.getMetaState();
+    if (!meta) throw Error('Synthetic meta missing');
+    meta.agentType = agentType;
+    meta.cliType = 'builtin';
+    const created = await createDesign(harness);
+    await writeArtifact(harness, PAGE);
+    await writeManifest(harness, created.revisionId);
+    const outcome = await collectDesignTurnOutcome(contextFor(harness));
+    expect(outcome).toMatchObject({
+      status: 'recorded',
+      outcome: { status: 'invalid', diagnostics: [{ code: 'design_read_baseline_missing' }] },
+    });
+    expect(
+      (await designOperation(harness.root, { operation: 'read', sessionId: harness.sessionId }))
+        .revisionId
+    ).toBe(created.revisionId);
+    expect((await readDesignArtifact(harness.workdir)).status).toBe('present');
+  }
+);
 
 it.each([false, true])(
   'unchanged bytes require explicit resubmission evidence (explicit=%s)',
@@ -1192,51 +1196,55 @@ it.each([false, true])(
   }
 );
 
-it('a final compare-and-swap race preserves exact draft and diagnostics without creating a candidate', async () => {
-  const harness = createHarness();
-  const created = await createDesign(harness);
-  const meta = await harness.sessionDoc.getMetaState();
-  if (!meta) throw Error('Synthetic meta missing');
-  meta.agentType = 'pi-acp';
-  await writeArtifact(harness, PAGE);
-  await freezeTurnInput(harness);
-  const before = await readDesignArtifact(harness.workdir);
-  if (before.status !== 'present') throw Error('Synthetic artifact missing');
-  const file = path.join(harness.workdir, DESIGN_LOCK_FILENAME);
-  writeFileSync(file, JSON.stringify({ pid: 1, token: 'external-writer' }));
-  const outcome = await collectDesignTurnOutcome({
-    ...contextFor(harness),
-    designReadBaseline: {
-      artworkId: harness.sessionId,
-      draftId: harness.workdir,
-      revisionId: created.revisionId,
-      contentHash: 'a'.repeat(64),
-      artifactDigest: before.digest,
-      explicitResubmission: true,
-    },
-    lock: {
-      now: () => 0,
-      sleep: async () => {
-        rmSync(file);
-        await moveBaseline(harness, created.revisionId);
+it.each(['pi-acp', 'claude'])(
+  '%s final compare-and-swap race preserves exact draft without a candidate',
+  async (agentType) => {
+    const harness = createHarness();
+    const created = await createDesign(harness);
+    const meta = await harness.sessionDoc.getMetaState();
+    if (!meta) throw Error('Synthetic meta missing');
+    meta.agentType = agentType;
+    meta.cliType = 'builtin';
+    await writeArtifact(harness, PAGE);
+    await freezeTurnInput(harness);
+    const before = await readDesignArtifact(harness.workdir);
+    if (before.status !== 'present') throw Error('Synthetic artifact missing');
+    const file = path.join(harness.workdir, DESIGN_LOCK_FILENAME);
+    writeFileSync(file, JSON.stringify({ pid: 1, token: 'external-writer' }));
+    const outcome = await collectDesignTurnOutcome({
+      ...contextFor(harness),
+      designReadBaseline: {
+        artworkId: harness.sessionId,
+        draftId: harness.workdir,
+        revisionId: created.revisionId,
+        contentHash: 'a'.repeat(64),
+        artifactDigest: before.digest,
+        explicitResubmission: true,
       },
-    },
-  });
-  expect(outcome).toMatchObject({
-    status: 'recorded',
-    outcome: {
-      status: 'invalid',
-      diagnostics: expect.arrayContaining([
-        expect.objectContaining({ code: 'design_commit_conflict' }),
-      ]),
-    },
-  });
-  expect(await readDesignArtifact(harness.workdir)).toEqual(before);
-  expect(await listHistoricalCandidateFiles(harness.root, harness.sessionId)).toEqual([]);
-  const current = await designOperation(harness.root, {
-    operation: 'read',
-    sessionId: harness.sessionId,
-  });
-  expect(current.revisionId).not.toBe(created.revisionId);
-  expect(current.doc.elements).toHaveLength(0);
-});
+      lock: {
+        now: () => 0,
+        sleep: async () => {
+          rmSync(file);
+          await moveBaseline(harness, created.revisionId);
+        },
+      },
+    });
+    expect(outcome).toMatchObject({
+      status: 'recorded',
+      outcome: {
+        status: 'invalid',
+        diagnostics: expect.arrayContaining([
+          expect.objectContaining({ code: 'design_commit_conflict' }),
+        ]),
+      },
+    });
+    expect(await readDesignArtifact(harness.workdir)).toEqual(before);
+    expect(await listHistoricalCandidateFiles(harness.root, harness.sessionId)).toEqual([]);
+    const current = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+    expect(current.revisionId).not.toBe(created.revisionId);
+    expect(current.doc.elements).toHaveLength(0);
+  }
+);
