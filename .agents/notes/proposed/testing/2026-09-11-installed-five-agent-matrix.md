@@ -1512,3 +1512,37 @@ Bash result, final receipt and request classifications. Normal owned cleanup
 finishes at 20:19:03.833Z, and all 12 recorded owned processes are independently
 absent. This completes the scoped installed Claude hook-error/uncovered-path
 negative, without promoting Pi or absent-runtime-hook behavior to passed.
+
+### Pi hook-error and uncovered-path negative
+
+Handle 65652 exited zero on the normal `81d54b6` installed package with Pi
+0.85.1 and pi-acp 0.0.33. Evidence is `folio-t28-pi-negative-mr6wdF/evidence`,
+package log `pi-hook-negative-native-1.log`. The fixture reuses the existing Pi
+provider configuration, executable shim and native tool policy. It prepares only
+the owned private ACP cache; this is not another cold-cache acceptance round.
+No permission extension, MCP bridge or modified application bundle is introduced.
+
+The projection path initially does not exist. A regular file at that owned path
+causes the actual native `read` result to report `design directory is redirected`.
+After restoring the original absent state, native `write` returns
+`DESIGN_READ_REQUIRED` and creates no target. Native `bash` then copies the three
+valid synthetic poster files. Its correlated tool result is `(no output)`;
+successful copying is established by exact file-byte comparisons, not an invented
+exit-code field. The full canonical payload remains unchanged.
+
+Final collection records `invalid` / `design_read_baseline_missing` and preserves
+the exact draft files. Pi's collector checks its native terminal fact before this
+classification, so this result also passes that existing native `end_turn` gate;
+ACP completion alone is not the evidence. The relevant collector and extension
+sources are unchanged from the package source. Pi's actual model wire carries
+tool-role text with `tool_call_id`, rather than Claude's `is_error` field. Root
+inspected the two correlated error results, Bash result, receipt and all five
+request classifications: one title request followed by four main requests.
+
+Normal cleanup finishes at 20:30:09.669Z; root independently confirms all 14
+recorded owned processes are absent. There are no provider or cleanup failures.
+The retained application log includes a late `design.attach` rejection while the
+design service is shutting down; it does not become a successful attachment or
+restart. This completes the scoped Pi hook-error/uncovered-path negative.
+Behavior with runtime hooks entirely absent remains a separate unverified cell;
+these passing negatives do not close the full five-Agent matrix.
