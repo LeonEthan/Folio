@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const DEFAULT_TITLE = 'Lody';
+const DEFAULT_TITLE = 'Folio';
 
 /**
  * Hook to manage document title.

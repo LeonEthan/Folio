@@ -198,7 +198,7 @@ async function showUnresponsiveDialog(window: BrowserWindow): Promise<void> {
       buttons: ['Wait', 'Reload window', 'Force quit'],
       defaultId: 0,
       cancelId: 0,
-      title: 'Lody is unresponsive',
+      title: 'Folio is unresponsive',
       message: 'Lody is not responding.',
       detail:
         'You can keep waiting, reload the window (your in-progress edits in this window will be lost), or force-quit the app.'

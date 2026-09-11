@@ -90,7 +90,7 @@ export async function loadOrCreateLocalIdentity(
   return identity;
 }
 
-export const LOCAL_WORKSPACE_NAME = 'Lody';
+export const LOCAL_WORKSPACE_NAME = 'Folio';
 export const LOCAL_WORKSPACE_SLUG = 'local';
 
 export type LocalWorkspaceListItem = {

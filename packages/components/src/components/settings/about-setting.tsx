@@ -10,10 +10,9 @@ import { CompactRow, CompactSection } from './compact-layout';
 import { settingContainerClass } from '.';
 import { useElectronUpdaterState } from '@/hooks/use-electron-updater-state';
 import { OpenSourceAttributionsDialog } from './open-source-attributions-dialog';
-import { JoinCommunityButton } from './join-community-dialog';
 import { openExternalUrl } from '@/lib/native-browser';
 import { getIpcServices } from '@/lib/electron-ipc-client';
-import { getDownloadPageUrl, getWebsiteUrl } from '@/lib/lody-urls';
+import { getFolioDocumentationUrl, FOLIO_REPOSITORY_URL, FOLIO_ISSUES_URL } from '@/lib/lody-urls';
 import { developerModeEnabledAtom } from '@/atoms/settings';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileAboutSettings } from '@/components/mobile/mobile-about-settings';
@@ -92,14 +91,14 @@ export function AboutSettingsComponent() {
   const isMobile = useIsMobile();
 
   const handleOpenDownloadPage = useCallback(() => {
-    const url = getDownloadPageUrl(i18n.resolvedLanguage);
+    const url = getFolioDocumentationUrl(i18n.resolvedLanguage);
     void openExternalUrl(url);
   }, [i18n.resolvedLanguage]);
 
   const handleOpenWebsite = useCallback(() => {
-    const url = getWebsiteUrl(i18n.resolvedLanguage);
+    const url = FOLIO_REPOSITORY_URL;
     void openExternalUrl(url);
-  }, [i18n.resolvedLanguage]);
+  }, []);
 
   const handleCheckForUpdates = useCallback(async () => {
     if (!getIpcServices()) return;
@@ -129,6 +128,7 @@ export function AboutSettingsComponent() {
 
   return (
     <div className={settingContainerClass}>
+      <p className="text-sm text-muted-foreground">{t('settings.about.folioDescription')}</p>
       <CompactSection>
         {displayVersion && (
           <CompactRow label={t('settings.about.version')}>
@@ -143,10 +143,16 @@ export function AboutSettingsComponent() {
         <CompactRow label={t('settings.about.commitHash')}>
           <span className="text-sm text-muted-foreground font-mono">{GIT_COMMIT}</span>
         </CompactRow>
-        <CompactRow label={t('settings.about.community', 'Community')}>
-          <JoinCommunityButton />
+        <CompactRow label={t('sidebar.feedback', 'Feedback')}>
+          <Button
+            size="sm"
+            className="h-7 px-2.5"
+            onClick={() => void openExternalUrl(FOLIO_ISSUES_URL)}
+          >
+            {t('sidebar.feedback')}
+          </Button>
         </CompactRow>
-        <CompactRow label={t('settings.about.downloadApps', 'Download apps')}>
+        <CompactRow label={t('menu.documentation', 'Documentation')}>
           <Button
             variant="outline"
             size="sm"
@@ -154,7 +160,7 @@ export function AboutSettingsComponent() {
             onClick={handleOpenDownloadPage}
           >
             <ExternalLink className="mr-1 h-3.5 w-3.5" />
-            {t('settings.about.openDownloadPage', 'Open download page')}
+            {t('menu.documentation', 'Documentation')}
           </Button>
         </CompactRow>
         <CompactRow label={t('settings.about.website', 'Website')}>

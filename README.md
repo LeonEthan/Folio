@@ -1,162 +1,95 @@
-<p align="center">
-    <a href="https://play.google.com/store/apps/details?id=ai.lody.android">
-        <img src="https://img.shields.io/badge/Google_Play-414141?logo=google-play&logoColor=white"/>
-    </a>
-    <a href="https://apps.apple.com/us/app/lody-run-code-agent-anywhere/id6761373528">
-        <img src="https://img.shields.io/badge/App_Store-0D96F6?logo=app-store&logoColor=white"/>
-    </a>
-    <a href="https://lody.ai/download">
-        <img src="https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=F0F0F0"/>
-    </a>
-    <a href="https://lody.ai/download">
-        <img src="https://custom-icon-badges.demolab.com/badge/Windows-0078D6?logo=windows11&logoColor=white"/>
-    </a>
-    <a href="https://lody.ai/download">
-        <img src="https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black"/>
-    </a>
-</p>
+# Folio
 
-<p align="center">
-  <a href="https://lody.ai">
-    <picture>
-      <img src="./site-docs/public/icon-mac.png" width="128"/>
-    </picture>
-  </a>
-</p>
-<h1 align="center">
-<a href="https://lody.ai" alt="lody-site">Lody</a>
-</h1>
-<p align="center">
-  <b>English</b> | <a href="./README.zh-CN.md">简体中文</a>
-</p>
-<p align="center">
-  <b>A shared workspace for the coding agents your team already uses.</b>
-</p>
-<p align="center">
-  Connect any machine and bring any coding agent through ACP. Share conversations with your team and dispatch work from desktop, mobile, web, or CLI.
-</p>
-<p align="center">
-  <a href="https://lody.ai/docs/">
-    <b>Documentation</b>
-  </a>
-  |
-  <a href="https://lody.ai/docs/quickstart">
-    <b>Getting Started</b>
-  </a>
-</p>
-<p align="center">
-  <a aria-label="X" href="https://x.com/intent/follow?screen_name=lody_ai" target="_blank">
-    <img alt="" src="https://img.shields.io/badge/X-%23000000.svg?style=for-the-badge&logo=X&logoColor=white">
-  </a>
-  <a aria-label="Discord-Link" href="https://discord.gg/E8mZtMu38s" target="_blank">
-    <img alt="" src="https://img.shields.io/badge/Discord-black?style=for-the-badge&logo=discord">
-  </a>
-</p>
+[简体中文](README.zh-CN.md)
 
-<p align="center">
-  <img src="./site-docs/public/_docs-assets/lody-readme-hero.png" alt="Lody running coding Agents across desktop and mobile" width="100%" />
-</p>
+Folio is a local desktop workspace for graphic design with an Agent and an editable
+single canvas. It reuses [Lody](https://github.com/LodyAI/Lody)'s interface and Agent
+execution, with PPTD authoring and the Bento editor.
 
-## What you can do with Lody
+## Current development build
 
-### Share Agent conversations with your team
+- Create a design, choose its dimensions, edit text, shapes and images in Bento,
+  save it, reopen it, and export PNG or JPEG.
+- Ask your configured Agent to create or revise a PPTD design. BentoDoc is the
+  editable canvas; PPTD is the Agent-facing authoring format. The Agent chooses its
+  creative approach and can use available file and image tools to review its work.
+- Continue the conversation, grant permissions, cancel work, and use the existing
+  session navigation. Visual quality remains your judgment.
+- Edit the canvas without configuring an image service. Image generation is an
+  optional connection; supply your own endpoint, credentials and explicit model
+  identifier in Settings. Folio does not recommend a product-default model.
 
-Open the same conversation with your teammates. See the full transcript, runtime status, files, and code changes around the work, then add instructions without passing around screenshots or pasted logs.
+This is a development build, not a claim of release readiness. Agent-specific
+image input, synchronization hooks, live PPTD preview, and the remaining workflow
+cleanup are tracked in [Issues](https://github.com/LeonEthan/Folio/issues). An Agent
+being configurable does not prove every design operation works with that Agent.
+The [design specification](specs/graphic-design-platform.zh.md) describes the draft
+target, not a list of shipped features.
 
-### Bring the Agents and machines you already use
+## Try a design
 
-Connect Claude Code, Codex, Kimi, OpenCode, or another ACP-compatible Agent. Keep using the subscriptions, logins, models, and permission modes configured on your laptops, workstations, servers, and cloud VMs. Machines remain private until their owner shares them with the workspace.
+Create a single canvas and try a prompt such as:
 
-### Dispatch work from any surface
+> Create an 800 × 600 workshop poster. Use a dark blue background, a large “Make
+> something” heading, and the subtitle “Saturday · 14:00”. Keep the text editable.
 
-Choose any connected machine when dispatching work from desktop, mobile, web, or CLI. Permission requests, progress, conversations, and code changes stay visible across these surfaces.
+Then try:
 
-## Connect a machine
+> Make the heading smaller and give the subtitle more space. Keep the canvas size.
 
-Run Lody on a workstation, server, or cloud VM:
+You can also select and edit text, change colors, insert an image and adjust the
+layout directly in Bento. Save the design before exporting PNG or JPEG. Generated
+images are optional; text and shape design does not require an image service.
 
-```bash
-npx lody daemon start
+## Run locally
+
+Use Node.js 22.14 or later and the repository-pinned pnpm through Corepack:
+
+```sh
+git clone --recurse-submodules https://github.com/LeonEthan/Folio.git
+cd Folio
+corepack pnpm install
+corepack pnpm start:local
 ```
 
-The command opens a sign-in link, connects the machine to your workspace, and keeps it available for work dispatched from desktop, mobile, web, or CLI.
+Choose and configure your Agent in Settings. Agent runtime setup may require a
+public download and the provider's own authentication. The OSS desktop uses local
+product storage; it does not sign in to Lody's hosted workspace or provide its web,
+mobile, team-sharing or cloud features.
 
-## Use Lody from the CLI
+Folio already has a separate application identity (`dev.folio.app`, `folio://`) and
+uses `~/.folio` for its local service data. Electron uses the Folio user-data
+location for the current operating system. Existing `LODY_*` environment options
+and `@lody/*` package/protocol names remain compatibility interfaces. No automatic
+migration or deletion of Lody data is performed.
 
-The CLI is more than the process that connects a machine. From a terminal or script, you can register local projects; inspect workspaces, machines, linked repositories, and Agent configs; create and message sessions; read their history and status; or archive and restore them. Commands that support `--json` can also feed Lody workspace data into your own tools.
-
-```bash
-npx lody session create --workspace my-team --agent-config codex \
-  --repo owner/repo "Fix the failing test"
-
-npx lody session list --workspace my-team
-```
-
-See the [CLI documentation](https://lody.ai/docs/cli) for the full command reference.
-
-## Let Agents coordinate work across conversations
-
-Lody gives Agents tools to create or reuse other conversations, read their status and history, send follow-up instructions, cancel running work, and bring results back. This lets one conversation act as the coordinator: you can analyze a bug with a main Agent, then have it delegate investigation, implementation, and testing to separate conversations running in parallel.
-
-Lody keeps each child conversation independent while preserving its relationship to the conversation that created it. Conversations can also be referenced with an `@` mention when you or an Agent needs to connect work across sessions.
-
-## Keep code and execution in the same workspace
-
-### Keep parallel work isolated
-
-Give sessions their own Git worktrees so Agents can work in parallel without mixing changes. Open multiple chats, files, diffs, terminals, and previews in tabs, or fork a session into another conversation or worktree to explore a different approach.
-
-### Inspect changes where the work happened
-
-Browse project files and inspect per-turn or full-session diffs beside the conversation. Add line-level comments, follow pull request status and CI, and keep GitHub review threads close to the Agent that produced the change.
-
-<p align="center">
-  <img src="./site-docs/public/_docs-assets/PR-panel.png" alt="A pull request and its CI status beside an Agent conversation" width="100%" />
-</p>
-
-### Give Agents visual feedback
-
-Open a running web app inside the session, switch between responsive viewports, and send element-level visual annotations back to the Agent.
-
-<p align="center">
-  <img src="./site-docs/public/_docs-assets/20260507-preview.png" alt="Annotating a running web app and sending the feedback to an Agent" width="100%" />
-</p>
-
-## More built in
-
-- **Agent Roles** — share reusable Agent, model, permission, and instruction presets with the team.
-- **Attachments** — send files and images from desktop, mobile, web, or CLI, and receive files produced by Agents.
-- **Session tools** — search, pin, archive, fork, and organize conversations without losing their history.
-- **Desktop tools** — use a built-in terminal, command palette, customizable shortcuts, and open files in your editor.
-- **Mobile controls** — receive notifications, approve permission requests, inspect diffs, and follow active work with iOS Live Activities.
-- **Usage visibility** — see context, token and quota usage, plus machine and Agent resource consumption.
-
-<p align="center">
-  <img src="./site-docs/public/_docs-assets/20260611-island.png" alt="Approving an Agent permission request from an iPhone Live Activity" width="60%" />
-</p>
-
-## Beyond conversations
-
-Shared conversations are Lody's starting point, not the whole workspace.
-
-We plan to add documents and document sandboxes so teams can shape requirements, preserve decisions, and work with Agents outside the timeline of a single conversation. Over time, these tools can become shared team context for understanding not only what changed, but why.
-
-We want the entire workspace—not only conversations—to become local-first. Lody uses the [Loro](https://loro.dev/) Stack, including Loro and Flock, to represent and synchronize collaborative state with CRDTs. The same foundation can extend from conversations to documents and future workspace tools. Our goal is for team context to become more durable and portable, and ultimately remain under the team's control.
-
-Lody is still moving toward full local-first support.
+See the [CLI README](apps/cli/README.md) for current CLI behavior and
+[CONTRIBUTING.md](CONTRIBUTING.md) for inherited contribution terms and development
+checks. This repository README is Folio's public help entry; `site-docs` retains
+upstream Lody website material and is not the Folio feature reference.
 
 ## Repository
 
-- `apps/cli` — Connect machines and run coding agents
-- `apps/electron` — Lody desktop app
-- `packages/components` — Shared workspace UI
-- `packages/platform` — Platform capabilities and integrations
-- `packages/shared` — Shared schemas, protocols, and utilities
-- `packages/design-bento` — Pinned Folio canvas resources and P0 sample
-- `packages/design-authoring` — PPTD intake and bundled graphic-design/imagegen Agent skills
-- `packages/cloud-api` — Optional-cloud protocol names and DTOs
-- `packages/loro-streams-rpc` — RPC over Loro Streams
-- `packages/acp-extension-{core,kimi}` — ACP extension submodule workspaces
-- `site-docs` — Website, documentation, and blog
+- `apps/cli` — Agent execution and local design persistence
+- `apps/electron` — Folio desktop application
+- `packages/components` — Reused workspace interface
+- `packages/design-bento` — Pinned Bento editor and rendering resources
+- `packages/design-authoring` — PPTD conversion and Agent skills
+- `packages/platform` — Platform capabilities and ports
+- `packages/shared` — Shared schemas and protocols
+- `packages/cloud-api` — Optional-cloud DTOs; no hosted backend is included
+- `packages/acp-extension-{core,kimi}` — ACP extension submodules
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup and the community PR size policy.
+## Source and licenses
+
+Folio builds on [Lody](https://github.com/LodyAI/Lody). Its upstream authorship,
+[Apache-2.0 license](LICENSE) and attribution notices remain intact. Existing
+application artwork is reused from Lody; it is not newly commissioned Folio art.
+PPTD and editor adapters come from
+`agentic-listing-design`;
+[Bento provenance and license details](packages/design-bento/README.md) and
+[authoring provenance](packages/design-authoring/README.md) identify their sources.
+The app's Open Source Licenses entry retains dependency notices.
+
+For Folio problems or proposals, use
+[Folio Issues](https://github.com/LeonEthan/Folio/issues).

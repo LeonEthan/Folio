@@ -1,3 +1,4 @@
+import { getFolioDocumentationUrl, FOLIO_ISSUES_URL } from '@/lib/lody-urls';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { startSessionMentionDrag } from '@/lib/session-mention-drag';
 import { useSidebarKeyboardNav } from '@/hooks/use-sidebar-keyboard-nav';
@@ -45,7 +46,6 @@ import {
 import {
   activeWorkspaceRuntimeAtom,
   bugReportDialogOpenAtom,
-  joinCommunityDialogOpenAtom,
   currentWorkspaceIdAtom,
   currentWorkspaceSlugAtom,
   setWorkspaceContextAtom,
@@ -235,7 +235,6 @@ type PendingSessionShare = {
   sharing: SessionSharingState;
 };
 
-const DOCS_LINK_FALLBACK_ORIGIN = 'https://lody.ai';
 const SIDEBAR_RELATIVE_TIME_REFRESH_MS = 30_000;
 const EMPTY_SESSION_SHARING_BY_ID: ReadonlyMap<string, SessionSharingState> = new Map();
 
@@ -440,18 +439,6 @@ export function RemoveLocalProjectDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-function getDocsLinkOrigin(): string {
-  const configuredSiteUrl = import.meta.env.VITE_SITE_URL?.trim();
-  if (configuredSiteUrl) {
-    try {
-      return new URL(configuredSiteUrl).origin;
-    } catch {
-      // Ignore malformed env value and fall back to default site origin.
-    }
-  }
-  return DOCS_LINK_FALLBACK_ORIGIN;
 }
 
 function getStableRepoFullNames(tasks: { repoFullName?: string | null }[]): string[] {
@@ -2654,25 +2641,18 @@ export function LoroAppSidebar({ className }: LoroAppSidebarProps) {
     closeMobileDrawer();
     if (typeof window === 'undefined') return;
 
-    // Always build an absolute URL so Electron's shell.openExternal (and
-    // Capacitor's Browser plugin) receive a usable href. A relative path like
-    // "/docs" resolves to the renderer's own origin (file:// or localhost in
-    // dev), so `window.open` would be silently denied by Electron's window
-    // open handler without ever reaching the docs site.
-    const docsPath = language === 'zh_CN' ? '/zh/docs' : '/docs';
-    const targetUrl = new URL(docsPath, getDocsLinkOrigin()).toString();
+    const targetUrl = getFolioDocumentationUrl(language);
     void openExternalUrl(targetUrl);
   }, [closeMobileDrawer, language]);
 
-  const setJoinCommunityDialogOpen = useSetAtom(joinCommunityDialogOpenAtom);
   const handleJoinCommunityClicked = useCallback(() => {
     closeMobileDrawer();
-    setJoinCommunityDialogOpen(true);
-  }, [closeMobileDrawer, setJoinCommunityDialogOpen]);
+    void openExternalUrl(FOLIO_ISSUES_URL);
+  }, [closeMobileDrawer]);
 
   const handleFeedbackClicked = useCallback(() => {
     closeMobileDrawer();
-    window.open('https://feedback.lody.ai', '_blank', 'noopener,noreferrer');
+    void openExternalUrl(FOLIO_ISSUES_URL);
   }, [closeMobileDrawer]);
 
   const setBugReportDialogOpen = useSetAtom(bugReportDialogOpenAtom);

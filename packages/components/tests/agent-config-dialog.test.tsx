@@ -660,7 +660,7 @@ describe('AgentConfigDialog', () => {
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain(
-        'Lody will download and verify it before creating this provider.'
+        'Folio will download and verify it before creating this provider.'
       );
     });
     const createButton = Array.from(document.body.querySelectorAll('button')).find(
@@ -704,7 +704,7 @@ describe('AgentConfigDialog', () => {
     );
 
     expect(document.body.textContent).toContain(
-      'Lody will download and verify it in the background after you add this provider.'
+      'Folio will download and verify it in the background after you add this provider.'
     );
     const createButton = Array.from(document.body.querySelectorAll('button')).find(
       (button) => button.textContent?.trim() === 'Create'

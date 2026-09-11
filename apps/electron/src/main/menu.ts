@@ -254,13 +254,17 @@ function buildAndSetMenu(): void {
         {
           label: t(locale, 'menu.documentation'),
           click: () => {
-            void shell.openExternal('https://lody.ai/docs')
+            void shell.openExternal(
+              locale === 'zh_CN'
+                ? 'https://github.com/LeonEthan/Folio/blob/main/README.zh-CN.md'
+                : 'https://github.com/LeonEthan/Folio#readme'
+            )
           }
         },
         {
           label: t(locale, 'menu.feedback'),
           click: () => {
-            void shell.openExternal('https://feedback.lody.ai')
+            void shell.openExternal('https://github.com/LeonEthan/Folio/issues')
           }
         }
       ]
