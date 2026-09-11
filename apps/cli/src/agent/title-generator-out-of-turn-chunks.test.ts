@@ -142,3 +142,99 @@ describe('title generation ignores adapter output emitted outside the title turn
     expect(result.title).toBe(TITLE);
   });
 });
+
+const deferred = <T>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+};
+
+it.each(['config', 'prompt', 'output'] as const)(
+  'cancels during %s and waits for the owned child shutdown barrier',
+  async (stage) => {
+    const controller = new AbortController();
+    const reached = deferred<void>();
+    const shutdownEntered = deferred<void>();
+    const childExited = deferred<void>();
+    const pending = deferred<never>();
+    const logger = createSilentLogger();
+    logger.debug = (message) => {
+      if (stage === 'output' && String(message).includes('Title prompt returned'))
+        reached.resolve();
+    };
+    mocks.startLocalAcpAgent.mockImplementationOnce(async () => ({
+      agentProcess: {},
+      acpSessionId: SESSION_ID,
+      sessionResponse: { sessionId: SESSION_ID, configOptions: PI_CONFIG_OPTIONS },
+      client: {
+        setSessionConfigOption: async () => {
+          if (stage === 'config') {
+            reached.resolve();
+            await pending.promise;
+          }
+        },
+        prompt: async () => {
+          if (stage === 'prompt') {
+            reached.resolve();
+            return await pending.promise;
+          }
+          return { stopReason: 'end_turn' };
+        },
+      },
+    }));
+    mocks.shutdownLocalAcpAgent.mockImplementationOnce(async () => {
+      shutdownEntered.resolve();
+      await childExited.promise;
+    });
+    let finished = false;
+    const title = generateTitleIsolated({
+      cliType: 'registry',
+      agentType: 'pi-acp',
+      taskPrompt: 'fallback',
+      logger,
+      signal: controller.signal,
+    }).then((value) => {
+      finished = true;
+      return value;
+    });
+    await reached.promise;
+    controller.abort();
+    await shutdownEntered.promise;
+    expect(finished).toBe(false);
+    childExited.resolve();
+    expect(await title).toBeNull();
+  }
+);
+
+it('passes startup cancellation to the existing owner and waits for its teardown', async () => {
+  const controller = new AbortController();
+  const started = deferred<void>();
+  const aborted = deferred<void>();
+  const childExited = deferred<void>();
+  mocks.startLocalAcpAgent.mockImplementationOnce(async ({ signal }: { signal: AbortSignal }) => {
+    signal.addEventListener('abort', () => aborted.resolve(), { once: true });
+    started.resolve();
+    await aborted.promise;
+    await childExited.promise;
+    throw signal.reason;
+  });
+  let finished = false;
+  const title = generateTitleIsolated({
+    cliType: 'registry',
+    agentType: 'pi-acp',
+    taskPrompt: 'fallback',
+    logger: createSilentLogger(),
+    signal: controller.signal,
+  }).then((value) => {
+    finished = true;
+    return value;
+  });
+  await started.promise;
+  controller.abort();
+  await aborted.promise;
+  expect(finished).toBe(false);
+  childExited.resolve();
+  expect(await title).toBeNull();
+});

@@ -111,4 +111,4 @@ context/acp-agent-edit-evidence.md; adapter repos: [apps/cli/AGENTS.md](../../AG
   first-prompt `fallback`, and require `_meta.lody.messagePhase === 'final_answer'`; untyped
   chunks, error/warning payloads, and internal-instruction tails are never candidates.
   Each isolated run owns and removes a unique temp directory; concurrent session-title and
-  branch-name work reuses one in-flight result.
+  branch-name work reuses one in-flight result. Cleanup cancels and drains title runs.

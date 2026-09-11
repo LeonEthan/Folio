@@ -307,12 +307,13 @@ used to make a failed round appear successful.
 
 | Required behavior on the replacement              | Codex           | Claude                                  | Pi                                        | Kimi            | Grok            |
 | ------------------------------------------------- | --------------- | --------------------------------------- | ----------------------------------------- | --------------- | --------------- |
-| Installed runtime/tool discovery with isolated configuration | Not established | Observed                                | Observed, cleanup failed                  | Not established | Not established |
-| Actual reference bytes / native skill read        | Not executed    | Passed                                  | Observed, cleanup failed                  | Not executed    | Not executed    |
-| Native permission request and response            | Not executed    | Manual / Allow Once passed              | Extension No/Yes observed; cleanup failed | Not executed    | Not executed    |
+| Installed runtime/tool discovery with isolated configuration | Observed; cleanup failed | Observed                                | Observed, cleanup failed                  | Passed (synthetic provider) | Observed; functional fixture failed |
+| Actual reference bytes in native input           | Observed; cleanup failed | Passed                                  | Observed, cleanup failed                  | Passed | Path text only; bytes not established |
+| Native skill read                               | Observed; cleanup failed | Passed                                  | Observed, cleanup failed                  | Passed | Not executed    |
+| Native permission request and response            | Not executed    | Manual / Allow Once passed              | Extension No/Yes observed; cleanup failed | Default: Reject / Approve once passed | Not executed    |
 | Manual edit → native read → write → commit        | Hook blocked    | Passed                                  | Observed, cleanup failed                  | Hook blocked    | Hook blocked    |
 | Stale refusal / explicit same-byte attempt        | Hook blocked    | Passed                                  | Observed, cleanup failed                  | Hook blocked    | Hook blocked    |
-| Cancel / fail / final CAS / explicit continuation | Not executed    | Only fresh-read switch destination here | Observed, cleanup failed                  | Not executed    | Not executed    |
+| Cancel / fail / final CAS / explicit continuation | Cancel / continue observed; cleanup failed | Only fresh-read switch destination here | Observed, cleanup failed                  | Cancel / explicit continue passed; fail / CAS not executed | Not executed    |
 | Configured image generate/edit and actual read    | Not executed    | Synthetic protocol passed               | MCP tools not exposed in observed catalog | Not executed    | Not executed    |
 | Complete per-Agent installed matrix               | Incomplete      | Incomplete                              | Incomplete                                | Incomplete      | Incomplete      |
 
@@ -322,14 +323,20 @@ native pass, nor is final CAS substituted for a missing generation fence. Window
 Linux, real paid model/image quality, human visual judgment and remaining
 per-combination interactions are still unexecuted. T28 remains **blocked and
 incomplete**, including the three documented native runtime hook gaps and the
-unresolved Pi teardown failure.
+unresolved Pi and Codex teardown failures.
 
-The replacement no-model discovery runner exited zero while recording
-`ready: false` for each Codex, Kimi and Grok configuration. Its bounded UI
-observation and actual ACP startup logs are in `folio-t28-discovery-2JMvhB`;
-runner exit zero means the observations were collected, not that authentication
-or those Agent capability cells passed. All homes, keys and configuration in
-this runner were private synthetic inputs.
+The replacement no-model discovery runner exited zero and recorded
+`ready: false` for all three configurations, but subsequent inspection corrected
+that aggregate interpretation. Codex and Kimi logs explicitly report
+`Authentication required` at session creation. Grok's captured `GROK_HOME.txt`
+has two `Ready` labels, making the fixture's singular exact-text locator
+ambiguous. Its CLI log at 13:57:30.382Z explicitly records `ACP client ready`,
+returned model/config capabilities and subsequent successful session close.
+Thus Grok startup/config discovery was observed; its real model/tool operations
+were not exercised by this runner. These records remain unchanged in
+`folio-t28-discovery-2JMvhB/evidence`, with the Grok startup evidence at CLI log
+lines 1271–1282. No real account authentication is inferred from synthetic
+configuration, startup or the runner's exit status.
 
 
 ### Pi user-configured extension authorization follow-up
@@ -380,10 +387,198 @@ application close; this alone does not identify the directory creator.
 
 The T21 teardown comparison also needs a narrower interpretation: its earlier
 clean recovery run switched Pi to Claude before quitting, so it is not a clean
-Pi-at-quit control. Nanosecond birth-time evidence on the retained root diagnostic
+Pi-at-quit control. Subsecond birth-time evidence on the retained root diagnostic
 (`/tmp/folio-root-teardown-UkZ0KW`, paired with
 `/tmp/folio-root-pi-teardown-trace.log`) places real directory recreation at `.514` seconds inside its `.480`–`.571`
 removal interval, strengthening the recreation finding without identifying the
 writer. `Session.getWorkdir()` can recreate an absent default workdir through
 `ensureDefaultSessionWorkdir`, but source reachability is not evidence that this
 caller performed the observed write. The lifecycle failure remains unresolved.
+
+
+### Codex ordinary-capability follow-up preparation and initial failures
+
+The empty isolated Codex home used in discovery had no custom-provider
+configuration. The actual ACP handshake succeeded, but native session creation
+required authentication. The existing T18 native probe supplies a different,
+explicit configuration: `CODEX_HOME/config.toml` selects a synthetic localhost
+provider using `wire_api="responses"` and `requires_openai_auth=false`. The
+installed follow-up reuses that configuration with the same native 0.153.4,
+packaged ACP 1.10.0 and immutable `b86a1c92` app. It does not authenticate a paid
+account or enable a partial design adapter. Harness source is `d37ebf8`.
+
+- `codex-input-native.log` / `folio-t28-codex-input-bsFGCh/evidence` reached
+  actual main and isolated title ACP sessions and localhost Responses requests,
+  but its fixture assumed a top-level `body.tools` array and conflated helper
+  traffic with the main request. The original 120-second input-completion
+  assertion failed; the process exited one and owned teardown completed at
+  15:06:50.126Z. CLI lines 443, 449 and 906 distinguish main startup, title
+  startup and title prompt dispatch. No skill/cancel completion was established.
+- `codex-input-native-2.log` / `folio-t28-codex-input-UAYd5V/evidence` preserved
+  each native request separately. It still failed because its main-request
+  classifier searched only top-level tools. `request-1.json` instead contains
+  the actual reference in a user `input_image` block and a native
+  `additional_tools` input item with namespace `functions`, custom tool `exec`,
+  and its declared `tools.exec_command` interface. `request-2.json` has a
+  distinct native thread identity and the explicit outer title-generation
+  prompt. Both lack top-level `body.tools`. The same original 120-second
+  completion assertion failed; exit one, owned teardown completed at
+  15:12:12.438Z. Absence of that JSON field is not absence of native tools.
+
+- `codex-input-native-3.log` / `folio-t28-codex-input-z3YhSR/evidence`
+  correctly used the declared native `functions.exec` custom tool and its
+  `tools.exec_command` interface. The actual reference-image assertion and
+  correlated `custom_tool_call_output` containing the skill text passed. The
+  private native rollout records `CODEX_INPUT_FINISHED` and `task_complete`, but
+  the UI completion assertion still timed out. The synthetic provider emitted
+  completed message items without `response.output_text.delta`; the installed
+  adapter's live path projects `item/agentMessage/delta`, while completed
+  `agentMessage` items update phase only. The fixture therefore did not deliver
+  live assistant text. Exit one; owned teardown completed at 15:15:43.540Z.
+  Cancellation/continuation did not execute. These are partial native input/read
+  observations in a failed round, not a complete capability pass.
+
+- `codex-input-native-4.log` / `folio-t28-codex-input-5xNSWy/evidence`
+  added those missing text-stream events and completed every planned functional
+  assertion: exact reference bytes in the native user image block, actual
+  `functions.exec` → `tools.exec_command` skill read, a held request on the
+  pinned main native thread, desktop Stop and the observed cancelled turn,
+  and a new explicit user turn with visible continuation completion. Separate
+  auxiliary native threads remained outside the main-turn assertions.
+  Runner `/tmp/folio-t28-codex-input-4.mjs` SHA-256:
+  `aa4c0910a684a3d131795d3f407bc6ad8519a84960318a9f42221d879f9616ff`.
+  This verifies ordinary native input/read/session behavior with the local
+  synthetic provider; it does not prove commercial-account authentication.
+
+The fourth round nevertheless exited one. After application/endpoint closure,
+the harness observed owned agent-runtime PID 53113 (parent 52991) still present
+at 15:17:53.982Z and correctly retained `/tmp/lody-e2e-5CFdvb` instead of removing
+its data. A subsequent read-only `ps` found that PID absent; no process kill,
+directory-removal retry or retroactive passing status was applied. This is a
+distinct failed teardown observation from Pi's `ENOTEMPTY`. The complete Codex
+matrix remains incomplete. These rounds did not exercise native permission
+responses, design writes, formal commits, image generation/editing, or the
+missing generation-hook boundary.
+
+The fourth script actively destroys the held response after the Stop button
+disappears, so its connection-close log alone cannot prove native transport
+cancellation. The retained CLI trace separately records the actual ACP cancel
+request and cancelled turn at 15:17:52.556Z–52.616Z; explicit continuation remains
+observed. Later probes must observe transport cancellation before fixture cleanup.
+
+The subsequent [T21 title-task repair](../../implemented/bug-fix/2026-09-11-drain-isolated-title-agents.md)
+(source `a6980ff`) cancels and drains both isolated title callers. Its focused and
+repository checks passed, but the b86 observations above predate that repair.
+A rebuilt installed regression is still required; no earlier failure is cleared
+by source inspection or by the repaired mock-based tests.
+
+For the earlier teardown comparison, the retained session directory
+`/tmp/lody-e2e-X0OyOz/lody-data/chats/534d0e5f-c712-4a1c-a613-18a1aa1b7a5c`
+was observed with birth time `13:42:39.514153Z`; its `chats` parent was
+`13:42:39.514031Z`, while `lody-data` retained `13:42:20.645409Z`. These were
+Python floating-point `st_birthtime` values rendered to microseconds, not exact
+nanosecond integers. The retained `folio-t06-desktop-0HZIU6/evidence/console.log`
+brackets removal at `.480`–`.571` seconds. This supports recreation during
+removal, without identifying its writer. T21's clean comparison ended after the
+12:53:28.778Z launch of `claude-acp.js` and quit at 12:53:32.894Z, as preserved
+in `folio-t05-desktop-IrQorC/evidence/cli-logs/2026-09-11.log`.
+
+
+The root's subsequent external mkdir-observer controls did not identify a writer.
+Observer v1 (retained evidence suffix `AlvXSp`) reproduced the original cleanup
+failure but recorded zero observer loads; Playwright had removed `NODE_OPTIONS`.
+Observer v2 (`qS7nc2`, process handle 89315) restored that environment setting at
+the matched actual spawn, still recorded zero loads, and stopped at its guard
+before any model request. Its original harness cleanup succeeded. Neither
+control establishes Electron/fuse causation or coverage of every process, and
+neither is a product lifecycle repair. No installed bytes were modified.
+
+
+### Kimi and Grok ordinary-capability first rounds
+
+Both rounds used the same immutable installed `b86a1c92` app, selected pinned
+runtimes and isolated synthetic OpenAI-compatible configurations; no real account
+or paid model was used. The tool-aware fixtures excluded explicit outer title
+prompts and preserved each request separately. Neither round attempted design
+writes or changed an adapter's hook support.
+
+- `kimi-input-native-2.log`, evidence `folio-t28-kimi-input-PKflk5/evidence`:
+  the configured runtime started and delivered the reference bytes in an actual
+  user `image_url` block (`request-2.json`). Native Kimi then appended user-role
+  `<system-reminder>` messages for date and Auto permission mode. The fixture
+  classified the last user-role message instead of the actual preceding user
+  request, so neither the initial skill call nor later permission/cancel stages
+  ran. The native reminder and captured UI show Auto, despite the isolated
+  startup file's manual default; a future permission probe must explicitly
+  choose the exposed session mode. The original 120-second assertion failed,
+  exit one, and owned cleanup completed at 15:23:30.878Z. This is not evidence
+  that native skill reading, permission requests or cancellation are absent.
+- `grok-input-native-2.log`, evidence `folio-t28-grok-input-qrpPaB/evidence`:
+  actual main requests (`request-3.json` onward) expose `read_file`, `write`,
+  native image tools and MCP discovery/use tools. Their user query contains
+  `@<local attachment path>` text but no user `image_url` block, so the strict
+  inline-image assertion failed. The fixture did not proceed to native skill
+  reading, permission requests, cancellation or explicit continuation. The
+  original 120-second assertion failed, exit one, and owned cleanup completed
+  at 15:26:17.418Z. A path reference is not proof that image bytes reached the
+  model, and this failure does not prove the native `read_file` tool cannot
+  read that reference image. Direct inline transport and native file reading
+  must retain distinct evidence.
+
+The original logs and private scripts remain preserved. No retry was started
+after the user's checkpoint instruction. These observations do not close either
+Agent's complete installed matrix or any of the three upstream hook blockers.
+
+### Kimi permission, cancellation and Grok file-image follow-up
+
+These further rounds retained the immutable installed `b86a1c92` package and
+native runtime pins above. They used only isolated synthetic providers and an
+owned disposable non-design file; no missing design hook was enabled.
+
+- `kimi-input-native-4.log`, evidence `folio-t28-kimi-input-WRNIAA/evidence`:
+  actual image delivery, native skill Read and selection of the exposed Default
+  permission mode succeeded. The native Write refused the owned existing file
+  because this Agent had not read it, before any approval prompt. The original
+  60-second permission assertion failed, exit one; owned cleanup finished at
+  15:44:20.464Z. This was an unmet native read-before-write prerequisite, not a
+  missing permission feature. Neither cancellation nor continuation ran.
+- `grok-input-native-4.log`, evidence `folio-t28-grok-input-TluNMa/evidence`:
+  the fixture followed the actual attachment path with native `read_file`.
+  `native-reference-read-4.json` records the correlated native tool result
+  `Cannot read binary file` and no model image blocks. The observed catalog
+  advertises PNG/JPG reading, and the synthetic PNG's chunk checksums and
+  decompression validate. The original image-byte assertion failed at its
+  120-second bound, exit one; owned cleanup finished at 15:47:08.791Z. Skill,
+  permission and cancellation stages did not run. This retains the failure of
+  this configured combination without claiming that every Grok configuration
+  lacks image reading.
+- `kimi-input-native-5.log`, evidence `folio-t28-kimi-input-vFY8fM/evidence`:
+  the fixture first performed native Read of the owned permission file and
+  checked the returned original bytes. It then selected Default, clicked Reject
+  on the actual Write approval and verified both the native rejected-tool result
+  and unchanged bytes. Approve once on the next actual Write produced the exact
+  expected 23 bytes. The initial reference bytes and native skill Read also
+  passed. Desktop Stop closed held main request 9 with a recorded
+  `response-close` signal before fixture cleanup; a new explicit user turn
+  subsequently completed visibly. The script did not destroy that response in
+  its success path. `native-cancel-transport.json`, both `permission-*-native.json`
+  files and the pending/continued screenshots preserve the observations.
+  Handle 54557 exited zero; provider work drained and the owned process,
+  endpoint and directory cleanup finished at 15:49:09.373Z. Script
+  `/tmp/folio-t28-kimi-input-5.mjs` SHA-256 is
+  `3773be3c597f54af9825d6a363f17574dd308e2e4da46a5121106266b2e9b382`.
+
+The pinned Grok runtime's extracted `docs/user-guide/26-config-reference.md:403`
+declares `models.image_description` as a vision model for transcribing supplied
+images. This round's isolated config set only `models.default = "probe"` and
+`model.probe`; its custom-model guide does not document an image-support flag in
+that model table. No retained request or log yet connects the separate
+image-description setting to this `read_file` refusal. A configuration cause is
+therefore unproven; no speculative field or paid auxiliary service was enabled.
+The extracted docs and config remain under the `TluNMa/grok-home` evidence root.
+
+The successful Kimi ordinary-operation round does not establish design writes,
+formal commit/CAS, failure recovery, image generation/editing, model quality or
+commercial authentication. All three upstream hook blockers and the complete
+T28 acceptance gap remain. Earlier failed rounds retain their original status;
+the forthcoming T21-repaired package requires its own installed exit regression.

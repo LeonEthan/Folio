@@ -1,3 +1,4 @@
+import { setTimeout as delay } from 'node:timers/promises';
 import { execFile } from 'child_process';
 import path from 'path';
 import os from 'os';
@@ -93,6 +94,7 @@ export async function applyTitleConfigOptions(options: {
   sessionResponse: unknown;
   configOptionValues: Record<string, AcpConfigOptionValue>;
   logger: Logger;
+  signal?: AbortSignal;
 }): Promise<void> {
   const sessionResponse = options.sessionResponse as {
     configOptions?: SessionConfigOption[] | null;
@@ -106,6 +108,7 @@ export async function applyTitleConfigOptions(options: {
   });
 
   for (const [key, value] of entries) {
+    options.signal?.throwIfAborted();
     const currentOption = currentConfigOptions.find((option) => option.id === key);
     if (currentOption && canApplyConfigOptionValue(currentOption, value)) {
       const updatedConfigOptions = await options.client.setSessionConfigOption(
@@ -278,6 +281,27 @@ const noopTerminalManager: TerminalManager = {
   killTerminal: async () => {},
 };
 
+// Cancellation releases the caller into the existing finally/child-exit barrier.
+// Observe the original operation even if cancellation wins its result.
+const awaitTitleOperation = <T>(operation: () => Promise<T>, signal?: AbortSignal): Promise<T> => {
+  if (!signal) return operation();
+  signal.throwIfAborted();
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => {
+      signal.removeEventListener('abort', abort);
+      reject(signal.reason);
+    };
+    signal.addEventListener('abort', abort, { once: true });
+    Promise.resolve()
+      .then(() => {
+        signal.throwIfAborted();
+        return operation();
+      })
+      .then(resolve, reject)
+      .finally(() => signal.removeEventListener('abort', abort));
+  });
+};
+
 export type GenerateTitleOptions = {
   cliType: AgentConfigCliType;
   agentType: AgentType;
@@ -287,15 +311,15 @@ export type GenerateTitleOptions = {
   logger: Logger;
   env?: Record<string, string>;
   titleConfig?: TitleGenerationConfig;
+  signal?: AbortSignal;
 };
 
 export const generateTitleIsolated = async (
   options: GenerateTitleOptions
 ): Promise<string | null> => {
+  if (options.signal?.aborted) return null;
   const fallbackTitle = sanitizeGeneratedTitle(options.taskPrompt);
   const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'lody-title-agent-'));
-
-  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const tryGenerateWithArgs = async (extraArgs: string[]): Promise<string | null> => {
     let collectedText = '';
@@ -324,6 +348,7 @@ export const generateTitleIsolated = async (
         _request: RequestPermissionRequest
       ): Promise<RequestPermissionResponse> => ({ outcome: { outcome: 'cancelled' } }),
       extraArgs,
+      signal: options.signal,
     });
     options.logger.debug(
       `[title-generator] Isolated title ACP agent ready (acpSessionId=${acpSessionId} startupDuration=${
@@ -332,6 +357,7 @@ export const generateTitleIsolated = async (
     );
 
     try {
+      options.signal?.throwIfAborted();
       const prompt = buildTitlePrompt(options.taskPrompt);
 
       const configuredValues = options.titleConfig?.configOptionValues;
@@ -346,13 +372,18 @@ export const generateTitleIsolated = async (
 
       if (configOptionValues) {
         if (client) {
-          await applyTitleConfigOptions({
-            client,
-            acpSessionId,
-            sessionResponse,
-            configOptionValues,
-            logger: options.logger,
-          });
+          await awaitTitleOperation(
+            () =>
+              applyTitleConfigOptions({
+                client,
+                acpSessionId,
+                sessionResponse,
+                configOptionValues,
+                logger: options.logger,
+                signal: options.signal,
+              }),
+            options.signal
+          );
         }
       }
 
@@ -367,16 +398,20 @@ export const generateTitleIsolated = async (
       collectedText = '';
 
       options.logger.debug(`[title-generator] Sending title prompt (acpSessionId=${acpSessionId})`);
-      const response = await client?.prompt(acpSessionId, prompt);
+      const response = await awaitTitleOperation(
+        () => client.prompt(acpSessionId, prompt),
+        options.signal
+      );
       options.logger.debug(
         `[title-generator] Title prompt returned (acpSessionId=${acpSessionId})`
       );
 
       const deadline = Date.now() + 10000;
       while (Date.now() < deadline && collectedText.trim() === '') {
-        await sleep(100);
+        await delay(100, undefined, { signal: options.signal });
       }
 
+      options.signal?.throwIfAborted();
       const fromStream = sanitizeGeneratedTitle(collectedText);
       if (fromStream) {
         return fromStream;
@@ -401,12 +436,15 @@ export const generateTitleIsolated = async (
 
   try {
     if (options.agentType === 'codex' && !(await ensureWorkdirIsGitRepo(workdir, options.logger))) {
-      return fallbackTitle;
+      return options.signal?.aborted ? null : fallbackTitle;
     }
 
     try {
-      return (await tryGenerateWithArgs([])) ?? fallbackTitle;
+      options.signal?.throwIfAborted();
+      const title = await tryGenerateWithArgs([]);
+      return options.signal?.aborted ? null : (title ?? fallbackTitle);
     } catch (error) {
+      if (options.signal?.aborted) return null;
       options.logger.debug('Failed to generate title with args:', error);
       return fallbackTitle;
     }

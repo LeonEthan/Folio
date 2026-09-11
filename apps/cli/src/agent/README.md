@@ -194,3 +194,8 @@ still uses the isolated generator in `title-generator.ts`, but its adapter tags 
 title with `_meta.lody.titleSource`. Other providers use `title-generator.ts` /
 `response-utils.ts`. The shared `usesAcpProvidedSessionTitle()` predicate hides obsolete
 provider title settings only for Claude.
+
+Isolated title runs accept cancellation through the existing startup gate and finish
+through the owned child shutdown barrier. MessageHandler drains both session-title
+and branch-name callers before closing documents; cancellation cannot publish a title
+or derive a fallback branch name. See the [owning note](../../../../.agents/notes/implemented/bug-fix/2026-09-11-drain-isolated-title-agents.md).

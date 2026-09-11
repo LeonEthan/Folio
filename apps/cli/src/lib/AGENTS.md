@@ -115,3 +115,6 @@ never pushed to renderers as local room health.
   restrictions for other consumers.
 - **A `file-preview/` preview must never activate Code Collab**: no workspace watch, no
   All Changes recompute, no Flock publish.
+
+- Cleanup stops new isolated titles, aborts and drains owned title runs before document
+  close, and blocks cancelled title/branch-name publication, including fallback runs.

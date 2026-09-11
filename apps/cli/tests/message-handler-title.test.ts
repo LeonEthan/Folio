@@ -146,9 +146,12 @@ describe('MessageHandler title generation', () => {
     );
 
     expect(mockedGenerateTitleIsolated).toHaveBeenCalledTimes(1);
-    expect(sessionDoc.setTitleIfSourceIn).toHaveBeenCalledWith('Generated Title', 'generated', [
-      'draft',
-    ]);
+    expect(sessionDoc.setTitleIfSourceIn).toHaveBeenCalledWith(
+      'Generated Title',
+      'generated',
+      ['draft'],
+      expect.any(AbortSignal)
+    );
   });
 
   it('shares one in-flight generation across duplicate title requests', async () => {
@@ -264,9 +267,12 @@ describe('MessageHandler title generation', () => {
     );
 
     expect(mockedGenerateTitleIsolated).toHaveBeenCalledTimes(1);
-    expect(sessionDoc.setTitleIfSourceIn).toHaveBeenCalledWith('Generated Title', 'generated', [
-      'draft',
-    ]);
+    expect(sessionDoc.setTitleIfSourceIn).toHaveBeenCalledWith(
+      'Generated Title',
+      'generated',
+      ['draft'],
+      expect.any(AbortSignal)
+    );
   });
 
   it('does not overwrite a manual rename that lands while generation is in flight', async () => {
@@ -407,4 +413,131 @@ describe('MessageHandler title generation', () => {
       expect.objectContaining({ titleConfig: undefined })
     );
   });
+});
+
+const deferred = <T>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+};
+
+it('cleanup cancels and drains titles, blocks late publication and new isolated work', async () => {
+  const started = deferred<AbortSignal>();
+  const aborted = deferred<void>();
+  const childExited = deferred<string | null>();
+  mockedGenerateTitleIsolated.mockImplementationOnce(async ({ signal }) => {
+    signal!.addEventListener('abort', () => aborted.resolve(), { once: true });
+    started.resolve(signal!);
+    return await childExited.promise;
+  });
+  const { handler, sessionDoc } = await createHandler(undefined);
+  const titleHost = handler as unknown as {
+    maybeGenerateAndStoreSessionTitle: (
+      id: SessionId,
+      cli: string,
+      agent: string,
+      prompt: string
+    ) => Promise<void>;
+    generateBranchNameWithTimeout: (
+      cli: string,
+      agent: string,
+      prompt: string,
+      env: undefined,
+      timeout: number,
+      config: undefined,
+      custom: undefined,
+      runtime: undefined,
+      reusable: Promise<string | null>
+    ) => Promise<string | null>;
+  };
+  const published: string[] = [];
+  sessionDoc.setTitleIfSourceIn.mockImplementation(async (title) => {
+    published.push(title);
+    return true;
+  });
+  const generation = titleHost.maybeGenerateAndStoreSessionTitle(
+    'drain-title' as SessionId,
+    'registry',
+    'pi-acp',
+    'task'
+  );
+  const signal = await started.promise;
+  const branch = titleHost.generateBranchNameWithTimeout(
+    'registry',
+    'pi-acp',
+    'fallback task',
+    undefined,
+    20000,
+    undefined,
+    undefined,
+    undefined,
+    childExited.promise
+  );
+  let finished = false;
+  const cleanup = handler.cleanup().then(() => {
+    finished = true;
+  });
+  await aborted.promise;
+  expect(signal.aborted).toBe(true);
+  expect(finished).toBe(false);
+  await titleHost.maybeGenerateAndStoreSessionTitle(
+    'new-title' as SessionId,
+    'registry',
+    'pi-acp',
+    'new task'
+  );
+  childExited.resolve('Late title');
+  await Promise.all([generation, cleanup]);
+  expect(await branch).toBeNull();
+  expect(published).toEqual([]);
+  expect(finished).toBe(true);
+});
+
+it('cleanup also owns a branch-name title run without a reusable session title', async () => {
+  const started = deferred<void>();
+  const aborted = deferred<void>();
+  const childExited = deferred<string | null>();
+  mockedGenerateTitleIsolated.mockImplementationOnce(async ({ signal }) => {
+    signal!.addEventListener('abort', () => aborted.resolve(), { once: true });
+    started.resolve();
+    return await childExited.promise;
+  });
+  const { handler } = await createHandler(undefined);
+  const branchHost = handler as unknown as {
+    generateBranchNameWithTimeout: (
+      cli: string,
+      agent: string,
+      prompt: string,
+      env: undefined,
+      timeout: number
+    ) => Promise<string | null>;
+  };
+  const branch = branchHost.generateBranchNameWithTimeout(
+    'registry',
+    'pi-acp',
+    'fallback task',
+    undefined,
+    20000
+  );
+  await started.promise;
+  let finished = false;
+  const cleanup = handler.cleanup().then(() => {
+    finished = true;
+  });
+  await aborted.promise;
+  expect(finished).toBe(false);
+  childExited.resolve('Late branch name');
+  expect(await branch).toBeNull();
+  await cleanup;
+  expect(
+    await branchHost.generateBranchNameWithTimeout(
+      'registry',
+      'pi-acp',
+      'new task',
+      undefined,
+      20000
+    )
+  ).toBeNull();
 });

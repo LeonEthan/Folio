@@ -2364,7 +2364,8 @@ export class SessionDocument implements LoroDocument<SessionDocMeta, SessionMeta
   async setTitleIfSourceIn(
     title: string,
     source: SessionTitleSource,
-    allowedSources: readonly SessionTitleSource[]
+    allowedSources: readonly SessionTitleSource[],
+    signal?: AbortSignal
   ): Promise<boolean> {
     if (!this.mirror) {
       throw new Error('SessionDocument not initialized');
@@ -2381,6 +2382,7 @@ export class SessionDocument implements LoroDocument<SessionDocMeta, SessionMeta
     if (currentTitle && currentSource && !allowedSources.includes(currentSource)) {
       return false;
     }
+    if (signal?.aborted) return false;
     await this.repo.upsertDocMeta(this.roomId, { title: sanitized, titleSource: source });
     return true;
   }

@@ -863,6 +863,8 @@ export class MessageHandler {
   private readonly store = new SessionTransientStore();
   private sessionActivePresence!: SessionActivePresenceController;
   private readonly titleGenerationInFlight = new Map<SessionId, Promise<string | null>>();
+  private readonly titleGenerationAbort = new AbortController();
+  private readonly isolatedTitleRuns = new Set<Promise<string | null>>();
   // Note: titleGenerationInFlight, archiveInFlight, deleteInFlight are self-cleaning
   // and stay as independent tracking. All other per-session state lives in this.store.
   private archiveWatchHandle: RepoWatchHandle | null = null;
@@ -9692,6 +9694,19 @@ export class MessageHandler {
     }
   }
 
+  private async runIsolatedTitle(
+    options: Parameters<typeof generateTitleIsolated>[0]
+  ): Promise<string | null> {
+    if (this.cleanedUp) return null;
+    const run = generateTitleIsolated({ ...options, signal: this.titleGenerationAbort.signal });
+    this.isolatedTitleRuns.add(run);
+    try {
+      return await run;
+    } finally {
+      this.isolatedTitleRuns.delete(run);
+    }
+  }
+
   private async maybeGenerateAndStoreSessionTitle(
     sessionId: SessionId,
     cliType: AgentConfigCliType,
@@ -9702,6 +9717,7 @@ export class MessageHandler {
     runtimeOverrides?: BuiltinRuntimeOverrides,
     titleConfig?: TitleGenerationConfig
   ): Promise<void> {
+    if (this.cleanedUp) return;
     // Builtin Claude publishes a generated session_info_update title.
     if (usesAcpProvidedSessionTitle(cliType, agentType)) {
       return;
@@ -9718,6 +9734,7 @@ export class MessageHandler {
       return;
     }
 
+    const controller = this.titleGenerationAbort;
     const generation = (async (): Promise<string | null> => {
       const sessionDoc = await this.workspaceDocument.getOrCreateSessionDoc(sessionId);
       const meta = await sessionDoc.getMetaState();
@@ -9733,7 +9750,9 @@ export class MessageHandler {
       this.logger.debug(`[${sessionId}] Generating session title because title is missing`);
       const resolvedTitleConfig =
         titleConfig ?? (await this.resolveTitleConfig(sessionId, meta?.agentConfigId));
-      const title = await generateTitleIsolated({
+      controller.signal.throwIfAborted();
+      const title = await this.runIsolatedTitle({
+        signal: controller.signal,
         cliType,
         agentType,
         customAcp,
@@ -9743,13 +9762,19 @@ export class MessageHandler {
         env,
         titleConfig: resolvedTitleConfig,
       });
+      if (controller.signal.aborted) return null;
       if (!title) {
         this.logger.debug(`[${sessionId}] Session title generation returned empty result`);
         return null;
       }
       // Conditional write: a title may have landed while generation was in flight
       // (agent-pushed title, user rename); only a draft may still be replaced.
-      const applied = await sessionDoc.setTitleIfSourceIn(title, 'generated', ['draft']);
+      const applied = await sessionDoc.setTitleIfSourceIn(
+        title,
+        'generated',
+        ['draft'],
+        controller.signal
+      );
       if (!applied) {
         this.logger.debug(
           `[${sessionId}] Skipping generated title because title changed while generation was in flight`
@@ -10349,6 +10374,7 @@ export class MessageHandler {
   async cleanup(): Promise<void> {
     this.logger.debug('Cleaning up message handler resources');
     this.cleanedUp = true;
+    this.titleGenerationAbort.abort();
     this.cancelAllCodeCollabTurnRetryTimers();
     if (this.machineRpcServerRetryTimer) {
       clearTimeout(this.machineRpcServerRetryTimer);
@@ -10374,6 +10400,7 @@ export class MessageHandler {
     // but none can arrive after this await. Keep the document manager open so
     // those callbacks can be flushed below.
     await this.sessionManager.cleanUp({ keepWorkspaceDocumentOpen: true });
+    await Promise.allSettled([...this.titleGenerationInFlight.values(), ...this.isolatedTitleRuns]);
     await this.flushAllACPUpdates();
     // Wait for any in-flight flushes to complete
     const inFlightPromises = this.store
@@ -10450,7 +10477,7 @@ export class MessageHandler {
       metaRuntimeOverrides,
       reusableTitlePromise
     );
-    if (!branchName) {
+    if (this.cleanedUp || !branchName) {
       this.logger.debug(`[${sessionId}] Skipping branch rename: name generation timed out`);
       return;
     }
@@ -10504,6 +10531,7 @@ export class MessageHandler {
     runtimeOverrides?: BuiltinRuntimeOverrides,
     reusableTitlePromise?: Promise<string | null>
   ): Promise<string | null> {
+    if (this.cleanedUp) return null;
     let timeoutHandle: NodeJS.Timeout | null = null;
     const timeoutPromise = new Promise<null>((resolve) => {
       timeoutHandle = setTimeout(() => resolve(null), timeoutMs);
@@ -10512,7 +10540,7 @@ export class MessageHandler {
     const namePromise = (async (): Promise<string> => {
       const title = reusableTitlePromise
         ? await reusableTitlePromise
-        : await generateTitleIsolated({
+        : await this.runIsolatedTitle({
             cliType,
             agentType,
             customAcp,
@@ -10522,6 +10550,7 @@ export class MessageHandler {
             env,
             titleConfig,
           });
+      this.titleGenerationAbort.signal.throwIfAborted();
       const base = title ?? taskPrompt;
       return ensureValidBranchName(base, 'task');
     })();

@@ -130,3 +130,5 @@ session reconciles/minute. Backoff is flap-aware for the same reason: health tha
 not survive `LODY_LORO_HEALTH_STABILITY_WINDOW_MS` (5s) counts as a failed recovery and
 charges the attempt counter instead of resetting it, and `force` must not clear that
 history. Regression: `tests/reconnect-storm-repro.test.ts`.
+
+- Optional title cancellation is checked before metadata publication.
