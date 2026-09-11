@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import { createStore } from 'jotai';
 import {
   getAgentConfigRoomId,
@@ -470,38 +471,38 @@ export const TOUR_CHANGES: SessionDiffChangeEntry[] = [
  *    real UI shows structure is exactly what makes a mock look like a mock.
  *  - Compression is stated on screen.
  */
-export const TOUR_RUN_ITEMS: MessageContent[] = [
-  toolCall('read-1', 'Read(src/auth/session.ts)', 'read', '182 lines'),
+const buildTourRunItems = (t: TFunction): MessageContent[] => [
+  toolCall('read-1', 'Read(design.pptd)', 'read', '182 lines'),
   {
     type: 'text',
-    text: 'Session creation is signing its own tokens, so every caller that wants a token has to go through it.',
+    text: t('onboarding.preview.designRead'),
   },
-  toolCall('grep-1', 'Grep(createSession()', 'read', '7 matches in 4 files'),
-  toolCall('read-2', 'Read(src/server/middleware/require-auth.ts)', 'read', '64 lines'),
+  toolCall('grep-1', 'Read(brief.md)', 'read', '7 matches in 4 files'),
+  toolCall('read-2', 'Read(references.md)', 'read', '64 lines'),
   {
     type: 'text',
-    text: 'Token handling is tangled into session creation. I’ll pull it into its own module, keep `createSession` for sessions only, and update the call sites.',
+    text: t('onboarding.preview.designLayout'),
   },
-  toolCall('edit-1', 'Edit(src/auth/token.ts)', 'edit', '+41 −0'),
-  toolCall('edit-2', 'Edit(src/auth/session.ts)', 'edit', '+8 −27'),
+  toolCall('edit-1', 'Edit(design.pptd)', 'edit', '+41 −0'),
+  toolCall('edit-2', 'Edit(design.pptd)', 'edit', '+8 −27'),
   // Everything from here only exists because the permission was allowed.
-  toolCall('bash-1', 'Bash(pnpm typecheck)', 'execute', '2 errors'),
+  toolCall('bash-1', 'Render(design.pptd)', 'execute', '2 errors'),
   {
     type: 'text',
-    text: 'Two call sites still import the old helper. Updating them rather than re-exporting — a re-export would leave the tangle in place under a new name.',
+    text: t('onboarding.preview.designRefine'),
   },
-  toolCall('edit-3', 'Edit(src/auth/index.ts)', 'edit', '+4 −2'),
-  toolCall('edit-4', 'Edit(src/server/routes/login.ts)', 'edit', '+3 −11'),
-  toolCall('bash-2', 'Bash(pnpm typecheck)', 'execute', 'clean'),
-  toolCall('bash-3', 'Bash(pnpm test auth)', 'execute', '14 passed'),
+  toolCall('edit-3', 'Edit(design.pptd)', 'edit', '+4 −2'),
+  toolCall('edit-4', 'Edit(design.pptd)', 'edit', '+3 −11'),
+  toolCall('bash-2', 'Render(design.pptd)', 'execute', 'clean'),
+  toolCall('bash-3', 'Read(preview.png)', 'execute', '14 passed'),
   {
     type: 'text',
-    text: 'Everything passes. The changes are on a branch, so your working copy is untouched until you merge them.',
+    text: t('onboarding.preview.designReview'),
   },
-  toolCall('git-1', 'Git(lody/extract-token-handling)', 'execute', '8 files'),
+  toolCall('git-1', 'Read(design.pptd)', 'execute', '8 files'),
   {
     type: 'text',
-    text: 'Done — review the diff, or send it straight to a pull request.',
+    text: t('onboarding.preview.designDone'),
   },
 ];
 
@@ -688,13 +689,11 @@ export type TourHistoryInput = {
  * rendered as three assistant replies to one question — which is not what a
  * turn looks like.
  */
-export function buildTourHistory({
-  prompt,
-  revealed,
-  permissionAnswer,
-  subagents,
-  taskId,
-}: TourHistoryInput): SessionHistoryParsed[] {
+export function buildTourHistory(
+  { prompt, revealed, permissionAnswer, subagents, taskId }: TourHistoryInput,
+  t: TFunction
+): SessionHistoryParsed[] {
+  const runItems = buildTourRunItems(t);
   // A different task selected in the sidebar shows ITS conversation. The main
   // run belongs to the first row; the others are their own short runs.
   const other = taskId ? TOUR_TASK_CONVERSATIONS[taskId] : undefined;
@@ -721,7 +720,7 @@ export function buildTourHistory({
   }
   const count = Math.max(0, Math.floor(revealed));
   const items: MessageContent[] = [];
-  const beforePermission = TOUR_RUN_ITEMS.slice(0, Math.min(count, TOUR_ITEMS_BEFORE_PERMISSION));
+  const beforePermission = runItems.slice(0, Math.min(count, TOUR_ITEMS_BEFORE_PERMISSION));
   items.push(...beforePermission);
 
   if (count >= TOUR_ITEMS_BEFORE_PERMISSION) {
@@ -730,7 +729,7 @@ export function buildTourHistory({
   if (permissionAnswer === 'deny') {
     items.push(...TOUR_DENIED_ITEMS);
   } else if (permissionAnswer === 'allow') {
-    items.push(...TOUR_RUN_ITEMS.slice(TOUR_ITEMS_BEFORE_PERMISSION, count));
+    items.push(...runItems.slice(TOUR_ITEMS_BEFORE_PERMISSION, count));
   }
   if (subagents) items.push(TOUR_SUBAGENT_ITEM);
 

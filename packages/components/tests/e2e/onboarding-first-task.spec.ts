@@ -6,7 +6,9 @@ test('selects the first-task Agent and skips without starting', async ({ page })
   );
   expect(response?.ok()).toBeTruthy();
 
-  await expect(page.getByRole('heading', { name: 'Start your first session' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Start your first design session' })
+  ).toBeVisible();
   const provider = page.getByRole('combobox', { name: 'Agent' });
   await expect(provider).toContainText('Claude Code');
 

@@ -93,3 +93,6 @@ export const chatLandingCanvasDraftAtomFamily = atomFamily((_draftKey: string) =
     };
   }>({ mode: 'auto', width: 800, height: 600 })
 );
+
+/** Shared across onboarding handoff and the landing route; never persisted. */
+export const chatLandingSubmittingAtomFamily = atomFamily((_draftKey: string) => atom(false));

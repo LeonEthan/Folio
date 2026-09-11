@@ -291,10 +291,10 @@ export function ProvidersScreenView({
     <OnboardingShell
       stepKey="providers"
       size="wide"
-      title={t('onboarding.providers.title', 'Connect a coding agent')}
+      title={t('onboarding.providers.title', 'Connect your Agent')}
       description={t(
         'onboarding.providers.description',
-        'Add an Agent now. Lody will continue setup and let you know if anything needs your attention.'
+        'Add an Agent now. Folio will continue setup and let you know if anything needs your attention.'
       )}
       previewIdentity={
         previewConfig
@@ -620,7 +620,7 @@ function AgentShowcase({
       <div className="flex items-center gap-3" aria-hidden>
         <div className="h-px flex-1 bg-border/70" />
         <span className="shrink-0 text-[11px] font-medium tracking-wide text-muted-foreground/70">
-          {t('onboarding.providers.moreLabel', 'Plus many more coding agents')}
+          {t('onboarding.providers.moreLabel', 'More supported Agents — click to add')}
         </span>
         <div className="h-px flex-1 bg-border/70" />
       </div>
@@ -840,7 +840,7 @@ export function ProvidersScreen({
           toast.error(
             t(
               'onboarding.providers.localAgentUnreachable',
-              'Could not reach the local agent. Please restart Lody and try again.'
+              'Could not reach the local agent. Please restart Folio and try again.'
             )
           );
           return;
@@ -876,7 +876,7 @@ export function ProvidersScreen({
               toast.error(
                 t(
                   'onboarding.providers.localAgentUnreachable',
-                  'Could not reach the local agent. Please restart Lody and try again.'
+                  'Could not reach the local agent. Please restart Folio and try again.'
                 )
               );
             }, PROVIDERS_SCREEN_MACHINE_TIMEOUT_MS);
@@ -894,7 +894,7 @@ export function ProvidersScreen({
             toast.error(
               t(
                 'onboarding.providers.localAgentUnreachable',
-                'Could not reach the local agent. Please restart Lody and try again.'
+                'Could not reach the local agent. Please restart Folio and try again.'
               ),
               { description: error instanceof Error ? error.message : String(error) }
             );
@@ -1526,7 +1526,7 @@ function ProviderStatusBadge({
     // copyable report, where it is diagnostic data rather than a claim.
     const slowDetail = t(
       'onboarding.providers.slowWaitDetail',
-      'Agent setup is still running. A first run may have to download and unpack the agent. You can continue — Lody keeps working on this in the background.'
+      'Agent setup is still running. A first run may have to download and unpack the agent. You can continue — Folio keeps working on this in the background.'
     );
     const badge = (
       <Badge

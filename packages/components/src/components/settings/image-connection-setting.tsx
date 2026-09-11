@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { KeyRound, Link2, Loader2, Plug, Sparkles, Trash2 } from 'lucide-react';
 import {
   IMAGE_CONNECTION_VERSION,
+  IMAGE_CONNECTION_MAX_MODEL_LENGTH,
+  normalizeImageConnectionBaseUrl,
   ImageConnectionRpcResultSchema,
   getMachineFlockDocId,
   getMachineFlockImageConnection,
@@ -44,7 +46,7 @@ import { Field, Section } from './form-primitives';
  * disabled, half-typed, or unreachable connection must never block editing,
  * saving, or exporting an existing design: nothing here is on any other
  * surface's path, every call is wrapped, and the worst outcome of a broken
- * connection is that `folio_generate_image` is simply not offered to design
+ * connection is that `folio_generate_image` and `folio_edit_image` are not offered to design
  * sessions.
  *
  * The API key is write-only in this UI. It is never read back into a field —
@@ -119,18 +121,12 @@ export function imageConnectionDraftIssues(draft: ImageConnectionFormDraft): {
   baseUrl: boolean;
   model: boolean;
 } {
-  const baseUrl = draft.baseUrl.trim();
-  const usableUrl =
-    baseUrl.length > 0 &&
-    (() => {
-      try {
-        const url = new URL(baseUrl);
-        return url.protocol === 'https:' || url.protocol === 'http:';
-      } catch {
-        return false;
-      }
-    })();
-  return { baseUrl: !usableUrl, model: draft.model.trim().length === 0 };
+  return {
+    baseUrl: normalizeImageConnectionBaseUrl(draft.baseUrl) === undefined,
+    model:
+      draft.model.trim().length === 0 ||
+      draft.model.trim().length > IMAGE_CONNECTION_MAX_MODEL_LENGTH,
+  };
 }
 
 const isDirty = (

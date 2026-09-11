@@ -209,6 +209,7 @@ import {
 } from '@/components/mentions/mention-persistence';
 import {
   buildChatLandingDraftKey,
+  chatLandingSubmittingAtomFamily,
   chatLandingAppliedResetKeyAtomFamily,
 } from '@/atoms/chat-landing-draft';
 import { useChatLandingImageDraft } from '@/hooks/use-chat-landing-image-draft';
@@ -1050,7 +1051,7 @@ function WorkspaceChatLanding({
   // ── Machine & Agent selection ──
   const [selectedMachineId, setSelectedMachineId] = useState<MachineId | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<AgentSelection | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useAtom(chatLandingSubmittingAtomFamily(chatLandingDraftKey));
   const mcpSelection = useSessionMcpSelection(undefined, { disabled: submitting });
   // The project selector always uses the machine-aware picker so multi-machine
   // workspaces can choose the target explicitly. Standalone Electron entry

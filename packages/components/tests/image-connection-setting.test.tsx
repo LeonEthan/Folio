@@ -69,6 +69,20 @@ describe('image connection form values', () => {
     ).toBeUndefined();
   });
 
+  it.each([
+    'https://user:secret@images.example/v1',
+    'https://images.example/v1?key=secret',
+    'https://images.example/v1#fragment',
+    'ftp://images.example/v1',
+  ])('rejects an unusable endpoint in the form before save: %s', (baseUrl) => {
+    expect(imageConnectionDraftIssues(draftOf({ baseUrl })).baseUrl).toBe(true);
+    expect(buildImageConnectionSettings(draftOf({ baseUrl }), undefined, NOW_MS)).toBeUndefined();
+  });
+
+  it('rejects model names longer than the stored connection permits', () => {
+    expect(imageConnectionDraftIssues(draftOf({ model: 'a'.repeat(201) })).model).toBe(true);
+  });
+
   it('never seeds the draft with the stored key', () => {
     const draft = createImageConnectionFormDraft(storedConnection());
     expect(draft.apiKey).toBe('');

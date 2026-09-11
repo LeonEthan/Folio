@@ -42,7 +42,7 @@ const INTRO_BEATS: IntroBeat[] = [
     titleKey: 'onboarding.intro.problem',
     titleFallback: 'Stay in the flow.',
     descriptionKey: 'onboarding.intro.problem.description',
-    descriptionFallback: 'Lody takes over, so the work keeps moving.',
+    descriptionFallback: 'Bring an idea and let your Agent help shape the design.',
     score: { energy: 0.22, layers: { pad: 1, arp: 0.08, bass: 0.2 } },
   },
   {
@@ -60,8 +60,7 @@ const INTRO_BEATS: IntroBeat[] = [
     titleKey: 'onboarding.intro.multiDevice',
     titleFallback: 'Pick up anytime.',
     descriptionKey: 'onboarding.intro.multiDevice.description',
-    descriptionFallback:
-      'Continue seamlessly across devices and remotely control progress while you are out.',
+    descriptionFallback: 'Reopen your local sessions and keep shaping your designs.',
     score: { energy: 0.72, layers: { pad: 1, arp: 0.78, bass: 0.7 }, cue: 'cut' },
   },
   {
@@ -399,7 +398,7 @@ export function IntroSequence({
                 style={{ animation: `lody-intro-copy-in 520ms ${INTRO_EASE} 300ms both` }}
                 onClick={beginSetup}
               >
-                {t('onboarding.intro.cta', 'Configure Lody')}
+                {t('onboarding.intro.cta', 'Configure Folio')}
               </Button>
             ) : (
               <button

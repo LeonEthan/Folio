@@ -262,7 +262,7 @@ describe('desktop onboarding flow', () => {
       );
     });
 
-    expect(findButton(container, 'Add a local project').disabled).toBe(true);
+    expect(findButton(container, 'Add a design folder').disabled).toBe(true);
     const githubButton = findButton(container, 'Connect a GitHub repository');
     expect(githubButton.disabled).toBe(false);
     await act(async () => {
@@ -459,7 +459,7 @@ describe('desktop onboarding flow', () => {
     });
 
     expect(container.textContent).toContain(
-      'Lody could not download the Agent runtime. Check your connection and try again.'
+      'Folio could not download the Agent runtime. Check your connection and try again.'
     );
     expect(container.textContent).not.toContain('runtime-install-failed');
     await act(async () => {

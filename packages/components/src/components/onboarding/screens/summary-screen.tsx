@@ -34,28 +34,28 @@ export function SummaryScreen({
   const [retryError, setRetryError] = useState<string | null>(null);
   const title =
     agentState === 'ready'
-      ? t('onboarding.summary.title', 'Lody is ready')
+      ? t('onboarding.summary.title', 'Folio is ready')
       : agentState === 'preparing'
-        ? t('onboarding.summary.preparingTitle', 'Ready to enter Lody')
+        ? t('onboarding.summary.preparingTitle', 'Ready to enter Folio')
         : agentState === 'failed'
           ? t('onboarding.summary.failedTitle', 'Agent setup needs attention')
-          : t('onboarding.summary.exploreTitle', 'Explore Lody');
+          : t('onboarding.summary.exploreTitle', 'Explore Folio');
   const description =
     agentState === 'ready'
       ? t('onboarding.summary.description', 'You can add Agents and projects later from Settings.')
       : agentState === 'preparing'
         ? t(
             'onboarding.summary.preparingDescription',
-            'Your Agent setup is still in progress. You can enter Lody now and check its status in Settings.'
+            'Your Agent setup is still in progress. You can enter Folio now and check its status in Settings.'
           )
         : agentState === 'failed'
           ? t(
               'onboarding.summary.failedDescription',
-              'Your Agent could not finish setup. Retry here or enter Lody and finish later.'
+              'Your Agent could not finish setup. Retry here or enter Folio and finish later.'
             )
           : t(
               'onboarding.summary.exploreDescription',
-              'Enter Lody now and connect a coding agent from Settings when you are ready.'
+              'Explore Folio now. Connect your Agent in Settings when you are ready to start a design session.'
             );
 
   const resolvedAgentName =
@@ -77,8 +77,8 @@ export function SummaryScreen({
           onClick={onComplete}
           label={
             agentState === 'ready'
-              ? t('onboarding.summary.open', 'Open Lody')
-              : t('onboarding.summary.enter', 'Enter Lody')
+              ? t('onboarding.summary.open', 'Open Folio')
+              : t('onboarding.summary.enter', 'Enter Folio')
           }
         />
       }
@@ -169,17 +169,17 @@ function agentFailureMessage(
     case 'runtime-unavailable':
       return t(
         'onboarding.summary.failure.runtimeUnavailable',
-        'This Agent is not available on the selected machine. Update Lody or choose another machine in Settings.'
+        'This Agent is not available on the selected machine. Update Folio or choose another machine in Settings.'
       );
     case 'runtime-install-failed':
       return t(
         'onboarding.summary.failure.runtimeInstallFailed',
-        'Lody could not download the Agent runtime. Check your connection and try again.'
+        'Folio could not download the Agent runtime. Check your connection and try again.'
       );
     case 'verification-failed':
       return t(
         'onboarding.summary.failure.verificationFailed',
-        'Lody could not verify this Agent. Check its sign-in or credentials and try again.'
+        'Folio could not verify this Agent. Check its sign-in or credentials and try again.'
       );
     default:
       return failureCode satisfies never;

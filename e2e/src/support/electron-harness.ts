@@ -149,7 +149,8 @@ export class ElectronHarness {
         // GitHub-hosted Linux runners restrict unprivileged user namespaces,
         // which breaks Electron's SUID sandbox from an unpacked dev tree.
         ...(process.platform === 'linux' && process.env.CI ? ['--no-sandbox'] : []),
-        MAIN_ENTRY,
+        // The app directory preserves app.getAppPath() for bundled design resources.
+        ELECTRON_DIR,
         `--user-data-dir=${electronUserDataDir}`,
         '--lang=en-US',
       ],

@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAtomValue } from 'jotai';
+import { useAtomValue, useStore } from 'jotai';
 import { v4 as uuidv4 } from 'uuid';
-import { FolderGit2 } from 'lucide-react';
+import { Folder } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   buildInitialHistoryEntry,
@@ -14,6 +14,20 @@ import {
   type SessionId,
 } from '@lody/shared';
 import { userAtom } from '@/atoms';
+import { chatLandingSessionStateAtomFamily } from '@/atoms/local-storage-cache';
+import {
+  buildChatLandingDraftKey,
+  chatLandingCanvasDraftAtomFamily,
+  chatLandingDraftSessionIdAtomFamily,
+  chatLandingSubmittingAtomFamily,
+} from '@/atoms/chat-landing-draft';
+import { agentDefaultsCache } from '@/lib/local-storage-cache';
+import { readChatLandingDefaults, writeChatLandingDefaults } from '@/lib/chat-landing-defaults';
+import { localMachineIdAtom } from '@/atoms/local-probe';
+import { getIpcServices } from '@/lib/electron-ipc-client';
+import { isElectronRenderer } from '@/lib/electron';
+import { flushDesignCanvasBeforeSend } from '@/lib/design-canvas-save-gate';
+import { writeStoredLastActiveTabState } from '@/lib/session-draft-tabs';
 import { getAllAgentConfigAtom } from '@/atoms/agents';
 import type { DesktopOnboardingProjectSelection } from '@/atoms/onboarding';
 import { activeWorkspaceRuntimeAtom } from '@/atoms/runtime';
@@ -62,7 +76,9 @@ export function FirstTaskScreen({
 }) {
   const { t } = useTranslation();
   const analytics = useOnboardingAnalytics();
+  const store = useStore();
   const user = useAtomValue(userAtom);
+  const localMachineId = useAtomValue(localMachineIdAtom);
   const runtime = useAtomValue(activeWorkspaceRuntimeAtom);
   const configs = useAtomValue(getAllAgentConfigAtom);
   const { startSession, requestSessionDispatch } = useSessionActions();
@@ -76,14 +92,19 @@ export function FirstTaskScreen({
   );
   const seedPrompts = useMemo(
     () => [
-      t('onboarding.firstTask.seedExplore', 'Walk me through how this codebase is organized.'),
-      t('onboarding.firstTask.seedTests', 'Find the test setup and explain how to run it.'),
-      t('onboarding.firstTask.seedReadme', 'Summarize the main entry points in this project.'),
+      t(
+        'onboarding.firstTask.seedExplore',
+        'Design an editable poster for a weekend flower market.'
+      ),
+      t('onboarding.firstTask.seedTests', 'Create a calm, minimal cover for a travel journal.'),
+      t('onboarding.firstTask.seedReadme', 'Design a social post announcing a new coffee blend.'),
     ],
     [t]
   );
   const [prompt, setPrompt] = useState(seedPrompts[0] ?? '');
   const [startRequested, setStartRequested] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+  const [draftSessionId] = useState(() => uuidv4() as SessionId);
   const canStartFirstTask =
     project.kind === 'local' &&
     config !== null &&
@@ -105,25 +126,64 @@ export function FirstTaskScreen({
     const machineId = project.machineId;
     const trimmedPrompt = prompt.trim();
     setStartRequested(true);
+    setStartError(null);
 
     void (async () => {
-      // Entering the product is the primary transaction. Start the optional
-      // Session only after navigation succeeds, never as a prerequisite for it.
-      const entered = await onContinue();
-      if (!entered) {
-        setStartRequested(false);
-        return;
-      }
+      const draftKey = buildChatLandingDraftKey(user.id, runtime!.workspaceSlug);
+      const stateAtom = chatLandingSessionStateAtomFamily(user.id);
+      const idAtom = chatLandingDraftSessionIdAtomFamily(draftKey);
+      const canvasAtom = chatLandingCanvasDraftAtomFamily(draftKey);
+      const submittingAtom = chatLandingSubmittingAtomFamily(draftKey);
+      const recoveryDraft = { prompt: trimmedPrompt, pastedTextDrafts: [], mentionRanges: [] };
+      const association = {
+        sessionId: draftSessionId,
+        name: t('design.untitled'),
+        userId: user.id,
+        machineId,
+        createdAt: new Date(getServerNow()).toISOString(),
+      };
+      store.set(stateAtom, recoveryDraft);
+      store.set(idAtom, draftSessionId);
+      store.set(canvasAtom, { mode: 'auto', width: 800, height: 600, association });
+      store.set(submittingAtom, true);
+      writeChatLandingDefaults(runtime!.workspaceId, {
+        ...readChatLandingDefaults(runtime!.workspaceId),
+        agentId: config.id,
+        machineId,
+        localMachineId: machineId,
+        localProjectId: project.localProjectId,
+        contextType: 'local',
+        agentRoleId: null,
+      });
       const sessionStartedAtMs = analytics.now();
       analytics.capture('onboarding/operation_started', {
         step: 'firstTask',
         operation: 'first_session_create',
       });
       try {
+        // Completion and product navigation remain independent of creation.
+        const entered = await onContinue();
+        if (!entered) return;
+        if (
+          !store
+            .get(getAllAgentConfigAtom)
+            .some((candidate) => candidate.id === config.id && candidate.machineId === machineId)
+        ) {
+          throw new Error(t('onboarding.firstTask.agentUnavailable'));
+        }
+        const designService = isElectronRenderer() ? getIpcServices()?.design : undefined;
+        if (isElectronRenderer() && (!designService || machineId !== localMachineId)) {
+          throw new Error(t('design.saveFailedBeforeSend'));
+        }
+        if (designService) {
+          await designService.create({ association });
+          await flushDesignCanvasBeforeSend(draftSessionId);
+        }
         const projectRef: ProjectRef = {
           kind: 'local',
           localProjectId: project.localProjectId as LocalProjectId,
         };
+        const defaults = agentDefaultsCache.get(config.id);
         const entry = buildInitialHistoryEntry({
           userId: user.id,
           timestamp: new Date(getServerNow()).toISOString(),
@@ -131,11 +191,17 @@ export function FirstTaskScreen({
           agentType: config.agentType,
           prompt: buildAgentPrompt(trimmedPrompt, config.prompt ?? ''),
           inputBlocks: undefined,
+          modelId: defaults?.modelId ?? undefined,
+          modeId: defaults?.modeId ?? undefined,
+          configOptionValues: defaults?.configOptionValues,
         });
         if (!entry) throw new Error('Could not build the first turn');
         const result = await startSession(
           {
-            sessionId: uuidv4() as SessionId,
+            sessionId: draftSessionId,
+            ...(designService
+              ? { design: { artworkId: draftSessionId, path: 'design.json' as const } }
+              : {}),
             userId: user.id,
             cliType: config.cliType,
             agentType: config.agentType,
@@ -150,6 +216,29 @@ export function FirstTaskScreen({
           },
           entry
         );
+        // Only clear this exact recovery draft; an independently changed draft survives.
+        const currentDraft = store.get(stateAtom);
+        if (
+          store.get(idAtom) === draftSessionId &&
+          currentDraft.prompt === recoveryDraft.prompt &&
+          !currentDraft.pastedTextDrafts?.length &&
+          !currentDraft.mentionRanges?.length
+        ) {
+          store.set(stateAtom, { prompt: '', pastedTextDrafts: [], mentionRanges: [] });
+          store.set(idAtom, null);
+          store.set(canvasAtom, { mode: 'auto', width: 800, height: 600 });
+        }
+        if (designService) {
+          writeStoredLastActiveTabState(result.sessionId, {
+            sessionTabId: result.sessionId,
+            viewerTab: null,
+            sidePanel: { open: true, tab: 'design', tabs: ['design'], sideSessionId: null },
+          });
+          void designService.acknowledge(result.sessionId).catch((error) => {
+            console.error('Failed to acknowledge the first design session', error);
+            toast.error(String(error));
+          });
+        }
         analytics.capture('onboarding/operation_succeeded', {
           step: 'firstTask',
           operation: 'first_session_create',
@@ -191,13 +280,21 @@ export function FirstTaskScreen({
           duration_ms: analytics.durationSince(sessionStartedAtMs),
           retryable: false,
         });
+        setStartError(submitError instanceof Error ? submitError.message : String(submitError));
         toast.error(t('onboarding.firstTask.startFailed', 'The first session could not start.'), {
           description: submitError instanceof Error ? submitError.message : String(submitError),
         });
+      } finally {
+        store.set(submittingAtom, false);
+        setStartRequested(false);
       }
     })();
   }, [
     analytics,
+    store,
+    runtime,
+    draftSessionId,
+    localMachineId,
     canCreateSession,
     config,
     onContinue,
@@ -215,14 +312,14 @@ export function FirstTaskScreen({
       stepKey="firstTask"
       title={
         primaryAction.kind === 'run'
-          ? t('onboarding.firstTask.title', 'Start your first session')
-          : t('onboarding.firstTask.continueTitle', 'Continue to Lody')
+          ? t('onboarding.firstTask.title', 'Start your first design session')
+          : t('onboarding.firstTask.continueTitle', 'Continue to Folio')
       }
       description={
         primaryAction.kind === 'run'
           ? t(
               'onboarding.firstTask.description',
-              'This creates a real session against the project and agent you selected.'
+              'Describe your design. This starts a real session with the project and Agent you selected.'
             )
           : t(
               'onboarding.firstTask.continueDescription',
@@ -263,8 +360,8 @@ export function FirstTaskScreen({
             loading={primaryAction.loading}
             label={
               primaryAction.kind === 'run'
-                ? t('onboarding.firstTask.run', 'Run first task')
-                : t('onboarding.firstTask.enter', 'Enter Lody')
+                ? t('onboarding.firstTask.run', 'Start design session')
+                : t('onboarding.firstTask.enter', 'Enter Folio')
             }
           />
         </div>
@@ -272,7 +369,7 @@ export function FirstTaskScreen({
     >
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-4 py-3">
-          <FolderGit2 className="size-5 text-muted-foreground" />
+          <Folder className="size-5 text-muted-foreground" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-medium">{project.name}</div>
             <div className="truncate text-xs text-muted-foreground">
@@ -342,11 +439,19 @@ export function FirstTaskScreen({
             </p>
           ) : null}
         </div>
+        {startError ? (
+          <p role="alert" className="text-sm text-destructive">
+            {t('onboarding.firstTask.startFailed')} {startError}
+          </p>
+        ) : null}
         <Textarea
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
           rows={4}
-          placeholder={t('onboarding.firstTask.promptPlaceholder', 'What should Lody do first?')}
+          placeholder={t(
+            'onboarding.firstTask.promptPlaceholder',
+            'What would you like to design?'
+          )}
         />
         <div className="flex flex-wrap gap-2">
           {seedPrompts.map((seed) => (

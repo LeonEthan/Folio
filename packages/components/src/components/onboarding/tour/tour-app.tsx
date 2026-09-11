@@ -145,7 +145,6 @@ export type TourAppProps = {
   className?: string;
 };
 
-const TOUR_PROMPT = 'Have a look at the auth module and clean it up.';
 /** What the film types into the composer to start the second task. */
 const TOUR_SECOND_PROMPT = 'Add tests for the token expiry path.';
 
@@ -173,9 +172,13 @@ export function TourApp({
   onMergePr,
   className,
 }: TourAppProps): React.JSX.Element {
+  const { t } = useTranslation();
   const store = useMemo(() => createTourStore(identity), [identity]);
   const stableSession = useMemo(() => buildTourStableSession(identity), [identity]);
-  const session = useMemo(() => buildTourSession(identity), [identity]);
+  const session = useMemo(
+    () => ({ ...buildTourSession(identity), title: t('onboarding.preview.designTitle') }),
+    [identity, t]
+  );
 
   return (
     <TourCloudBoundary identity={identity}>
@@ -244,6 +247,7 @@ function TourWindow({
     const visible = Math.max(archived, Math.min(TOUR_TASKS.length, Math.floor(tracks.tasks)));
     return TOUR_TASKS.slice(archived, visible).map((task, index) => ({
       ...task,
+      title: task.taskId === 'tour-1' ? t('onboarding.preview.designTitle') : task.title,
       // Rows keep whatever project they belong to; only the ones with no repo of
       // their own fall back to the connected project. Overwriting every row with
       // one name is what made the sidebar look single-project.
@@ -259,7 +263,7 @@ function TourWindow({
           }
         : {}),
     }));
-  }, [identity.projectName, merged, tracks.archived, tracks.pr, tracks.tasks]);
+  }, [identity.projectName, merged, tracks.archived, tracks.pr, tracks.tasks, t]);
 
   /**
    * The project groups the sidebar renders.
@@ -285,14 +289,17 @@ function TourWindow({
 
   const history = useMemo(
     () =>
-      buildTourHistory({
-        prompt: TOUR_PROMPT,
-        revealed: tracks.reveal,
-        permissionAnswer,
-        subagents: tracks.subagents >= 0.5,
-        taskId: selectedTaskId,
-      }),
-    [permissionAnswer, selectedTaskId, tracks.reveal, tracks.subagents]
+      buildTourHistory(
+        {
+          prompt: t('onboarding.firstTask.seedExplore'),
+          revealed: tracks.reveal,
+          permissionAnswer,
+          subagents: tracks.subagents >= 0.5,
+          taskId: selectedTaskId,
+        },
+        t
+      ),
+    [permissionAnswer, selectedTaskId, tracks.reveal, tracks.subagents, t]
   );
 
   const items = useMemo(

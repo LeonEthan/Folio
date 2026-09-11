@@ -2,7 +2,7 @@
 
 ## Approved product role
 
-The illustrated sequence belongs **only** to Intro. Its job is to make Lody
+The illustrated sequence belongs **only** to Intro. Its job is to make Folio
 memorable before real configuration begins; Login, Workspace, Providers,
 Projects, First Task, and Summary already communicate through their persistent
 `TourStill` camera and must not receive a competing illustration layer.
@@ -10,7 +10,7 @@ Projects, First Task, and Summary already communicate through their persistent
 The Intro is four full-screen beats. The layout never flips: copy remains on
 the left, a vertical illustration remains on the right, and both cross-fade
 between beats. Do not use sliding panels or a carousel-like layout change.
-Only the fourth beat reveals `Configure Lody`; the first three remain readable
+Only the fourth beat reveals `Configure Folio`; the first three remain readable
 without a CTA. `Skip intro` may remain available.
 
 Final 3:4 assets live in `../../assets/onboarding/intro/`:
@@ -23,7 +23,7 @@ Final 3:4 assets live in `../../assets/onboarding/intro/`:
 ## Illustration thinking
 
 Use an editorial visual metaphor, not a literal description of a feature. The
-copy explains Lody's product meaning; the art creates an emotionally memorable
+copy explains Folio's product meaning; the art creates an emotionally memorable
 scene. A complete little action or surreal still-life is better than a set of
 icons that try to encode workspace, agent, project, device, and sync.
 

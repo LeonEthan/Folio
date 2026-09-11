@@ -84,3 +84,17 @@ onto one in-flight request, and clamping the served `Cache-Control: max-age` to 
 (the endpoint's CDN-shaped 4h is wrong for someone who just opened the panel) keep it to
 roughly one 304 per interaction. An always-visible composer band was rejected because it
 would have to load in the background to know whether to render at all.
+
+## First design session and image settings
+
+Local onboarding keeps its capability-selected steps and optional exploration exit.
+The first-task screen uses the same canvas create/save and durable Session acceptance
+as the landing composer. Before leaving onboarding it puts the prompt and reserved
+canvas ID in the landing draft, sharing the existing submitting state across the
+route transition. Failed creation restores an editable draft; successful acceptance
+clears only the matching draft and leaves the accepted Session in history. Settings
+remain the single home for Agent, Role, MCP and machine image connection configuration.
+The image form uses the shared endpoint validator, requires the user's model and keeps
+stored keys out of rendered inputs. Image connection readiness affects generation and
+editing tools, never existing artwork editing, saving or export. See the
+[decision record](../notes/implemented/feature/2026-09-11-first-design-onboarding.md).

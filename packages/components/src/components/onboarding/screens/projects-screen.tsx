@@ -101,10 +101,10 @@ export function ProjectsScreenView({
     <OnboardingShell
       stepKey="projects"
       size="wide"
-      title={t('onboarding.projects.title', 'Pick a project to start with')}
+      title={t('onboarding.projects.title', 'Choose a folder for your designs')}
       description={t(
         'onboarding.projects.description',
-        'Add at least one project so Lody knows where to work.'
+        'Choose where your Agent will work, or skip and add a folder later.'
       )}
       previewIdentity={previewProjectName ? { projectName: previewProjectName } : undefined}
       previewState={{
@@ -173,7 +173,7 @@ export function ProjectsScreenView({
                 <FolderPlus className="h-5 w-5" />
               )
             }
-            title={t('onboarding.projects.addLocalTitle', 'Add a local project')}
+            title={t('onboarding.projects.addLocalTitle', 'Add a design folder')}
             description={t(
               'onboarding.projects.addLocalDescription',
               'Pick a folder on this machine.'
@@ -201,7 +201,7 @@ export function ProjectsScreenView({
             title={t('onboarding.projects.connectGitHubTitle', 'Connect a GitHub repository')}
             description={t(
               'onboarding.projects.connectGitHubDescription',
-              'Authorize Lody to access selected repos.'
+              'Authorize Folio to access selected repos.'
             )}
             trailing={<ExternalLink className="h-3.5 w-3.5 text-muted-foreground/70" />}
             disabled={connectingGitHub || !canConnectGitHub}

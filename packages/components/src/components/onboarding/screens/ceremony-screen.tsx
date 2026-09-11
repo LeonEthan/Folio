@@ -8,7 +8,7 @@ export function CeremonyScreen({ onNext }: { onNext: () => void }) {
     <OnboardingShell
       stepKey="ceremony"
       eyebrow={t('onboarding.ceremony.eyebrow', 'Welcome')}
-      title={t('onboarding.ceremony.title', 'Set up Lody')}
+      title={t('onboarding.ceremony.title', 'Set up Folio')}
       description={t(
         'onboarding.ceremony.description',
         'Connect an agent and a project, then start your first real session.'
