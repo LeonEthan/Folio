@@ -32,7 +32,7 @@
     "vendor/packages/contracts/src/serialize.ts": "315f0f85ea965d7298476a6413c270442a2d16ca8fdbc77b2c6825be4728295f",
     "vendor/packages/kernel/src/kernel.ts": "242ba9a7ece269045e617ada25103bac9a7d72b082fad9b31b8161bae58fba17",
     "vendor/packages/kernel/src/structured-edit.ts": "2da5be45dcdbeba09e77b811e80ba6604fd037e5115d5860f99427c85baf6ebc",
-    "vendor/packages/editor-bento/src/bridge.ts": "7c136320094e5b0526a6fe555659f030cd2d81947cb5b66dd81f6ab0215e0071",
+    "vendor/packages/editor-bento/src/bridge.ts": "fcf7b2dff0f240b9d0d3a3939946fd1ac161a862ec3476a52e07a535aa4fc0be",
     "vendor/packages/editor-bento/src/project.ts": "124c5ddcd5ced75c2382e99f8eac0f1834c65ab0487b7b85d956547ffe326a2f",
     "vendor/packages/editor-bento/src/trace-kernel.ts": "58edec816343c57ad5a8f7fbe6dfd786351b2590d131eff74eb97ae5d41224b5",
     "vendor/packages/editor-bento/src/bypass-seal.ts": "a064e64ab515edb2fc9c76c008581b1d2417d95c2b5626ce9eb57357888f0a2e",
@@ -84,7 +84,7 @@
     "vendor/packages/editor-bento/src/ui/dom/mount.ts": "28ba65b5f4b335f737192483ea611291b06e934a36f05830cacb087da5e13d60",
     "patches/canvas-moveable-deferred-dragstart.patch": "917d6bd5867c6f71a475dc4d4dee5dda33412ada820a259e82e926b0c29e7bda",
     "patches/a1a2-semantic-editor.patch": "dffbaee6a9532ad871cef194492043b47423b84605509b8d0caaf3bc6ba96534",
-    "patches/web-product-session.patch": "147974308b44d2ba555697538631cdddfbc12d4d8fc5f714eb9284ef960b659e",
+    "patches/web-product-session.patch": "833bfc4fcde3768b38995716cca1722ceb9c422c76bb8cf6b0b0c522080c9c17",
     "patches/a1a2-native-mutation-seal.patch": "5c6091d214350174c11ba5ee3f951029bcfa45524db13d8e553a4f5b95dcf9b5",
     "patches/gd4c-frame-decorators.patch": "8aca515c15e81ccd9ab2058443da598a80bfd8ade095748897c9df5741ac8d87",
     "vendor/packages/contracts/capability-matrix/v1.json": "a96c9959ba6beeb66aca16fa8f48da3993b394ea526ca979c5949aab8e2dfd48",
@@ -94,6 +94,7 @@
   "localAdaptations": [
     "kernel imports use relative paths for CLI validation; original source commit remains recorded above",
     "chart invariant default label table asserts its existing required entry under noUncheckedIndexedAccess",
-    "Folio-authored pptd-v3.ts reuses the pinned BentoDoc v4 fields for lossless PPTD projection; upstream files and the frozen v1 profile remain unchanged"
+    "Folio-authored pptd-v3.ts reuses the pinned BentoDoc v4 fields for lossless PPTD projection; upstream files and the frozen v1 profile remain unchanged",
+    "Folio generic bridge readonly rejects semantic mutations; product session exposes readonly and flush without Agent lifecycle"
   ]
 }

@@ -46,3 +46,11 @@ it('requires an advertised local file resource protocol, independent of release 
     })
   ).toBe(true);
 });
+
+
+it('requires an advertised serial canvas capability for the desktop handshake', async () => {
+  const { machineSupportsDesignCanvasSerialEditing } = await import('../src/machine-protocol-capabilities');
+  expect(machineSupportsDesignCanvasSerialEditing(undefined)).toBe(false);
+  expect(machineSupportsDesignCanvasSerialEditing({ protocolCapabilities: { designCanvasSerialEditing: 0 } })).toBe(false);
+  expect(machineSupportsDesignCanvasSerialEditing({ protocolCapabilities: CURRENT_MACHINE_PROTOCOL_CAPABILITIES })).toBe(true);
+});

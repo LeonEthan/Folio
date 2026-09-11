@@ -7,6 +7,8 @@ import { AppUpdaterService } from './app-updater-service'
 import { shouldConstructUpdaterEnabled } from './app-updater-sparkle-policy'
 import {
   attachDesign,
+  designCanvasAccess,
+  leaveDesign,
   hideDesign,
   destroyDesign,
   designRequest,
@@ -119,7 +121,7 @@ export async function verifyDesign(directory: string) {
   }) as typeof dialog.showMessageBox
   try {
     assert.equal(await prepareDesignQuit(), false)
-    assert.match(saveWarning, /Drawing not saved/)
+    assert.match(saveWarning, /This canvas is not saved/)
     assert.equal(view.webContents.isDestroyed(), false)
     assert.equal(await view.webContents.executeJavaScript('document.body.inert'), false)
   } finally {
@@ -183,6 +185,85 @@ export async function verifyDesign(directory: string) {
     })
   )
   assert.deepEqual(await designRequest({ operation: 'read', sessionId: id }), original)
+  // Explicit synthetic active state keeps three different dirty documents intact.
+  const secondHost = randomUUID()
+  const thirdHost = randomUUID()
+  const secondOwner = new BrowserWindow({ width: 1200, height: 800, show: false })
+  const thirdOwner = new BrowserWindow({ width: 1200, height: 800, show: false })
+  await attachDesign(secondOwner, id, { x: 0, y: 0, width: 1200, height: 800 }, secondHost)
+  await attachDesign(thirdOwner, id, { x: 0, y: 0, width: 1200, height: 800 }, thirdHost)
+  const secondView = secondOwner.contentView.children.find(
+    (child) => child instanceof WebContentsView
+  ) as WebContentsView
+  const thirdView = thirdOwner.contentView.children.find(
+    (child) => child instanceof WebContentsView
+  ) as WebContentsView
+  for (const [index, target] of [reopenedView, secondView, thirdView].entries()) {
+    await target.webContents.executeJavaScript(`
+      for (let i = 0; i < ${index + 1}; i++) document.querySelector('[data-c2a-kind="shape"]').click();
+      window.folio.setReadonly(true);
+    `)
+  }
+  await designCanvasAccess.update([{ artworkId: id, turnId: randomUUID(), preparing: false }])
+  const firstDirty = await reopenedView.webContents.executeJavaScript(
+    'window.bento.visual.snapshot()'
+  )
+  const thirdDirty = await thirdView.webContents.executeJavaScript('window.bento.visual.snapshot()')
+  await assert.rejects(
+    copyDesign(id, { ...association, sessionId: randomUUID() }),
+    /specific canvas instance/
+  )
+  const selectedCopy = await copyDesign(
+    id,
+    {
+      ...association,
+      sessionId: randomUUID(),
+      name: 'Selected second instance'
+    },
+    secondHost
+  )
+  assert.equal(selectedCopy.doc.elements.length, original.doc.elements.length + 2)
+  const secondClosed = new Promise<void>((resolve) =>
+    secondView.webContents.once('destroyed', () => resolve())
+  )
+  await finishDesignCopy(id, selectedCopy.association.sessionId, secondHost)
+  await secondClosed
+  assert.equal(secondView.webContents.isDestroyed(), true)
+  assert.equal(
+    await reopenedView.webContents.executeJavaScript('window.bento.visual.snapshot()'),
+    firstDirty
+  )
+  assert.equal(
+    await thirdView.webContents.executeJavaScript('window.bento.visual.snapshot()'),
+    thirdDirty
+  )
+  dialog.showMessageBox = (async () => ({
+    response: 2,
+    checkboxChecked: false
+  })) as typeof dialog.showMessageBox
+  try {
+    const firstClosed = new Promise<void>((resolve) =>
+      reopenedView.webContents.once('destroyed', () => resolve())
+    )
+    assert.equal(await leaveDesign(id, id), true)
+    await firstClosed
+    assert.equal(reopenedView.webContents.isDestroyed(), true)
+    assert.equal(
+      await thirdView.webContents.executeJavaScript('window.bento.visual.snapshot()'),
+      thirdDirty
+    )
+    assert.equal(
+      (await thirdView.webContents.executeJavaScript('window.folio.state()')).dirty,
+      true
+    )
+  } finally {
+    dialog.showMessageBox = showMessageBox
+  }
+  destroyDesign(id)
+  secondOwner.destroy()
+  thirdOwner.destroy()
+  await designCanvasAccess.update([])
+  await designRequest({ operation: 'acknowledge', sessionId: selectedCopy.association.sessionId })
   await designRequest({ operation: 'acknowledge', sessionId: id })
   await designRequest({ operation: 'acknowledge', sessionId: copy.association.sessionId })
   destroyDesign(id)
@@ -214,6 +295,8 @@ export async function verifyDesign(directory: string) {
         conflictPreserved: true,
         quitSaveFailureKeepsEditor: true,
         independentCopy: true,
+        multiInstanceCopyAndDiscardPreserveOtherDrafts: true,
+        syntheticKnownIdleContext: true,
         pngTransparency: true,
         jpegWhite: true
       },

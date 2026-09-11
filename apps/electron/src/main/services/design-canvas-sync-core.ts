@@ -18,3 +18,17 @@ export function openDesignCanvasNeedsReload(
 ): boolean {
   return loadedRevisionId !== undefined && loadedRevisionId !== storeRevisionId
 }
+
+/** A copy/close may preserve or discard only the instance the caller selected. */
+export function selectCanvasInstance<T extends { artworkId: string }>(
+  entries: Iterable<readonly [string, T]>,
+  artworkId: string,
+  hostId?: string
+): readonly [string, T] | undefined {
+  const matches = [...entries].filter(
+    ([key, value]) => value.artworkId === artworkId && (hostId === undefined || key === hostId)
+  )
+  if (matches.length > 1)
+    throw Error('Choose a specific canvas instance; all unsaved edits are retained')
+  return matches[0]
+}

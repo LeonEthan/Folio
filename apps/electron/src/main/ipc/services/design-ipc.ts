@@ -55,9 +55,13 @@ export class DesignIpc extends IpcService {
     owner()
     await designRequest({ operation: 'acknowledge', sessionId: id.parse(sessionId) })
   }
-  @IpcMethod() async finishCopy(sourceId: string, targetId: string) {
+  @IpcMethod() async finishCopy(sourceId: string, targetId: string, hostId?: string) {
     owner()
-    await finishDesignCopy(id.parse(sourceId), id.parse(targetId))
+    await finishDesignCopy(
+      id.parse(sourceId),
+      id.parse(targetId),
+      hostId === undefined ? undefined : id.parse(hostId)
+    )
   }
   @IpcMethod() async rename(sessionId: string, name: string) {
     owner()
@@ -131,9 +135,9 @@ export class DesignIpc extends IpcService {
     owner()
     hideDesign(id.parse(sessionId), id.parse(hostId))
   }
-  @IpcMethod() async leave(sessionId: string) {
+  @IpcMethod() async leave(sessionId: string, hostId?: string) {
     owner()
-    return leaveDesign(id.parse(sessionId))
+    return leaveDesign(id.parse(sessionId), hostId === undefined ? undefined : id.parse(hostId))
   }
   @IpcMethod() async close(sessionId: string) {
     owner()
@@ -142,9 +146,13 @@ export class DesignIpc extends IpcService {
     destroyDesign(key)
     return true
   }
-  @IpcMethod() async copy(sessionId: string, raw: DesignAssociationInput) {
+  @IpcMethod() async copy(sessionId: string, raw: DesignAssociationInput, hostId?: string) {
     owner()
-    return copyDesign(id.parse(sessionId), association.parse(raw))
+    return copyDesign(
+      id.parse(sessionId),
+      association.parse(raw),
+      hostId === undefined ? undefined : id.parse(hostId)
+    )
   }
   @IpcMethod() async export(sessionId: string, format: 'png' | 'jpeg', title: string) {
     owner()

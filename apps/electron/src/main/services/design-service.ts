@@ -13,7 +13,8 @@ import type {
 } from '../../../../cli/src/design/store'
 import type { DesignThumbnailRead } from '../../../../cli/src/design/thumbnail-read'
 import { scaleToLongestEdge } from './design-render-host-core'
-import { openDesignCanvasNeedsReload } from './design-canvas-sync-core'
+import { openDesignCanvasNeedsReload, selectCanvasInstance } from './design-canvas-sync-core'
+import { DesignCanvasAccess, type CanvasInstance } from './design-canvas-access'
 
 /** P2.5 candidate handling rides the existing design worker channel. */
 type DesignCandidateRequest = { sessionId: string; candidateId: string }
@@ -23,12 +24,20 @@ const resources = () =>
     ? join(process.resourcesPath, 'app.asar.unpacked/resources')
     : join(app.getAppPath(), 'resources')
 type RecordEntry = {
+  artworkId: string
+  access: CanvasInstance
   view: WebContentsView
   owner: BrowserWindow
   dispose(): void
   revisionId: string
 }
+export const designCanvasAccess = new DesignCanvasAccess()
+let queryCanvasState: (() => Promise<void>) | undefined
+export function setDesignCanvasStateQuery(query: () => Promise<void>) {
+  queryCanvasState = query
+}
 const records = new Map<string, RecordEntry>()
+const recordsFor = (id: string) => [...records.values()].filter((record) => record.artworkId === id)
 const loading = new Map<string, Promise<RecordEntry>>()
 const syncing = new Map<string, Promise<void>>()
 const hosts = new Map<string, string>()
@@ -93,7 +102,7 @@ export function designRequest<T = DesignPayload>(
   return result
 }
 
-async function surface(payload: DesignPayload, editable: boolean) {
+async function surface(payload: DesignPayload, editable: boolean, hostId?: string) {
   const shell = await readFile(join(resources(), 'design/editor.html'))
   const manifest = JSON.parse(await readFile(join(resources(), 'design/build.json'), 'utf8'))
   if (createHash('sha256').update(shell).digest('hex') !== manifest.shellSha256)
@@ -125,14 +134,16 @@ async function surface(payload: DesignPayload, editable: boolean) {
         const text = await request.text()
         if (text.length > 64 * 1024 * 1024) throw Error('Design exceeds 64 MiB')
         const input = JSON.parse(text)
-        const saved = await designRequest({
-          operation: 'save',
-          sessionId: id,
-          baseRevisionId: input.baseRevisionId,
-          content: { doc: input.doc, assets: input.assets }
-        })
+        const saved = await designCanvasAccess.write(id, input.writePermit, () =>
+          designRequest({
+            operation: 'save',
+            sessionId: id,
+            baseRevisionId: input.baseRevisionId,
+            content: { doc: input.doc, assets: input.assets }
+          })
+        )
         payload = saved
-        const record = records.get(id)
+        const record = hostId ? records.get(hostId) : undefined
         if (record) record.revisionId = saved.revisionId
         return Response.json({ ok: true, revisionId: saved.revisionId }, { headers })
       } catch (error) {
@@ -156,16 +167,17 @@ export async function attachDesign(
   owner: BrowserWindow,
   id: string,
   bounds: Electron.Rectangle,
-  hostId = id
+  hostId = id,
+  reconcile = true
 ) {
-  hosts.set(id, hostId)
-  let record = records.get(id)
+  hosts.set(hostId, id)
+  let record = records.get(hostId)
   if (!record) {
-    let opening = loading.get(id)
+    let opening = loading.get(hostId)
     if (!opening) {
       opening = (async () => {
         const payload = await designRequest({ operation: 'read', sessionId: id })
-        const source = await surface(payload, true)
+        const source = await surface(payload, true, hostId)
         const view = new WebContentsView({
           webPreferences: {
             session: source.isolated,
@@ -174,8 +186,33 @@ export async function attachDesign(
             nodeIntegration: false
           }
         })
-        const entry = { view, owner, dispose: source.dispose, revisionId: payload.revisionId }
-        records.set(id, entry)
+        const access: CanvasInstance = {
+          artworkId: id,
+          setReadonly: async (value, reason) => {
+            await view.webContents.executeJavaScript(
+              'window.folio?.setReadonly(' +
+                JSON.stringify(value) +
+                ',' +
+                JSON.stringify(reason) +
+                ')'
+            )
+          },
+          flush: async (permit) => {
+            const result = await view.webContents.executeJavaScript(
+              'window.folio?.flush(' + JSON.stringify(permit) + ')'
+            )
+            if (!result?.ok) throw Error(result?.error ?? 'Canvas is not ready; edits are retained')
+          }
+        }
+        const entry = {
+          artworkId: id,
+          access,
+          view,
+          owner,
+          dispose: source.dispose,
+          revisionId: payload.revisionId
+        }
+        records.set(hostId, entry)
         owner.contentView.addChildView(view)
         view.setVisible(false)
         view.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
@@ -185,18 +222,26 @@ export async function attachDesign(
         try {
           await view.webContents.loadURL(source.url)
         } catch (error) {
-          destroyDesign(id)
+          destroyDesignInstance(hostId)
           throw error
+        }
+        await designCanvasAccess.register(access)
+        if (!reconcile)
+          await access.setReadonly(designCanvasAccess.isReadonly(id), '只读 / Read-only')
+        try {
+          if (reconcile) await queryCanvasState?.()
+        } catch {
+          await designCanvasAccess.disconnected()
         }
         installCloseGuard(owner)
         return entry
       })()
-      loading.set(id, opening)
-      void opening.finally(() => loading.delete(id)).catch(() => {})
+      loading.set(hostId, opening)
+      void opening.finally(() => loading.delete(hostId)).catch(() => {})
     }
     record = await opening
   }
-  if (hosts.get(id) !== hostId) return
+  if (hosts.get(hostId) !== id) return
   if (record.owner !== owner) throw Error('Design owner mismatch')
   const [width, height] = owner.getContentSize()
   const x = Math.max(0, Math.round(bounds.x)),
@@ -211,41 +256,33 @@ export async function attachDesign(
   record.view.setVisible(true)
 }
 export function hideDesign(id: string, hostId?: string) {
-  if (hostId && hosts.get(id) !== hostId) return
-  hosts.delete(id)
-  records.get(id)?.view.setVisible(false)
+  for (const [key, record] of records) {
+    if (record.artworkId !== id || (hostId && key !== hostId)) continue
+    hosts.delete(key)
+    record.view.setVisible(false)
+  }
 }
-export function destroyDesign(id: string) {
-  const record = records.get(id)
+function destroyDesignInstance(key: string) {
+  const record = records.get(key)
   if (!record) return
-  records.delete(id)
-  hosts.delete(id)
+  records.delete(key)
+  hosts.delete(key)
+  designCanvasAccess.unregister(record.access)
   if (!record.owner.isDestroyed()) record.owner.contentView.removeChildView(record.view)
   if (!record.view.webContents.isDestroyed())
     record.view.webContents.close({ waitForBeforeUnload: false })
   record.dispose()
 }
-export async function saveDesign(id: string) {
-  const record = records.get(id)
-  if (!record) return
-  const result = await record.view.webContents.executeJavaScript('window.folio?.save()')
-  if (!result?.ok) throw Error(result?.error ?? 'Canvas is not ready')
+export function destroyDesign(id: string) {
+  for (const [key, record] of records) if (record.artworkId === id) destroyDesignInstance(key)
 }
-/**
- * P2.2 send gate: flush pending canvas edits before a design turn is
- * dispatched. A missing record means no editor was ever opened this run, so no
- * unsaved edits can exist; an editor whose bridge has not finished loading
- * cannot have been edited yet either. Both proceed; a real save failure
- * rejects so the renderer can block the send and keep the user's draft.
- */
+export async function saveDesign(id: string) {
+  if (designCanvasAccess.isReadonly(id)) throw Error('Canvas is read-only; edits are retained')
+  await designCanvasAccess.prepareForSend(id)
+}
 export async function saveDesignForDispatch(id: string) {
-  const record = records.get(id)
-  if (!record) return
-  const result = await record.view.webContents.executeJavaScript(
-    'window.folio ? window.folio.save() : undefined'
-  )
-  if (result === undefined || result === null) return
-  if (!result.ok) throw Error(result.error ?? 'Canvas save failed')
+  await queryCanvasState?.()
+  await designCanvasAccess.prepareForSend(id)
 }
 /**
  * P2.5 result-card actions. The card reads a candidate's standing and acts on
@@ -276,11 +313,13 @@ export async function adoptDesignCandidate(
   candidateId: string
 ): Promise<DesignCandidateAdoption> {
   await saveDesignForDispatch(id)
-  const result = await designRequest<DesignCandidateAdoption>({
-    operation: 'adopt-candidate',
-    sessionId: id,
-    candidateId
-  })
+  const result = await designCanvasAccess.write(id, undefined, () =>
+    designRequest<DesignCandidateAdoption>({
+      operation: 'adopt-candidate',
+      sessionId: id,
+      candidateId
+    })
+  )
   if (result.status === 'adopted') await reloadDesignCanvas(id)
   return result
 }
@@ -331,9 +370,8 @@ export async function readDesignCardThumbnail(
  * destroy undo. Two callers are serialized per artwork so a second signal
  * cannot tear down the reload of the first.
  *
- * Unsaved edits against the superseded revision cannot be saved (they would
- * 409 and latch the instance). They are dropped by the reload rather than
- * left as a permanent conflict. A canvas the user does not have on screen
+ * Any exceptional dirty/composing/saving instance blocks reloading all instances;
+ * no draft is discarded to make the saved revision visible. A canvas the user does not have on screen
  * stays closed: destroy is enough, and the next attach reads the store.
  */
 export async function syncDesignCanvasFromStore(id: string): Promise<void> {
@@ -348,71 +386,74 @@ export async function syncDesignCanvasFromStore(id: string): Promise<void> {
 }
 
 async function syncDesignCanvasFromStoreOnce(id: string): Promise<void> {
-  const opening = loading.get(id)
-  if (opening) await opening.catch(() => {})
-  const record = records.get(id)
-  if (!record) return
   const saved = await designRequest({ operation: 'read', sessionId: id })
-  if (!openDesignCanvasNeedsReload(record.revisionId, saved.revisionId)) return
-  await reloadDesignCanvas(id)
+  if (
+    recordsFor(id).some((record) =>
+      openDesignCanvasNeedsReload(record.revisionId, saved.revisionId)
+    )
+  )
+    await reloadDesignCanvas(id)
 }
 
-/**
- * Show the adopted document in an editor that is already open.
- *
- * The editor loads its document once and remembers the revision it may save
- * against, so without this it would keep rendering — and later saving — the
- * document the user just replaced. The record is torn down and re-created from
- * the same host and bounds; the flush in `adoptDesignCandidate` already made
- * that safe, because no editor-side work is pending at this point.
- *
- * A canvas the user does not have open stays closed: the record is only
- * re-attached while a host still holds it. Re-attaching an unhosted canvas would
- * set a native view visible over whatever the user is actually looking at, and
- * tearing the editor down is enough — the next attach re-creates it from the
- * store, so it cannot come back showing the document that was just replaced.
- */
 async function reloadDesignCanvas(id: string) {
-  const record = records.get(id)
-  if (!record) return
-  const hostId = hosts.get(id)
-  const { owner } = record
-  const bounds = record.view.getBounds()
-  destroyDesign(id)
-  if (!hostId) return
-  await attachDesign(owner, id, bounds, hostId)
+  const entries = [...records].filter(([, record]) => record.artworkId === id)
+  // Check every instance before destroying any: exceptional dirty content is never discarded.
+  for (const [, record] of entries) {
+    const state = await record.view.webContents.executeJavaScript('window.folio?.state()')
+    if (!state || state.dirty || state.saving || state.composing)
+      throw Error('Canvas has unsaved edits; preserve or save them before reloading')
+  }
+  for (const [key, record] of entries) {
+    const visible = hosts.has(key)
+    const bounds = record.view.getBounds()
+    destroyDesignInstance(key)
+    if (visible) await attachDesign(record.owner, id, bounds, key, false)
+  }
 }
 
-export async function leaveDesign(id: string): Promise<boolean> {
-  try {
-    await records.get(id)?.view.webContents.executeJavaScript('document.body.inert = true')
-    await saveDesign(id)
-    return true
-  } catch (error) {
-    const record = records.get(id)
-    if (!record) throw error
-    const answer = await dialog.showMessageBox(record.owner, {
-      type: 'warning',
-      message: '画稿尚未保存 / Drawing not saved',
-      detail: String(error),
-      buttons: ['返回编辑 / Keep editing', '重试 / Retry', '放弃修改 / Discard edits'],
-      defaultId: 0,
-      cancelId: 0
-    })
-    if (answer.response === 1) return leaveDesign(id)
-    if (answer.response === 2) {
-      destroyDesign(id)
-      return true
+export async function leaveDesign(id: string, hostId?: string): Promise<boolean> {
+  const entries = [...records].filter(
+    ([key, record]) => record.artworkId === id && (hostId === undefined || hostId === key)
+  )
+  for (const [key, record] of entries) {
+    try {
+      if (!designCanvasAccess.isReadonly(id)) await saveDesign(id)
+      const state = await record.view.webContents.executeJavaScript('window.folio?.state()')
+      if (!state || state.dirty || state.saving || state.composing)
+        throw Error('Canvas still has unsaved edits')
+    } catch (error) {
+      // A different instance's failed flush is not permission to discard this one.
+      const state = await record.view.webContents.executeJavaScript('window.folio?.state()')
+      if (state && !state.dirty && !state.saving && !state.composing) continue
+      const answer = await dialog.showMessageBox(record.owner, {
+        type: 'warning',
+        message: '此画布尚未保存 / This canvas is not saved',
+        detail: String(error),
+        buttons: [
+          '返回编辑 / Keep editing',
+          '重试 / Retry',
+          '放弃此画布修改 / Discard this canvas edits'
+        ],
+        defaultId: 0,
+        cancelId: 0
+      })
+      if (answer.response === 1) {
+        if (!(await leaveDesign(id, key))) return false
+      } else if (answer.response === 2) destroyDesignInstance(key)
+      else {
+        await unfreezeDesigns()
+        return false
+      }
     }
-    await unfreezeDesigns()
-    return false
   }
+  return true
 }
 export async function copyDesign(
   id: string,
-  association: Extract<DesignRequest, { operation: 'create' }>['association']
+  association: Extract<DesignRequest, { operation: 'create' }>['association'],
+  hostId?: string
 ) {
-  const record = records.get(id)
+  const record = selectCanvasInstance(records, id, hostId)?.[1]
   if (!record) throw Error('Canvas is not open')
   const copy = await record.view.webContents.executeJavaScript('window.folio.snapshot()')
   return designRequest({
@@ -433,7 +474,7 @@ function installCloseGuard(owner: BrowserWindow) {
     void unfreezeDesigns()
   })
   owner.once('closed', () => {
-    for (const [id, record] of records) if (record.owner === owner) destroyDesign(id)
+    for (const [key, record] of records) if (record.owner === owner) destroyDesignInstance(key)
   })
   owner.prependListener('close', (event) => {
     if (allowed) {
@@ -445,7 +486,8 @@ function installCloseGuard(owner: BrowserWindow) {
     if (leaving) return
     leaving = true
     void (async () => {
-      for (const id of records.keys()) if (!(await leaveDesign(id))) return
+      for (const [key, record] of records)
+        if (record.owner === owner && !(await leaveDesign(record.artworkId, key))) return
       allowed = true
       owner.close()
     })()
@@ -457,7 +499,7 @@ function installCloseGuard(owner: BrowserWindow) {
 }
 
 export async function exportDesign(id: string, format: 'png' | 'jpeg', title: string) {
-  await saveDesign(id)
+  if (!designCanvasAccess.isReadonly(id)) await saveDesign(id)
   const payload = await designRequest({ operation: 'read', sessionId: id })
   const target = await dialog.showSaveDialog({
     defaultPath:
@@ -549,42 +591,49 @@ export async function renderSavedDesign(
   }
 }
 
-export async function finishDesignCopy(sourceId: string, targetId: string) {
-  const record = records.get(sourceId)
-  if (!record) return
+export async function finishDesignCopy(sourceId: string, targetId: string, hostId?: string) {
+  const selected = selectCanvasInstance(records, sourceId, hostId)
+  if (!selected) return
+  const [key, record] = selected
   const current = await record.view.webContents.executeJavaScript('window.folio.snapshot()')
   const saved = await designRequest({ operation: 'read', sessionId: targetId })
   if (!isDeepStrictEqual(current.doc, saved.doc))
     throw Error('Drawing changed during copy; save the newer edits before leaving')
-  destroyDesign(sourceId)
+  destroyDesignInstance(key)
 }
 export async function renameDesign(id: string, name: string) {
   await saveDesign(id)
   const saved = await designRequest({ operation: 'read', sessionId: id })
-  const renamed = await designRequest({
-    operation: 'save',
-    sessionId: id,
-    baseRevisionId: saved.revisionId,
-    name,
-    content: { doc: saved.doc, assets: saved.assets }
-  })
-  const record = records.get(id)
-  await record?.view.webContents.executeJavaScript(
-    'window.folio.rebase(' +
-      JSON.stringify(saved.revisionId) +
-      ',' +
-      JSON.stringify(renamed.revisionId) +
-      ')'
+  const renamed = await designCanvasAccess.write(id, undefined, () =>
+    designRequest({
+      operation: 'save',
+      sessionId: id,
+      baseRevisionId: saved.revisionId,
+      name,
+      content: { doc: saved.doc, assets: saved.assets }
+    })
   )
-  if (record) record.revisionId = renamed.revisionId
+  for (const record of recordsFor(id)) {
+    if (record.revisionId !== saved.revisionId) continue
+    await record.view.webContents.executeJavaScript(
+      'window.folio.rebase(' +
+        JSON.stringify(saved.revisionId) +
+        ',' +
+        JSON.stringify(renamed.revisionId) +
+        ')'
+    )
+    record.revisionId = renamed.revisionId
+  }
+  await syncDesignCanvasFromStore(id)
   return renamed
 }
 export function hasOpenDesigns() {
   return records.size > 0
 }
 export async function prepareDesignQuit(): Promise<boolean> {
-  for (const id of records.keys()) if (!(await leaveDesign(id))) return false
-  for (const id of [...records.keys()]) destroyDesign(id)
+  for (const id of new Set([...records.values()].map((entry) => entry.artworkId)))
+    if (!(await leaveDesign(id))) return false
+  for (const key of [...records.keys()]) destroyDesignInstance(key)
   worker?.stdin.end()
   return true
 }

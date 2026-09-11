@@ -104,15 +104,17 @@ native-dependency, and OSS-composition rules stay in `apps/electron/AGENTS.md`.
 
 ## Design canvas
 
-P0 accepts only the bundled fixture; P1 accepts validated single-canvas documents
-through the CLI design worker. Keep editor views isolated without preload, Node,
-permissions or external network. Bind each view's save route to its exact Session;
-CLI owns canonical bytes and assets, Electron owns rendering and native dialogs.
-Save before route/close/quit cleanup; retain editor instances until explicit tab close.
-The desktop also renders agent-requested previews: `design-render-host-service.ts` polls the
-daemon's preview queue, so `folio_render_preview` exists exactly while this window is open. Keep
-that loop's policy in `design-render-host-core.ts` — importable without the `electron` runtime —
-and never let it retry or repair a render. `maxEdge` scales the captured image, never the layout;
-a card's thumbnail is read through the design worker, not this bridge. Read
-[the design boundary](../../../packages/design-bento/README.md) before changing design input,
-persistence or export.
+Views accept validated CLI design-worker documents, with no preload, Node,
+permissions or external network. Bind each save route to its Session and host;
+CLI owns canonical bytes/assets, Electron owns rendering and native dialogs.
+Retain instances across hidden panels; explicit close saves before disposal.
+`design-canvas-access` gates actual human writes and flushes all artwork instances
+before dispatch. Execution state comes from the versioned daemon canvas-host
+snapshot; unknown is readonly. Keep ownership independent of view lifetime, and
+reject reload of dirty/composing/saving instances. Bento receives generic readonly
+and flush only. Before changing these boundaries, read
+[design resources](../../../packages/design-bento/README.md).
+The preview host uses the same local socket, independently of canvas preparation.
+Keep render policy in the Node-testable `design-render-host-core.ts`; no automatic
+render retry/repair. `maxEdge` scales captured pixels, never layout; result-card
+thumbnails use the design worker.

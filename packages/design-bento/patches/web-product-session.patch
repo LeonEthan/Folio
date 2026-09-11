@@ -46,7 +46,7 @@
 +        if (typeof payload.revisionId !== 'string') throw new Error('Product workspace requires a revision')
 +        product = createProductSession({ sessionId: wsId, revisionId: payload.revisionId,
 +          snapshot: () => kernel.snapshot(), assets: () => Object.fromEntries(assetRegistry),
-+          commitPending, setDirty: (dirty) => store.setDirty(dirty) })
++          setReadonly: (value) => bridge.setReadonly(value), commitPending, setDirty: (dirty) => store.setDirty(dirty) })
 +        store.on('selection', () => {
 +          const byId = new Map(kernel.inspect().elements.map((element) => [element.id, element]))
 +          product!.selection(store.selection.flatMap((id) => {

@@ -20,3 +20,203 @@ void test('an editor whose loaded revision is not the store revision must reload
 void test('a canvas that is not open is not reloaded — the next attach reads the store', () => {
   assert.equal(openDesignCanvasNeedsReload(undefined, 'rev-b'), false)
 })
+
+import { DesignCanvasAccess } from './design-canvas-access.ts'
+import { DesignCanvasHost } from '../../../../cli/src/design/canvas-host.ts'
+
+const deferred = () => {
+  let resolve
+  const promise = new Promise((done) => {
+    resolve = done
+  })
+  return { promise, resolve }
+}
+const canvas = (access, artworkId, content) => {
+  let readonly = true
+  let draft = content
+  let saved = ''
+  const instance = {
+    artworkId,
+    async setReadonly(value) {
+      readonly = value
+    },
+    async flush(permit) {
+      await access.write(artworkId, permit, async () => {
+        saved = draft
+      })
+    },
+    edit(value) {
+      if (!readonly) draft = value
+    },
+    state: () => ({ readonly, draft, saved })
+  }
+  return instance
+}
+
+void test('dispatch freezes every instance and drains accepted writes before its baseline; another artwork edits', async () => {
+  const access = new DesignCanvasAccess()
+  const host = new DesignCanvasHost()
+  const a = canvas(access, 'art-a', 'draft-a')
+  const b = canvas(access, 'art-a', 'draft-b')
+  const other = canvas(access, 'art-b', 'other')
+  await access.register(a)
+  await access.register(b)
+  await access.register(other)
+  assert.equal(a.state().readonly, true)
+  await access.update([])
+  const saveStarted = deferred(),
+    finishSave = deferred()
+  const saving = access.write('art-a', undefined, async () => {
+    saveStarted.resolve()
+    await finishSave.promise
+  })
+  await saveStarted.promise
+  const start = host.prepare('session-a', 'art-a', 'turn-a', new AbortController().signal)
+  let started = false
+  void start.then(() => {
+    started = true
+  })
+  const freezeObserved = deferred()
+  const setReadonly = b.setReadonly
+  b.setReadonly = async (value) => {
+    await setReadonly(value)
+    if (value) freezeObserved.resolve()
+  }
+  const preparing = access.update(host.exchange([]))
+  await freezeObserved.promise
+  a.edit('lost?')
+  b.edit('lost?')
+  other.edit('independent')
+  assert.equal(started, false)
+  assert.equal(a.state().draft, 'draft-a')
+  assert.equal(b.state().draft, 'draft-b')
+  assert.equal(other.state().draft, 'independent')
+  await assert.rejects(
+    access.write('art-a', undefined, async () => {}),
+    /read-only/
+  )
+  finishSave.resolve()
+  await saving
+  const reports = await preparing
+  assert.equal(started, false)
+  host.exchange(reports)
+  await start
+  assert.equal(a.state().saved, 'draft-a')
+  assert.equal(b.state().saved, 'draft-b')
+  await access.update(host.exchange([]))
+  assert.equal(a.state().readonly, true)
+  // Permission wait/cancel request/closing all surfaces are not ownership release.
+  access.unregister(a)
+  access.unregister(b)
+  await access.disconnected()
+  const reopened = canvas(access, 'art-a', 'reopened')
+  await access.register(reopened)
+  assert.equal(reopened.state().readonly, true)
+  await access.update(host.exchange([]))
+  assert.equal(reopened.state().readonly, true)
+  host.release('session-a', 'turn-a')
+  const refreshStarted = deferred(),
+    refreshed = deferred()
+  const ending = access.update(host.exchange([]), async () => {
+    refreshStarted.resolve()
+    await refreshed.promise
+  })
+  await refreshStarted.promise
+  assert.equal(reopened.state().readonly, true)
+  refreshed.resolve()
+  await ending
+  assert.equal(reopened.state().readonly, false)
+})
+
+void test('save failure keeps every draft and does not start; cancellation and late reports cannot release a successor', async () => {
+  const access = new DesignCanvasAccess(),
+    host = new DesignCanvasHost()
+  const a = canvas(access, 'art', 'unsaved')
+  a.flush = async () => {
+    throw Error('disk unavailable')
+  }
+  await access.register(a)
+  await access.update([])
+  const first = host.prepare('session', 'art', 'first', new AbortController().signal)
+  const rejected = assert.rejects(first, /disk unavailable/)
+  host.exchange(await access.update(host.exchange([])))
+  await rejected
+  assert.equal(a.state().draft, 'unsaved')
+  assert.equal(a.state().readonly, true)
+  host.release('session', 'first')
+  await access.update(host.exchange([]))
+  assert.equal(a.state().readonly, false)
+  const cancel = new AbortController()
+  const second = host.prepare('session', 'art', 'second', cancel.signal)
+  const cancelled = assert.rejects(second, /cancelled/)
+  cancel.abort()
+  await cancelled
+  assert.equal(host.exchange([])[0].turnId, 'second')
+  host.release('session', 'second')
+  const third = host.prepare('session', 'art', 'third', new AbortController().signal)
+  host.release('session', 'first')
+  host.exchange([{ artworkId: 'art', turnId: 'first', ok: true }])
+  assert.deepEqual(host.exchange([]), [{ artworkId: 'art', turnId: 'third', preparing: true }])
+  host.exchange([{ artworkId: 'art', turnId: 'third', ok: true }])
+  await third
+  // Startup failure ends through the exact owner, retaining saved input/drafts.
+  host.release('session', 'third')
+  await access.update(host.exchange([]))
+  assert.equal(a.state().draft, 'unsaved')
+  assert.equal(a.state().readonly, false)
+})
+
+void test('an exceptional dirty reload keeps the instance readonly and present until preservation succeeds', async () => {
+  const access = new DesignCanvasAccess(),
+    a = canvas(access, 'art', 'recover me')
+  await access.register(a)
+  await access.update([{ artworkId: 'art', turnId: 'turn', preparing: false }])
+  await access.update([], async () => {
+    throw Error('unsaved content')
+  })
+  assert.equal(a.state().readonly, true)
+  assert.equal(a.state().draft, 'recover me')
+  await access.update([], async () => {})
+  assert.equal(a.state().readonly, false)
+})
+
+void test('a connected desktop with no open canvases acknowledges a background turn', async () => {
+  const host = new DesignCanvasHost(),
+    access = new DesignCanvasAccess()
+  const prepared = host.prepare('session', 'art', 'background', new AbortController().signal)
+  host.exchange(await access.update(host.exchange([])))
+  await prepared
+  assert.deepEqual(host.exchange([]), [
+    { artworkId: 'art', turnId: 'background', preparing: false }
+  ])
+  host.release('session', 'background')
+})
+
+void test('a missing desktop fails preparation explicitly without guessing that no drafts exist', async (context) => {
+  context.mock.timers.enable({ apis: ['setTimeout'] })
+  const host = new DesignCanvasHost()
+  const prepared = host.prepare('session', 'art', 'offline', new AbortController().signal)
+  const failed = assert.rejects(prepared, /edits and input are retained/)
+  context.mock.timers.tick(30_000)
+  await failed
+  assert.equal(host.exchange([])[0].turnId, 'offline')
+  host.release('session', 'offline')
+})
+
+import { selectCanvasInstance } from './design-canvas-sync-core.ts'
+
+void test('different dirty copies require the selected host; completing one preserves the other', () => {
+  const first = { artworkId: 'art', draft: 'first unsaved document' }
+  const second = { artworkId: 'art', draft: 'second different unsaved document' }
+  const instances = new Map([
+    ['host-a', first],
+    ['host-b', second]
+  ])
+  assert.throws(() => selectCanvasInstance(instances, 'art'), /specific canvas/)
+  assert.deepEqual(selectCanvasInstance(instances, 'art', 'host-b'), ['host-b', second])
+  const selected = selectCanvasInstance(instances, 'art', 'host-b')
+  // The copy receipt/explicit discard closes only the selected identity.
+  instances.delete(selected[0])
+  assert.deepEqual([...instances.values()], [first])
+  assert.equal(first.draft, 'first unsaved document')
+})

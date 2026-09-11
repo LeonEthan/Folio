@@ -644,6 +644,19 @@ export class AgentClient implements acp.Client {
   private readonly steerApplicationWaiters = new Map<string, SteerApplicationWaiter>();
   private steerApplicationBarrier: Promise<void> | null = null;
   private activePromptCompletion: ActivePromptCompletion | null = null;
+  private providerPromptCompletion: ActivePromptCompletion | null = null;
+
+  /** Actual provider response/transport settlement, independent of the local abort race.
+   * The returned promise is a snapshot of this invocation, so later prompts cannot replace it.
+   */
+  getProviderPromptSettlement(sessionId: ACPSessionId): Promise<void> {
+    const active = this.providerPromptCompletion;
+    if (!active || active.sessionId !== sessionId) return Promise.resolve();
+    return active.promise.then(
+      () => {},
+      () => {}
+    );
+  }
   private sessionWorkdir: string | null = null;
   private agentMcpCapabilities: acp.McpCapabilities | undefined;
   /** Session config options returned by the agent; the source of model/mode choices and names. */
@@ -2257,6 +2270,7 @@ export class AgentClient implements acp.Client {
     };
     this.steerApplicationWaiters.set(steerId, waiter);
 
+    const previousProviderPrompt = this.providerPromptCompletion;
     let completion: Promise<acp.PromptResponse | undefined>;
     let submission: Promise<unknown>;
     if (capability.requestMethod) {
@@ -2281,9 +2295,12 @@ export class AgentClient implements acp.Client {
       });
       submission = completion;
     }
+    const submittedProviderPrompt = this.providerPromptCompletion;
     const failUnapplied = (error: unknown) => {
       if (!waiter.applied && this.steerApplicationWaiters.get(steerId) === waiter) {
         this.steerApplicationWaiters.delete(steerId);
+        if (this.providerPromptCompletion === submittedProviderPrompt)
+          this.providerPromptCompletion = previousProviderPrompt;
         waiter.reject(error);
         waiter.release();
       }
@@ -2408,6 +2425,7 @@ export class AgentClient implements acp.Client {
         return undefined;
       }
 
+      this.providerPromptCompletion = { sessionId, promise: promptPromise };
       let abortListener: (() => void) | undefined;
       let trackedPromptCompletion: ActivePromptCompletion | undefined;
 

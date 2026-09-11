@@ -61,7 +61,7 @@ when conflict edits become an independent design.
 
 Each native view retains its editor while its canvas tab is open, including hidden
 panels and Session route switches. A committed turn (and an adopted candidate)
-destroys that instance and re-creates it from the store so the open view cannot
+re-creates clean instances from the store so an open view cannot
 keep showing, or later saving, a superseded document. Explicit close releases undo
 history. Save failures
 block leaving with retry/discard choices; an unexpected crash recovers the last
@@ -83,3 +83,15 @@ capability and leaves the upstream frozen v1 capability matrix intact. The
 conversion and projection capability mapping belong to `@folio/design-authoring`;
 see its [README](../design-authoring/README.md#editable-projection-pptd-v3).
 The source manifest pins this additional file separately and records its origin.
+
+## Serial canvas editing
+
+The desktop controls generic `folio.setReadonly`, `folio.flush` and `folio.state`.
+Bento does not observe Agent status: the bridge rejects semantic mutations while
+readonly, and the product overlay commits buffered input before freezing, then
+flushes accepted saves. An unfinished composition or save failure retains the draft.
+Views start readonly until the desktop confirms execution state. The daemon's
+existing visible-turn owner waits for all artwork instances and keeps them readonly
+through provider completion and artifact processing; hiding a view changes no ownership.
+Unexpected dirty content blocks reload rather than being discarded. The original
+store CAS remains independent. See the [implementation note](../../.agents/notes/implemented/architecture/2026-09-11-canvas-serial-execution.zh.md), including the headless limitation.

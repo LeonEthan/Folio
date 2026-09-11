@@ -1528,3 +1528,26 @@ describe('AgentClient goal session info', () => {
     expect(onUpdateMessage).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('provider prompt settlement', () => {
+  it.each(['response', 'disconnect'] as const)('local abort is not provider completion: %s', async (ending) => {
+    const { client } = createTestClient();
+    let finish!: () => void;
+    let disconnect!: (error: Error) => void;
+    const provider = new Promise<void>((resolve, reject) => { finish = resolve; disconnect = reject; });
+    // @ts-expect-error - minimal synthetic ACP connection at the protocol boundary
+    client.connection = { prompt: () => provider, cancel: async () => {} };
+    const abort = new AbortController();
+    const prompt = client.prompt('acp-test' as ACPSessionId, [{ type: 'text', text: 'synthetic' }], { signal: abort.signal });
+    const settled = client.getProviderPromptSettlement('acp-test' as ACPSessionId);
+    let providerEnded = false;
+    void settled.then(() => { providerEnded = true; });
+    abort.abort();
+    await expect(prompt).rejects.toThrow('Agent prompt aborted');
+    expect(providerEnded).toBe(false);
+    // A consumer holding this settlement is bound to the old invocation, not a later prompt.
+    if (ending === 'response') finish(); else disconnect(Error('transport closed'));
+    await settled;
+    expect(providerEnded).toBe(true);
+  });
+});

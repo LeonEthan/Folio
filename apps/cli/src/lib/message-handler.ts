@@ -303,6 +303,7 @@ import {
 } from '@/design/image-connection';
 import { DesignTurnInputError, materializeDesignTurnInput } from '@/design/turn-input';
 import { DesignRenderHost } from '@/design/render-host';
+import { DesignCanvasHost } from '@/design/canvas-host';
 import { renderDesignPreview } from '@/design/render-preview';
 import {
   SessionExecutionService,
@@ -897,6 +898,7 @@ export class MessageHandler {
    * the same preview to two hosts is exactly what a second instance would cause.
    */
   private readonly designRenderHost = new DesignRenderHost();
+  private readonly designCanvasHost = new DesignCanvasHost();
 
   private static readonly ACP_INITIAL_UPDATE_BATCH_WINDOW_MS = 10;
   private static readonly ACP_SUBSEQUENT_UPDATE_BATCH_WINDOW_MS = 100;
@@ -3343,6 +3345,15 @@ export class MessageHandler {
       sessionManager: this.sessionManager,
       workspaceDocument: this.workspaceDocument,
       designRenderHost: this.designRenderHost,
+      prepareDesignCanvas: async (sessionId, turnId, signal) => {
+        const doc = await this.workspaceDocument.getOrCreateSessionDoc(sessionId);
+        const meta = await doc.getMetaState();
+        signal.throwIfAborted();
+        if (!meta?.design) return false;
+        await this.designCanvasHost.prepare(sessionId, meta.design.artworkId, turnId, signal);
+        return true;
+      },
+      releaseDesignCanvas: (sessionId, turnId) => this.designCanvasHost.release(sessionId, turnId),
       machineId: this.machineId,
       userId: this.userId,
       workspaceId: this.workspaceId,
@@ -6893,6 +6904,14 @@ export class MessageHandler {
       // it does for images. The daemon never calls out, so a machine with no
       // desktop polling simply has no render capability — which
       // `design/render-host-status` answers honestly instead of the call stalling.
+      case 'design/canvas-host': {
+        return {
+          type: 'design/canvas-host' as const,
+          version: 1 as const,
+          machine: { protocolCapabilities: CURRENT_MACHINE_PROTOCOL_CAPABILITIES },
+          active: this.designCanvasHost.exchange(request.params.reports),
+        };
+      }
       case 'design/render-host-status': {
         return {
           type: 'design/render-host-status' as const,

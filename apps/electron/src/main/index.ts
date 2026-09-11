@@ -1,5 +1,6 @@
 import { verifyDesign } from './services/design-verification'
 import { hasOpenDesigns, prepareDesignQuit } from './services/design-service'
+import { startDesignCanvasHost } from './services/design-canvas-host-service'
 import { startDesignRenderHost } from './services/design-render-host-service'
 import { verifyDesignSample } from './services/design-sample-verification'
 import { registerDesignSampleScheme } from './services/design-sample-service'
@@ -193,6 +194,13 @@ if (hasSingleInstanceLock) {
     const p1Probe = process.argv.find((argument) => argument.startsWith('--folio-p1-verify='))
     if (p1Probe) {
       try {
+        // This opt-in synthetic probe runs before the daemon is constructed.
+        // Explicit known-idle fixture; production canvases still start unknown/readonly.
+        const { designCanvasAccess, setDesignCanvasStateQuery } =
+          await import('./services/design-service')
+        setDesignCanvasStateQuery(async () => {
+          await designCanvasAccess.update([])
+        })
         await verifyDesign(p1Probe.slice('--folio-p1-verify='.length))
         app.exit(0)
       } catch (error) {
@@ -302,6 +310,8 @@ if (hasSingleInstanceLock) {
     // this window is open. Started here rather than lazily because the daemon
     // treats "no poller" as "no render capability", and a preview asked for
     // before the first poll would be refused for no reason.
+    const stopDesignCanvasHost = startDesignCanvasHost(cliService)
+    app.once('will-quit', () => stopDesignCanvasHost())
     const stopDesignRenderHost = startDesignRenderHost(cliService)
     app.once('will-quit', () => stopDesignRenderHost())
 

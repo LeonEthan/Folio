@@ -85,3 +85,10 @@ and CommonJS installation profiles together; never migrate or delete Lody data.
 - Attachment reads match the sent history's file ID, hash and owning machine,
   validate blob bytes, and reuse Electron's opaque local resources. Never derive a
   blob path from a caller filename or fall back to authenticated cloud reads.
+
+## Machine RPC: canvas preparation
+
+`designCanvasSerialEditing` versions the desktop flush handshake. The daemon's
+visible-turn owner supplies whole active snapshots; a preparation report is bound
+to artwork and owner token, never an unlock signal. View removal and transport
+failure leave ownership intact. Keep this independent of preview rendering.

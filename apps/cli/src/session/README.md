@@ -177,3 +177,13 @@ Peek and claim are synchronous published-resource snapshots. A prepared resource
 open target-machine Flock to synchronously resolve launch config, but dispatch and claim
 rescan the current row. Durable creation claims the marker only when repo, source, and base
 branch target identity match, runs setup, then permits the first prompt.
+
+### Design canvas preparation
+
+Design visible turns pause before prompt/baseline construction for a desktop flush
+acknowledgement. The stable initial owner spans steer handoffs, cancellation and
+actual artifact processing. Release waits for the provider response independently
+of a locally aborted prompt, and follows outer failure processing. The bridge is
+transient; no whole-turn disk lock is held. A connected desktop with no open canvas
+acknowledges an empty flush; a missing desktop fails explicitly after 30 seconds.
+See the [decision and evidence](../../../../.agents/notes/implemented/architecture/2026-09-11-canvas-serial-execution.zh.md).

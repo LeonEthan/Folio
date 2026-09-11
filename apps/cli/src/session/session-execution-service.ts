@@ -227,6 +227,11 @@ type TurnInvocation = {
 };
 
 type TurnRuntimeState = {
+  /** Stable owner across steer handoffs; only final runtime release unlocks the canvas. */
+  canvasTurnId?: string;
+  canvasPrepared?: boolean;
+  canvasFinalization?: Promise<void>;
+  providerPromptSettlement?: Promise<void>;
   sessionId: SessionId;
   /** Logical chain tail exposed to Web, cancel, and optimistic steer validation. */
   turnId: string;
@@ -467,6 +472,13 @@ export type SessionExecutionServiceDeps = {
    * turn without it simply records no thumbnail (`../design/thumbnail.ts`).
    */
   designRenderHost?: DesignRenderQueue;
+  /** Desktop must freeze and flush before any design prompt/baseline is built. */
+  prepareDesignCanvas?: (
+    sessionId: SessionId,
+    turnId: string,
+    signal: AbortSignal
+  ) => Promise<boolean | void>;
+  releaseDesignCanvas?: (sessionId: SessionId, turnId: string) => void;
   machineId: MachineId;
   userId: string;
   workspaceId: WorkspaceId;
@@ -1416,6 +1428,9 @@ export class SessionExecutionService {
         });
         ownedPromptRun.successor = nextPromptRun;
         runtime.activePromptRun = nextPromptRun;
+        if (runtime.canvasPrepared)
+          runtime.providerPromptSettlement =
+            agentClient.getProviderPromptSettlement?.(acpSessionId);
         runtime.turnId = nextTurnId;
         runtime.userTurnId = options.userTurnId;
         this.markCurrentTurn(options.sessionId, nextTurnId);
@@ -1630,6 +1645,7 @@ export class SessionExecutionService {
     return {
       sessionId: options.sessionId,
       turnId: options.turnId,
+      canvasTurnId: options.turnId,
       userTurnId: options.userTurnId,
       invocation: options.invocation,
       session: options.session,
@@ -2568,7 +2584,14 @@ export class SessionExecutionService {
     }
   }
 
-  private async finalizeTurn(ctx: FinalizeTurnContext): Promise<void> {
+  private finalizeTurn(ctx: FinalizeTurnContext): Promise<void> {
+    const work = this.finalizeTurnWork(ctx);
+    const runtime = this.turnRuntimeBySession.get(ctx.sessionId);
+    if (runtime?.canvasPrepared) runtime.canvasFinalization = work;
+    return work;
+  }
+
+  private async finalizeTurnWork(ctx: FinalizeTurnContext): Promise<void> {
     const {
       sessionId,
       session,
@@ -3055,11 +3078,15 @@ export class SessionExecutionService {
                             promptBlocks: promptBlocks.length,
                           },
                           async () => {
+                            const providerPrompt = agentClient.prompt(acpSessionId, promptBlocks, {
+                              signal,
+                            });
+                            if (runtime.canvasPrepared)
+                              runtime.providerPromptSettlement =
+                                agentClient.getProviderPromptSettlement?.(acpSessionId);
                             const initialRun = self.createPromptHandoffRun({
                               turnId: runtime.turnId,
-                              promptPromise: agentClient.prompt(acpSessionId, promptBlocks, {
-                                signal,
-                              }),
+                              promptPromise: providerPrompt,
                             });
                             await self.awaitPromptHandoffTail(runtime, initialRun);
                           }
@@ -3082,6 +3109,13 @@ export class SessionExecutionService {
                 return undefined;
               });
 
+            const prepareCanvas = self.deps.prepareDesignCanvas;
+            if (prepareCanvas) {
+              runtime.canvasPrepared =
+                (yield* self.tryPromise((signal) =>
+                  prepareCanvas(sessionId, runtime.turnId, signal)
+                )) === true;
+            }
             yield* body({
               turnId: runtime.turnId,
               runtime,
@@ -3160,6 +3194,9 @@ export class SessionExecutionService {
       if (!runtime.promptStarted) {
         this.deps.clearConversationTurn(sessionId, runtime.turnId);
       }
+      await runtime.canvasFinalization?.catch(() => {});
+      await runtime.providerPromptSettlement;
+      this.deps.releaseDesignCanvas?.(sessionId, runtime.canvasTurnId ?? turnId);
       span.end({ outcome, turnId });
     }
     if (settlement) {

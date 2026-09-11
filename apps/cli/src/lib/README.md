@@ -91,3 +91,8 @@ independent. Other file formats keep the file resource path.
 The local `file/resolve-local` attachment variant resolves only a matching persisted
 history identity to its blob, verifies its hash, and hands the result to Electron's
 existing local resource service. It does not create an alternative download server.
+
+Design canvas preparation reuses the local machine RPC dispatcher: `canvas-host`
+reports belong to the existing execution owner, and `MessageHandler` supplies the
+Session's artwork identity. An unavailable desktop never implies an empty canvas;
+see [execution](../session/README.md#design-canvas-preparation).

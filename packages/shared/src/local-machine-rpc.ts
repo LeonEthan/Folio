@@ -248,7 +248,28 @@ export const DesignRenderRpcResultSchema = z.discriminatedUnion('type', [
 ]);
 export type DesignRenderRpcResult = z.infer<typeof DesignRenderRpcResultSchema>;
 
+/** Desktop acknowledgement of a generic canvas flush, fenced by the execution owner. */
+export const DesignCanvasReportSchema = z.object({
+  artworkId: z.string().uuid(), turnId: z.string().min(1).max(200),
+  ok: z.boolean(), error: z.string().max(500).optional(),
+}).strict();
+export type DesignCanvasReport = z.infer<typeof DesignCanvasReportSchema>;
+export const DesignCanvasStateSchema = z.object({
+  artworkId: z.string().uuid(), turnId: z.string().min(1).max(200),
+  preparing: z.boolean(),
+}).strict();
+export type DesignCanvasState = z.infer<typeof DesignCanvasStateSchema>;
+export const DesignCanvasHostResultSchema = z.object({
+  type: z.literal('design/canvas-host'), version: z.literal(1),
+  machine: z.object({ protocolCapabilities: z.record(z.string(), z.number()) }).strict(),
+  active: z.array(DesignCanvasStateSchema),
+}).strict();
+
 export const LocalMachineRpcRequestSchema = z.discriminatedUnion('method', [
+  BaseLocalMachineRpcRequestSchema.extend({
+    method: z.literal('design/canvas-host'),
+    params: z.object({ version: z.literal(1), reports: z.array(DesignCanvasReportSchema).max(100) }).strict(),
+  }).strict(),
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('design/image-connection'),
     params: z.object({}).strict(),
@@ -453,6 +474,7 @@ export type LocalMachineRpcRequestValidated = LocalMachineRpcRequest;
 export const LocalMachineRpcResultSchema = z.union([
   ImageConnectionRpcResultSchema,
   DesignRenderRpcResultSchema,
+  DesignCanvasHostResultSchema,
   SessionActiveInvocationContextResultSchema,
   CodeCollabV2FileIndexSnapshotSchema,
   CodeCollabV2OpenTextOkSchema,
@@ -525,3 +547,5 @@ export function safeParseLocalMachineRpcRequest(
 }
 
 export { FilePreviewV3ErrorSchema } from './file-preview';
+
+export { machineSupportsDesignCanvasSerialEditing } from './machine-protocol-capabilities';

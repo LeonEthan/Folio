@@ -20,6 +20,9 @@ export { createRecordingVisualDocumentKernel } from "./trace-kernel.ts";
  */
 export class BentoVisualBridge {
   private sequence = 0;
+  private readonlyMode = false;
+
+  setReadonly(value: boolean): void { this.readonlyMode = value; }
   private readonly kernel: RecordingVisualDocumentKernel;
   private readonly refreshView: (snapshot: VisualDocumentSnapshot) => void;
 
@@ -85,6 +88,10 @@ export class BentoVisualBridge {
   }
 
   private runAndRefresh(run: () => ApplyResultV4): ApplyResultV4 {
+    if (this.readonlyMode) return {
+      ok: false, revision: this.kernel.revision,
+      error: { code: "INVALID_BATCH", message: "Canvas is read-only" },
+    };
     const result = run();
     if (result.ok) this.refreshView(result.snapshot);
     return result;

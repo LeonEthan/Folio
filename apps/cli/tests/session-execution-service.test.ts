@@ -222,6 +222,7 @@ const createBaseDeps = (
 
 describe('SessionExecutionService', () => {
   it('advances one session owner through consecutive prompt handoffs', async () => {
+    const providerTail = Promise.resolve();
     const steerPrompt = vi.fn(() => ({
       completion: new Promise(() => {}),
       applied: Promise.resolve({ steerId: 'steer-application', release: vi.fn() }),
@@ -229,6 +230,7 @@ describe('SessionExecutionService', () => {
     const cancel = vi.fn(async () => {});
     const agentClient = {
       isCreated: vi.fn(() => true),
+      getProviderPromptSettlement: () => providerTail,
       getAcknowledgedSteerCapability: vi.fn(() => ({
         provider: 'claudeCode',
         appliedNotificationMethod: 'claude/steerApplied',
@@ -277,6 +279,9 @@ describe('SessionExecutionService', () => {
     });
     const onTurnSettled = vi.fn(async () => {});
     const runtime = {
+      canvasTurnId: 'assistant:user-1',
+      canvasPrepared: true,
+      providerPromptSettlement: Promise.resolve(),
       sessionId,
       turnId: 'assistant:user-1',
       userTurnId: 'user-1',
@@ -307,6 +312,8 @@ describe('SessionExecutionService', () => {
         inputConfig: { prompt: 'change direction' },
       })
     ).resolves.toMatchObject({ applied: true, disposition: 'applied' });
+    expect(runtime.canvasTurnId).toBe('assistant:user-1');
+    expect(runtime.providerPromptSettlement).toBe(providerTail);
     expect(onTurnSettled).toHaveBeenCalledOnce();
     expect(onTurnSettled).toHaveBeenCalledWith('handled');
 
@@ -6575,4 +6582,83 @@ describe('SessionExecutionService', () => {
     expect(second).toEqual(expect.objectContaining({ success: true }));
     expect(fetchAcpCapabilities).toHaveBeenCalledTimes(2);
   });
+});
+
+describe('design canvas execution ownership', () => {
+  it.each(['complete', 'save-failed', 'start-failed', 'cancelled'] as const)(
+    'holds the canvas through real visible-turn preparation and finalization: %s', async (scenario) => {
+      const preparing = createDeferred(), saved = createDeferred(), promptStarted = createDeferred();
+      const promptEnded = createDeferred(), finalizing = createDeferred(), collected = createDeferred();
+      const providerEnded = createDeferred();
+      const events: string[] = [];
+      let history = [{ id: 'human-input', role: 'user', status: 'pending', read: false }];
+      const sessionDoc = {
+        getMetaState: async () => ({ isArchived: false }),
+        setStatus: async () => {},
+        waitUntilSynced: async () => {},
+        getHistory: async () => history,
+        updateHistory: async (update: (previous: typeof history) => typeof history) => { history = update(history); },
+      };
+      const activeSession = {
+        sessionId: 'design-session' as SessionId, acpSessionId: 'acp-design' as ACPSessionId,
+        agentClient: {
+          isCreated: () => true,
+          prompt: async () => { events.push('prompt'); promptStarted.resolve(); await promptEnded.promise; },
+          cancel: async () => {}, currentModel: undefined,
+          getProviderPromptSettlement: async () => { await providerEnded.promise; },
+        },
+        terminalManager: {}, getWorkdir: () => '/tmp', getHostWorkdir: () => '/tmp',
+        getParentSessionId: () => undefined, exec: async () => '', terminate: async () => {},
+        updateGitIdentity: () => {}, createAgent: async () => 'acp-design', applyExecutionPlaneLimits: async () => {},
+      };
+      const base = createBaseDeps({});
+      const deps = createBaseDeps({
+        sessionManager: Object.assign(base.sessionManager, { getSession: () => activeSession }) as unknown as SessionManager,
+        workspaceDocument: Object.assign(base.workspaceDocument, { getOrCreateSessionDoc: async () => sessionDoc }) as unknown as LoroDocumentManager,
+        prepareDesignCanvas: async () => {
+          events.push('freeze'); preparing.resolve(); await saved.promise;
+          if (scenario === 'save-failed') throw Error('save failed; draft retained');
+          events.push('saved');
+          return true;
+        },
+        releaseDesignCanvas: () => { events.push('release'); },
+        buildAcpPromptBlocks: async () => {
+          events.push('baseline');
+          if (scenario === 'start-failed') throw Error('startup failed');
+          return [{ type: 'text', text: 'synthetic human input retained in history' }];
+        },
+        turnFinalization: { ...base.turnFinalization, finalizeACPState: async () => {
+          events.push('collect'); finalizing.resolve(); await collected.promise;
+        } },
+      });
+      const service = new SessionExecutionService(deps);
+      const run = service.continueSession({
+        type: 'session/chat', sessionId: 'design-session' as SessionId, machineId: 'machine-1',
+        workspaceId: 'workspace-1' as WorkspaceId, project: undefined,
+        acpSessionConfig: { prompt: 'synthetic input', cliType: 'builtin', agentType: 'codex' },
+        userTurnId: 'human-input', userId: 'user-1', userName: 'User', userEmail: 'user@example.com',
+      });
+      await preparing.promise;
+      expect(events).toEqual(['freeze']);
+      saved.resolve();
+      if (scenario === 'complete' || scenario === 'cancelled') {
+        await promptStarted.promise;
+        expect(events).toEqual(['freeze', 'saved', 'baseline', 'prompt']);
+        activeSession.agentClient.getProviderPromptSettlement = async () => { throw Error('Later client state must not replace the owned provider promise'); };
+        if (scenario === 'cancelled') await service.cancelSession({ type: 'session/cancel', sessionId: 'design-session' as SessionId, turnId: 'turn-1', machineId: 'machine-1', workspaceId: 'workspace-1' as WorkspaceId });
+        promptEnded.resolve();
+        await finalizing.promise;
+        expect(events).not.toContain('release');
+        collected.resolve();
+        expect(events).not.toContain('release');
+      } else {
+        collected.resolve();
+      }
+      providerEnded.resolve();
+      await run;
+      expect(events.at(-1)).toBe('release');
+      expect(history.some((entry) => entry.id === 'human-input')).toBe(true);
+      if (scenario === 'save-failed' || scenario === 'start-failed') expect(events).not.toContain('prompt');
+    }
+  );
 });

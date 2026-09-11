@@ -27,7 +27,7 @@ export function useDesignCreation(workspaceSlug: string) {
   const navigate = useNavigate();
   const pending = useRef<Association | null>(null);
   usePendingDesignRecovery();
-  return async (name: string, width: number, height: number, source?: string) => {
+  return async (name: string, width: number, height: number, source?: string, sourceHostId?: string) => {
     const service = getIpcServices()?.design;
     if (!service || !runtime || !user || !machine?.machineId)
       throw Error('Local workspace is not ready');
@@ -40,7 +40,7 @@ export function useDesignCreation(workspaceSlug: string) {
     };
     pending.current = association;
     const saved = source
-      ? await service.copy(source, association)
+      ? await service.copy(source, association, sourceHostId)
       : await service.create({ association, width, height });
     await runtime.writer.upsertDocMeta(getSessionRoomId(association.sessionId as SessionId), {
       id: association.sessionId,
@@ -61,7 +61,7 @@ export function useDesignCreation(workspaceSlug: string) {
     });
     await service.acknowledge(association.sessionId);
     pending.current = null;
-    if (source) await service.finishCopy(source, association.sessionId);
+    if (source) await service.finishCopy(source, association.sessionId, sourceHostId);
     await navigate({
       to: '/$workspaceName/sessions/$sessionId',
       params: { workspaceName: workspaceSlug, sessionId: association.sessionId },
@@ -93,7 +93,7 @@ export function DesignCanvas({
     shouldBlockFn: async ({ current, next }) => {
       if (current.pathname === next.pathname) return false;
       try {
-        return !(await getIpcServices()?.design.leave(sessionId));
+        return !(await getIpcServices()?.design.leave(sessionId, hostId));
       } catch (e) {
         setError(String(e));
         return true;
@@ -169,7 +169,7 @@ export function DesignCanvas({
           variant="outline"
           disabled={busy}
           onClick={() =>
-            run(() => create(name + t('design.copySuffix', ' — copy'), 800, 600, sessionId))
+            run(() => create(name + t('design.copySuffix', ' — copy'), 800, 600, sessionId, hostId))
           }
         >
           {t('design.saveCopy', 'Save as new design')}

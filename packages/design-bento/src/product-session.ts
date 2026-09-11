@@ -5,6 +5,7 @@ export function createProductSession(options: {
   snapshot(): unknown;
   assets(): Record<string, string>;
   commitPending(): void;
+  setReadonly(value: boolean): void;
   setDirty(dirty: boolean): void;
 }) {
   const editorInstanceId = new URLSearchParams(location.search).get('editorInstance') ?? '';
@@ -21,6 +22,10 @@ export function createProductSession(options: {
   let state = 'loading';
   let ready = false;
   let error = '';
+  let readonly = true;
+  let readonlyMessage = '只读 / Read-only';
+  let writePermit: string | undefined;
+  options.setReadonly(true);
   const style = document.createElement('style');
   style.textContent = `:root{color-scheme:light dark}.ed-panel-toggle,.ed-resizer,.ed-logo,.ed-title,.ed-insert,.ed-group-right,.ed-sidebar,.ed-present-pill,.ed-phone-only,.ed-props{display:none!important}.ed-topbar{background:Canvas!important;color:CanvasText!important}.c2a-btn,.c2a-select,.c2a-number,.c2a-text,.c2a-textarea,.c2a-color{background:Field!important;color:FieldText!important}.c2a-label,.c2a-section{color:CanvasText!important;opacity:.8}.c2a-surface{left:auto!important;right:8px!important;bottom:44px!important;width:min(300px,calc(100vw - 20px))!important;background:Canvas!important;color:CanvasText!important}.folio-properties-hidden .c2a-surface{display:none!important}`;
   document.head.append(style);
@@ -44,13 +49,13 @@ export function createProductSession(options: {
     state = next;
     error = next === 'error' || next === 'conflict' || next === 'waiting' ? message : '';
     status.dataset.state = next;
-    status.textContent = message;
+    status.textContent = readonly && next !== 'error' && next !== 'conflict' ? readonlyMessage : message;
     options.setDirty(dirty());
     emit('editor-status', { state, dirty: dirty(), error, ready, composing });
   };
   const schedule = (delay = 500) => {
     clearTimeout(timer);
-    if (!conflict) timer = setTimeout(() => void flush(false).catch(() => {}), delay);
+    if (!conflict && !readonly) timer = setTimeout(() => void flush(false).catch(() => {}), delay);
   };
   const changed = () => {
     if (!pendingTextNode?.isConnected || !pendingTextNode.isContentEditable) pendingText = false;
@@ -65,7 +70,7 @@ export function createProductSession(options: {
     try {
       const reply = await fetch(`/ws/${encodeURIComponent(options.sessionId)}/save`, {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ doc: options.snapshot(), assets: options.assets(), baseRevisionId: submittedRevision }),
+        body: JSON.stringify({ doc: options.snapshot(), assets: options.assets(), baseRevisionId: submittedRevision, writePermit }),
         signal: AbortSignal.timeout(15_000),
       });
       const result = await reply.json() as { ok?: boolean; code?: string; error?: string; revisionId?: string };
@@ -87,18 +92,46 @@ export function createProductSession(options: {
   const flush = async (commitBuffered = true): Promise<void> => {
     clearTimeout(timer);
     if (composing && commitBuffered) throw new Error('请先完成输入法输入，再保存或离开画布');
-    if (commitBuffered) { options.commitPending(); pendingText = false; }
+    if (commitBuffered && !readonly) { options.commitPending(); pendingText = false; }
     if (conflict) throw new Error(error || '画稿版本冲突，当前修改仍保留');
     const hasQueuedSave = () => editSeq !== savedSeq || saving !== undefined;
     while (hasQueuedSave()) {
       if (!saving) saving = saveOne().finally(() => { saving = undefined; });
       await saving;
       if (composing && commitBuffered) throw new Error('请先完成输入法输入');
-      if (commitBuffered) { options.commitPending(); pendingText = false; }
+      if (commitBuffered && !readonly) { options.commitPending(); pendingText = false; }
     }
     mark(dirty() ? 'editing' : 'saved', dirty() ? '正在编辑…' : '已自动保存');
   };
-  window.addEventListener('beforeunload', (event) => {
+  const setReadonly = (value: boolean, message = '只读 / Read-only') => {
+    readonlyMessage = message;
+    if (value === readonly) { if (readonly) status.textContent = readonlyMessage; return; }
+    // Block new input before committing the already-buffered text synchronously.
+    readonly = value;
+    try {
+      if (value) {
+        clearTimeout(timer);
+        if (!composing) { options.commitPending(); pendingText = false; }
+      }
+    } finally { options.setReadonly(value); }
+    document.body.dataset.readonly = String(value);
+    status.textContent = value ? readonlyMessage : (dirty() ? '修改尚未保存' : '已自动保存');
+    if (!value && dirty()) schedule();
+  };
+  const blockInput = (event: Event) => {
+    if (!readonly) return;
+    event.preventDefault(); event.stopImmediatePropagation();
+  };
+  for (const type of ['beforeinput', 'paste', 'cut', 'drop']) document.addEventListener(type, blockInput, true);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' || event.key === 'Tab' || event.key === ' ' ||
+      ((event.metaKey || event.ctrlKey) && ['c', '+', '-', '=', '0'].includes(event.key.toLowerCase()))) return;
+    blockInput(event);
+  }, true);
+  document.addEventListener('pointerdown', (event) => {
+    if ((event.target as Element | null)?.closest('input,textarea,[contenteditable="true"],.c2a-surface')) blockInput(event);
+  }, true);
+  window.addEventListener('beforeunload' , (event) => {
     if (dirty()) { event.preventDefault(); event.returnValue = ''; }
   });
   window.addEventListener('online', () => { if (dirty()) schedule(); });
@@ -144,12 +177,20 @@ export function createProductSession(options: {
     else mark(state, status.textContent ?? '');
   });
   Object.assign(window, { folio: {
-    async save() { try { await flush(); return { ok: true }; } catch (cause) { return { ok: false, error: String(cause) }; } },
+    setReadonly,
+    state() { return { dirty: dirty(), composing, saving: saving !== undefined, readonly, revisionId }; },
+    async flush(permit: string) {
+      writePermit = permit;
+      try { await flush(); return { ok: true }; }
+      catch (cause) { return { ok: false, error: String(cause) }; }
+      finally { writePermit = undefined; }
+    },
+    async save() { try { if (readonly) throw Error('Canvas is read-only'); await flush(); return { ok: true }; } catch (cause) { return { ok: false, error: String(cause) }; } },
     rebase(previous: string, next: string) { if (revisionId !== previous || saving) throw Error('Concurrent name change'); revisionId = next; },
     async snapshot() {
       if (composing) throw Error('Finish composing text before copying');
       if (saving) await saving.catch(() => {});
-      options.commitPending();
+      if (!readonly) options.commitPending();
       const value = options.snapshot();
       return { doc: typeof value === 'string' ? JSON.parse(value) : value, assets: options.assets() };
     }
@@ -157,7 +198,7 @@ export function createProductSession(options: {
   return {
     changed,
     async save() {
-      try { await flush(); return { ok: true }; }
+      try { if (readonly) throw Error('Canvas is read-only'); await flush(); return { ok: true }; }
       catch (cause) { return { ok: false, error: cause instanceof Error ? cause.message : '保存失败' }; }
     },
     selection(elements: unknown[]) { emit('selection', { elements }); },
