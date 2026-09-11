@@ -4006,5 +4006,12 @@
   "design.files.notCommitted": "This turn was not committed. Original file:",
   "design.files.diagnostics": "The artwork was not updated:",
   "design.files.unavailable": "The original file could not be opened.",
-  "design.files.workingFile": "Working file (may have changed since this turn):"
+  "design.files.workingFile": "Working file (may have changed since this turn):",
+  "design.currentCanvas": "Current artwork",
+  "design.sourcePreview": "Unsubmitted preview",
+  "design.refreshPreview": "Refresh preview",
+  "design.previewReadonly": "Read-only authoring files · not submitted. Valid drafts may still be unfinished.",
+  "design.previewReady": "Showing the observed document and assets.",
+  "design.previewRefreshing": "Reading files…",
+  "design.previewWaiting": "Waiting for valid files. The last valid preview, if any, is retained."
 }

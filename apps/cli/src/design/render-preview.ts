@@ -93,6 +93,7 @@ export type DesignPreviewPayloadResult =
       assets: Record<string, string>;
       width: number;
       height: number;
+      sourceIdentity?: string;
     }
   | { status: 'refused'; error: string };
 
@@ -105,7 +106,10 @@ export type DesignPreviewPayloadResult =
  * exactly these staged bytes — the store's own content address convention — so
  * the payload is self-describing even though nothing here is ever saved.
  */
-export async function buildPreviewPayload(workdir: string): Promise<DesignPreviewPayloadResult> {
+export async function buildPreviewPayload(
+  workdir: string,
+  observation?: { collect?: (root: string) => Map<string, Uint8Array> }
+): Promise<DesignPreviewPayloadResult> {
   const root = path.resolve(workdir);
   const entry = path.join(root, DESIGN_ARTIFACT_ENTRY);
   try {
@@ -124,7 +128,12 @@ export async function buildPreviewPayload(workdir: string): Promise<DesignPrevie
 
   let snapshot: Map<string, Uint8Array>;
   try {
-    snapshot = collectAuthoring(root);
+    const collect =
+      observation?.collect ??
+      ((directory: string) => collectAuthoring(directory, { referencedOnly: true }));
+    snapshot = observation ? collect(root) : collectAuthoring(root);
+    if (observation && snapshotIdentity(snapshot) !== snapshotIdentity(collect(root)))
+      return refused('Files changed during observation; refresh when a valid draft is available.');
   } catch (error) {
     return refused(
       `${error instanceof AuthoringSnapshotError ? 'the project was rejected' : 'collecting the project failed'}: ${errorMessage(error)}`
@@ -151,6 +160,7 @@ export async function buildPreviewPayload(workdir: string): Promise<DesignPrevie
     const { width, height } = intake.document.canvas;
     return {
       status: 'ok',
+      ...(observation ? { sourceIdentity: snapshotIdentity(snapshot) } : {}),
       doc: intake.document as unknown as DesignPayload['doc'],
       assets: buildAssetDataUris(intake.assets),
       width,
@@ -159,6 +169,16 @@ export async function buildPreviewPayload(workdir: string): Promise<DesignPrevie
   } catch (error) {
     return refused(errorMessage(error));
   }
+}
+
+/** Includes filenames and exact bytes, including same-path asset replacements. */
+export function snapshotIdentity(snapshot: ReadonlyMap<string, Uint8Array>): string {
+  const hash = createHash('sha256');
+  for (const [name, bytes] of [...snapshot].sort(([a], [b]) => a.localeCompare(b))) {
+    hash.update(JSON.stringify([name, bytes.byteLength]));
+    hash.update(bytes);
+  }
+  return hash.digest('hex');
 }
 
 function describeDiagnostics(entries: readonly { code: string; message: string }[]): string {

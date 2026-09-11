@@ -94,3 +94,11 @@ What each file in this directory is responsible for. Binding rules live in
 
 PR/CI actions, live GitHub review comments and automatic review settings/engines are
 retired from Folio. Generic file/diff viewers and send-to-chat references remain.
+
+### Authoring preview in the canvas
+
+`design-canvas.tsx` switches the existing canvas region between the retained current
+artwork and a readonly, unsubmitted source preview. Refresh uses frozen document and
+asset bytes; waiting/error states retain the last valid preview. Current-artwork
+copy/export actions are disabled while viewing source files. The preview never
+unlocks or destroys the editor and does not declare Agent completion.

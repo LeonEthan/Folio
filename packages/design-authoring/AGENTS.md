@@ -27,3 +27,7 @@
   array/z order, flat groups and asset bytes. Only schema asset locations may
   be rewritten. Update `projection-capabilities.ts` and roundtrip fixtures with
   any supported field change; never add a second canonical blob to the format.
+
+- Read-only previews collect the entry, referenced pages and semantic assets only.
+  Bound reads and compare exact document/asset bytes across observations; stability
+  is not author completion. Conversion consumes only those frozen bytes.

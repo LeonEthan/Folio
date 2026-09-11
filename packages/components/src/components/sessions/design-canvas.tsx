@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAtomValue } from 'jotai';
 import { useBlocker, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getSessionRoomId, type SessionId } from '@lody/shared';
 import { activeWorkspaceRuntimeAtom } from '@/atoms/runtime';
 import { localProbeResultAtom } from '@/atoms/local-probe';
-import { userAtom } from '@/atoms';
+import { userAtom, currentWorkspaceIdAtom } from '@/atoms';
 import { getIpcServices } from '@/lib/electron-ipc-client';
 import { latestCommittedDesignRevision, syncOpenDesignCanvas } from '@/lib/design-canvas-sync';
 import { useSessionDoc } from '@/hooks/use-session-doc';
@@ -86,6 +86,52 @@ export function DesignCanvas({
   const [busy, setBusy] = useState(false);
   const create = useDesignCreation(workspaceSlug);
   const [focused, setFocused] = useState(false);
+  const [preview, setPreview] = useState(false);
+  const [previewStatus, setPreviewStatus] = useState<'waiting' | 'ready' | 'refreshing'>('waiting');
+  const [previewSource, setPreviewSource] = useState('');
+  const [previewError, setPreviewError] = useState('');
+  const previewGeneration = useRef(0);
+  const attachmentGeneration = useRef(0);
+  const workspaceId = useAtomValue(currentWorkspaceIdAtom);
+  const machine = useAtomValue(localProbeResultAtom);
+  const refreshPreview = useCallback(async () => {
+    const generation = ++previewGeneration.current;
+    setPreviewStatus('refreshing');
+    setPreviewError('');
+    try {
+      const service = getIpcServices()?.design;
+      if (!service || !workspaceId || !machine?.machineId) throw Error('Local workspace is not ready');
+      const result = await service.refreshPreview(sessionId, hostId, {
+        machineId: machine.machineId, workspaceId, ownerSessionId: sessionId as SessionId,
+        method: 'design/source-path', params: {},
+      });
+      if (generation !== previewGeneration.current || result.status === 'superseded') return;
+      setPreviewSource(result.source);
+      setPreviewStatus(result.status);
+      if (result.status === 'waiting') setPreviewError(result.error);
+      if (host.current && !document.querySelector('[role="dialog"]')) {
+        const {x, y, width, height} = host.current.getBoundingClientRect();
+        await service.attachPreview(hostId, {x, y, width, height});
+      }
+    } catch (cause) {
+      if (generation !== previewGeneration.current) return;
+      setPreviewStatus('waiting'); setPreviewError(String(cause));
+    }
+  }, [workspaceId, machine?.machineId, sessionId, hostId]);
+  const switchPreview = (value: boolean) => {
+    if (value === preview) return;
+    ++previewGeneration.current;
+    setPreview(value);
+    if (!value) void getIpcServices()?.design.hidePreview(hostId);
+  };
+  useEffect(() => {
+    if (preview && active) void refreshPreview();
+    else { ++previewGeneration.current; void getIpcServices()?.design.hidePreview(hostId); }
+  }, [preview, active, sessionId, hostId, refreshPreview]);
+  useEffect(() => () => {
+    ++previewGeneration.current;
+    void getIpcServices()?.design.closePreview(hostId);
+  }, [hostId, sessionId]);
   const { doc } = useSessionDoc(sessionId as SessionId, { enabled: sessionId.length > 0 });
   const committedRevisionId = latestCommittedDesignRevision(doc.history, sessionId);
   useBlocker({
@@ -102,6 +148,8 @@ export function DesignCanvas({
   });
   useEffect(() => {
     let disposed = false;
+    const generation = ++attachmentGeneration.current;
+    const ownsAttachment = () => attachmentGeneration.current === generation;
     const service = getIpcServices()?.design;
     if (!service) return undefined;
     let work = Promise.resolve();
@@ -109,13 +157,21 @@ export function DesignCanvas({
       work = work
         .catch(() => {})
         .then(async () => {
+          if (attachmentGeneration.current !== generation) return;
           if (disposed || !active || !host.current || document.querySelector('[role="dialog"]')) {
             await service.hide(sessionId, hostId);
+            await service.hidePreview(hostId, false);
             return;
           }
           const { x, y, width, height } = host.current.getBoundingClientRect();
-          if (width > 0 && height > 0)
-            await service.attach(sessionId, { x, y, width, height }, hostId);
+          if (width > 0 && height > 0) {
+            if (preview) {
+              await service.hide(sessionId, hostId);
+              await service.attachPreview(hostId, { x, y, width, height });
+            } else {
+              await service.attach(sessionId, { x, y, width, height }, hostId);
+            }
+          }
         })
         .catch((e) => {
           if (!disposed) setError(String(e));
@@ -130,9 +186,11 @@ export function DesignCanvas({
       disposed = true;
       resize.disconnect();
       dialogs.disconnect();
-      void work.then(() => service.hide(sessionId, hostId)).catch((cause) => console.error(cause));
+      void work.then(async () => {
+        if (ownsAttachment()) await service.hide(sessionId, hostId);
+      }).catch((cause) => console.error(cause));
     };
-  }, [sessionId, active, hostId]);
+  }, [sessionId, active, hostId, preview]);
   useEffect(() => {
     if (committedRevisionId === undefined) return undefined;
     let cancelled = false;
@@ -161,13 +219,22 @@ export function DesignCanvas({
         }
       </style>
       <div className="flex flex-wrap items-center gap-2 border-b p-2">
+        <Button size="sm" variant={preview ? 'outline' : 'default'} onClick={() => switchPreview(false)}>
+          {t('design.currentCanvas', 'Current artwork')}
+        </Button>
+        <Button size="sm" variant={preview ? 'default' : 'outline'} onClick={() => switchPreview(true)}>
+          {t('design.sourcePreview', 'Unsubmitted preview')}
+        </Button>
+        {preview && <Button size="sm" variant="outline" disabled={previewStatus === 'refreshing'} onClick={() => void refreshPreview()}>
+          {t('design.refreshPreview', 'Refresh preview')}
+        </Button>}
         <Button size="sm" variant="outline" onClick={() => setFocused((value) => !value)}>
           {focused ? t('design.showChat', 'Show conversation') : t('design.focus', 'Focus canvas')}
         </Button>
         <Button
           size="sm"
           variant="outline"
-          disabled={busy}
+          disabled={busy || preview}
           onClick={() =>
             run(() => create(name + t('design.copySuffix', ' — copy'), 800, 600, sessionId, hostId))
           }
@@ -176,19 +243,25 @@ export function DesignCanvas({
         </Button>
         <Button
           size="sm"
-          disabled={busy}
+          disabled={busy || preview}
           onClick={() => run(async () => getIpcServices()?.design.export(sessionId, 'png', name))}
         >
           PNG
         </Button>
         <Button
           size="sm"
-          disabled={busy}
+          disabled={busy || preview}
           onClick={() => run(async () => getIpcServices()?.design.export(sessionId, 'jpeg', name))}
         >
           JPEG
         </Button>
       </div>
+      {preview && <div role="status" className="border-b p-2 text-xs text-muted-foreground">
+        <p>{t('design.previewReadonly', 'Read-only authoring files · not submitted. Valid drafts may still be unfinished.')}</p>
+        {previewSource && <p className="break-all">{previewSource}</p>}
+        <p>{previewStatus === 'ready' ? t('design.previewReady', 'Showing the observed document and assets.') : previewStatus === 'refreshing' ? t('design.previewRefreshing', 'Reading files…') : t('design.previewWaiting', 'Waiting for valid files. The last valid preview, if any, is retained.')}</p>
+        {previewError && <p>{previewError}</p>}
+      </div>}
       {error && (
         <p role="alert" className="p-2 text-destructive">
           {error}

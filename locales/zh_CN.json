@@ -4006,5 +4006,12 @@
   "design.files.notCommitted": "本回合未提交。原始文件：",
   "design.files.diagnostics": "画稿未更新：",
   "design.files.unavailable": "无法打开原始文件。",
-  "design.files.workingFile": "工作文件（可能已在本回合之后修改）："
+  "design.files.workingFile": "工作文件（可能已在本回合之后修改）：",
+  "design.currentCanvas": "当前画稿",
+  "design.sourcePreview": "未提交预览",
+  "design.refreshPreview": "刷新预览",
+  "design.previewReadonly": "创作文件只读预览 · 尚未提交。有效草稿仍可能未完成。",
+  "design.previewReady": "正在显示本次观测的文档和素材。",
+  "design.previewRefreshing": "正在读取文件…",
+  "design.previewWaiting": "等待有效文件；保留上一有效预览（如有）。"
 }

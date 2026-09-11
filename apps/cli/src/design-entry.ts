@@ -1,6 +1,7 @@
 import { createInterface } from 'node:readline';
 import { getLodyDataDir } from '@lody/shared/node/installation-profile';
 import { z } from 'zod';
+import { buildPreviewPayload } from './design/render-preview';
 import {
   acknowledgeDesign,
   designOperation,
@@ -23,7 +24,10 @@ for await (const line of createInterface({ input: process.stdin, crlfDelay: Infi
     const request = JSON.parse(line);
     const dataRoot = getLodyDataDir('local');
     let value: unknown;
-    if (request?.operation === 'pending') {
+    if (request?.operation === 'source-preview') {
+      const input = z.object({ operation: z.literal('source-preview'), workdir: z.string().min(1) }).strict().parse(request);
+      value = await buildPreviewPayload(input.workdir, {});
+    } else if (request?.operation === 'pending') {
       z.object({ operation: z.literal('pending') })
         .strict()
         .parse(request);

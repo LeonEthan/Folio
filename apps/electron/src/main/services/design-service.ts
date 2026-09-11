@@ -41,6 +41,7 @@ let queue: Promise<unknown> = Promise.resolve()
 export function designRequest<T = DesignPayload>(
   request:
     | DesignRequest
+    | { operation: 'source-preview'; workdir: string }
     | { operation: 'pending' }
     | { operation: 'acknowledge'; sessionId: string }
     | ({ operation: 'candidate-file' } & DesignCandidateRequest)
@@ -92,7 +93,12 @@ export function designRequest<T = DesignPayload>(
   return result
 }
 
-async function surface(payload: DesignPayload, editable: boolean, hostId?: string) {
+export async function surface(
+  payload: DesignPayload,
+  editable: boolean,
+  hostId?: string,
+  preview = false
+) {
   const shell = await readFile(join(resources(), 'design/editor.html'))
   const manifest = JSON.parse(await readFile(join(resources(), 'design/build.json'), 'utf8'))
   if (createHash('sha256').update(shell).digest('hex') !== manifest.shellSha256)
@@ -148,7 +154,7 @@ async function surface(payload: DesignPayload, editable: boolean, hostId?: strin
   })
   return {
     isolated,
-    url: origin + '/editor.html?ws=' + id + (editable ? '&autosave=1&folio=1' : ''),
+    url: origin + '/editor.html?ws=' + id + (editable || preview ? '&autosave=1&folio=1' : ''),
     dispose: () => isolated.protocol.unhandle('folio-design')
   }
 }
@@ -246,6 +252,9 @@ export async function attachDesign(
   record.view.setVisible(true)
 }
 export function hideDesign(id: string, hostId?: string) {
+  // Cancel visibility intent even while the first native instance is still loading.
+  for (const [key, artworkId] of hosts)
+    if (artworkId === id && (hostId === undefined || hostId === key)) hosts.delete(key)
   for (const [key, record] of records) {
     if (record.artworkId !== id || (hostId && key !== hostId)) continue
     hosts.delete(key)

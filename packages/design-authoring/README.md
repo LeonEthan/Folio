@@ -127,3 +127,13 @@ records the full scope. `tests/roundtrip.test.ts` covers every element kind, all
 13 chart types, rich text/table fields, semantic assets, v2 compatibility,
 edit/undo/redo, and unknown nested fields. Visual quality and hook delivery are
 outside these data-conversion tests.
+
+## Consumer source observations
+
+`collectAuthoring(root, { referencedOnly: true })` reads only `design.pptd`, its
+single referenced page and schema-declared image/font assets. It reuses semantic
+asset enumeration; invalid shapes fail closed and intake still validates structure.
+Reads reject redirected/nonregular files, bound each file to 16 MiB and the closure
+to 48 MiB, and recheck opened file identity/content metadata. Consumers compare
+complete observations by exact content before importing one frozen map. Matching
+observations do not establish completion of an external multi-file transaction.

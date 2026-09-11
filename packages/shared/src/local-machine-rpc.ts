@@ -323,7 +323,7 @@ export const LocalMachineRpcRequestSchema = z.discriminatedUnion('method', [
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('design/source-path'),
     ownerSessionId: SessionIdSchema,
-    params: z.object({ turnId: z.string().min(1).max(200) }).strict(),
+    params: z.object({ turnId: z.string().min(1).max(200).optional() }).strict(),
   }).strict(),
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('design/canvas-host'),

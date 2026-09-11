@@ -139,3 +139,5 @@ changing those files.
   render the real component; appearance lives in the component.
   `SessionConversationPage.stories.tsx` hand-composes leaves and drifts — keep it
   minimal and verify UI changes in the real app.
+
+Design source previews never save or replace the retained editable view.

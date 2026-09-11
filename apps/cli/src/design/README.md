@@ -73,3 +73,16 @@ canonical compare-and-swap using the live daemon baseline. Missing facts after
 restart or changed bytes fail closed and preserve the draft. Re-reading never
 rebases an established attempt or rewrites a frozen manifest; explicit new
 attempt/resubmission semantics belong to the workflow-convergence slice.
+
+## Read-only source snapshots
+
+The desktop's manual preview resolves the current trusted Session source through
+`design/source-path` without a turn ID; supplied turn IDs retain the historical
+frozen-manifest checks. The design worker calls `buildPreviewPayload(workdir, {})`
+for two bounded, reference-only collections followed by the existing intake.
+Names and exact content, including same-path image changes, identify the snapshot.
+This observes a stable input, not a completed author transaction; valid intermediate
+drafts may render. No preview operation writes canonical, baselines or turn state.
+
+The same snapshot entry point is available to subsequent consumer-scoped watching;
+this slice creates no watcher. Formal turn collection and exports remain independent.

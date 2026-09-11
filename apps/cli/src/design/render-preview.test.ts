@@ -322,3 +322,42 @@ describe('renderDesignPreview', () => {
     expect(readFileSync(path.join(workdir, 'design.json'), 'utf8')).toBe(before);
   });
 });
+
+describe('manual source snapshots', () => {
+  it('freezes only the referenced closure and notices same-path asset bytes', async () => {
+    const { workdir } = createHarness();
+    writeFileSync(path.join(workdir, 'pages', 'unreferenced.page'), 'invalid: [');
+    writeFileSync(path.join(workdir, 'media', 'unreferenced.bin'), Buffer.alloc(17 * 1024 * 1024));
+    const first = await buildPreviewPayload(workdir, {});
+    expect(first.status).toBe('ok');
+    if (first.status !== 'ok') throw Error(first.error);
+    const firstAssets = { ...first.assets };
+    writeFileSync(path.join(workdir, 'media', 'pic.png'), syntheticPng(64, 64, [0, 200, 0]));
+    const second = await buildPreviewPayload(workdir, {});
+    expect(second.status).toBe('ok');
+    if (second.status !== 'ok') throw Error(second.error);
+    expect(second.sourceIdentity).not.toBe(first.sourceIdentity);
+    expect(second.assets).not.toEqual(first.assets);
+    expect(first.assets).toEqual(firstAssets);
+    expect(Object.keys(first.assets)).toHaveLength(1);
+  });
+
+  it('refuses mixed observations and incomplete references without modifying the draft', async () => {
+    const { workdir } = createHarness();
+    const { collectAuthoring } = await import('@folio/design-authoring');
+    const first = collectAuthoring(workdir, { referencedOnly: true });
+    writeFileSync(path.join(workdir, 'pages', 'main.page'), PAGE.replace('Hello', 'Intermediate'));
+    const second = collectAuthoring(workdir, { referencedOnly: true });
+    const reads = [first, second];
+    const unstable = await buildPreviewPayload(workdir, { collect: () => reads.shift()! });
+    expect(unstable).toMatchObject({
+      status: 'refused',
+      error: expect.stringContaining('changed during observation'),
+    });
+    expect(readFileSync(path.join(workdir, 'pages', 'main.page'), 'utf8')).toContain(
+      'Intermediate'
+    );
+    writeFileSync(path.join(workdir, 'pages', 'main.page'), BROKEN_PAGE);
+    expect(await buildPreviewPayload(workdir, {})).toMatchObject({ status: 'refused' });
+  });
+});

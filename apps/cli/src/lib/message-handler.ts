@@ -6908,7 +6908,7 @@ export class MessageHandler {
             artworkId: design.artworkId,
             legacyWorkdir: getDefaultSessionWorkdir(sessionId),
             turnId: request.params.turnId,
-            requireTurnManifest: true,
+            requireTurnManifest: request.params.turnId !== undefined,
           });
           const sourcePath = path.join(workspace.artifactWorkdir, 'design.pptd');
           const stat = await fs.promises.lstat(sourcePath);

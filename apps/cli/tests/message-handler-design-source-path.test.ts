@@ -206,6 +206,11 @@ test.each([
       ok: true,
       result: { ok: false },
     });
+    // Explicit current-source reads do not need historical dispatch facts.
+    expect(await request(handler, sessionId, 'design/source-path', {})).toMatchObject({
+      ok: true,
+      result: { ok: true, path: path.join(draftRoot, 'design.pptd') },
+    });
     expect(await readFile(path.join(draftRoot, 'design.pptd'), 'utf8')).toBe(original);
     await writeFile(manifestPath, frozenBytes);
   }
@@ -215,6 +220,9 @@ test.each([
     'design/source-path',
     { turnId }
   );
+  expect(await request(createHandler(meta, projectRoot, true), sessionId, 'design/source-path', {})).toMatchObject({
+    ok: true, result: { ok: false },
+  });
   expect(missing).toMatchObject({ ok: true, result: { type: 'design/source-path', ok: false } });
   await rm(path.join(draftRoot, 'design.pptd'));
   expect(await request(handler, sessionId, 'design/source-path', { turnId })).toMatchObject({

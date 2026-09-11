@@ -1,3 +1,4 @@
+import { verifySourcePreview } from './design-source-preview-verification'
 import { app, BrowserWindow, WebContentsView, nativeImage, dialog } from 'electron'
 import { strict as assert } from 'node:assert'
 import { randomUUID } from 'node:crypto'
@@ -134,7 +135,7 @@ export async function verifyDesign(directory: string) {
   })
   assert.equal(copy.doc.elements.length, 3)
   await finishDesignCopy(id, copy.association.sessionId)
-  const original = await designRequest({ operation: 'read', sessionId: id })
+  let original = await designRequest({ operation: 'read', sessionId: id })
   assert.equal(original.doc.elements.length, 2)
   assert.deepEqual(original.doc.background, { type: 'solid', color: '#00000000' })
   await attachDesign(owner, id, { x: 0, y: 0, width: 1200, height: 800 })
@@ -158,6 +159,8 @@ export async function verifyDesign(directory: string) {
     else assert.ok(pixel[0] > 250 && pixel[1] > 250 && pixel[2] > 250)
     await writeFile(join(directory, 'design.' + format), bytes)
   }
+  await verifySourcePreview(owner, id, reopenedView, directory)
+  original = await designRequest({ operation: 'read', sessionId: id })
   // Invalid writes must reject and leave the confirmed drawing intact.
   await assert.rejects(
     designRequest({

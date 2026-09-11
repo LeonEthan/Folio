@@ -9,6 +9,17 @@ import {
   type DesignCreationInput,
   type DesignAssociationInput
 } from '@lody/shared/electron-ipc'
+import {
+  LocalMachineRpcRequestSchema,
+  DesignSourcePathResultSchema,
+  type LocalMachineRpcRequest
+} from '@lody/shared/local-machine-rpc'
+import {
+  refreshSourcePreview,
+  hideSourcePreview,
+  attachSourcePreview,
+  closeSourcePreview
+} from '../../services/design-source-preview'
 import { getIpcServiceDeps } from '../ipc-service-deps'
 import {
   attachDesign,
@@ -99,6 +110,45 @@ export class DesignIpc extends IpcService {
       DesignBoundsSchema.parse(bounds),
       id.parse(hostId)
     )
+  }
+  @IpcMethod() async refreshPreview(
+    sessionId: string,
+    hostId: string,
+    message: LocalMachineRpcRequest
+  ) {
+    const window = owner()
+    const artworkId = id.parse(sessionId)
+    const key = id.parse(hostId)
+    const request = LocalMachineRpcRequestSchema.parse(message)
+    if (
+      request.method !== 'design/source-path' ||
+      request.ownerSessionId !== artworkId ||
+      request.params.turnId !== undefined
+    )
+      throw Error('Invalid current design source request')
+    return refreshSourcePreview(window, artworkId, key, async () => {
+      const response = await getIpcServiceDeps().cliService.sendLocalMachineRpc(request)
+      if (!response.ok) throw Error(response.error)
+      const resolved = DesignSourcePathResultSchema.parse(response.result)
+      if (!resolved.ok) throw Error(resolved.error)
+      return resolved.path
+    })
+  }
+  @IpcMethod() async attachPreview(
+    hostId: string,
+    bounds: { x: number; y: number; width: number; height: number }
+  ) {
+    owner()
+    attachSourcePreview(id.parse(hostId), DesignBoundsSchema.parse(bounds))
+  }
+  @IpcMethod() async hidePreview(hostId: string, cancel = true) {
+    owner()
+    if (typeof cancel !== 'boolean') throw Error('Invalid preview visibility')
+    hideSourcePreview(id.parse(hostId), cancel)
+  }
+  @IpcMethod() async closePreview(hostId: string) {
+    owner()
+    closeSourcePreview(id.parse(hostId))
   }
   @IpcMethod() async hide(sessionId: string, hostId: string) {
     owner()

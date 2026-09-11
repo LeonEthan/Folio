@@ -220,3 +220,28 @@ void test('different dirty copies require the selected host; completing one pres
   assert.deepEqual([...instances.values()], [first])
   assert.equal(first.draft, 'first unsaved document')
 })
+
+// A controlled late conversion cannot publish into a switched/reopened canvas.
+const { PreviewRequests } = await import('./design-source-preview-core.ts')
+void test('source preview generations reject old artwork, refresh and closed consumers', async () => {
+  const requests = new PreviewRequests()
+  const original = requests.begin('host', 'artwork-a')
+  let resolve
+  const delayed = new Promise((done) => {
+    resolve = done
+  })
+  let displayed = 'retained valid preview'
+  const completion = delayed.then(() => {
+    if (requests.current(original)) displayed = 'late draft'
+  })
+  const latest = requests.begin('host', 'artwork-a')
+  resolve()
+  await completion
+  assert.equal(displayed, 'retained valid preview')
+  assert.equal(requests.current(latest), true)
+  requests.cancel('host')
+  assert.equal(requests.current(latest), false)
+  const reopened = requests.begin('host', 'artwork-b')
+  assert.equal(requests.current(original), false)
+  assert.equal(requests.current(reopened), true)
+})

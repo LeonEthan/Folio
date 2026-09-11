@@ -104,18 +104,5 @@ native-dependency, and OSS-composition rules stay in `apps/electron/AGENTS.md`.
 
 ## Design canvas
 
-Views accept validated CLI design-worker documents, with no preload, Node,
-permissions or external network. Bind each save route to its Session and host;
-CLI owns canonical bytes/assets, Electron owns rendering and native dialogs.
-Retain instances across hidden panels; explicit close saves before disposal.
-`design-canvas-access` gates actual human writes and flushes all artwork instances
-before dispatch. Execution state comes from the versioned daemon canvas-host
-snapshot; unknown is readonly. Keep ownership independent of view lifetime, and
-reject reload of dirty/composing/saving instances. Bento receives generic readonly
-and flush only. Before changing these boundaries, read
-[design resources](../../../packages/design-bento/README.md).
-The preview host uses the same local socket, independently of canvas preparation.
-Keep render policy in Node-testable `design-render-host-core.ts`: no retries, repair,
-per-turn thumbnails or thumbnail IPC. Previews/PNG/JPEG use canvas dimensions.
-Historical files resolve by artwork/digest in the worker; local resources serve
-original bytes and embedded assets.
+Before changing design views, save/preview IPC, renderer consumers or execution
+flush integration, read the [design service contracts](main/services/AGENTS.md).

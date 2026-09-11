@@ -9,8 +9,11 @@
  * the CAS workspace module is not migrated.
  */
 
-import { lstatSync, readdirSync, readFileSync, realpathSync, type Stats } from "node:fs";
+import { lstatSync, readdirSync, readFileSync, realpathSync, openSync, closeSync, fstatSync, readSync, constants, type Stats } from "node:fs";
 import { join, sep } from "node:path";
+import { parse } from "yaml";
+import { listSemanticAssetRefs } from "./semantic-assets.ts";
+import type { ValidatedPptd } from "./contracts.ts";
 
 /** Snapshot collection integrity failure (symlink/hardlink/escape/non-regular). */
 export class AuthoringSnapshotError extends Error {
@@ -44,7 +47,8 @@ export function isAuthoringRelPath(rel: string): boolean {
 
 const posix = (p: string): string => p.split(sep).join("/");
 
-export function collectAuthoring(dir: string): Map<string, Uint8Array> {
+export function collectAuthoring(dir: string, options: { referencedOnly?: boolean } = {}): Map<string, Uint8Array> {
+  let totalBytes = 0;
   let rootStat;
   try {
     rootStat = lstatSync(dir);
@@ -81,10 +85,60 @@ export function collectAuthoring(dir: string): Map<string, Uint8Array> {
     if (real !== rootReal && !real.startsWith(prefix)) {
       throw new AuthoringSnapshotError(`collectAuthoring: path escapes dir: ${rel}`);
     }
-    out.set(posix(rel), new Uint8Array(readFileSync(abs)));
+    if (options.referencedOnly && (st.size > 16 * 1024 * 1024 || totalBytes + st.size > 48 * 1024 * 1024))
+      throw new AuthoringSnapshotError("authoring snapshot exceeds resource limit");
+    const fd = openSync(abs, constants.O_RDONLY | constants.O_NOFOLLOW);
+    try {
+      const opened = fstatSync(fd);
+      const same = (a: Stats, b: Stats) => a.dev === b.dev && a.ino === b.ino && a.size === b.size && a.mtimeMs === b.mtimeMs && a.ctimeMs === b.ctimeMs && b.nlink === 1;
+      if (!same(st, opened)) throw new AuthoringSnapshotError(`file changed while opening: ${rel}`);
+      // Fixed-size reads also bound allocation if the file grows after lstat.
+      const bytes = options.referencedOnly ? (() => {
+        const buffer = new Uint8Array(st.size + 1);
+        let offset = 0;
+        while (offset < buffer.length) {
+          const count = readSync(fd, buffer, offset, buffer.length - offset, offset);
+          if (count === 0) break;
+          offset += count;
+        }
+        return buffer.slice(0, offset);
+      })() : new Uint8Array(readFileSync(fd));
+      if (bytes.length !== st.size || !same(st, fstatSync(fd)) || !same(st, lstatSync(abs)))
+        throw new AuthoringSnapshotError(`file changed while reading: ${rel}`);
+      totalBytes += bytes.length;
+      out.set(posix(rel), bytes);
+    } finally { closeSync(fd); }
   };
 
   for (const rootFile of ROOT_FILES) takeFile(rootFile);
+
+  if (options.referencedOnly) {
+    assertAuthoringEntry(out.keys());
+    const decode = (rel: string) => parse(new TextDecoder().decode(out.get(rel)), { maxAliasCount: 100 });
+    const manifest = decode(ENTRY_PPTD);
+    if (!manifest || !Array.isArray(manifest.pages) || manifest.pages.length !== 1)
+      throw new AuthoringSnapshotError("authoring entry must reference exactly one page");
+    for (const rel of manifest.pages) {
+      if (typeof rel !== "string" || !rel.startsWith("pages/") || !isAuthoringRelPath(rel) || rel.includes("\\"))
+        throw new AuthoringSnapshotError("invalid referenced page path");
+      const parent = lstatSync(join(dir, "pages"));
+      if (parent.isSymbolicLink() || !parent.isDirectory()) throw new AuthoringSnapshotError("pages directory is redirected");
+      takeFile(rel, true);
+    }
+    // Discovery is not validation. Malformed schema shapes fail closed here or
+    // at intake; only the existing semantic enumerator decides asset locations.
+    const project = { manifest, pages: manifest.pages.map((rel: string) => decode(rel)) } as ValidatedPptd;
+    const refs = listSemanticAssetRefs(project, manifest.pages[0]);
+    for (const { ref } of refs) {
+      if (typeof ref !== "string" || !ref.startsWith("media/") || !isAuthoringRelPath(ref) || ref.includes("\\"))
+        throw new AuthoringSnapshotError("invalid referenced asset path");
+      if (out.has(ref)) continue;
+      const parent = lstatSync(join(dir, "media"));
+      if (parent.isSymbolicLink() || !parent.isDirectory()) throw new AuthoringSnapshotError("media directory is redirected");
+      takeFile(ref, true);
+    }
+    return out;
+  }
 
   const takeDir = (subdir: string, accept: (name: string) => string | undefined): void => {
     const abs = join(dir, subdir);
