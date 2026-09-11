@@ -223,8 +223,8 @@ export async function verifyDesign(directory: string) {
     secondHost
   )
   assert.equal(selectedCopy.doc.elements.length, original.doc.elements.length + 2)
-  const secondClosed = new Promise<void>((resolve) =>
-    secondView.webContents.once('destroyed', () => resolve())
+  const secondClosed = new Promise<void>((confirmClosed) =>
+    secondView.webContents.once('destroyed', () => confirmClosed())
   )
   await finishDesignCopy(id, selectedCopy.association.sessionId, secondHost)
   await secondClosed
@@ -242,8 +242,8 @@ export async function verifyDesign(directory: string) {
     checkboxChecked: false
   })) as typeof dialog.showMessageBox
   try {
-    const firstClosed = new Promise<void>((resolve) =>
-      reopenedView.webContents.once('destroyed', () => resolve())
+    const firstClosed = new Promise<void>((confirmClosed) =>
+      reopenedView.webContents.once('destroyed', () => confirmClosed())
     )
     assert.equal(await leaveDesign(id, id), true)
     await firstClosed
