@@ -64,3 +64,20 @@ instructions. Upstream source hashes remain unchanged.
 
 The Spec remains draft. This note does not approve or claim completion of the
 separate hooks, continuous preview, or packaged platform acceptance slices.
+
+## Combined desktop lifecycle verification
+
+The combined T01–T04, T09–T11, T23 and T26–T27 build passed the existing real
+Electron smoke journeys: 3 scenarios / 18 steps for onboarding, Session stop/delete,
+and worktree/terminal cleanup. Electron, preload, IPC and the bundled CLI were real;
+the external ACP was scripted and both application data directories and the daemon
+endpoint were isolated. This proves those lifecycle paths in the combined
+development build, not a commercial model, full canvas-readonly matrix or installed release.
+
+The initial worktree cleanup run correctly retained its directory: Agent and
+terminal processes exited, but the newly materialized skills made the old synthetic
+clean-worktree fixture dirty. Only that fixture now ignores its two bundled
+`graphic-design` skill directories. A deterministic Git check confirms authored
+PPTD, artwork media and custom skills remain visible as uncommitted files. The
+production dirty-worktree guard is unchanged; no force cleanup or user ignore
+configuration was added. The corrected smoke run passed without changing runtime code.

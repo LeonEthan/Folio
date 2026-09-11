@@ -70,8 +70,16 @@ export class WorkSessionFixture {
         '# Synthetic Lody E2E workspace\n\nThis repository contains no user data.\n',
         'utf8'
       );
+      // This journey exercises clean-worktree cleanup. Design preparation now
+      // installs its helpers in the actual cwd; ignore only those fixture
+      // helpers, never authored PPTD/media or the artwork namespace.
+      writeFileSync(
+        join(fixture.projectRoot, '.gitignore'),
+        '/.agents/skills/graphic-design/\n/.claude/skills/graphic-design/\n',
+        'utf8'
+      );
       await execFileAsync('git', ['init', '--initial-branch=main', fixture.projectRoot]);
-      await execFileAsync('git', ['-C', fixture.projectRoot, 'add', 'README.md']);
+      await execFileAsync('git', ['-C', fixture.projectRoot, 'add', 'README.md', '.gitignore']);
       await execFileAsync('git', [
         '-C',
         fixture.projectRoot,
