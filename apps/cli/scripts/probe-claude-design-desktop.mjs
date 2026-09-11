@@ -25,6 +25,7 @@ const referenceBase64 =
 const referencePath = path.join(root, 'synthetic-reference.png');
 await writeFile(referencePath, Buffer.from(referenceBase64, 'base64'));
 let inputStep = 0;
+let permissionRequested = false;
 let referenceDelivered = false;
 let skillDelivered = false;
 let deliveredSkillPath;
@@ -207,6 +208,7 @@ try {
   await page.addLocatorHandler(
     page.getByRole('button', { name: 'Allow Once', exact: true }).first(),
     async () => {
+      permissionRequested = true;
       await page.getByRole('button', { name: 'Allow Once', exact: true }).first().click();
     },
     { noWaitAfter: true }
@@ -238,12 +240,20 @@ try {
   if (await page.getByRole('button', { name: 'Close', exact: true }).count())
     await page.getByRole('button', { name: 'Close', exact: true }).last().click();
   await expect(page.getByRole('button', { name: 'Close', exact: true })).toHaveCount(0);
+  await writeFile(path.join(scenarioDir, 'permission-controls.txt'), await page.locator('body').ariaSnapshot());
+  await page.getByRole('button', { name: 'Permission', exact: true }).click();
+  await writeFile(path.join(scenarioDir, 'permission-menu.txt'), await page.locator('body').ariaSnapshot());
+  await page.getByRole('menuitem', { name: /^Manual/ }).click();
   await page.locator('input[type="file"]').setInputFiles(referencePath);
   await page.locator('#chat-prompt').fill('SYNTHETIC_INITIAL');
-  await page.locator('#chat-prompt').press('Enter');
+  await page.getByRole('button', { name: /^(Send|发送)$/ }).click();
   await expect(page.locator('p').filter({ hasText: 'SYNTHETIC_INITIAL_FINISHED' })).toBeVisible({
     timeout: 120000,
   });
+  const sentReference = page.getByRole('img', { name: 'synthetic-reference.png', exact: true });
+  await expect(sentReference).toBeVisible();
+  await expect.poll(() => sentReference.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
+  console.log('SENT_REFERENCE_RENDERED');
   console.log('INITIAL', page.url());
   const id = page.url().match(/sessions\/([^/?#]+)/)?.[1];
   assert(id);
@@ -376,6 +386,7 @@ try {
   console.log(
     JSON.stringify({
       status: 'passed',
+      permissionRequested,
       referenceDelivered,
       skillDelivered,
       deliveredSkillPath,

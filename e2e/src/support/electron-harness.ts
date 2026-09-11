@@ -6,6 +6,7 @@ import {
   mkdtempSync,
   openSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeSync,
   writeFileSync,
@@ -193,16 +194,16 @@ export class ElectronHarness {
       isPackaged: app.isPackaged,
     }));
     this.record('electron-main', 'boot-state', JSON.stringify(bootState));
-    if (bootState.userDataPath !== electronUserDataDir) {
+    if (realpathSync(bootState.userDataPath) !== realpathSync(electronUserDataDir)) {
       throw new Error('Electron did not use the isolated acceptance user-data directory');
     }
     if (installedExecutable && !bootState.isPackaged) {
       throw new Error('Installed acceptance target did not boot as a packaged application');
     }
     if (installedExecutable) {
-      const sourceCommit = await this.app.evaluate(async ({ app }) => {
-        const fs = await import('node:fs');
-        const path = await import('node:path');
+      const sourceCommit = await this.app.evaluate(({ app }) => {
+        const fs = process.getBuiltinModule('fs');
+        const path = process.getBuiltinModule('path');
         const manifest: unknown = JSON.parse(
           fs.readFileSync(path.join(app.getAppPath(), 'package.json'), 'utf8')
         );

@@ -89,9 +89,10 @@ Installed runs require `FOLIO_E2E_EXPECTED_SOURCE_COMMIT` and compare it to
 `folioSourceCommit` read inside Electron from its own packaged manifest; an absent
 or mismatched source identity fails the run.
 
-Final package execution is pending a source baseline containing the sealed T17,
-T21 and T22 changes. T27's earlier installed DMG predates those changes and is
-historical package evidence only. No final acceptance run is represented here yet.
+The following table preserves the preparation matrix before the first installed
+round recorded below. That round includes sealed T17, T21 and T22 changes but
+requires replacement after the attachment correction. T27's earlier installed DMG
+predates those changes and is historical package evidence only.
 
 | Required cell                                                     | Codex   | Claude  | Pi      | Kimi    | Grok    |
 | ----------------------------------------------------------------- | ------- | ------- | ------- | ------- | ------- |
@@ -154,3 +155,93 @@ the title startup's recorded purge/retry. That ordering does not prove the later
 purge caused the earlier failure. Prewarming may isolate functional hook testing,
 but cannot establish that first-use installation/discovery works. No runtime or
 cache-policy change is included in this preparation checkpoint.
+
+Two additional initialize-only controls started two actual `npx pi-acp@0.0.33`
+processes against a new private shared npm cache without a model request: one
+used the same cwd and one used separate title/main directories. Both processes
+initialized and exited zero with no stderr in both controls. These runs did not
+reproduce the desktop failure and do not disprove a concurrency defect. No startup
+policy is changed from that inference; final package cold-cache/readiness evidence
+remains outstanding.
+
+## First installed combination: 9ef3b504
+
+A clean checkout of `9ef3b5048a9a3d5efb331b887914fe4c0bd90ebf` was built with
+`pnpm e2e:build` and the existing Electron package command for macOS arm64 DMG.
+The package embeds that exact `folioSourceCommit`, disables signing-identity
+discovery and uses `--publish never`. The DMG was verified, mounted read-only,
+copied into a private installation directory and detached. The copied app passed
+`codesign --verify --deep --strict`; no Developer ID or notarization was used.
+
+- DMG SHA256: `2d325a64b90a3b5bf5dca9d65b086f0062de943563b9d1a2fe75741cf5465711`.
+- Installed ASAR SHA256: `19fa091a2e0283d4fc62a56ec277e075861393d765272c408e63154ec858d0c5`.
+- Evidence round: `folio-t28-9ef3b504-7lbyjcg6` in the host temporary directory.
+  Its `package-identity.json`, build/package/install logs and individual native
+  logs are private acceptance artifacts, not captured conversations in Git.
+
+The installed harness exposed two acceptance-tool defects: macOS canonicalized
+`/tmp` to `/private/tmp`, and Playwright's Electron evaluation context rejected
+dynamic imports. The tool now compares both user-data paths with `realpathSync`
+and reads the running packaged manifest through `process.getBuiltinModule`.
+Original boot-state paths remain in the evidence. Neither change relaxes package
+or data-directory identity, and neither changes package bytes.
+
+On this package, the extended Claude probe passed with native reference-image
+bytes and native `Read` of the supplied graphic-design `SKILL.md`, manual edit,
+native read, same-response stale-baseline Write refusal, valid Write/commit, and
+same-byte explicit resubmission. Manual permission mode and actual `Allow Once`
+interaction were recorded. The native Auto classifier requires its own model
+protocol; generic synthetic model responses did not satisfy that classifier and
+are not represented as successful Auto-mode permission evidence. The actual Send
+button is used after attachment upload; an immediate Enter had left the staged
+prompt unsent. Native tools include `Read`, `Write`, `Edit`, ordinary subagent
+operations, `folio_render_preview` and `folio_resubmit_draft`.
+
+A Pi installed round started with a new empty private npm cache and no prewarm.
+It initialized, delivered reference-image bytes and the native skill read, and
+completed the edit/read/Write/commit and explicit same-byte attempt checks. Its
+actual model tool catalog was `read`, `bash`, `edit`, `write`,
+`folio_resubmit_draft`; no image or render MCP tool was present. A separately
+prepared-cache round completed cancellation, provider failure and independent
+final CAS conflict preservation, reopen and explicit continuation, followed by a
+real Pi-to-Claude switch with new native read evidence and commit. Both Pi rounds
+then failed teardown with `ENOTEMPTY`; their functional checkpoints do not make
+the complete runs pass. The prequit observed PIDs had exited and the endpoint was
+released, but an empty session directory remained during recursive removal.
+The responsible writer is not yet established; no retry or global process kill
+is used to conceal the failure.
+
+The installed built-in P0 and P1 probes exited zero, including source preview,
+source import, watcher and multiple-consumer assertions in the existing P1
+facility. The configured Claude image probe also exited zero with an explicit
+required model, synthetic generation and edit service requests, live result,
+native image reading, committed replacement, failed service preservation and
+stale reference rejection. These prove protocol and packaged paths with synthetic
+inputs, not the quality or availability of paid image services.
+
+An initial reference attachment card also reported that its local attachment was
+not present in the session, despite actual bytes reaching the native model. The
+root task is investigating the history-gate ordering while retaining strict
+attachment ownership validation. A relevant product correction requires a new
+sealed package baseline; these results remain explicitly attached to `9ef3b504`.
+The five-Agent Issue remains incomplete and retains every open/blocked matrix cell.
+
+A follow-up Pi probe now stops synthetic HTTP admissions, tracks outstanding
+handler promises and awaits their completion before harness teardown. A private
+I/O trace control still reproduced the same `ENOTEMPTY`: no handler was active
+at drain, the last probe-owned store operation preceded application close, and
+no traced probe write occurred during removal. This rules out that particular
+late-handler explanation for this control; it does not identify the actual writer
+or establish a lifecycle repair. The failed exit remains a blocker for clean Pi
+installed acceptance.
+
+A no-model installed discovery pass selected the pinned Codex, Kimi and Grok
+executables with private homes and synthetic credentials. Each actually started
+its packaged ACP route, but none reached the UI Ready state with those credentials.
+These are launch/authentication observations, not authenticated capability or
+end-to-end design passes. Their known hook gaps remain independently blocking.
+
+The replacement-package Claude probe additionally requires the initial sent
+reference attachment to be visible, complete and have nonzero natural width.
+That new assertion is pending the corrected package; it cannot be satisfied merely
+by delivering image bytes to the model or by absence of an error string.

@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 const { expect } = createRequire(new URL('../../../e2e/package.json', import.meta.url))(
   '@playwright/test'
 );
+const coldCacheMode = process.env.FOLIO_PROBE_COLD_CACHE === '1';
 const recoveryMode = process.env.FOLIO_PROBE_RECOVERY === '1';
 const resubmitMode = process.env.FOLIO_PROBE_RESUBMIT === '1';
 const pi = process.env.FOLIO_PROBE_PI;
@@ -25,6 +26,15 @@ const root = await mkdtemp(
 );
 const scenarioDir = path.join(root, 'evidence');
 await mkdir(scenarioDir);
+const referenceBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=';
+const referencePath = path.join(root, 'synthetic-reference.png');
+await writeFile(referencePath, Buffer.from(referenceBase64, 'base64'));
+let initialCalls = 0;
+let referenceDelivered = false;
+let skillDelivered = false;
+let deliveredSkillPath;
+let nativeToolNames = [];
+let coldCacheEntries = [];
 let editCalls = 0;
 let resubmitCalls = 0;
 let artworkId;
@@ -43,7 +53,16 @@ let holdReached = new Promise((resolve) => {
   reachedHold = resolve;
 });
 
-const provider = createServer(async (req, res) => {
+const activeProviderRequests = new Set();
+const provider = createServer((req, res) => {
+  const request = handleProviderRequest(req, res);
+  activeProviderRequests.add(request);
+  void request.finally(() => activeProviderRequests.delete(request)).catch((error) => {
+    console.error('PROVIDER ERROR', error);
+    res.destroy(error);
+  });
+});
+async function handleProviderRequest(req, res) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
   const raw = Buffer.concat(chunks).toString();
@@ -140,6 +159,22 @@ const provider = createServer(async (req, res) => {
   const editing = !recovering && userMessages.includes('SYNTHETIC_EDIT');
   let calls = [];
   let text = 'SYNTHETIC_INITIAL_FINISHED';
+  if (!editing && !recovering && userMessages.includes('Design authoring directory:')) {
+    if (initialCalls === 0) {
+      referenceDelivered = JSON.stringify(body.messages).includes(referenceBase64);
+      assert(referenceDelivered, 'Reference image bytes reached the actual Pi model input');
+      nativeToolNames = body.tools.map((t) => t.function?.name ?? t.name);
+      deliveredSkillPath = userMessages.match(/Design format and optional helpers: (.+?SKILL\.md)/)?.[1];
+      assert(deliveredSkillPath);
+      calls = [{ index: 0, id: 'call_initial_skill', type: 'function', function: {
+        name: 'read', arguments: JSON.stringify({ path: deliveredSkillPath }),
+      } }];
+    } else {
+      skillDelivered = body.messages.some((m) => m.role === 'tool' && m.tool_call_id === 'call_initial_skill' && JSON.stringify(m.content).includes('# Graphic Design'));
+      assert(skillDelivered, 'Native Pi read delivered SKILL.md content');
+    }
+    initialCalls++;
+  }
   if (editing) {
     const tool = (name, args, i) => ({
       index: i,
@@ -320,7 +355,7 @@ const provider = createServer(async (req, res) => {
   send({ role: 'assistant', ...(calls.length ? { tool_calls: calls } : { content: text }) }, null);
   send({}, calls.length ? 'tool_calls' : 'stop');
   res.end('data: [DONE]\n\n');
-});
+}
 provider.listen(0, '127.0.0.1');
 await once(provider, 'listening');
 const port = provider.address().port;
@@ -334,7 +369,7 @@ await writeFile(
         baseUrl: `http://127.0.0.1:${port}/v1`,
         api: 'openai-completions',
         apiKey: 'synthetic-only',
-        models: [{ id: 'synthetic', contextWindow: 100000, maxTokens: 4096 }],
+        models: [{ id: 'synthetic', input: ['text', 'image'], contextWindow: 100000, maxTokens: 4096 }],
       },
     },
   })
@@ -354,7 +389,12 @@ try {
   assert(dataRoot);
   // Prepare the actual pinned adapter before capability probing and main launch
   // can race installation into this probe's private npm cache. No model call.
-  await promisify(execFile)(
+  coldCacheEntries = await readdir(path.join(dataRoot, 'npm-cache')).catch((error) => {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  });
+  if (coldCacheMode) assert.equal(coldCacheEntries.length, 0, 'Fresh private cache is empty');
+  if (!coldCacheMode) await promisify(execFile)(
     'npm',
     ['exec', '--yes', '--package=pi-acp@0.0.33', '--', 'node', '-e', 'process.exit(0)'],
     {
@@ -383,6 +423,7 @@ try {
     timeout: 60000,
   });
   await page.keyboard.press('Escape');
+  await page.locator('input[type="file"]').setInputFiles(referencePath);
   await page.locator('#chat-prompt').fill('SYNTHETIC_INITIAL');
   await page.getByRole('button', { name: /^(Send|发送)$/ }).click();
   await expect(page.locator('p').filter({ hasText: 'SYNTHETIC_INITIAL_FINISHED' })).toBeVisible({
@@ -662,6 +703,8 @@ try {
     JSON.stringify(observedFinal, null, 2)
   );
   await cp(path.join(dataRoot, 'logs'), path.join(scenarioDir, 'cli-logs'), { recursive: true });
+  assert(referenceDelivered && skillDelivered);
+  h.writeDiagnostics();
   console.log(
     JSON.stringify({
       status: 'passed',
@@ -669,7 +712,12 @@ try {
         recoveryMode && process.env.FOLIO_PROBE_CLAUDE
           ? 'Electron IPC/MessageHandler/Session actual Pi and Claude ACP native runtimes'
           : 'Electron IPC/MessageHandler/Session actual Pi ACP runtime natural finalization',
-      preparedPiAcpCache: true,
+      preparedPiAcpCache: !coldCacheMode,
+      coldCacheEntries,
+      referenceDelivered,
+      skillDelivered,
+      deliveredSkillPath,
+      nativeToolNames,
       syntheticExternalProvider: true,
       editCalls,
       resubmitCalls,
@@ -700,6 +748,11 @@ try {
   console.error('ARTIFACTS', root);
   throw error;
 } finally {
-  provider.close();
+  console.log('PROVIDER_DRAIN', { activeRequests: activeProviderRequests.size });
+  const closed = new Promise((resolve, reject) => provider.close((error) => error ? reject(error) : resolve()));
+  provider.closeAllConnections();
+  await Promise.allSettled([...activeProviderRequests]);
+  await closed;
+  console.log('PROVIDER_DRAINED');
   await h.close();
 }
