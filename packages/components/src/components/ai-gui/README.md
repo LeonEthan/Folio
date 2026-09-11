@@ -79,3 +79,12 @@ Coverage: `SessionRelationCard.stories.tsx`, `tests/session-relation-card.test.t
 and CLI `tests/operation-progress-history.test.ts`. The latter uses real Loro Mirror
 validation and snapshot reloads, because schema-free document fakes cannot detect
 a missing persisted-history message variant.
+
+## Local reference images
+
+`session-local-image.tsx` adapts sent local image file blocks to the existing local
+file resource channel and `ZoomableImageViewer`. It negotiates attachment support,
+reads the persisted session/file/hash identity, and displays read failures instead
+of perpetual cloud-upload progress. The landing and session composers retain their
+existing image drafts, picker, paste/drop and retry behavior; local uploads need no
+product authentication or configured image-generation MCP.

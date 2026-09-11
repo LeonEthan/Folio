@@ -69,6 +69,7 @@ import {
   extractAskUserQuestionAnswersFromOutcome,
   parseAskUserQuestionPermissionMeta,
   SESSION_FILE_MAX_COUNT,
+  SESSION_IMAGE_ALLOWED_MIME_TYPES,
 } from '@lody/shared';
 import { AskUserQuestionCard } from '@/components/sessions/ask-user-question-card';
 import { DesignTurnResultCard } from '@/components/sessions/design-turn-result-card';
@@ -197,6 +198,7 @@ import { stripRecommended } from '@/components/shared/acp-selector-options';
 import { DiffViewer } from '@/ui/diff-viewer/diff-viewer';
 import { Skeleton } from '@/ui/skeleton';
 import { getSessionImageBlobUrl, getSessionImageDataUrl } from '@/lib/session-image-cache';
+import { SessionLocalImage } from './session-local-image';
 import { SessionFileCard, SessionFileCardList } from './session-file-card';
 import {
   SessionFilePreviewDialog,
@@ -4902,18 +4904,23 @@ export const SessionFileGroup = ({
   return (
     <>
       <SessionFileCardList align={align}>
-        {visibleFiles.map((file, index) => (
-          <SessionFileBlockCard
-            // sha256 is the stable identity: fileId is rewritten when a
-            // local-transport block is backfilled to r2, which would otherwise
-            // remount the card and drop in-flight download/preview state.
-            key={`${file.sha256}-${index}`}
-            file={file}
-            onPreview={handlePreview}
-            onDownload={handleDownload}
-            isDownloading={downloadingId === file.fileId}
-          />
-        ))}
+        {visibleFiles.map((file, index) =>
+          file.transport === 'local' &&
+          (SESSION_IMAGE_ALLOWED_MIME_TYPES as readonly string[]).includes(file.mimeType) ? (
+            <SessionLocalImage key={`${file.sha256}-${index}`} file={file} sessionId={sessionId} />
+          ) : (
+            <SessionFileBlockCard
+              // sha256 is the stable identity: fileId is rewritten when a
+              // local-transport block is backfilled to r2, which would otherwise
+              // remount the card and drop in-flight download/preview state.
+              key={`${file.sha256}-${index}`}
+              file={file}
+              onPreview={handlePreview}
+              onDownload={handleDownload}
+              isDownloading={downloadingId === file.fileId}
+            />
+          )
+        )}
         {overflowCount > 0 ? (
           <span className="px-1 text-xs text-muted-foreground">
             {t('sessions.fileGroupOverflow', '+{{count}} more files', { count: overflowCount })}

@@ -1316,6 +1316,7 @@ function WorkspaceChatLanding({
     draftKey: chatLandingDraftKey,
     workspaceId: (workspaceId as WorkspaceId | null) ?? null,
     authToken,
+    machineId: selectedMachineId,
     isMobile,
     projectKind: contextType === 'chat' ? null : contextType,
     sessionId: draftSessionId,

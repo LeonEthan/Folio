@@ -2376,12 +2376,13 @@ export class MessageHandler {
    * `<workspace>/.lody/attachments/<fileId8>-<sanitized name>` and return ACP
    * resource links that reference each by file URI. Idempotent:
    * an existing file whose sha256 matches is reused without re-downloading
-   * (user-resend scenario). File contents are never inlined into the prompt.
+   * (user-resend scenario). Supported raster images also carry ACP image bytes.
    */
   private async materializeSessionFileAttachments(args: {
     workspaceId: WorkspaceId;
     sessionId: SessionId;
     fileBlocks: Extract<SessionInputBlock, { type: 'file' }>[];
+    imageReferences?: DownloadedSessionImagePromptBlock[];
   }): Promise<ContentBlock[]> {
     if (args.fileBlocks.length === 0) {
       return [];
@@ -2389,6 +2390,13 @@ export class MessageHandler {
 
     const attachmentsDir = await this.ensureSessionAttachmentsDir(args.sessionId);
     if (!attachmentsDir) {
+      if (
+        args.fileBlocks.some((block) =>
+          (SESSION_IMAGE_ALLOWED_MIME_TYPES as readonly string[]).includes(block.mimeType)
+        )
+      ) {
+        throw new Error('Reference image workspace unavailable');
+      }
       return args.fileBlocks.map((block) => ({
         type: 'text',
         text: buildUnavailableAttachmentPromptText({
@@ -2469,6 +2477,13 @@ export class MessageHandler {
             destPath,
           }));
 
+        if (
+          !servedLocally &&
+          block.transport === 'local' &&
+          (SESSION_IMAGE_ALLOWED_MIME_TYPES as readonly string[]).includes(block.mimeType)
+        ) {
+          throw new Error(`Local reference image unavailable: ${block.fileName}`);
+        }
         if (!servedLocally) {
           const result = await this.downloadSessionFileToDisk({
             workspaceId: args.workspaceId,
@@ -2501,6 +2516,29 @@ export class MessageHandler {
       // if the blob is already gone (flipped earlier / cleaned up).
       if (block.transport === 'local' && block.machineId === this.machineId) {
         this.enqueueSessionFileBackfill(storageSessionId, block.fileId);
+      }
+
+      if ((SESSION_IMAGE_ALLOWED_MIME_TYPES as readonly string[]).includes(block.mimeType)) {
+        if (
+          block.sizeBytes > SESSION_IMAGE_MAX_SIZE_BYTES ||
+          (await fs.promises.stat(destPath)).size > SESSION_IMAGE_MAX_SIZE_BYTES
+        )
+          throw new Error('Reference image exceeds image size limit');
+        const bytes = await fs.promises.readFile(destPath);
+        if (
+          bytes.length !== block.sizeBytes ||
+          crypto.createHash('sha256').update(bytes).digest('hex') !== block.sha256.toLowerCase()
+        ) {
+          throw new Error(`Reference image integrity mismatch: ${block.fileName}`);
+        }
+        const image: DownloadedSessionImagePromptBlock = {
+          bytes,
+          mimeType: block.mimeType,
+          sizeBytes: bytes.length,
+          block: { type: 'image', mimeType: block.mimeType, data: bytes.toString('base64') },
+        };
+        args.imageReferences?.push(image);
+        promptBlocks.push(image.block);
       }
 
       promptBlocks.push({
@@ -2591,11 +2629,13 @@ export class MessageHandler {
     });
 
     // Materialize human→agent file attachments under `<workspace>/.lody/attachments/`
-    // and reference them with ACP resource links (never inline their contents).
+    // and reference them with ACP resource links; supported raster files also supply image blocks.
+    const fileImageReferences: DownloadedSessionImagePromptBlock[] = [];
     const fileAttachmentBlocks = await this.materializeSessionFileAttachments({
       workspaceId: args.workspaceId,
       sessionId: args.sessionId,
       fileBlocks: fileInputBlocks,
+      imageReferences: fileImageReferences,
     });
 
     // Build the full text prompt: comment references first, then user text
@@ -2613,7 +2653,10 @@ export class MessageHandler {
       sessionId: args.sessionId,
       userTurnId: args.userTurnId,
       promptText: textPrompt,
-      imageAttachments: imagePromptAttachments,
+      imageAttachments: [
+        ...imagePromptAttachments.map(({ downloaded }) => downloaded),
+        ...fileImageReferences,
+      ],
     });
     const finalTextPrompt = designSkillPointer
       ? `${textPrompt}${textPrompt.length > 0 ? '\n\n' : ''}${designSkillPointer}`
@@ -2669,10 +2712,7 @@ export class MessageHandler {
     sessionId: SessionId;
     userTurnId?: string;
     promptText: string;
-    imageAttachments: Array<{
-      inputBlock: Extract<SessionInputBlock, { type: 'image' }>;
-      downloaded: DownloadedSessionImagePromptBlock;
-    }>;
+    imageAttachments: DownloadedSessionImagePromptBlock[];
   }): Promise<string | null> {
     let meta: SessionMeta | null | undefined;
     try {
@@ -2734,7 +2774,7 @@ export class MessageHandler {
         prompt: args.promptText,
         skillSourceIdentity: sourceIdentity,
         skillDrift,
-        references: args.imageAttachments.map(({ downloaded }) => ({
+        references: args.imageAttachments.map((downloaded) => ({
           bytes: downloaded.bytes,
           mimeType: downloaded.mimeType,
         })),
@@ -6946,9 +6986,54 @@ export class MessageHandler {
       case 'file/preview':
         await assertOwner(request.params.sessionId as SessionId);
         return await this.filePreviewService.previewFile(request.params);
-      case 'file/resolve-local':
+      case 'file/resolve-local': {
         await assertOwner(request.params.sessionId as SessionId);
+        if ('attachment' in request.params) {
+          if (request.workspaceId !== this.workspaceId || request.machineId !== this.machineId)
+            throw new Error('Attachment owner mismatch');
+          const sessionId = request.params.sessionId;
+          const identity = request.params.attachment;
+          const doc = await this.workspaceDocument.getOrCreateSessionDoc(sessionId);
+          const history = await doc.getHistory();
+          const block = history
+            .flatMap((entry) => entry.items ?? [])
+            .find(
+              (item) =>
+                item.type === 'file' &&
+                item.fileId === identity.fileId &&
+                item.sha256.toLowerCase() === identity.sha256.toLowerCase()
+            );
+          if (
+            !block ||
+            block.type !== 'file' ||
+            block.transport !== 'local' ||
+            block.machineId !== this.machineId
+          ) {
+            throw new Error('Local attachment is not present in this session');
+          }
+          const absolutePath = getSessionFileBlobPath({
+            workspaceId: this.workspaceId,
+            sessionId: block.storageSessionId ?? sessionId,
+            fileId: block.fileId,
+          });
+          const hash = crypto.createHash('sha256');
+          let size = 0;
+          for await (const chunk of fs.createReadStream(absolutePath)) {
+            size += (chunk as Buffer).length;
+            hash.update(chunk as Buffer);
+          }
+          if (size !== block.sizeBytes || hash.digest('hex') !== block.sha256.toLowerCase()) {
+            throw new Error('Local attachment integrity mismatch');
+          }
+          return {
+            status: 'local-file' as const,
+            path: block.fileName,
+            absolutePath,
+            external: true,
+          };
+        }
         return await this.filePreviewService.resolveLocalFile(request.params);
+      }
       case 'session/get-active-invocation-context': {
         const sessionId = request.params.sessionId as SessionId;
         const invocation = this.executionService.getActiveInvocationContext(sessionId);
@@ -8007,7 +8092,10 @@ export class MessageHandler {
     const sessionMetaRecord = await this.workspaceDocument.repo.getDocMeta(
       getSessionRoomId(sessionId)
     );
-    if (!sessionMetaRecord?.meta || isLoroRepoDocDeleted(sessionMetaRecord)) {
+    if (
+      (sessionMetaRecord && isLoroRepoDocDeleted(sessionMetaRecord)) ||
+      (!sessionMetaRecord?.meta && dispatchContext.source !== 'local')
+    ) {
       respond({
         success: false,
         error: 'session_not_found',

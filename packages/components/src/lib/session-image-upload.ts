@@ -12,6 +12,8 @@ import {
   type SessionImagePayload,
   type WorkspaceId,
 } from '@lody/shared';
+import { sendSessionFileToLocalRuntime } from './electron-session-file-sender';
+import type { SessionFilePayload } from '@lody/shared';
 import { API_BASE_URL } from '@/lib';
 import { postMultipartWithProgress } from '@/lib/multipart-upload';
 
@@ -132,3 +134,26 @@ export const uploadSessionImage = async ({
     height: parsed.data.height,
   };
 };
+
+/** Local image inputs use the existing file blob transport and retain image drafts. */
+export async function uploadSessionReferenceImage(args: {
+  workspaceId: WorkspaceId;
+  sessionId: SessionId;
+  token: string | null;
+  localMachineId?: string;
+  file: File;
+  onProgress?: (percent: number) => void;
+}): Promise<SessionImagePayload | SessionFilePayload> {
+  if (args.localMachineId) {
+    const outcome = await sendSessionFileToLocalRuntime({
+      ...args,
+      machineId: args.localMachineId,
+    });
+    if (!outcome?.ok || !outcome.files[0]) {
+      throw new Error(outcome && !outcome.ok ? outcome.error : 'Local attachment unavailable');
+    }
+    return { ...outcome.files[0], storageSessionId: args.sessionId };
+  }
+  if (!args.token) throw new Error('Local attachment transport unavailable');
+  return uploadSessionImage({ ...args, token: args.token });
+}

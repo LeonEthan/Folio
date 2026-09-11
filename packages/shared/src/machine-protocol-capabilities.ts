@@ -12,6 +12,7 @@ export const MACHINE_PROTOCOL_CAPABILITIES = {
   localProjectRemoval: 'localProjectRemoval',
   providerSetup: 'providerSetup',
   localFileResources: 'localFileResources',
+  localSessionAttachments: 'localSessionAttachments',
   acpProtocolAuthentication: 'acpProtocolAuthentication',
 } as const;
 
@@ -19,6 +20,7 @@ export const ACP_AUTHENTICATION_INTERACTIONS_PROTOCOL_VERSION = 2;
 export const LOCAL_PROJECT_REMOVAL_PROTOCOL_VERSION = 1;
 export const PROVIDER_SETUP_PROTOCOL_VERSION = 1;
 export const LOCAL_FILE_RESOURCES_PROTOCOL_VERSION = 1;
+export const LOCAL_SESSION_ATTACHMENTS_PROTOCOL_VERSION = 1;
 export const ACP_PROTOCOL_AUTHENTICATION_VERSION = 2;
 
 type MachineProtocolCapabilityCarrier = {
@@ -54,6 +56,8 @@ export const CURRENT_MACHINE_PROTOCOL_CAPABILITIES: MachineProtocolCapabilities 
   [MACHINE_PROTOCOL_CAPABILITIES.localProjectRemoval]: LOCAL_PROJECT_REMOVAL_PROTOCOL_VERSION,
   [MACHINE_PROTOCOL_CAPABILITIES.providerSetup]: PROVIDER_SETUP_PROTOCOL_VERSION,
   [MACHINE_PROTOCOL_CAPABILITIES.localFileResources]: LOCAL_FILE_RESOURCES_PROTOCOL_VERSION,
+  [MACHINE_PROTOCOL_CAPABILITIES.localSessionAttachments]:
+    LOCAL_SESSION_ATTACHMENTS_PROTOCOL_VERSION,
   [MACHINE_PROTOCOL_CAPABILITIES.acpProtocolAuthentication]: ACP_PROTOCOL_AUTHENTICATION_VERSION,
 };
 
@@ -113,5 +117,16 @@ export function machineSupportsLocalFileResourcesProtocol(
     machine,
     MACHINE_PROTOCOL_CAPABILITIES.localFileResources,
     LOCAL_FILE_RESOURCES_PROTOCOL_VERSION
+  );
+}
+
+/** Reserved-session uploads and durable attachment identity reads. */
+export function machineSupportsLocalSessionAttachments(
+  machine: MachineProtocolCapabilityCarrier | null | undefined
+): boolean {
+  return machineSupportsProtocolCapability(
+    machine,
+    MACHINE_PROTOCOL_CAPABILITIES.localSessionAttachments,
+    LOCAL_SESSION_ATTACHMENTS_PROTOCOL_VERSION
   );
 }

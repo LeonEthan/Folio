@@ -1,19 +1,25 @@
+import { getMachineMetaByIdAtomFamily } from '@/atoms';
+import { machineSupportsLocalSessionAttachments } from '@lody/shared';
 import { useCallback, useMemo, type ClipboardEvent } from 'react';
 import type { MessageTextSpan } from '@lody/shared';
 import {
   SESSION_IMAGE_MAX_COUNT,
   type SessionId,
+  type SessionFilePayload,
+  type MachineId,
   type SessionImagePayload,
   type SessionInputBlock,
   type WorkspaceId,
 } from '@lody/shared';
-import { useAtom } from 'jotai';
+import { localMachineIdAtom } from '@/atoms/local-probe';
+import { canUseElectronLocalFileSend } from '@/lib/electron-session-file-sender';
+import { useAtomValue, useAtom } from 'jotai';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { usePostHog } from '@posthog/react';
 import { chatLandingPendingImagesAtomFamily, type PendingImage } from '@/atoms/chat-landing-draft';
 import { capturePostHogEvent } from '@/lib/posthog-analytics';
-import { uploadSessionImage, validateSessionImageFile } from '@/lib/session-image-upload';
+import { uploadSessionReferenceImage, validateSessionImageFile } from '@/lib/session-image-upload';
 
 export type ChatLandingImageDraftItem = {
   id: string;
@@ -24,15 +30,18 @@ export type ChatLandingImageDraftItem = {
   error?: string;
 };
 
-const toImageInputBlock = (image: SessionImagePayload): SessionInputBlock => ({
-  type: 'image',
-  imageId: image.imageId,
-  mimeType: image.mimeType,
-  fileName: image.fileName,
-  sizeBytes: image.sizeBytes,
-  width: image.width,
-  height: image.height,
-});
+const toImageInputBlock = (image: SessionImagePayload | SessionFilePayload): SessionInputBlock =>
+  'fileId' in image
+    ? { ...image }
+    : {
+        type: 'image',
+        imageId: image.imageId,
+        mimeType: image.mimeType,
+        fileName: image.fileName,
+        sizeBytes: image.sizeBytes,
+        width: image.width,
+        height: image.height,
+      };
 
 const createLocalImageId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -46,6 +55,7 @@ export function useChatLandingImageDraft(args: {
   draftKey: string;
   workspaceId: WorkspaceId | null;
   authToken: string | null;
+  machineId?: MachineId | null;
   isMobile: boolean;
   projectKind: 'github' | 'local' | null;
   sessionId: SessionId | null;
@@ -61,6 +71,15 @@ export function useChatLandingImageDraft(args: {
     sessionId: draftSessionId,
     ensureSessionId,
   } = args;
+  const localMachineId = useAtomValue(localMachineIdAtom);
+  const attachmentMachine = useAtomValue(getMachineMetaByIdAtomFamily(args.machineId ?? undefined));
+  const localImageMachineId =
+    args.machineId &&
+    args.machineId === localMachineId &&
+    canUseElectronLocalFileSend() &&
+    machineSupportsLocalSessionAttachments(attachmentMachine)
+      ? args.machineId
+      : undefined;
   const postHog = usePostHog();
   const [pendingImages, setPendingImages] = useAtom(chatLandingPendingImagesAtomFamily(draftKey));
   const imageUploadFailedLabel = t('sessions.imageUploadFailed', 'Image upload failed');
@@ -125,7 +144,7 @@ export function useChatLandingImageDraft(args: {
 
   const startUpload = useCallback(
     async (localId: string, file: File, sessionId: SessionId) => {
-      if (!workspaceId || !authToken) {
+      if (!workspaceId) {
         capturePostHogEvent(postHog, 'session/image_upload_failed', {
           channel: 'web',
           entrypoint: 'chat_landing',
@@ -164,10 +183,11 @@ export function useChatLandingImageDraft(args: {
       });
 
       try {
-        const uploaded = await uploadSessionImage({
+        const uploaded = await uploadSessionReferenceImage({
           workspaceId,
           sessionId,
           token: authToken,
+          localMachineId: localImageMachineId,
           file,
           onProgress: (progress) => {
             updatePendingImage(localId, (image) => ({ ...image, progress }));
@@ -215,6 +235,7 @@ export function useChatLandingImageDraft(args: {
     },
     [
       authToken,
+      localImageMachineId,
       imageUploadFailedLabel,
       imageUploadMissingAuthLabel,
       postHog,
@@ -357,9 +378,13 @@ export function useChatLandingImageDraft(args: {
       spans?: MessageTextSpan[]
     ): SessionInputBlock[] => {
       const uploadedImages = pendingImages
-        .filter((image): image is PendingImage & { uploaded: SessionImagePayload } => {
-          return image.status === 'uploaded' && !!image.uploaded;
-        })
+        .filter(
+          (
+            image
+          ): image is PendingImage & { uploaded: SessionImagePayload | SessionFilePayload } => {
+            return image.status === 'uploaded' && !!image.uploaded;
+          }
+        )
         .map((image) => toImageInputBlock(image.uploaded));
       // Images first, then any caller-supplied blocks (e.g. file attachments),
       // then the prompt text — matching the in-session block ordering.

@@ -79,3 +79,15 @@ subdirectory; this file is the navigation index. Cross-module explanations live 
   starts.
 - `analytics/`, `git/`, `notifications/`, `session-export/`, `usage/` — supporting
   services.
+
+## Local reference images
+
+`message-handler.ts` accepts local attachment staging under the landing composer's
+reserved Session ID without creating a Session. Sent PNG/JPEG/WebP/GIF file blocks
+retain their existing resource links and additionally supply ACP image bytes and the
+same bytes/hash to the design turn reference snapshot. Image MCP configuration is
+independent. Other file formats keep the file resource path.
+
+The local `file/resolve-local` attachment variant resolves only a matching persisted
+history identity to its blob, verifies its hash, and hands the result to Electron's
+existing local resource service. It does not create an alternative download server.

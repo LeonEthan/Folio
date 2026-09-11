@@ -4,7 +4,13 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SessionId, SessionInputBlock, WorkspaceId } from '@lody/shared';
+import type {
+  SessionId,
+  SessionInputBlock,
+  WorkspaceId,
+  SessionFileSendLocalResponse,
+  LocalMachineRpcRequestValidated,
+} from '@lody/shared';
 import type { ContentBlock } from '@agentclientprotocol/sdk';
 
 import { MessageHandler } from '../src/lib/message-handler';
@@ -48,6 +54,8 @@ type PromptBlockBuilder = {
 const createPromptHandler = (args: {
   workspaceRoot: string;
   workspaceId: WorkspaceId;
+  history?: Array<{ items: SessionInputBlock[] }>;
+  sessionExists?: boolean;
 }): MessageHandler & PromptBlockBuilder => {
   const sessionManager = {
     getSession: vi.fn(() => ({
@@ -62,10 +70,13 @@ const createPromptHandler = (args: {
     isTransportConnected: vi.fn(() => true),
     markMachineFlockDocDirty: vi.fn(),
     repo: {
-      getDocMeta: vi.fn(async () => ({ meta: {} })),
+      getDocMeta: vi.fn(async () => (args.sessionExists === false ? undefined : { meta: {} })),
       watch: vi.fn(() => ({ unsubscribe: vi.fn() })),
     },
-    getOrCreateSessionDoc: vi.fn(),
+    getOrCreateSessionDoc: vi.fn(async () => ({
+      getHistory: async () => args.history ?? [],
+      getMetaState: async () => undefined,
+    })),
     sendMachineHeartbeat: vi.fn(async () => {}),
   } as unknown as LoroDocumentManager;
   const handler = new MessageHandler(sessionManager, workspaceDocument, createSilentLogger(), {
@@ -93,52 +104,127 @@ describe('MessageHandler session file ACP prompt blocks', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('sends materialized file attachments as ACP resource links', async () => {
-    const fileBytes = new TextEncoder().encode('{"trace":true}\n');
-    const fileBlock = {
-      type: 'file',
-      fileId: 'file-12345678',
-      fileName: 'trace.json',
-      mimeType: 'application/json',
-      sizeBytes: fileBytes.byteLength,
-      sha256: sha256Hex(fileBytes),
-      textPreview: true,
-      transport: 'r2',
-      uploadedAt: 123,
-    } satisfies Extract<SessionInputBlock, { type: 'file' }>;
-
-    const attachmentName = buildAttachmentFileName(fileBlock.fileId, fileBlock.fileName);
-    const attachmentPath = path.join(tmpDir, ATTACHMENTS_DIR_RELATIVE, attachmentName);
-    fs.mkdirSync(path.dirname(attachmentPath), { recursive: true });
-    fs.writeFileSync(attachmentPath, fileBytes);
-
-    const handler = createPromptHandler({ workspaceRoot: tmpDir, workspaceId });
-
+  it('accepts a reserved local session, reopens its sent blob by identity, and rejects a mismatched hash', async () => {
+    const previous = process.env.LODY_DATA_DIR;
+    process.env.LODY_DATA_DIR = path.join(tmpDir, 'data');
+    const history: Array<{ items: SessionInputBlock[] }> = [];
+    const handler = createPromptHandler({
+      workspaceRoot: tmpDir,
+      workspaceId,
+      history,
+      sessionExists: false,
+    });
+    const bytes = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',
+      'base64'
+    );
+    const source = path.join(tmpDir, 'reference.png');
+    fs.writeFileSync(source, bytes);
+    let response: SessionFileSendLocalResponse | undefined;
     try {
-      const promptBlocks = await handler.buildAcpPromptBlocks({
-        workspaceId,
-        sessionId,
-        inputBlocks: [{ type: 'text', text: 'inspect this trace' }, fileBlock],
-      });
-
-      expect(promptBlocks).toContainEqual(
-        expect.objectContaining({
-          type: 'resource_link',
-          uri: pathToFileURL(attachmentPath).href,
-          name: 'trace.json',
-          title: 'trace.json',
-          mimeType: 'application/json',
-          size: fileBytes.byteLength,
-        })
+      const local = handler as unknown as {
+        handleSessionFileSendLocal: (request: unknown, context: unknown) => Promise<void>;
+      };
+      await local.handleSessionFileSendLocal(
+        { sessionId, paths: [source] },
+        {
+          source: 'local',
+          send: (value: SessionFileSendLocalResponse) => {
+            response = value;
+          },
+        }
       );
-      expect(promptBlocks).toContainEqual({
-        type: 'text',
-        text: 'inspect this trace',
-      });
+      expect(response?.success).toBe(true);
+      const file = response?.files?.[0];
+      expect(file?.transport).toBe('local');
+      if (!file) throw new Error('missing uploaded file');
+      history.push({ items: [file] });
+      const reopened = createPromptHandler({ workspaceRoot: tmpDir, workspaceId, history });
+      try {
+        const request = {
+          machineId: 'machine-1',
+          workspaceId,
+          method: 'file/resolve-local',
+          params: {
+            v: 3,
+            sessionId,
+            attachment: { fileId: file.fileId, sha256: file.sha256 },
+          },
+        } as LocalMachineRpcRequestValidated;
+        const result = await reopened.handleLocalMachineRpc(request);
+        expect(result.ok).toBe(true);
+        if (!result.ok || !('status' in result.result) || result.result.status !== 'local-file')
+          throw new Error('missing resource resolution');
+        expect(fs.readFileSync(result.result.absolutePath)).toEqual(bytes);
+        const rejected = await reopened.handleLocalMachineRpc({
+          ...request,
+          params: {
+            v: 3,
+            sessionId,
+            attachment: { fileId: file.fileId, sha256: '0'.repeat(64) },
+          },
+        } as LocalMachineRpcRequestValidated);
+        expect(rejected.ok).toBe(false);
+      } finally {
+        await reopened.cleanup();
+      }
     } finally {
       await handler.cleanup();
+      if (previous === undefined) delete process.env.LODY_DATA_DIR;
+      else process.env.LODY_DATA_DIR = previous;
     }
   });
+
+  it.each(['application/json', 'image/svg+xml'])(
+    'keeps %s files as ACP resource links',
+    async (mimeType) => {
+      const fileBytes = new TextEncoder().encode('{"trace":true}\n');
+      const fileBlock = {
+        type: 'file',
+        fileId: 'file-12345678',
+        fileName: 'trace.json',
+        mimeType,
+        sizeBytes: fileBytes.byteLength,
+        sha256: sha256Hex(fileBytes),
+        textPreview: true,
+        transport: 'r2',
+        uploadedAt: 123,
+      } satisfies Extract<SessionInputBlock, { type: 'file' }>;
+
+      const attachmentName = buildAttachmentFileName(fileBlock.fileId, fileBlock.fileName);
+      const attachmentPath = path.join(tmpDir, ATTACHMENTS_DIR_RELATIVE, attachmentName);
+      fs.mkdirSync(path.dirname(attachmentPath), { recursive: true });
+      fs.writeFileSync(attachmentPath, fileBytes);
+
+      const handler = createPromptHandler({ workspaceRoot: tmpDir, workspaceId });
+
+      try {
+        const promptBlocks = await handler.buildAcpPromptBlocks({
+          workspaceId,
+          sessionId,
+          inputBlocks: [{ type: 'text', text: 'inspect this trace' }, fileBlock],
+        });
+
+        expect(promptBlocks).toContainEqual(
+          expect.objectContaining({
+            type: 'resource_link',
+            uri: pathToFileURL(attachmentPath).href,
+            name: 'trace.json',
+            title: 'trace.json',
+            mimeType,
+            size: fileBytes.byteLength,
+          })
+        );
+        expect(promptBlocks.filter((block) => block.type === 'image')).toEqual([]);
+        expect(promptBlocks).toContainEqual({
+          type: 'text',
+          text: 'inspect this trace',
+        });
+      } finally {
+        await handler.cleanup();
+      }
+    }
+  );
 
   it('keeps image blocks visual and also exposes image bytes as ACP resource links', async () => {
     const imageBytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]);

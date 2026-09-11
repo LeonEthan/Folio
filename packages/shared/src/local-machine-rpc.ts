@@ -352,7 +352,18 @@ export const LocalMachineRpcRequestSchema = z.discriminatedUnion('method', [
   // while remote requests retain File Preview v3's restricted-root policy.
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('file/resolve-local'),
-    params: FilePreviewV3RequestSchema,
+    params: z.union([
+      FilePreviewV3RequestSchema,
+      z
+        .object({
+          v: z.literal(3),
+          sessionId: SessionIdSchema,
+          attachment: z
+            .object({ fileId: z.string().min(1), sha256: z.string().regex(/^[a-f0-9]{64}$/i) })
+            .strict(),
+        })
+        .strict(),
+    ]),
   }).strict(),
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('session/cancel'),

@@ -1,3 +1,5 @@
+import { getMachineMetaByIdAtomFamily } from '@/atoms';
+import { machineSupportsLocalSessionAttachments } from '@lody/shared';
 import { useCallback, useMemo } from 'react';
 import {
   SESSION_FILE_MAX_COUNT,
@@ -97,11 +99,13 @@ export function useChatLandingFileDraft(args: {
   // Desktop local-transport fast path: available only when the selected machine
   // is this machine's local CLI and the Electron preload bridge exposes the
   // handoff API. Otherwise file attachments take the cloud-upload path.
+  const attachmentMachine = useAtomValue(getMachineMetaByIdAtomFamily(machineId ?? undefined));
   const canSendFileLocally =
     !!localMachineId &&
     !!machineId &&
     localMachineId === machineId &&
-    canUseElectronLocalFileSend();
+    canUseElectronLocalFileSend() &&
+    machineSupportsLocalSessionAttachments(attachmentMachine);
 
   const fileUploadFailedLabel = t('sessions.fileUploadFailed', 'File upload failed');
   const fileUploadMissingAuthLabel = t(
@@ -135,7 +139,7 @@ export function useChatLandingFileDraft(args: {
 
   const startUpload = useCallback(
     async (localId: string, file: File, sessionId: SessionId) => {
-      if (!workspaceId || !authToken) {
+      if (!workspaceId) {
         updatePendingFile(localId, (entry) => ({
           ...entry,
           status: 'failed',
@@ -173,6 +177,15 @@ export function useChatLandingFileDraft(args: {
         }
       }
 
+      if (!workspaceId || !authToken) {
+        updatePendingFile(localId, (entry) => ({
+          ...entry,
+          status: 'failed',
+          progress: 0,
+          error: fileUploadMissingAuthLabel,
+        }));
+        return;
+      }
       const abort = new AbortController();
       updatePendingFile(localId, (entry) => ({
         ...entry,

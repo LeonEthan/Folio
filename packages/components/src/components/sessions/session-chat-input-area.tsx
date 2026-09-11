@@ -1,3 +1,5 @@
+import { getMachineMetaByIdAtomFamily } from '@/atoms';
+import { machineSupportsLocalSessionAttachments } from '@lody/shared';
 import {
   useState,
   useCallback,
@@ -103,7 +105,7 @@ import {
 import { resolveEffectiveCodeCollabWorkspaceId } from '@/lib/code-collab-workspace-id';
 import { isImeComposingKeyboardEvent } from '@/lib/ime';
 import { toast } from 'sonner';
-import { uploadSessionImage, validateSessionImageFile } from '@/lib/session-image-upload';
+import { uploadSessionReferenceImage, validateSessionImageFile } from '@/lib/session-image-upload';
 import {
   computeSha256Hex,
   computeTextPreviewable,
@@ -154,7 +156,7 @@ type PendingImage = {
   status: 'uploading' | 'uploaded' | 'failed';
   progress: number;
   error?: string;
-  uploaded?: SessionImagePayload;
+  uploaded?: SessionImagePayload | SessionFilePayload;
 };
 
 type PendingFile = {
@@ -315,15 +317,18 @@ export const clearSessionChatInputDrafts = (sessionId: SessionId): void => {
   abortPendingFileUploads(files);
 };
 
-const toImageInputBlock = (image: SessionImagePayload): SessionInputBlock => ({
-  type: 'image',
-  imageId: image.imageId,
-  mimeType: image.mimeType,
-  fileName: image.fileName,
-  sizeBytes: image.sizeBytes,
-  width: image.width,
-  height: image.height,
-});
+const toImageInputBlock = (image: SessionImagePayload | SessionFilePayload): SessionInputBlock =>
+  'fileId' in image
+    ? { ...image }
+    : {
+        type: 'image',
+        imageId: image.imageId,
+        mimeType: image.mimeType,
+        fileName: image.fileName,
+        sizeBytes: image.sizeBytes,
+        width: image.width,
+        height: image.height,
+      };
 
 const toFileInputBlock = (file: SessionFilePayload): SessionInputBlock => ({
   type: 'file',
@@ -562,11 +567,15 @@ export const SessionChatInputArea = memo(
     // Electron preload bridge exposes the handoff API. Otherwise file attachments
     // take the default cloud-upload path. We never fabricate a "local" machineId;
     // if the session has none, the condition is simply false.
+    const attachmentMachine = useAtomValue(
+      getMachineMetaByIdAtomFamily(session.machineId ?? undefined)
+    );
     const canSendFileLocally =
       !!localMachineId &&
       !!session.machineId &&
       localMachineId === session.machineId &&
-      canUseElectronLocalFileSend();
+      canUseElectronLocalFileSend() &&
+      machineSupportsLocalSessionAttachments(attachmentMachine);
     const workspaceId = useAtomValue(currentWorkspaceIdAtom) as WorkspaceId | null;
     const workspaceRuntime = useAtomValue(runtimeAtom);
     const effectiveWorkspaceId = resolveEffectiveCodeCollabWorkspaceId({
@@ -961,7 +970,7 @@ export const SessionChatInputArea = memo(
 
     const startUpload = useCallback(
       async (targetSessionId: SessionId, localId: string, file: File) => {
-        if (!workspaceId || !authToken) {
+        if (!workspaceId) {
           capturePostHogEvent(postHog, 'session/image_upload_failed', {
             channel: 'web',
             entrypoint: 'session_chat',
@@ -1007,10 +1016,11 @@ export const SessionChatInputArea = memo(
         const uploadStartedAtMs = getPerformanceNowMs();
 
         try {
-          const uploaded = await uploadSessionImage({
+          const uploaded = await uploadSessionReferenceImage({
             workspaceId,
             sessionId: targetSessionId,
             token: authToken,
+            localMachineId: canSendFileLocally ? session.machineId : undefined,
             file,
             onProgress: (progress) => {
               updatePendingImage(targetSessionId, localId, (image) => ({ ...image, progress }));
@@ -1039,66 +1049,6 @@ export const SessionChatInputArea = memo(
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : imageUploadFailedLabel;
           const reasonCode = toImageUploadReason(classifyImageUploadReason(error));
-          if (
-            canSendFileLocally &&
-            session.machineId &&
-            getSessionFileDrafts(targetSessionId).length < SESSION_FILE_MAX_COUNT
-          ) {
-            try {
-              const outcome = await sendSessionFileToLocalRuntime({
-                workspaceId,
-                sessionId: targetSessionId,
-                machineId: session.machineId,
-                file,
-              });
-              const localFile = outcome?.ok ? outcome.files[0] : undefined;
-              if (localFile) {
-                updatePendingImagesForSession(targetSessionId, (prev) => {
-                  const removed = prev.find((image) => image.localId === localId);
-                  if (removed) {
-                    URL.revokeObjectURL(removed.previewUrl);
-                  }
-                  return prev.filter((image) => image.localId !== localId);
-                });
-                updatePendingFilesForSession(targetSessionId, (prev) => [
-                  ...prev,
-                  {
-                    localId: createLocalFileId(),
-                    file,
-                    status: 'uploaded',
-                    progress: 100,
-                    uploaded: localFile,
-                  },
-                ]);
-                toast.info(
-                  t(
-                    'sessions.imageStoredAsLocalFile',
-                    'Image upload is offline; added as a pending file attachment.'
-                  )
-                );
-                capturePostHogEvent(postHog, 'session/image_upload_failed', {
-                  channel: 'web',
-                  entrypoint: 'session_chat',
-                  actor: 'user',
-                  workspace_id: workspaceId,
-                  session_id: targetSessionId,
-                  image_count: 1,
-                  total_size_bytes: file.size,
-                  project_kind: sessionProjectKind,
-                  local_project_id: sessionLocalProjectId,
-                  failure_reason: reasonCode,
-                  reason_code: reasonCode,
-                  http_status: parseUploadHttpStatus(error),
-                  error_name: error instanceof Error ? error.name : typeof error,
-                  upload_duration_ms: getDurationSinceMs(uploadStartedAtMs),
-                  local_file_fallback: true,
-                });
-                return;
-              }
-            } catch {
-              // Keep the original image upload failure visible.
-            }
-          }
           updatePendingImage(targetSessionId, localId, (image) => ({
             ...image,
             status: 'failed',
@@ -1133,16 +1083,13 @@ export const SessionChatInputArea = memo(
         sessionLocalProjectId,
         sessionProjectKind,
         updatePendingImage,
-        updatePendingFilesForSession,
-        updatePendingImagesForSession,
-        t,
         workspaceId,
       ]
     );
 
     const startFileUpload = useCallback(
       async (targetSessionId: SessionId, localId: string, file: File) => {
-        if (!workspaceId || !authToken) {
+        if (!workspaceId) {
           updatePendingFile(targetSessionId, localId, (entry) => ({
             ...entry,
             status: 'failed',
@@ -1183,6 +1130,15 @@ export const SessionChatInputArea = memo(
         }
 
         const abort = new AbortController();
+        if (!workspaceId || !authToken) {
+          updatePendingFile(targetSessionId, localId, (entry) => ({
+            ...entry,
+            status: 'failed',
+            progress: 0,
+            error: fileUploadMissingAuthLabel,
+          }));
+          return;
+        }
         updatePendingFile(targetSessionId, localId, (entry) => ({
           ...entry,
           status: 'preparing',
@@ -1801,9 +1757,13 @@ export const SessionChatInputArea = memo(
           ]
         : [];
       const uploadedImages = pendingImages
-        .filter((image): image is PendingImage & { uploaded: SessionImagePayload } => {
-          return image.status === 'uploaded' && !!image.uploaded;
-        })
+        .filter(
+          (
+            image
+          ): image is PendingImage & { uploaded: SessionImagePayload | SessionFilePayload } => {
+            return image.status === 'uploaded' && !!image.uploaded;
+          }
+        )
         .map((image) => toImageInputBlock(image.uploaded));
       const hasBlockingImages = pendingImages.some((image) => image.status !== 'uploaded');
       // A still-uploading file (not failed) blocks send; failed ones are

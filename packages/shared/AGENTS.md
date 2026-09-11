@@ -74,3 +74,12 @@ per-turn MCP selection, or Role-based session creation and dispatch.
 The public local profile is Folio. Keep its data directory, host endpoint, protocol,
 app ID and packaged desktop identity isolated from Lody. Update both TypeScript
 and CommonJS installation profiles together; never migrate or delete Lody data.
+
+## Local reference attachments
+
+- Negotiate `localSessionAttachments` before reserved-session uploads or attachment
+  identity parameters on `file/resolve-local`. Only the local desktop may stage
+  bytes before Session creation; the reserved Session ID remains their storage owner.
+- Attachment reads match the sent history's file ID, hash and owning machine,
+  validate blob bytes, and reuse Electron's opaque local resources. Never derive a
+  blob path from a caller filename or fall back to authenticated cloud reads.

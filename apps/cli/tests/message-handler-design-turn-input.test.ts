@@ -10,8 +10,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SessionId, SessionMeta, WorkspaceId } from '@lody/shared';
+import type { SessionId, SessionMeta, SessionInputBlock, WorkspaceId } from '@lody/shared';
 
+import { copyIntoSessionFileBlobStore } from '../src/lib/session-file-blob-store';
 import { MessageHandler } from '../src/lib/message-handler';
 import type { LoroDocumentManager } from '../src/lib/loro/doc';
 import type { SessionManager } from '../src/session/session-manager';
@@ -59,7 +60,11 @@ const createSilentLogger = (): Logger => ({
 
 const createHandler = (meta: Partial<SessionMeta> | undefined): MessageHandler => {
   const sessionManager = {
-    getSession: vi.fn(() => null),
+    getSession: vi.fn(() => ({
+      getHostWorkdir: () =>
+        path.join(process.env.LODY_DATA_DIR ?? '', 'chats', meta?.id ?? 'unknown'),
+      getWorkdir: () => undefined,
+    })),
     on: vi.fn(),
     setRequestPermissionHandler: vi.fn(),
     cleanUp: vi.fn(async () => {}),
@@ -96,7 +101,7 @@ type PromptBlockBuilder = {
   buildAcpPromptBlocks: (args: {
     workspaceId: WorkspaceId;
     sessionId: SessionId;
-    inputBlocks: Array<{ type: 'text'; text: string } | { type: 'image'; imageId: string; mimeType: string; sizeBytes: number }>;
+    inputBlocks: SessionInputBlock[];
     userTurnId?: string;
   }) => Promise<PromptBlock[]>;
 };
@@ -165,6 +170,64 @@ describe('MessageHandler design turn-input wiring', () => {
     design: { artworkId: sessionId, path: 'design.json' },
   });
 
+  it.each(['image/jpeg', 'image/png'])(
+    'freezes local %s bytes and dispatches an ACP image block without image MCP',
+    async (mimeType) => {
+      const bytes =
+        mimeType === 'image/png'
+          ? fs.readFileSync(new URL('./fixtures/reference-shapes.png', import.meta.url))
+          : Buffer.from([255, 216, 255, 224, 1, 2, 3, 255, 217]);
+      const source = path.join(
+        tmpDir,
+        mimeType === 'image/png' ? 'reference.png' : 'reference.jpg'
+      );
+      fs.writeFileSync(source, bytes);
+      const fileId = 'file-local-reference';
+      await copyIntoSessionFileBlobStore({ workspaceId, sessionId, fileId, sourcePath: source });
+      const handler = createHandler(designMeta());
+      try {
+        const blocks = await build(
+          handler,
+          [
+            {
+              type: 'file',
+              fileId,
+              fileName: path.basename(source),
+              mimeType,
+              sizeBytes: bytes.length,
+              sha256: createHash('sha256').update(bytes).digest('hex'),
+              textPreview: false,
+              transport: 'local',
+              machineId: 'machine-1',
+              uploadedAt: 1,
+            },
+          ],
+          'turn-local-reference'
+        );
+        expect(blocks).toContainEqual({
+          type: 'image',
+          mimeType,
+          data: bytes.toString('base64'),
+        });
+        const turnDir = path.join(
+          dataDir,
+          'chats',
+          sessionId,
+          'design-input',
+          'turn-local-reference'
+        );
+        const manifest = JSON.parse(fs.readFileSync(path.join(turnDir, 'manifest.json'), 'utf8'));
+        expect(manifest.references).toHaveLength(1);
+        expect(manifest.references[0].sha256).toBe(
+          createHash('sha256').update(bytes).digest('hex')
+        );
+        expect(fs.readFileSync(path.join(turnDir, manifest.references[0].file))).toEqual(bytes);
+      } finally {
+        await handler.cleanup();
+      }
+    }
+  );
+
   it('freezes the manifest and content-named reference copies for a user turn', async () => {
     const handler = createHandler(designMeta());
     const turnId = 'turn-user-1';
@@ -180,10 +243,7 @@ describe('MessageHandler design turn-input wiring', () => {
 
       const workdir = path.join(dataDir, 'chats', sessionId);
       const manifest = JSON.parse(
-        fs.readFileSync(
-          path.join(workdir, 'design-input', turnId, 'manifest.json'),
-          'utf8'
-        )
+        fs.readFileSync(path.join(workdir, 'design-input', turnId, 'manifest.json'), 'utf8')
       ) as Record<string, unknown>;
       const hash = createHash('sha256').update(mocks.imageBytes).digest('hex');
 
@@ -219,9 +279,9 @@ describe('MessageHandler design turn-input wiring', () => {
     mocks.materializeError = new Error('bundle missing');
     const handler = createHandler(designMeta());
     try {
-      await expect(build(handler, [{ type: 'text', text: 'make a poster' }], 'turn-blocked')).rejects.toThrow(
-        /skill materialization failed/
-      );
+      await expect(
+        build(handler, [{ type: 'text', text: 'make a poster' }], 'turn-blocked')
+      ).rejects.toThrow(/skill materialization failed/);
       expect(
         fs.existsSync(path.join(dataDir, 'chats', sessionId, 'design-input', 'turn-blocked'))
       ).toBe(false);

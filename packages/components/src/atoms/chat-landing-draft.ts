@@ -23,7 +23,7 @@ export type PendingImage = {
   status: 'uploading' | 'uploaded' | 'failed';
   progress: number;
   error?: string;
-  uploaded?: SessionImagePayload;
+  uploaded?: SessionImagePayload | SessionFilePayload;
 };
 
 export type PendingFile = {

@@ -50,7 +50,7 @@ vi.mock('../src/lib/posthog-analytics', () => ({ capturePostHogEvent: vi.fn() })
 
 vi.mock('../src/lib/session-image-upload', () => ({
   validateSessionImageFile: () => null,
-  uploadSessionImage: () => {
+  uploadSessionReferenceImage: () => {
     uploadMocks.imageUpload = deferred<unknown>();
     return uploadMocks.imageUpload.promise;
   },
