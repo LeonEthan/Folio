@@ -1,8 +1,12 @@
 import { strict as assert } from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-const resources = new URL('../../../apps/electron/resources/design/', import.meta.url);
+const resources = process.argv[2]
+  ? pathToFileURL(resolve(process.argv[2]) + '/')
+  : new URL('../../../apps/electron/resources/design/', import.meta.url);
 const manifest = JSON.parse(readFileSync(new URL('build.json', resources), 'utf8'));
 for (const [file, key] of [
   ['editor.html', 'shellSha256'],

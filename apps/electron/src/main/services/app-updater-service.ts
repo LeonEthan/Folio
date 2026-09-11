@@ -217,6 +217,7 @@ export class AppUpdaterService {
   }
 
   async quitAndInstall(): Promise<QuitAndInstallElectronUpdateResult> {
+    if (!this.isUpdaterEnabled()) return { ok: false, error: 'updater_disabled' }
     if (this.sparkleBridge) {
       try {
         setAppQuitting(true)

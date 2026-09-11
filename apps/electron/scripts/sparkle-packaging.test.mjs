@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { spawnSync } from 'node:child_process'
+import { packageManagerEnvironment } from './package-manager-environment.mjs'
 import test from 'node:test'
 import path from 'node:path'
 import {
@@ -127,4 +130,27 @@ void test('injects the Sparkle public key only into packaged macOS Info.plist fi
     }),
     path.join('/dist/mac-arm64', 'Lody OSS.app', 'Contents', 'Info.plist')
   )
+})
+
+void test('pins collector pnpm to the caller entrypoint across quoted paths and arguments', () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "folio package 'shim-"))
+  try {
+    const entrypoint = path.join(directory, 'pinned pnpm.cjs')
+    writeFileSync(entrypoint, 'console.log(JSON.stringify(process.argv.slice(2)))')
+    const env = packageManagerEnvironment({ directory, command: process.execPath, entrypoint })
+    const result = spawnSync(
+      process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm',
+      ['list', '--json', process.platform === 'win32' ? '"a b"' : 'a b'],
+      {
+        env,
+        encoding: 'utf8',
+        shell: process.platform === 'win32'
+      }
+    )
+    assert.equal(result.status, 0, result.stderr)
+    assert.deepEqual(JSON.parse(result.stdout), ['list', '--json', 'a b'])
+    assert.notEqual(env.PATH, process.env.PATH)
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
 })

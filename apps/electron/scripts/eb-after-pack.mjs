@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 
 import {
@@ -69,6 +70,24 @@ export default async function afterPack(context) {
     )
     resourcesDir = path.join(context.appOutDir, 'resources')
   }
+  // Verify the bytes actually collected by Builder, on cross-host targets too.
+  const designProbe = spawnSync(
+    process.execPath,
+    [
+      fileURLToPath(
+        new URL('../../../packages/design-bento/scripts/verify-resources.mjs', import.meta.url)
+      ),
+      path.join(resourcesDir, 'app.asar.unpacked', 'resources', 'design')
+    ],
+    { encoding: 'utf8' }
+  )
+  if (designProbe.error || designProbe.status !== 0) {
+    throw new Error(
+      `[design-resources] packaged resource verification failed: ${designProbe.error?.message ?? designProbe.stderr}`
+    )
+  }
+  console.log(`[design-resources] verified packaged Bento bytes for ${platform}-${archName}`)
+
   const publicEdKey = process.env.SPARKLE_ED_PUBLIC_KEY
   if (typeof publicEdKey === 'string' && shouldInjectSparklePublicKey({ platform, publicEdKey })) {
     const plistPath = sparkleInfoPlistPath({

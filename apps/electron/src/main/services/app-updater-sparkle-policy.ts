@@ -15,7 +15,9 @@ export function shouldConstructUpdaterEnabled(input: {
   localPlatform: boolean
   forceEnable: boolean
 }): boolean {
-  return input.forceEnable || !input.localPlatform
+  // Folio local packages must never consume the inherited Lody release feed.
+  // Keep accepting the legacy flag for callers, but it cannot override identity.
+  return !input.localPlatform
 }
 
 export function shouldUseSparkleUpdater(input: {

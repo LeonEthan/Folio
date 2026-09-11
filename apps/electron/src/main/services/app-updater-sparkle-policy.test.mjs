@@ -11,19 +11,10 @@ import {
   sparklePackageJsonPathFromModuleEntry
 } from './app-updater-sparkle-policy.ts'
 
-void test('keeps OSS local updater off unless explicitly force-enabled', () => {
-  assert.equal(
-    shouldConstructUpdaterEnabled({ localPlatform: true, forceEnable: false }),
-    false
-  )
-  assert.equal(
-    shouldConstructUpdaterEnabled({ localPlatform: true, forceEnable: true }),
-    true
-  )
-  assert.equal(
-    shouldConstructUpdaterEnabled({ localPlatform: false, forceEnable: false }),
-    true
-  )
+void test('keeps Folio local updater off even when explicitly force-enabled', () => {
+  assert.equal(shouldConstructUpdaterEnabled({ localPlatform: true, forceEnable: false }), false)
+  assert.equal(shouldConstructUpdaterEnabled({ localPlatform: true, forceEnable: true }), false)
+  assert.equal(shouldConstructUpdaterEnabled({ localPlatform: false, forceEnable: false }), true)
 })
 
 void test('uses Sparkle only for packaged macOS when the native bridge is available', () => {

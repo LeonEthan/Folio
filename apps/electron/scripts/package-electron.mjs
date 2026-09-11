@@ -1,3 +1,4 @@
+import { packageManagerEnvironment } from './package-manager-environment.mjs'
 import { spawn, spawnSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -150,6 +151,14 @@ console.log(`[package-electron] packaging Lody OSS ${version}`)
 
 const runner = resolveRunner()
 
+// Builder invokes bare pnpm internally; prevent a global major version from
+// misreading the pinned install and silently dropping runtime dependencies.
+const packagingEnv = packageManagerEnvironment({
+  directory: generatedConfigDirectory,
+  command: runner.command,
+  entrypoint: runner.args[0]
+})
+
 if (isMacPackaging(electronBuilderArguments, process.platform)) {
   const sparkleArch = resolveSparkleRebuildArch(electronBuilderArguments, process.arch)
   console.log(`[package-electron] rebuilding Sparkle native addon (${sparkleArch})`)
@@ -158,7 +167,7 @@ if (isMacPackaging(electronBuilderArguments, process.platform)) {
     [...runner.args, 'exec', 'electron-sparkle-updater', 'rebuild', '--arch', sparkleArch],
     {
       cwd: electronDir,
-      env: process.env,
+      env: packagingEnv,
       stdio: 'inherit'
     }
   )
@@ -180,7 +189,7 @@ const child = spawn(
   ],
   {
     cwd: electronDir,
-    env: process.env,
+    env: packagingEnv,
     stdio: 'inherit'
   }
 )

@@ -1,8 +1,10 @@
-import { app, BrowserWindow, WebContentsView, nativeImage } from 'electron'
+import { app, BrowserWindow, WebContentsView, nativeImage, dialog } from 'electron'
 import { strict as assert } from 'node:assert'
 import { randomUUID } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
+import { AppUpdaterService } from './app-updater-service'
+import { shouldConstructUpdaterEnabled } from './app-updater-sparkle-policy'
 import {
   attachDesign,
   hideDesign,
@@ -18,7 +20,24 @@ import {
 
 /** Opt-in synthetic acceptance journey using the production editor and persistence path. */
 export async function verifyDesign(directory: string) {
+  // Packaged runs ignore the development-only auth override. Require the native
+  // Electron switch as well, before this probe creates any synthetic designs.
+  const expectedUserData = process.env.LODY_ELECTRON_USER_DATA_DIR
+  assert.ok(process.env.LODY_DATA_DIR, 'Use an isolated LODY_DATA_DIR')
+  assert.ok(expectedUserData, 'Use an isolated LODY_ELECTRON_USER_DATA_DIR')
+  assert.equal(app.getPath('userData'), resolve(expectedUserData))
   await mkdir(directory, { recursive: true })
+  const dimensions = { width: 913, height: 617 }
+  for (const forceEnable of [false, true]) {
+    const updater = new AppUpdaterService({
+      enabled: shouldConstructUpdaterEnabled({ localPlatform: true, forceEnable })
+    })
+    updater.start()
+    assert.equal(updater.getState().phase, 'disabled')
+    assert.deepEqual(await updater.checkForUpdates(), { started: false, error: 'updater_disabled' })
+    assert.deepEqual(await updater.quitAndInstall(), { ok: false, error: 'updater_disabled' })
+    updater.stop()
+  }
   const owner = new BrowserWindow({ width: 1200, height: 800, show: false })
   const association = {
     sessionId: randomUUID(),
@@ -28,7 +47,7 @@ export async function verifyDesign(directory: string) {
     createdAt: new Date().toISOString()
   }
   const id = association.sessionId
-  const created = await designRequest({ operation: 'create', association, width: 800, height: 600 })
+  const created = await designRequest({ operation: 'create', association, ...dimensions })
   await attachDesign(owner, id, { x: 0, y: 0, width: 1200, height: 800 })
   let view = owner.contentView.children.find(
     (child) => child instanceof WebContentsView
@@ -87,14 +106,31 @@ export async function verifyDesign(directory: string) {
       assets: beforeConflict.assets
     }
   })
-  await view.webContents.executeJavaScript('window.bento.undo()')
+  await view.webContents.executeJavaScript(
+    `document.querySelector('[data-c2a-kind="shape"]').click()`
+  )
   await assert.rejects(saveDesign(id), /DESIGN_CONFLICT/)
+  const showMessageBox = dialog.showMessageBox
+  let saveWarning = ''
+  // Simulate the explicit Keep editing choice, using the real leave/quit path.
+  dialog.showMessageBox = (async (_owner: unknown, options: { message: string }) => {
+    saveWarning = options.message
+    return { response: 0, checkboxChecked: false }
+  }) as typeof dialog.showMessageBox
+  try {
+    assert.equal(await prepareDesignQuit(), false)
+    assert.match(saveWarning, /Drawing not saved/)
+    assert.equal(view.webContents.isDestroyed(), false)
+    assert.equal(await view.webContents.executeJavaScript('document.body.inert'), false)
+  } finally {
+    dialog.showMessageBox = showMessageBox
+  }
   const copy = await copyDesign(id, {
     ...association,
     sessionId: randomUUID(),
     name: 'Independent copy'
   })
-  assert.equal(copy.doc.elements.length, 1)
+  assert.equal(copy.doc.elements.length, 3)
   await finishDesignCopy(id, copy.association.sessionId)
   const original = await designRequest({ operation: 'read', sessionId: id })
   assert.equal(original.doc.elements.length, 2)
@@ -114,12 +150,39 @@ export async function verifyDesign(directory: string) {
   for (const format of ['png', 'jpeg'] as const) {
     const bytes = await renderSavedDesign(original, format)
     const image = nativeImage.createFromBuffer(bytes)
-    assert.deepEqual(image.getSize(), { width: 800, height: 600 })
+    assert.deepEqual(image.getSize(), dimensions)
     const pixel = image.toBitmap().subarray(0, 4)
     if (format === 'png') assert.equal(pixel[3], 0)
     else assert.ok(pixel[0] > 250 && pixel[1] > 250 && pixel[2] > 250)
     await writeFile(join(directory, 'design.' + format), bytes)
   }
+  // Invalid writes must reject and leave the confirmed drawing intact.
+  await assert.rejects(
+    designRequest({
+      operation: 'save',
+      sessionId: id,
+      baseRevisionId: original.revisionId,
+      content: {
+        doc: { ...original.doc, canvas: { width: 0, height: 617 } },
+        assets: original.assets
+      }
+    })
+  )
+  await assert.rejects(
+    designRequest({
+      operation: 'save',
+      sessionId: id,
+      baseRevisionId: original.revisionId,
+      content: {
+        doc: {
+          ...original.doc,
+          fonts: [{ family: 'Missing verification font', src: 'asset:' + 'a'.repeat(64) }]
+        },
+        assets: original.assets
+      }
+    })
+  )
+  assert.deepEqual(await designRequest({ operation: 'read', sessionId: id }), original)
   await designRequest({ operation: 'acknowledge', sessionId: id })
   await designRequest({ operation: 'acknowledge', sessionId: copy.association.sessionId })
   destroyDesign(id)
@@ -132,6 +195,16 @@ export async function verifyDesign(directory: string) {
         status: 'passed',
         packaged: app.isPackaged,
         electron: process.versions.electron,
+        chromium: process.versions.chrome,
+        platform: process.platform,
+        arch: process.arch,
+        appName: app.getName(),
+        version: app.getVersion(),
+        dimensions,
+        isolatedData: true,
+        crossProductUpdaterDisabled: true,
+        invalidDocumentPreserved: true,
+        missingFontAssetPreserved: true,
         create: true,
         edit: true,
         undoRedoAcrossHide: true,
@@ -139,6 +212,7 @@ export async function verifyDesign(directory: string) {
         staleHostIgnored: true,
         commitReloadsOpenCanvas: true,
         conflictPreserved: true,
+        quitSaveFailureKeepsEditor: true,
         independentCopy: true,
         pngTransparency: true,
         jpegWhite: true

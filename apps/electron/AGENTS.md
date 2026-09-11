@@ -74,6 +74,9 @@ contracts, and window/renderer integration rules live in
 
 ## Release packaging and auto-update
 
+- Folio local packages never enable the inherited Lody updater, including when
+  `LODY_ELECTRON_ENABLE_UPDATER=1`; startup and IPC update/install paths stay disabled.
+
 - Always package through `scripts/package-electron.mjs` (`pnpm run package -- <args>`),
   never `electron-builder` directly. It injects the released version via
   `extraMetadata` so `package.json` is a fallback rather than the release source of

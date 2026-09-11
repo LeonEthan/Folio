@@ -54,6 +54,27 @@ and packaged builds include the pinned Bento resources; no adjacent checkout is
 needed. See [Bento resources](../../packages/design-bento/README.md) for the source
 closure and current scope. Folio local state uses `~/.folio`, independently of Lody.
 
-Run the built app with `--folio-p0-verify=<output-directory>` and an isolated
-`LODY_DATA_DIR` to check save/reopen, image dimensions, PNG transparency and JPEG
-white compositing. The same probe works with the installed executable.
+Run the built app with `--folio-p0-verify=<output-directory>` to verify the
+bundled font/image sample. `--folio-p1-verify=<output-directory>` exercises the
+editor controls, save/reopen, conflict protection and exact 913×617 PNG/JPEG
+exports, and checks that local updates remain disabled even with the legacy
+force-enable flag. These opt-in probes use synthetic designs and no model calls.
+
+For installed-package verification, copy the application from its DMG into a
+private test location. Set both `LODY_DATA_DIR` and
+`LODY_ELECTRON_USER_DATA_DIR` to separate private test directories and launch the
+executable with `--user-data-dir=<the same Electron test directory>`. The native
+Electron switch selects the profile before main-module initialization; the
+`LODY_ELECTRON_USER_DATA_DIR` variable alone is ignored in packaged builds. P1
+asserts the effective profile before creating designs. Never point these probes
+at existing user data or replace an application in `/Applications`.
+
+The after-pack hook runs the existing Bento hash/license probe against collected
+package bytes on every target, in addition to native dependency gates. It can
+also be run directly with
+`node packages/design-bento/scripts/verify-resources.mjs <packaged-design-directory>`
+from the repository root. Cross-host packaging verifies resource presence and
+hashes; it does not establish that Windows/Linux native executables run. Local
+packages do not enable the inherited Lody updater, including with
+`LODY_ELECTRON_ENABLE_UPDATER=1`. Packaging is not signing, notarization or release
+publication.
