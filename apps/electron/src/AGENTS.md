@@ -115,7 +115,7 @@ reject reload of dirty/composing/saving instances. Bento receives generic readon
 and flush only. Before changing these boundaries, read
 [design resources](../../../packages/design-bento/README.md).
 The preview host uses the same local socket, independently of canvas preparation.
-Keep render policy in the Node-testable `design-render-host-core.ts`; no automatic
-render retry/repair. `maxEdge` scales captured pixels, never layout.
+Keep render policy in Node-testable `design-render-host-core.ts`: no retries, repair,
+per-turn thumbnails or thumbnail IPC. Previews/PNG/JPEG use canvas dimensions.
 Historical files resolve by artwork/digest in the worker; local resources serve
 original bytes and embedded assets.
