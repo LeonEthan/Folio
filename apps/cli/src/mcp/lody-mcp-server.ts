@@ -4134,7 +4134,6 @@ export function buildLodyMcpServer(
   // merely advertised and then refused.
   const runImageTool = async (args: GenerateImageToolInput | EditImageToolInput) => {
     try {
-      const ctx = getSessionContext();
       // Re-resolve before every paid call: the tool is registered from a
       // snapshot, and a connection the user disabled or cleared since would
       // otherwise turn into a call made on stale consent.
@@ -4148,16 +4147,20 @@ export function buildLodyMcpServer(
           true
         );
       }
+      if (!gate.artworkWorkdir || !gate.workspaceRoot) {
+        return textResult('Design workspace is unavailable; no image request was sent.', true);
+      }
       const common = {
         settings: connection,
         prompt: args.prompt,
         ...(args.size === undefined ? {} : { size: args.size }),
-        workdir: ctx.workdir,
+        workdir: gate.artworkWorkdir,
         transport: config.imageTransport ?? fetchImageHttpTransport,
       };
       const asset = await ('images' in args
         ? editImageAsset({
             ...common,
+            sourceWorkdir: gate.workspaceRoot,
             images: args.images,
             ...(args.mask === undefined ? {} : { mask: args.mask }),
           })
@@ -4186,7 +4189,7 @@ export function buildLodyMcpServer(
     {
       title: 'Generate an image through Folio image connection',
       description:
-        "Generate one image with the image connection configured in Folio settings and write it into the current session workspace as a design asset. Use this for product shots, concept art, covers, illustrations, and other raster assets for the design you are building; it is available in design sessions only, and only when the user has configured and enabled an image connection. Returns the workspace-relative asset path (under media/) to reference from the project, plus the sha256 and pixel dimensions. Each call is a paid generation on the user's own account and is never retried automatically. Use an actual image-reading tool to judge outputs and choose further work according to the task. If this tool is absent, only this generation tool is unavailable; assess other Agent capabilities from the tools actually available. Never ask the user to paste an API key in chat.",
+        "Generate one image with the image connection configured in Folio settings and write it into the current session workspace as a design asset. Use this for product shots, concept art, covers, illustrations, and other raster assets for the design you are building; it is available in design sessions only, and only when the user has configured and enabled an image connection. Returns an artwork-relative asset path (under media/ in the design authoring directory), its absolute path, sha256 and pixel dimensions. Reference that relative path from design.pptd in the authoring directory. Each call is a paid generation on the user's own account and is never retried automatically. Use an actual image-reading tool to judge outputs and choose further work according to the task. If this tool is absent, only this generation tool is unavailable; assess other Agent capabilities from the tools actually available. Never ask the user to paste an API key in chat.",
       inputSchema: GenerateImageToolInputSchema,
     },
     runImageTool
@@ -4196,7 +4199,7 @@ export function buildLodyMcpServer(
     {
       title: 'Edit images through Folio image connection',
       description:
-        "Edit one image using a prompt and one or more workspace source/reference image files, with an optional PNG mask for the first image. Uploads the actual files to the user's configured OpenAI Images-compatible /images/edits endpoint using their explicitly selected model. Supported input formats and mask/size limits depend on that service and model; failures are reported without model fallback, generation fallback or automatic paid retries. Each call can be billed. Returns a new workspace media asset for the Agent to read and optionally use in PPTD; it does not replace or commit the current artwork. Available only in design sessions with a complete enabled image connection. Never request an API key in chat.",
+        "Edit one image using a prompt and one or more source/reference image files, with an optional PNG mask for the first image. Relative image/mask paths resolve from the design authoring directory (the same root as generated media/ assets); use absolute paths for attachments elsewhere in the Session workspace. Uploads the actual files to the user's configured OpenAI Images-compatible /images/edits endpoint using their explicitly selected model. Supported input formats and mask/size limits depend on that service and model; failures are reported without model fallback, generation fallback or automatic paid retries. Each call can be billed. Returns a new workspace media asset for the Agent to read and optionally use in PPTD; it does not replace or commit the current artwork. Available only in design sessions with a complete enabled image connection. Never request an API key in chat.",
       inputSchema: EditImageToolInputSchema,
     },
     runImageTool

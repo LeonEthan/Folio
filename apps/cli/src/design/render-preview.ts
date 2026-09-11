@@ -67,7 +67,7 @@ export interface DesignPreviewContext {
    * artwork owns the canvas, and only the canvas is what gets rendered.
    */
   artworkId: string;
-  /** Absolute session workdir (`chats/<asking session>`), where the project lives. */
+  /** Resolved artwork draft directory, where the Agent project lives. */
   workdir: string;
   /** The daemon data root: the root the workdir lives under. */
   dataRoot: string;

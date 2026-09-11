@@ -1,3 +1,8 @@
+import {
+  resolveDesignContext,
+  ensureDesignDirectory,
+  designWorkspacePointer,
+} from '@/design/workspace';
 import os from 'os';
 import fs from 'fs';
 import path from 'path';
@@ -2730,7 +2735,23 @@ export class MessageHandler {
       return null;
     }
     if (!meta?.design) return null;
-    const workdir = getDefaultSessionWorkdir(args.sessionId);
+    const workspaceRoot = this.resolveSessionWorkspaceRoot(args.sessionId);
+    if (!workspaceRoot) throw new DesignTurnInputError('design Session workspace is unavailable');
+    const designWorkspace = await resolveDesignContext({
+      workspaceRoot,
+      sessionId: args.sessionId,
+      artworkId: meta.design.artworkId,
+      legacyWorkdir: getDefaultSessionWorkdir(args.sessionId),
+      turnId: args.userTurnId,
+    });
+    await ensureDesignDirectory(
+      designWorkspace.artifactWorkdir === designWorkspace.inputWorkdir
+        ? designWorkspace.inputWorkdir
+        : workspaceRoot,
+      designWorkspace.artifactWorkdir,
+      true
+    );
+    const workdir = workspaceRoot;
 
     // Capability presence matches environment presence (P2.4): the imagegen
     // skill is delivered exactly when `folio_generate_image` will be. An
@@ -2770,7 +2791,8 @@ export class MessageHandler {
 
     if (args.userTurnId) {
       const manifest = await materializeDesignTurnInput({
-        workdir,
+        workdir: designWorkspace.inputWorkdir,
+        artifactWorkdir: designWorkspace.artifactWorkdir,
         turnId: args.userTurnId,
         artworkId: meta.design.artworkId,
         prompt: args.promptText,
@@ -2785,21 +2807,20 @@ export class MessageHandler {
         `[${args.sessionId}] design turn input frozen for turn ${args.userTurnId}: baseline=${manifest.baselineRevisionId.slice(0, 12)} references=${manifest.references.length}`
       );
     }
-    return designSkillPointerLine(workdir);
+    return `${designSkillPointerLine(workdir)}\n${designWorkspacePointer(designWorkspace, args.userTurnId)}`;
   }
 
-  /**
-   * Whether the given session is a design session (P2.4).
-   *
-   * The MCP gate asks this so `folio_generate_image` is exposed to design
-   * sessions only: a coding session's workdir is the user's own project, and a
-   * generated asset landed there would be an uninvited write to a code
-   * repository. The read is a raw doc-meta lookup, so asking costs nothing and
-   * never opens, creates, or writes a session document; a missing id, an
-   * absent/deleted document, or an unreadable store all answer `false`.
-   */
-  private async isDesignSession(sessionId: SessionId | undefined): Promise<boolean> {
-    return (await this.readDesignSession(sessionId)) !== undefined;
+  /** Resolve tool paths using the live Session and its trusted active invocation. */
+  private async resolveActiveDesignContext(sessionId: SessionId, artworkId: string) {
+    const workspaceRoot = this.resolveSessionWorkspaceRoot(sessionId);
+    if (!workspaceRoot) throw Error('design Session workspace is unavailable');
+    return await resolveDesignContext({
+      workspaceRoot,
+      sessionId,
+      artworkId,
+      legacyWorkdir: getDefaultSessionWorkdir(sessionId),
+      turnId: this.executionService.getActiveInvocationContext(sessionId)?.sourceTurnId,
+    });
   }
 
   /**
@@ -2844,8 +2865,8 @@ export class MessageHandler {
    *
    * Same predicate the MCP tool gate uses (`isImageConnectionReady`), and — for
    * the tool — the same session-identity requirement: the skill is only ever
-   * materialized for a session whose meta carries `design`, which is exactly
-   * what `isDesignSession` asks of the tool gate. Failure is "no capability": a
+   * materialized for a session whose meta carries `design`, which is also required
+   * by the tool gate. Failure is "no capability": a
    * flock document we cannot read is not a machine we may claim can generate
    * images, and the cost of being wrong in that direction is one absent skill
    * rather than a prompt that advertises a tool the agent will not find.
@@ -6857,13 +6878,27 @@ export class MessageHandler {
         // someone's code repository. The settings page's `design/image-connection-test`
         // stays machine-scoped on purpose — a settings surface belongs to no
         // session and must keep working before one exists.
-        const designSession = await this.isDesignSession(
+        const design = await this.readDesignSession(
           request.ownerSessionId as SessionId | undefined
         );
-        const ready = designSession && isImageConnectionReady(connection);
+        let workspace: Awaited<ReturnType<typeof resolveDesignContext>> | undefined;
+        if (design && request.ownerSessionId) {
+          try {
+            workspace = await this.resolveActiveDesignContext(
+              request.ownerSessionId as SessionId,
+              design.artworkId
+            );
+          } catch {
+            /* Unavailable or changed workspace cannot authorize image writes/uploads. */
+          }
+        }
+        const ready = workspace !== undefined && isImageConnectionReady(connection);
         return {
           type: 'design/image-connection' as const,
           connection: toPublicImageConnection(connection),
+          ...(workspace
+            ? { artworkWorkdir: workspace.artifactWorkdir, workspaceRoot: workspace.workspaceRoot }
+            : {}),
           ready,
           // Only a ready connection has a key to hand over, and only the
           // machine-local MCP server asks for it (see the result schema).
@@ -6942,6 +6977,19 @@ export class MessageHandler {
             error: 'this session is not a design session, so there is no project to preview.',
           };
         }
+        let workspace: Awaited<ReturnType<typeof resolveDesignContext>>;
+        try {
+          workspace = await this.resolveActiveDesignContext(
+            request.ownerSessionId as SessionId,
+            design.artworkId
+          );
+        } catch (error) {
+          return {
+            type: 'design/render-preview' as const,
+            ok: false as const,
+            error: formatErrorMessage(error),
+          };
+        }
         const result = await renderDesignPreview(
           {
             // The artwork owns the canvas; the session owns the workdir the
@@ -6949,7 +6997,7 @@ export class MessageHandler {
             // from a path the caller supplied — a design session can only ever
             // preview its own workspace.
             artworkId: design.artworkId,
-            workdir: getDefaultSessionWorkdir(request.ownerSessionId as SessionId),
+            workdir: workspace.artifactWorkdir,
             dataRoot: getLodyDataDir(),
             name: design.name,
             userId: design.userId,
@@ -6961,7 +7009,7 @@ export class MessageHandler {
           ? {
               type: 'design/render-preview' as const,
               ok: true as const,
-              path: result.path,
+              path: path.join(workspace.artifactWorkdir, result.path),
               width: result.width,
               height: result.height,
               bytes: result.bytes,

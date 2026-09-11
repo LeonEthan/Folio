@@ -91,7 +91,10 @@ const createHandler = (
   imageConnection?: ImageConnectionSettings
 ): MessageHandler => {
   const sessionManager = {
-    getSession: vi.fn(() => null),
+    getSession: vi.fn((id: string) => ({
+      getHostWorkdir: () => path.join(process.env.LODY_DATA_DIR ?? '', 'chats', id),
+      getWorkdir: () => undefined,
+    })),
     on: vi.fn(),
     setRequestPermissionHandler: vi.fn(),
     cleanUp: vi.fn(async () => {}),
@@ -144,7 +147,7 @@ describe('MessageHandler design skill prompt wiring', () => {
   let tmpDir: string;
   let dataDir: string;
   let previousDataDir: string | undefined;
-  const sessionId = '11111111-2222-3333-4444-555555555555' as SessionId;
+  const sessionId = '11111111-2222-4333-8444-555555555555' as SessionId;
   const workspaceId = 'workspace-1' as WorkspaceId;
 
   beforeEach(() => {
@@ -190,7 +193,7 @@ describe('MessageHandler design skill prompt wiring', () => {
     try {
       const workdir = path.join(dataDir, 'chats', sessionId);
       const text = await buildText(handler, 'make a poster');
-      expect(text).toBe(
+      expect(text).toContain(
         `make a poster\n\nDesign format and optional helpers: ${workdir}/.claude/skills/graphic-design/SKILL.md. Choose your own creative methods and review.`
       );
       for (const base of ['.claude/skills', '.agents/skills']) {

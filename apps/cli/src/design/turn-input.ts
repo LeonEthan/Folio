@@ -100,11 +100,16 @@ export interface DesignTurnManifest {
    * stale-artifact comparison.
    */
   artifactAtSend?: DesignArtifactAtSend;
+  /** Recorded dispatch fact; consumers must compare with trusted Session workspace paths. */
+  artifactWorkdir?: string;
+  artworkId?: string;
 }
 
 export interface MaterializeDesignTurnInputOptions {
   /** Absolute session workdir (chats/<sessionId>). */
   workdir: string;
+  /** Trusted, resolved authoring directory; input/receipt workdir remains stable. */
+  artifactWorkdir?: string;
   /** The dispatch's userTurnId — the idempotency key for this turn's input. */
   turnId: string;
   /** SessionMeta.design.artworkId (the design store session key). */
@@ -231,7 +236,7 @@ async function materializeReference(
  * lives in the agent's own workspace, and a tampered one changes only what the
  * agent was told, never what the store accepts.
  */
-async function readFrozenManifest(
+export async function readFrozenManifest(
   turnDir: string,
   turnId: string
 ): Promise<DesignTurnManifest | undefined> {
@@ -264,7 +269,20 @@ export async function materializeDesignTurnInput(
   // userTurnId set up again after a restart — returns what the agent was already
   // given, so it cannot be re-anchored to a baseline that moved in between.
   const frozen = await readFrozenManifest(turnDir, opts.turnId);
-  if (frozen) return frozen;
+  if (frozen) {
+    if (frozen.artworkId !== undefined && frozen.artworkId !== opts.artworkId) {
+      throw new DesignTurnInputError('frozen design input belongs to another artwork');
+    }
+    if (
+      frozen.artifactWorkdir !== undefined &&
+      frozen.artifactWorkdir !== path.resolve(opts.artifactWorkdir ?? workdir)
+    ) {
+      throw new DesignTurnInputError(
+        'design workspace changed since dispatch; frozen input and drafts were preserved'
+      );
+    }
+    return frozen;
+  }
 
   // The baseline is read through the single design committer: a missing or
   // corrupt canvas fails the dispatch here rather than anchoring the turn to
@@ -279,7 +297,9 @@ export async function materializeDesignTurnInput(
     );
   }
 
-  const artifactAtSend = artifactAtSendRecord(await readDesignArtifact(workdir));
+  const artifactAtSend = artifactAtSendRecord(
+    await readDesignArtifact(opts.artifactWorkdir ?? workdir)
+  );
 
   const referencesDir = path.join(turnDir, 'references');
   await mkdir(referencesDir, { recursive: true });
@@ -304,6 +324,9 @@ export async function materializeDesignTurnInput(
     skillDrift: [...(opts.skillDrift ?? [])].sort(),
     references,
     artifactAtSend,
+    ...(opts.artifactWorkdir === undefined
+      ? {}
+      : { artifactWorkdir: path.resolve(opts.artifactWorkdir), artworkId: opts.artworkId }),
   };
   await writeFileAtomic(
     turnDir,

@@ -76,6 +76,9 @@ export type McpDesignGate = {
    * the same answer, so no caller can register the tool on half the condition.
    */
   imageConnection: ImageConnectionSettings | null;
+  /** Resolved by the daemon from the live Session; never a caller-selected root. */
+  artworkWorkdir?: string;
+  workspaceRoot?: string;
 };
 
 export const EMPTY_DESIGN_GATE: McpDesignGate = { imageConnection: null };
@@ -106,7 +109,13 @@ export function designGateFromRpcResult(result: unknown): McpDesignGate {
     return EMPTY_DESIGN_GATE;
   }
   const { connection, ready, credential } = parsed.data;
-  if (!ready || connection === null || credential === null) {
+  if (
+    !ready ||
+    connection === null ||
+    credential === null ||
+    !parsed.data.artworkWorkdir ||
+    !parsed.data.workspaceRoot
+  ) {
     return EMPTY_DESIGN_GATE;
   }
   const settings = normalizeImageConnectionSettings({
@@ -114,7 +123,13 @@ export function designGateFromRpcResult(result: unknown): McpDesignGate {
     ...connection,
     apiKey: credential.apiKey,
   });
-  return isImageConnectionReady(settings) ? { imageConnection: settings } : EMPTY_DESIGN_GATE;
+  return isImageConnectionReady(settings)
+    ? {
+        imageConnection: settings,
+        ...(parsed.data.artworkWorkdir ? { artworkWorkdir: parsed.data.artworkWorkdir } : {}),
+        ...(parsed.data.workspaceRoot ? { workspaceRoot: parsed.data.workspaceRoot } : {}),
+      }
+    : EMPTY_DESIGN_GATE;
 }
 
 /**

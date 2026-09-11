@@ -2540,11 +2540,18 @@ export class SessionExecutionService {
     }
     try {
       await this.runTurnFinalizationStage(sessionId, turnId, 'designTurnOutcome', async () => {
+        const session =
+          this.turnRuntimeBySession.get(sessionId)?.session ??
+          this.deps.sessionManager.getSession(sessionId);
         const context = {
           sessionId,
           sessionDoc,
           turnId: userTurnId,
           workdir: getDefaultSessionWorkdir(sessionId),
+          workspaceRoot:
+            session?.getHostWorkdir() ??
+            session?.getWorkdir() ??
+            getDefaultSessionWorkdir(sessionId),
           // The result card's thumbnail (P2.6). Present only when this daemon has
           // a render host; the collection treats a host with no desktop polling
           // the same way, as "no thumbnail today".

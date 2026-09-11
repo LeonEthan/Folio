@@ -12,10 +12,13 @@ graphic-PPTD project that Folio imports into its Bento-derived editor and render
 is not a slide deck and the source image must never be used as a flattened substitute
 for the design.
 
-Write the project in the session workspace root: the manifest as `design.pptd`,
-pages under `pages/`, local assets under `media/`. After your turn, Folio collects exactly `design.pptd`, `pages/`, and
-`media/` from the workspace root, validates them, and imports the result as the
-editable document — you do not write `design.json` yourself.
+Write the project in the design authoring directory supplied with the turn:
+the manifest as `design.pptd`, pages under `pages/`, and local assets under
+`media/`. This directory may differ from Agent cwd in a local project; ordinary
+chat workspaces retain their root. Folio collects exactly these draft files,
+validates them, and imports the result as the editable document. The separate
+`design-current/` path is application input, never a submitted draft; it may be
+absent until synchronized. You do not write `design.json` yourself.
 
 ## Route the task
 

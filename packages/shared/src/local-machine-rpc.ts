@@ -90,6 +90,9 @@ export const ImageConnectionRpcResultSchema = z.discriminatedUnion('type', [
   z
     .object({
       type: z.literal('design/image-connection'),
+      /** Trusted Session-derived design output and attachment roots; not caller paths. */
+      artworkWorkdir: z.string().optional(),
+      workspaceRoot: z.string().optional(),
       /** null when this machine has stored no connection at all. */
       connection: PublicImageConnectionSchema.nullable(),
       /**

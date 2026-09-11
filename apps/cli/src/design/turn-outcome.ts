@@ -1,3 +1,8 @@
+import {
+  ensureDesignDirectory,
+  resolveDesignWorkspace,
+  resolveDesignTurnWorkspace,
+} from './workspace';
 /**
  * Design turn outcome collection (P2.3).
  *
@@ -131,6 +136,8 @@ export interface DesignTurnOutcomeContext {
   turnId: string;
   /** Absolute session workdir (`chats/<sessionId>`); defaults to the data-root layout. */
   workdir?: string;
+  /** Trusted host workspace from the live Session; never read from the manifest. */
+  workspaceRoot?: string;
   /** Test seam: defaults to the daemon data root (the root the workdir lives under). */
   dataRoot?: string;
   /**
@@ -361,7 +368,7 @@ async function recordTurnOutcome(
     return { status: 'recorded', outcome: receipt };
   }
 
-  const manifestFile = await readTurnManifest(workdir, ctx.turnId);
+  let manifestFile = await readTurnManifest(workdir, ctx.turnId);
   if (manifestFile.kind === 'missing') return { status: 'skipped', reason: 'no_manifest' };
 
   // Bound here because both the identity (`meta`, already gated on `design`
@@ -385,7 +392,35 @@ async function recordTurnOutcome(
           subject
         );
 
-  const collected = await classify({ artworkId, workdir, dataRoot, manifestFile, thumbnails });
+  let artifactWorkdir = workdir;
+  if (ctx.workspaceRoot !== undefined && manifestFile.kind === 'ok') {
+    try {
+      artifactWorkdir = resolveDesignTurnWorkspace(
+        resolveDesignWorkspace({
+          workspaceRoot: ctx.workspaceRoot,
+          sessionId: ctx.sessionId,
+          artworkId,
+          legacyWorkdir: workdir,
+        }),
+        manifestFile.manifest,
+        artworkId
+      ).artifactWorkdir;
+      await ensureDesignDirectory(
+        artifactWorkdir === workdir ? workdir : ctx.workspaceRoot,
+        artifactWorkdir
+      );
+    } catch (error) {
+      // A mismatch is a diagnostic, not permission to follow the file's claimed root.
+      manifestFile = { kind: 'unreadable', message: errorMessage(error) };
+    }
+  }
+  const collected = await classify({
+    artworkId,
+    workdir: artifactWorkdir,
+    dataRoot,
+    manifestFile,
+    thumbnails,
+  });
 
   try {
     // Written before the stamp, so the two durable effects of this turn — the

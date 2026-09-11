@@ -34,7 +34,7 @@ import type { SessionManager } from '../src/session/session-manager';
 import type { Logger } from '../src/utils/logger';
 import { createTestCloudPort } from './test-cloud-port';
 
-const DESIGN_SESSION_ID = '11111111-2222-3333-4444-555555555555' as SessionId;
+const DESIGN_SESSION_ID = '11111111-2222-4333-8444-555555555555' as SessionId;
 const CODING_SESSION_ID = '99999999-8888-7777-6666-555555555555' as SessionId;
 const SECRET_KEY = 'sk-daemon-test-placeholder-not-real';
 
@@ -114,7 +114,14 @@ const createHandler = (options: {
   imageConnectionTransport?: ImageHttpTransport;
 }): Harness => {
   const sessionManager = {
-    getSession: vi.fn(() => null),
+    getSession: vi.fn((id: string) =>
+      options.sessions?.[id]
+        ? {
+            getHostWorkdir: () => '/synthetic/folio-test-project',
+            getWorkdir: () => '/synthetic/folio-test-project',
+          }
+        : null
+    ),
     on: vi.fn(),
     setRequestPermissionHandler: vi.fn(),
     cleanUp: vi.fn(async () => {}),

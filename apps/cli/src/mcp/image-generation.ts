@@ -231,6 +231,8 @@ export function buildImageGenerationRequest(
 
 /** Input paths are workspace-local files; uploads never dereference URLs or outside symlinks. */
 export interface EditImageOptions extends GenerateImageOptions {
+  /** Trusted Session cwd for ordinary attachments; output still lands in the artwork directory. */
+  sourceWorkdir?: string;
   images: string[];
   mask?: string;
 }
@@ -252,12 +254,23 @@ export async function buildImageEditRequest(options: EditImageOptions): Promise<
       `edit requires 1 to ${IMAGE_EDIT_MAX_INPUTS} source/reference images`
     );
   }
-  const root = await realpath(options.workdir);
+  const root = path.resolve(options.workdir);
+  const sourceRoot = path.resolve(options.sourceWorkdir ?? options.workdir);
+  const allowedRoots = await Promise.all(
+    [root, sourceRoot].map(async (lexical) => ({ lexical, resolved: await realpath(lexical) }))
+  );
   const files: NonNullable<ImageHttpRequest['multipart']>['files'] = [];
   let total = 0;
   const appendFile = async (input: string, field: string, index: number) => {
     const candidate = path.resolve(root, input);
-    if (!isWithin(root, candidate) || !isWithin(root, await realpath(candidate))) {
+    const resolved = await realpath(candidate);
+    if (
+      !allowedRoots.some(
+        (allowed) =>
+          (isWithin(allowed.lexical, candidate) || isWithin(allowed.resolved, candidate)) &&
+          isWithin(allowed.resolved, resolved)
+      )
+    ) {
       throw new ImageGenerationError('image input must be a file inside the session workspace');
     }
     const handle = await open(candidate, constants.O_RDONLY | constants.O_NOFOLLOW);

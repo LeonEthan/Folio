@@ -81,3 +81,11 @@ execution/consent rules. These rules also bind CLI callers outside that director
   `lastMessageAt` rather than a turn-end hook, and keep only scheduling state (never PR status) in
   `~/.lody/pr-poller-state.json`. Spec: `specs/pr-status-reconciler.md`; invariants:
   `src/lib/pr-poller/AGENTS.md`.
+
+## Design workspace files
+
+- Use `src/design/workspace.ts` to resolve design paths from the live Session cwd
+  and existing artwork/session identity. Manifest paths are dispatch facts, never
+  filesystem authority. Preserve legacy turn inputs; reject changed workspace
+  facts without moving drafts. Only the resolved draft is collectible; application
+  projections must remain separate. See [design files](src/design/README.md).

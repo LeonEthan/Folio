@@ -1,3 +1,4 @@
+import { resolveDesignWorkspace } from '../src/design/workspace';
 /**
  * The daemon's design preview Machine RPC (P2.4b): the transport behind
  * `folio_render_preview`.
@@ -32,7 +33,7 @@ import type { SessionManager } from '../src/session/session-manager';
 import type { Logger } from '../src/utils/logger';
 import { createTestCloudPort } from './test-cloud-port';
 
-const DESIGN_SESSION_ID = '11111111-2222-3333-4444-555555555555' as SessionId;
+const DESIGN_SESSION_ID = '11111111-2222-4333-8444-555555555555' as SessionId;
 const CODING_SESSION_ID = '99999999-8888-7777-6666-555555555555' as SessionId;
 const workspaceId = 'workspace-1' as WorkspaceId;
 
@@ -57,10 +58,18 @@ const sessionMeta = (sessionId: SessionId, design: boolean): Partial<SessionMeta
 });
 
 const createHandler = (
-  sessions: Record<string, Partial<SessionMeta> | undefined> = {}
+  sessions: Record<string, Partial<SessionMeta> | undefined> = {},
+  workspaceRoot?: string
 ): MessageHandler => {
   const sessionManager = {
-    getSession: vi.fn(() => null),
+    getSession: vi.fn((id: string) =>
+      sessions[id]
+        ? {
+            getHostWorkdir: () => workspaceRoot ?? path.join(dataRoot, 'chats', id),
+            getWorkdir: () => workspaceRoot ?? path.join(dataRoot, 'chats', id),
+          }
+        : null
+    ),
     on: vi.fn(),
     setRequestPermissionHandler: vi.fn(),
     cleanUp: vi.fn(async () => {}),
@@ -71,7 +80,8 @@ const createHandler = (
     repo: {
       getDocMeta: vi.fn(async (roomId: string) => {
         for (const [sessionId, meta] of Object.entries(sessions)) {
-          if (getSessionRoomId(sessionId as SessionId) === roomId && meta) return { meta: { ...meta } };
+          if (getSessionRoomId(sessionId as SessionId) === roomId && meta)
+            return { meta: { ...meta } };
         }
         return undefined;
       }),
@@ -79,7 +89,7 @@ const createHandler = (
       watch: vi.fn(() => ({ unsubscribe: vi.fn() })),
       openFlockDoc: vi.fn(async () => ({
         flock: { scan: () => [], set: vi.fn(), delete: vi.fn(), commit: vi.fn() },
-        syncOnce: vi.fn(async () => {})
+        syncOnce: vi.fn(async () => {}),
       })),
     },
     getOrCreateSessionDoc: vi.fn(async () => ({ getMetaState: vi.fn(async () => undefined) })),
@@ -174,8 +184,10 @@ afterEach(() => {
   rmSync(dataRoot, { recursive: true, force: true });
 });
 
-const writeProject = (sessionId: SessionId): string => {
-  const workdir = path.join(dataRoot, 'chats', sessionId);
+const writeProject = (
+  sessionId: SessionId,
+  workdir = path.join(dataRoot, 'chats', sessionId)
+): string => {
   mkdirSync(path.join(workdir, 'pages'), { recursive: true });
   writeFileSync(path.join(workdir, 'design.pptd'), MANIFEST);
   writeFileSync(path.join(workdir, 'pages', 'main.page'), PAGE);
@@ -226,17 +238,19 @@ const firstHandedOut = async (handler: MessageHandler, pending: Promise<unknown>
 describe('design/render-host-status', () => {
   it('answers "no desktop" before any host has polled', async () => {
     const handler = createHandler();
-    expect(
-      await send(handler, { method: 'design/render-host-status', params: {} })
-    ).toEqual({ type: 'design/render-host-status', connected: false });
+    expect(await send(handler, { method: 'design/render-host-status', params: {} })).toEqual({
+      type: 'design/render-host-status',
+      connected: false,
+    });
   });
 
   it('answers "connected" once a host has polled', async () => {
     const handler = createHandler();
     await hostPoll(handler);
-    expect(
-      await send(handler, { method: 'design/render-host-status', params: {} })
-    ).toEqual({ type: 'design/render-host-status', connected: true });
+    expect(await send(handler, { method: 'design/render-host-status', params: {} })).toEqual({
+      type: 'design/render-host-status',
+      connected: true,
+    });
   });
 });
 
@@ -305,16 +319,43 @@ describe('design/render-preview', () => {
     const result = await pending;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.path).toBe(
-      `design-preview/${path.basename(work.outputPath)}`
-    );
+    expect(result.path).toBe(work.outputPath);
     expect(result.width).toBe(320);
     expect(result.height).toBe(200);
     expect(result.bytes).toBe(stat.byteLength);
     // The payload the desktop was handed is the project itself, addressed the
     // same way the store would address it, and named for the artwork.
-    expect(result.path.startsWith('design-preview/')).toBe(true);
+    expect(path.isAbsolute(result.path)).toBe(true);
   });
+
+  it.each(['local-project', 'ordinary-directory'])(
+    'renders the actual Session draft in %s',
+    async (kind) => {
+      const workspaceRoot = path.join(dataRoot, kind);
+      mkdirSync(workspaceRoot, { recursive: true });
+      if (kind === 'local-project') mkdirSync(path.join(workspaceRoot, '.git'));
+      const workspace = resolveDesignWorkspace({
+        workspaceRoot,
+        sessionId: DESIGN_SESSION_ID,
+        artworkId: DESIGN_SESSION_ID,
+        legacyWorkdir: path.join(dataRoot, 'chats', DESIGN_SESSION_ID),
+      });
+      const handler = createHandler(
+        { [DESIGN_SESSION_ID]: sessionMeta(DESIGN_SESSION_ID, true) },
+        workspaceRoot
+      );
+      writeProject(DESIGN_SESSION_ID, workspace.artifactWorkdir);
+      await hostPoll(handler);
+      const pending = renderPreview(handler, DESIGN_SESSION_ID);
+      const work = await firstHandedOut(handler, pending);
+      expect(path.dirname(work.outputPath)).toBe(
+        path.join(workspace.artifactWorkdir, 'design-preview')
+      );
+      writeFileSync(work.outputPath, pngFixture(work.width, work.height));
+      await hostPoll(handler, [{ requestId: work.requestId, ok: true }]);
+      expect(await pending).toMatchObject({ ok: true, path: work.outputPath });
+    }
+  );
 
   it('turns the desktop’s own failure into the agent’s refusal', async () => {
     const handler = createHandler({

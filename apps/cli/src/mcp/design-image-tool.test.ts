@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { readFile, writeFile } from 'node:fs/promises';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -98,7 +98,15 @@ async function withServer(
   run: (client: Client) => Promise<void>
 ): Promise<void> {
   const server = buildLodyMcpServer({
-    ...(options.designGate === undefined ? {} : { designGate: options.designGate }),
+    ...(options.designGate === undefined
+      ? {}
+      : {
+          designGate: {
+            artworkWorkdir: options.workdir ?? '/tmp/workspace',
+            workspaceRoot: options.workdir ?? '/tmp/workspace',
+            ...options.designGate,
+          },
+        }),
     ...(options.resolveGate === undefined ? {} : { resolveGate: options.resolveGate }),
     ...(options.imageTransport === undefined ? {} : { imageTransport: options.imageTransport }),
   });
@@ -228,6 +236,8 @@ describe('resolveDesignGate', () => {
                 hasApiKey: true,
                 updatedAt: 1_700_000_000_000,
               },
+              artworkWorkdir: '/tmp/workspace',
+              workspaceRoot: '/tmp/workspace',
               ready: true,
               credential: { apiKey: SECRET_KEY },
             },
@@ -270,10 +280,15 @@ describe('the daemon answer decides registration', () => {
    * `tests/message-handler-image-connection-rpc.test.ts`; here we pin what the
    * MCP server does with each answer.
    */
-  const daemonAnswer = (overrides: {
-    ready: boolean;
-    credential: { apiKey: string } | null;
-  }): unknown => ({
+  const daemonAnswer = (
+    overrides: {
+      ready: boolean;
+      credential: { apiKey: string } | null;
+    },
+    workspaceRoot = '/tmp/workspace'
+  ): unknown => ({
+    artworkWorkdir: workspaceRoot,
+    workspaceRoot,
     type: 'design/image-connection',
     connection: {
       enabled: true,
@@ -292,7 +307,7 @@ describe('the daemon answer decides registration', () => {
       jsonResponse(200, { data: [{ b64_json: png.toString('base64') }] })
     );
     const designGate = designGateFromRpcResult(
-      daemonAnswer({ ready: true, credential: { apiKey: SECRET_KEY } })
+      daemonAnswer({ ready: true, credential: { apiKey: SECRET_KEY } }, workdir)
     );
 
     expect(await listToolNames(designGate)).toContain(TOOL_NAME);
@@ -454,5 +469,35 @@ describe('folio_edit_image', () => {
       }
     );
     expect(uploaded).toEqual(['https://images.example.com/v1/images/edits']);
+  });
+});
+
+describe('resolved artwork asset directory', () => {
+  it('uses the daemon artwork directory for generation and accepts workspace attachments for edits', async () => {
+    const workdir = await mkdtemp(path.join(os.tmpdir(), 'folio-artwork-image-'));
+    const artworkWorkdir = path.join(workdir, '.folio', 'artworks', 'synthetic');
+    const png = pngFixture(4, 4);
+    const { transport } = recordedTransport(() =>
+      jsonResponse(200, { data: [{ b64_json: png.toString('base64') }] })
+    );
+    const designGate = { ...readyGate, artworkWorkdir, workspaceRoot: workdir };
+    try {
+      const generated = await callGenerate({ workdir, designGate, imageTransport: transport });
+      expect(generated.isError).toBeFalsy();
+      const asset = JSON.parse(textOf(generated));
+      expect(asset.absolutePath).toBe(path.join(artworkWorkdir, asset.path));
+      const attachment = path.join(workdir, 'reference.png');
+      await writeFile(attachment, png);
+      await withServer({ workdir, designGate, imageTransport: transport }, async (client) => {
+        const edited = (await client.callTool({
+          name: 'folio_edit_image',
+          arguments: { prompt: 'Synthetic edit', images: [attachment] },
+        })) as CallToolResult;
+        expect(edited.isError).toBeFalsy();
+        expect(JSON.parse(textOf(edited)).absolutePath).toBe(asset.absolutePath);
+      });
+    } finally {
+      await rm(workdir, { recursive: true, force: true });
+    }
   });
 });

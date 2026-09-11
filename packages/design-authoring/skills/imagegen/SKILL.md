@@ -31,9 +31,9 @@ Never ask the user to paste an API key in chat; keys live in the app's settings 
 
 Choose your own prompting, inspection, and iteration approach for the task. Useful
 inputs include exact text, subject, composition, intended use, and constraints.
-`folio_generate_image` writes returned bytes to the workspace asset area and
-returns their path. For graphic-design, place the asset under the project's
-`media/` and reference it there. Open outputs with an actual image-reading tool to
+`folio_generate_image` writes returned bytes under `media/` in the supplied
+design authoring directory and returns both the artwork-relative and absolute
+paths. Reference the relative path from that directory's `design.pptd`. Open outputs with an actual image-reading tool to
 judge the result and decide whether further changes are useful. Report material
 limits and the resulting asset path.
 
@@ -46,7 +46,9 @@ creative sequence, number of reviews, or automatic paid retries.
 - `folio_edit_image`: `prompt`, `images` (1–16 workspace source/reference paths in
   prompt order), optional `mask` and `size`. Files are uploaded as multipart data
   to `/images/edits`; copy outside references into the workspace first. Each file
-  is limited to 16 MiB and the combined inputs to 64 MiB by Folio.
+  is limited to 16 MiB and the combined inputs to 64 MiB by Folio. Relative image
+  and mask paths use the design authoring directory; use absolute paths for
+  ordinary attachments elsewhere in the Session workspace.
 - Masks are PNG files for the first image. Transparent areas indicate regions to
   edit; match the first image’s dimensions and the configured provider’s rules.
   A mask guides the model; it is not a guarantee of exact pixel preservation.

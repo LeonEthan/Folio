@@ -46,7 +46,9 @@ per-turn MCP selection, or Role-based session creation and dispatch.
   design meta AND the machine's row to be complete and enabled. Absent, deleted, or unreadable
   session meta is unavailable, and the lookup must stay read-only — never create or write a
   session document to answer it. `design/image-connection-test` is machine-scoped and carries no
-  session identity: a settings surface must work before any session exists.
+  session identity: a settings surface must work before any session exists. Optional
+  `artworkWorkdir` and `workspaceRoot` come only from the live Session and validated
+  frozen context; image calls require both, never fall back to an MCP-provided path.
 - Image models are user-required: preserve explicit stored models, never fill empty ones.
   Generate/edit share readiness; image-reading, attachments and rendering remain independent.
 

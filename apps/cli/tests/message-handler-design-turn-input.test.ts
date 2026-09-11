@@ -40,7 +40,11 @@ vi.mock('@/design/skills', async (importOriginal) => {
 
 vi.mock('@/lib/session-image-download', () => ({
   downloadSessionImageForPrompt: vi.fn(async () => ({
-    block: { type: 'image', mimeType: mocks.imageMimeType, data: mocks.imageBytes.toString('base64') },
+    block: {
+      type: 'image',
+      mimeType: mocks.imageMimeType,
+      data: mocks.imageBytes.toString('base64'),
+    },
     bytes: mocks.imageBytes,
     mimeType: mocks.imageMimeType,
     sizeBytes: mocks.imageBytes.byteLength,
@@ -58,11 +62,14 @@ const createSilentLogger = (): Logger => ({
   close: async () => {},
 });
 
-const createHandler = (meta: Partial<SessionMeta> | undefined): MessageHandler => {
+const createHandler = (
+  meta: Partial<SessionMeta> | undefined,
+  workspaceRoot?: string
+): MessageHandler => {
   const sessionManager = {
     getSession: vi.fn(() => ({
       getHostWorkdir: () =>
-        path.join(process.env.LODY_DATA_DIR ?? '', 'chats', meta?.id ?? 'unknown'),
+        workspaceRoot ?? path.join(process.env.LODY_DATA_DIR ?? '', 'chats', meta?.id ?? 'unknown'),
       getWorkdir: () => undefined,
     })),
     on: vi.fn(),
@@ -253,7 +260,9 @@ describe('MessageHandler design turn-input wiring', () => {
       expect(manifest.prompt).toBe('make a poster');
       expect(blocks).toContainEqual({
         type: 'text',
-        text: `make a poster\n\nDesign format and optional helpers: ${workdir}/.claude/skills/graphic-design/SKILL.md. Choose your own creative methods and review.`,
+        text: expect.stringContaining(
+          `make a poster\n\nDesign format and optional helpers: ${workdir}/.claude/skills/graphic-design/SKILL.md. Choose your own creative methods and review.`
+        ),
       });
       expect(manifest.canvas).toEqual({ width: 1024, height: 768 });
       expect(typeof manifest.baselineRevisionId).toBe('string');
@@ -320,6 +329,44 @@ describe('MessageHandler design turn-input wiring', () => {
     }
   });
 
+  it.each(['local-project', 'non-git'])(
+    'prepares the actual Session directory for %s',
+    async (kind) => {
+      const workspaceRoot = path.join(tmpDir, kind);
+      fs.mkdirSync(workspaceRoot, { recursive: true });
+      if (kind === 'local-project') fs.mkdirSync(path.join(workspaceRoot, '.git'));
+      const handler = createHandler(designMeta(), workspaceRoot);
+      try {
+        const blocks = await build(
+          handler,
+          [{ type: 'text', text: 'create in this workspace' }],
+          'project-turn'
+        );
+        const inputDir = path.join(dataDir, 'chats', sessionId, 'design-input', 'project-turn');
+        const manifest = JSON.parse(fs.readFileSync(path.join(inputDir, 'manifest.json'), 'utf8'));
+        const artifactWorkdir = path.join(
+          workspaceRoot,
+          '.folio',
+          'artworks',
+          sessionId,
+          sessionId
+        );
+        expect(manifest.artifactWorkdir).toBe(artifactWorkdir);
+        expect(manifest.artworkId).toBe(sessionId);
+        expect(manifest.artifactAtSend).toEqual({ status: 'absent' });
+        expect(fs.existsSync(path.join(artifactWorkdir, 'design.pptd'))).toBe(false);
+        expect(
+          fs.existsSync(path.join(workspaceRoot, '.claude/skills/graphic-design/SKILL.md'))
+        ).toBe(true);
+        const text = blocks.find((block) => block.type === 'text')?.text;
+        expect(text).toContain(artifactWorkdir);
+        expect(text).toContain(inputDir);
+      } finally {
+        await handler.cleanup();
+      }
+    }
+  );
+
   it('omits the manifest for internal turns without a userTurnId but still guides the agent', async () => {
     const handler = createHandler(designMeta());
     try {
@@ -328,7 +375,9 @@ describe('MessageHandler design turn-input wiring', () => {
       expect(blocks).toEqual([
         {
           type: 'text',
-          text: `internal\n\nDesign format and optional helpers: ${workdir}/.claude/skills/graphic-design/SKILL.md. Choose your own creative methods and review.`,
+          text: expect.stringContaining(
+            `internal\n\nDesign format and optional helpers: ${workdir}/.claude/skills/graphic-design/SKILL.md. Choose your own creative methods and review.`
+          ),
         },
       ]);
       expect(fs.existsSync(path.join(workdir, 'design-input'))).toBe(false);
