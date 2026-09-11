@@ -1110,3 +1110,119 @@ text/permission compatibility. They do not complete T28, repeat all five-Agent
 cases, establish paid image-service quality or fix the known HTTP cancellation
 and native generation-hook gaps. Earlier failures and other package identities
 remain unchanged.
+
+### Codex deferred image tool catalog
+
+On the normal `81d54b6` package, native Codex 0.153.4 exposes Folio image tools
+through its deferred `functions.exec` catalog. Handle 17588 exited 0; evidence is
+`folio-t28-codex-input-UVhzbI/evidence`, with package log
+`codex-image-catalog-native-1.log`. The correlated `native_image_catalog` result
+lists `mcp__lody__folio_generate_image`, `mcp__lody__folio_edit_image`,
+`mcp__lody__folio_render_preview` and native `view_image`, including their actual
+argument declarations. Their absence from the earlier unexpanded tool listing
+therefore does not establish unavailable capability.
+
+The isolated settings UI starts with an empty required image model and disabled
+Save; explicitly setting `synthetic-image` permits saving the local synthetic
+connection. The actual native catalog result and visible completion are observed;
+owned cleanup finishes at 18:41:10.921Z. Root inspected the correlated output.
+This proves configuration and discovery only: generate/edit execution, native
+reading of their outputs and the full combined design journey remain unverified
+for Codex at this point. No paid request or runtime change was made.
+
+The first subsequent generate/edit attempt, handle 88287, exited 1 with evidence
+in `folio-t28-codex-input-2IbPst/evidence` and package log
+`codex-image-mcp-native-1.log`. Native `folio_generate_image` was rejected before
+image-service execution because automatic approval reported `guardian assessment
+was not valid JSON`. The synthetic provider had answered all non-main requests
+with plain text, but actual requests 5–7 use Codex's structured approval schema;
+request 3 independently uses a structured native-title schema. Root inspected
+the actual planned action, schema and correlated rejection. This is a fixture
+response-format failure, not evidence of a broken Folio image endpoint. The
+failed result is preserved; owned cleanup finishes at 18:48:03.343Z. The next
+fixture must honor these actual schemas without disabling approval or relaxing
+image-delivery assertions.
+
+### Codex native generate/edit and image reading
+
+The corrected synthetic provider retains native automatic approval and the same
+permission mode. It validates the actual approval schema, reviewed main-session
+identity, exact generate/edit arguments and owned workspace paths before returning
+the structured decision. The edit additionally verifies the generated file's
+bytes. Unrecognized actions are refused. A proposed v2 parser was corrected
+offline against the first round's actual multipart request before any execution;
+v2 was never run. Runtime code and image assertions were unchanged.
+
+Handle 56219 exited 0 on the normal `81d54b6` package; evidence is
+`folio-t28-codex-input-YqNhB7/evidence`, package log
+`codex-image-mcp-native-3.log`. Actual native MCP calls generate one asset and
+upload its exact 1,330 bytes for editing through the local configured service.
+Both requests carry the explicit `synthetic-image` model and match the fixture
+credential. Editing returns a distinct 1,393-byte PNG, SHA-256
+`f69751b74bbc7f1d97c1a101a326a30a516c1ac979c66a71973e70ca77e98628`,
+and preserves the original generated file. Both assets remain in that Session's
+`media/` directory.
+
+Native `view_image` reads each result with original detail. The correlated
+`native_view_generated` and `native_view_edited` outputs each contain the exact
+respective PNG in actual subsequent model input; root independently decoded and
+hashed both. Approval requests 5 and 8 match the same main-session identity and
+the exact allowed fixture actions. Owned cleanup finishes at 18:51:20.544Z.
+This establishes Codex generate/edit transport and actual image reading with
+synthetic local services. It does not test paid service quality, error retries,
+render/live-preview behavior, native design hooks, formal commits or human
+visual judgment. Full T28 remains incomplete.
+
+### Kimi native generate/edit and image reading
+
+Handle 93922 exited 0 on the normal `81d54b6` package with the unchanged pinned
+Kimi `0.39.1-lody.f255222661c9` artifact. Evidence is
+`folio-t28-kimi-input-j8pbJo/evidence`, package log
+`kimi-image-mcp-native-1.log`. The actual first request's tool catalog supplies
+generate/edit and `ReadMediaFile` schemas; all roles initially contain no images.
+The explicit image model configuration and actual Default/Manual mode are used,
+with single-use permission responses recorded for generation and editing.
+
+The real MCP generation returns the same 1,330-byte PNG used above. Editing
+uploads those exact bytes and returns the distinct 1,393-byte PNG, leaving the
+original unchanged. Both provider requests use `synthetic-image` and the fixture
+credential. Six model requests include two `ReadMediaFile` calls with
+`full_resolution: true`; each correlated tool result is followed by its own
+single, exact image in the native provider's user-media message. Neither image
+is counted before its corresponding read. Root independently decoded and hashed
+both media blocks and inspected the request/permission records.
+
+That media placement is present in the actual tested `dist/main.mjs`; inspecting
+the newer working-tree Kimi submodule alone would not prove the pinned artifact's
+behavior. Owned cleanup finishes at 18:57:29.414Z. These results establish Kimi
+generate/edit transport and native image reading with local synthetic services.
+Native hooks, final commits, live previews, error retries and visual-quality
+judgment are not exercised by this round. Full T28 remains incomplete.
+
+### Grok discovers the configured Folio image tools
+
+Handle 27845 exited 0 on the normal `81d54b6` package with unchanged native Grok
+1.0.13; evidence is `folio-t28-grok-input-FepPf1/evidence`, package log
+`grok-image-search-native-1.log`. After explicit image-connection configuration,
+native `search_tool` returns `status: ready`, no pending note, and the qualified
+`lody__folio_generate_image` and `lody__folio_edit_image` names with their actual
+input schemas. Root inspected the full correlated `native_image_search` result.
+The native `use_tool` contract requires these discovered qualified names; Grok's
+separately listed `image_gen` and `image_edit` tools are not Folio MCP execution.
+Owned cleanup finishes at 19:02:32.759Z. This round establishes configuration and
+discovery only; generation, editing and reading their output are not yet verified
+for Grok.
+
+The first complete-call attempt, handle 84937, exited 1 at the original UI
+completion deadline; evidence is `folio-t28-grok-input-UeP2DB/evidence`, package
+log `grok-image-mcp-native-2.log`. The native `use_tool` call reached an actual
+permission request for `lody__folio_generate_image`. Its UI offers `allow once`,
+whereas the fixture incorrectly awaited the native file-write button `Yes`.
+The panel also shows the qualified tool name rather than the fixture prompt.
+Root inspected the saved body and correlated CLI permission request. No image
+service call or asset result had occurred, so this failure does not establish a
+missing MCP tool or an invalid result wrapper. Owned cleanup finishes at
+19:09:25.886Z. The preceding v1 script was never executed; its wrapper-depth
+bound was corrected offline before this round. The next fixture must select the
+actual single-use permission action for the currently pending image tool while
+preserving mode, byte checks and the failed record.
