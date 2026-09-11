@@ -116,3 +116,12 @@ on failure. Only successful save and canvas reload switch back to current artwor
 a reload error explicitly reports that the import was already saved. A changed or
 closed preview identity must be viewed again; an already accepted import retains its
 clicked bytes even if automatic refresh advances while it is flushing.
+
+### Current artwork after a commit
+
+The canvas retains its current artwork while the authoring-source preview is shown.
+After a new successful Agent receipt, the existing guarded store sync must succeed
+before the canvas returns to the current artwork. Historical receipts on initial
+hydration and later explicit source choices do not trigger that navigation. Reload
+failures remain visible and preserve unsaved edits. See the
+[decision and verification](../../../../../.agents/notes/implemented/bug-fix/2026-09-11-current-canvas-after-commit.md).

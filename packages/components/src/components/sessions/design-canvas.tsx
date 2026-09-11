@@ -9,7 +9,7 @@ import { activeWorkspaceRuntimeAtom } from '@/atoms/runtime';
 import { localProbeResultAtom } from '@/atoms/local-probe';
 import { userAtom, currentWorkspaceIdAtom } from '@/atoms';
 import { getIpcServices, onIpcEvent } from '@/lib/electron-ipc-client';
-import { latestCommittedDesignRevision, syncOpenDesignCanvas } from '@/lib/design-canvas-sync';
+import { latestCommittedDesignReceipt, syncOpenDesignCanvas } from '@/lib/design-canvas-sync';
 import { useSessionDoc } from '@/hooks/use-session-doc';
 import { Button } from '@/ui/button';
 import { writeStoredLastActiveTabState } from '@/lib/session-draft-tabs';
@@ -96,6 +96,8 @@ export function DesignCanvas({
   const [previewError, setPreviewError] = useState('');
   const [automaticError, setAutomaticError] = useState('');
   const previewGeneration = useRef(0);
+  const viewChoiceGeneration = useRef(0);
+  const observedReceipt = useRef<{ value: string | undefined; pending: boolean; choice: number } | undefined>(undefined);
   const attachmentGeneration = useRef(0);
   const workspaceId = useAtomValue(currentWorkspaceIdAtom);
   const machine = useAtomValue(localProbeResultAtom);
@@ -127,6 +129,7 @@ export function DesignCanvas({
   }, [workspaceId, machine?.machineId, sessionId, hostId]);
   const switchPreview = (value: boolean) => {
     if (value === preview) return;
+    ++viewChoiceGeneration.current;
     ++previewGeneration.current;
     setPreview(value);
     if (!value) void getIpcServices()?.design.hidePreview(hostId);
@@ -139,7 +142,7 @@ export function DesignCanvas({
     ++previewGeneration.current;
     void getIpcServices()?.design.closePreview(hostId);
   }, [hostId, sessionId]);
-  const { doc } = useSessionDoc(sessionId as SessionId, { enabled: sessionId.length > 0 });
+  const { doc, synced } = useSessionDoc(sessionId as SessionId, { enabled: sessionId.length > 0 });
   const finalized = doc.history?.filter(entry => entry.role === 'assistant' && (entry.finished || typeof entry.endedAt === 'number')).map(entry => `${entry.id}:${entry.endedAt}:${JSON.stringify(entry.designOutcome)}`).join('|');
   useEffect(() => {
     if (!preview || !active) return undefined;
@@ -155,7 +158,7 @@ export function DesignCanvas({
     return () => { stop(); reconnect(); window.removeEventListener('focus', reconcile); };
   }, [preview, active, hostId, refreshPreview]);
   useEffect(() => { if (preview && active && finalized) void refreshPreview(); }, [finalized, preview, active, refreshPreview]);
-  const committedRevisionId = latestCommittedDesignRevision(doc.history, sessionId);
+  const committedReceipt = latestCommittedDesignReceipt(doc.history, sessionId);
   useBlocker({
     enableBeforeUnload: false,
     shouldBlockFn: async ({ current, next }) => {
@@ -214,15 +217,34 @@ export function DesignCanvas({
     };
   }, [sessionId, active, hostId, preview]);
   useEffect(() => {
-    if (committedRevisionId === undefined) return undefined;
+    // Seed from hydrated history: opening an old session is not a new commit.
+    if (!synced) return undefined;
+    if (observedReceipt.current?.value !== committedReceipt || !observedReceipt.current) {
+      observedReceipt.current = {
+        value: committedReceipt,
+        pending: observedReceipt.current !== undefined,
+        choice: viewChoiceGeneration.current,
+      };
+    }
+    const receipt = observedReceipt.current;
+    if (committedReceipt === undefined) return undefined;
     let cancelled = false;
-    void syncOpenDesignCanvas(sessionId).catch((cause) => {
+    const choice = receipt.choice;
+    void syncOpenDesignCanvas(sessionId).then(() => {
+      if (cancelled) return;
+      const shouldShowCanonical = receipt.pending;
+      receipt.pending = false;
+      if (!shouldShowCanonical || choice !== viewChoiceGeneration.current) return;
+      // Only the guarded canonical reload succeeding changes the visible source.
+      // Preview snapshots never enter this path's save or completion decisions.
+      ++previewGeneration.current;
+      setPreview(false);
+      void getIpcServices()?.design.hidePreview(hostId);
+    }).catch((cause) => {
       if (!cancelled) setError(String(cause));
     });
-    return () => {
-      cancelled = true;
-    };
-  }, [sessionId, committedRevisionId]);
+    return () => { cancelled = true; };
+  }, [sessionId, committedReceipt, synced, hostId]);
   const run = (action: () => Promise<unknown>) => {
     setBusy(true);
     setError('');

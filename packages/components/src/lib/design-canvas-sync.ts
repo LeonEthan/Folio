@@ -5,12 +5,12 @@ import { getIpcServices } from './electron-ipc-client';
  * P2-A2: after a turn commits, an already-open native editor still holds the
  * document it loaded. The durable `designOutcome` on session history is the
  * renderer's signal that the store moved; this module turns that signal into
- * one call on the design channel, which tears the editor down and re-creates
- * it from the store (the same reload adopt already uses).
+ * one call on the design channel. The host checks saved versions and preserves
+ * unsaved edits before replacing a stale editor.
  *
  * The revision returned here is only a trigger. The Electron side compares the
- * editor's loaded revision with the store, so a later manual save, a thumbnail
- * amendment, or a historical committed card on first mount does not reload a
+ * editor's loaded revision with the store, so a later manual save or a
+ * historical receipt on first mount does not reload a
  * canvas that is already current.
  */
 
@@ -53,4 +53,19 @@ export async function syncOpenDesignCanvas(artworkId: string): Promise<void> {
   const design = getIpcServices()?.design;
   if (!design) return;
   await design.syncFromStore(artworkId);
+}
+
+/** A receipt identity distinguishes a new successful turn even at the same revision. */
+export function latestCommittedDesignReceipt(
+  history: readonly { designOutcome?: unknown }[] | undefined,
+  artworkId: string
+): string | undefined {
+  let receipt: string | undefined;
+  for (const entry of history ?? []) {
+    const outcome = sanitizeDesignTurnOutcome(entry.designOutcome);
+    if (outcome?.status === 'committed' && outcome.artworkId === artworkId && outcome.revisionId) {
+      receipt = `${outcome.turnId}:${outcome.revisionId}`;
+    }
+  }
+  return receipt;
 }
