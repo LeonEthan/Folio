@@ -36,9 +36,18 @@ and the shutdown barrier. Handler tests verify drain, no late title publication,
 new title after cleanup, and cancellation of both branch-name reuse and standalone
 fallback. Existing title sanitization and successful native-prelude handling remain
 covered. Verification results are recorded in the handoff. No native/UI run was made
-for this patch; installed rebuilding and native regression remain root integration work.
+on the worker source before integration; the installed follow-up is recorded below.
 The existing bounded ACP SIGTERM/SIGKILL shutdown policy is unchanged; deferred
 fixtures prove awaiting that routine, not elimination of native process survivors.
+
+Integration source `609b2fe2` was rebuilt and privately installed with its source
+identity verified inside the ASAR. The unchanged Codex input/Stop/explicit-continue
+probe then exited zero, including owned process, endpoint and directory cleanup.
+The unchanged cold-cache Pi/resubmission probe still failed directory cleanup with
+`ENOTEMPTY` after its functional assertions passed. This establishes the Codex
+round's clean exit, not the historical survivor's identity or a repair of the Pi
+failure. Exact package identities, scripts and retained evidence are in the
+[installed matrix](../../proposed/testing/2026-09-11-installed-five-agent-matrix.md).
 
 The referenced legacy `context/message-flow.md` is absent from this checkout. Current
 agent README and lib/ACP shutdown rules were used; no replacement historical content

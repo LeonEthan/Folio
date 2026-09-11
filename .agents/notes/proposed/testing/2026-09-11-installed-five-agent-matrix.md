@@ -582,3 +582,59 @@ formal commit/CAS, failure recovery, image generation/editing, model quality or
 commercial authentication. All three upstream hook blockers and the complete
 T28 acceptance gap remain. Earlier failed rounds retain their original status;
 the forthcoming T21-repaired package requires its own installed exit regression.
+
+### Installed title-task repair comparison
+
+A new private macOS arm64 package was built from clean source
+`609b2fe2ee1a1a2d58a9c1535a8ee7c59075bae1`, including the T21 isolated title-task
+drain repair. The existing full `e2e:build` and DMG packaging process exited zero
+(handle 45750), with `--publish never` and external signing discovery disabled.
+DMG verification, read-only mount/copy/detach and strict deep code-signature
+verification also exited zero (handle 73372). Direct ASAR manifest inspection
+confirmed Folio 0.76.0 and that exact `folioSourceCommit`.
+
+- Private package root: `folio-t28-609b2fe2-n_a_wia1` under the same temporary
+  parent as the preceding package evidence; installed executable is
+  `installed/Folio.app/Contents/MacOS/Folio`.
+- DMG SHA-256:
+  `cfa0845f2dac4e0bfd2deefbce24dbcbaac88794e842b6df5690631e668908d4`.
+- Installed ASAR SHA-256:
+  `1d79d9ad363e2690699be2f26ddc8591e0d4f521fc05da8b9ed9efd61c08d104`.
+- Identity records: `package-identity.json` and `installed-manifest-identity.json`.
+
+The two controlled native comparisons retained their original scripts, runtime
+pins, synthetic providers, assertion bounds and owned cleanup. No new hooks or
+product mechanisms were enabled.
+
+- `codex-input-native-4-title-drain.log`, evidence
+  `folio-t28-codex-input-GP9A1i/evidence`: the unchanged Codex4 script, SHA-256
+  `aa4c0910a684a3d131795d3f407bc6ad8519a84960318a9f42221d879f9616ff`,
+  again passed actual image delivery, native skill reading, desktop Stop and
+  explicit new-turn continuation. This time handle 5418 exited zero; provider
+  work drained and owned process/endpoint/directory cleanup finished at
+  2026-09-11T16:03:02.898Z. The old script's active response destruction remains,
+  so its connection-close message alone still cannot prove native transport
+  cancellation. The earlier failed Codex teardown is not rewritten.
+- `pi-cold-native-title-drain.log`, evidence
+  `folio-t06-desktop-4bCEyr/evidence`: the unchanged
+  `apps/cli/scripts/probe-pi-design-desktop.mjs`, SHA-256
+  `15ecbe51cc42bd45b634746be3b03d0f4f738e6376b76d83ddbc75af4e0b3628`,
+  ran with cold-cache and resubmit flags enabled and recovery removed from the
+  child environment. The initial private cache was empty and unprepared. All
+  original functional assertions passed, including actual reference/skill
+  delivery and native guarded editing/resubmission. Provider work drained.
+  Nevertheless handle 27793 exited one: after application closure at
+  16:04:26.915Z and owned process/endpoint checks, directory cleanup started at
+  16:04:27.109Z and reported `ENOTEMPTY` at 16:04:27.153Z for
+  `/tmp/lody-e2e-zqcACR/lody-data`. The original failure and retained directory
+  were preserved without retry or a diagnostic patch.
+  A subsequent read-only stat of that retained root found only empty
+  `chats/<session>` directories, born at 16:04:27.146012Z and 16:04:27.146073Z
+  respectively, within the removal interval. `residual-directory-stat.json`
+  retains the observation; birth times came from floating seconds and do not
+  identify the writer or establish nanosecond precision.
+
+Thus this installed comparison verifies a passing Codex exit but does not resolve
+Pi's cleanup failure or identify its writer. The complete T28 matrix, the three
+upstream hook blockers and other unexecuted acceptance cells remain open. These
+comparisons do not promote older evidence for other Agents to the new package.
