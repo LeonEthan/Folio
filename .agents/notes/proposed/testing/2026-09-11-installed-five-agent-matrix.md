@@ -280,8 +280,8 @@ functional checkpoints and again exited one during directory removal. Cold input
 and skill delivery, native read/write/commit, same-byte attempts, cancellation,
 provider failure, independent CAS conflict, explicit continuation and the real
 Pi-to-Claude switch are recorded as functional observations with failed cleanup,
-not complete passes. No permission-prompt interaction was exercised for Pi;
-its native extension UI permission route is not inferred absent. The actual Pi
+not complete passes. The subsequent Pi extension authorization round below
+exercised real permission interaction, also with failed cleanup. The actual Pi
 catalog still lacks the Folio image/render MCP tools, which does not imply lack
 of native image input or all other Agent capabilities.
 
@@ -307,9 +307,9 @@ used to make a failed round appear successful.
 
 | Required behavior on the replacement              | Codex           | Claude                                  | Pi                                        | Kimi            | Grok            |
 | ------------------------------------------------- | --------------- | --------------------------------------- | ----------------------------------------- | --------------- | --------------- |
-| Authenticated installed runtime/tool discovery    | Not established | Observed                                | Observed, cleanup failed                  | Not established | Not established |
+| Installed runtime/tool discovery with isolated configuration | Not established | Observed                                | Observed, cleanup failed                  | Not established | Not established |
 | Actual reference bytes / native skill read        | Not executed    | Passed                                  | Observed, cleanup failed                  | Not executed    | Not executed    |
-| Native permission request and response            | Not executed    | Manual / Allow Once passed              | Not exercised                             | Not executed    | Not executed    |
+| Native permission request and response            | Not executed    | Manual / Allow Once passed              | Extension No/Yes observed; cleanup failed | Not executed    | Not executed    |
 | Manual edit → native read → write → commit        | Hook blocked    | Passed                                  | Observed, cleanup failed                  | Hook blocked    | Hook blocked    |
 | Stale refusal / explicit same-byte attempt        | Hook blocked    | Passed                                  | Observed, cleanup failed                  | Hook blocked    | Hook blocked    |
 | Cancel / fail / final CAS / explicit continuation | Not executed    | Only fresh-read switch destination here | Observed, cleanup failed                  | Not executed    | Not executed    |
@@ -330,3 +330,60 @@ observation and actual ACP startup logs are in `folio-t28-discovery-2JMvhB`;
 runner exit zero means the observations were collected, not that authentication
 or those Agent capability cells passed. All homes, keys and configuration in
 this runner were private synthetic inputs.
+
+
+### Pi user-configured extension authorization follow-up
+
+These two additional rounds used the unchanged installed `b86a1c92` app and
+harness source `7409a417`; no installed bytes or product mechanisms changed.
+The isolated `PI_CODING_AGENT_DIR/settings.json` loaded the pinned native Pi
+0.85.1 distribution's existing `examples/extensions/permission-gate.ts` through
+its `extensions` setting. That native `tool_call` handler waits for `ctx.ui.select`
+before executing a matching Bash command and returns `block: true` on No.
+The only operation was `rm -r --` against a disposable directory created by this
+probe under its own temporary root, containing a synthetic ownership marker.
+
+- `pi-permission-native.log` exited one before any provider/tool request because
+  the fixture copied Claude's `Permission` / `Manual` selector. Captured landing
+  content showed that Settings was already closed. Pi ACP 0.0.33 exposes model
+  and thinking options, not a Manual permission mode; the missing selector was
+  a fixture error, not a product defect. Its owned teardown finished normally.
+  Evidence: `folio-t28-pi-permission-jgeP2j/evidence` under the same temporary
+  parent as the package round.
+- The corrected immutable runner `/tmp/folio-t28-pi-permission-2.mjs`
+  (SHA-256 `b765830a99928c0aea2a53028062603c43d0125cffa0252826c15f6e04072fc9`)
+  removed that nonexistent setting and explicitly awaited the actual permission
+  buttons. In `pi-permission-native-2.log`, No returned the native tool result
+  `Blocked by user` and preserved the marker; Yes returned `(no output)` and the
+  marker's read failed with `ENOENT` after native Bash executed. Each pending
+  permission screenshot was preceded by an assertion that the marker still
+  existed, proving execution had not occurred before the response. Evidence:
+  `folio-t28-pi-permission-BREBo3/evidence`, including `native-NO.json`,
+  `native-YES.json`, both pending screenshots and CLI logs. The actual daemon
+  logged two `pi-ui-*` permission requests at 14:26:34.650Z and 14:26:36.580Z.
+
+This establishes user-configured native extension authorization through actual
+ACP `request_permission` and the existing desktop controls. Both options in
+Pi ACP's `select` mapping have `kind: allow_once`; No is enforced by the native
+extension after the response. It does **not** establish an ACP `reject_once`
+option, a built-in Pi permission policy, or a configurable Manual mode. A generic
+confirmation or questionnaire alone would not establish operation authorization.
+The external provider remained synthetic and the private ACP cache was prepared.
+
+The corrected round still exited one: after zero active provider requests and
+provider drain, application close began at 14:26:37.818Z, endpoint release and
+removal began at 14:26:38.015Z, and removal failed at 14:26:38.056Z with
+`ENOTEMPTY` for `/tmp/lody-e2e-POGP26/lody-data`. Native permission checkpoints
+are observations within a failed complete round. No identical cleanup retry was
+performed. A `terminal.list` request reported a missing terminal socket during
+application close; this alone does not identify the directory creator.
+
+The T21 teardown comparison also needs a narrower interpretation: its earlier
+clean recovery run switched Pi to Claude before quitting, so it is not a clean
+Pi-at-quit control. Nanosecond birth-time evidence on the retained root diagnostic
+(`/tmp/folio-root-teardown-UkZ0KW`, paired with
+`/tmp/folio-root-pi-teardown-trace.log`) places real directory recreation at `.514` seconds inside its `.480`–`.571`
+removal interval, strengthening the recreation finding without identifying the
+writer. `Session.getWorkdir()` can recreate an absent default workdir through
+`ensureDefaultSessionWorkdir`, but source reachability is not evidence that this
+caller performed the observed write. The lifecycle failure remains unresolved.

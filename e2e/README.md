@@ -173,3 +173,13 @@ another or treat source-only runtime audits as installed-package evidence.
 infographic and long-image inputs, cross-behavior coverage and measurement
 criteria for the final installed package. It reuses this harness and resource
 probe; the generic lifecycle subject does not establish design acceptance.
+
+### Preserving an isolated profile for human review
+
+`ElectronHarness.exportReviewProfile(destination)` stops a verified application,
+checks its owned processes and endpoint, then copies its data into a new directory
+outside the temporary profile. It never copies live storage or overwrites a target.
+Copy failure retains the source evidence; success uses normal temporary cleanup.
+Use a short stable data path on macOS because local Unix sockets have path limits.
+Reopen the exported profile and check its sessions, saves and source previews before
+calling it ready for human use; copying files alone is insufficient.

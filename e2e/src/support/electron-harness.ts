@@ -1,5 +1,6 @@
 import {
   closeSync,
+  cpSync,
   existsSync,
   fsyncSync,
   mkdirSync,
@@ -14,7 +15,7 @@ import {
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { _electron, type CDPSession, type ElectronApplication, type Page } from '@playwright/test';
 import {
@@ -130,6 +131,27 @@ export class ElectronHarness {
     }
     await this.shutdown(true);
     await this.start(true);
+  }
+
+  async exportReviewProfile(destination: string): Promise<string> {
+    if (!this.launchVerified || !this.tempRoot) throw new Error('Review export needs a verified launch');
+    const owned = realpathSync(this.tempRoot);
+    const target = join(realpathSync(dirname(resolve(destination))), basename(destination));
+    if (existsSync(target) || target === owned || target.startsWith(owned + sep)) {
+      throw new Error('Review destination must be new and outside the owned profile');
+    }
+    await this.shutdown(true);
+    try {
+      mkdirSync(target);
+      cpSync(owned, target, { recursive: true, force: false, errorOnExist: true });
+    } catch (error) {
+      this.record('electron-main', 'retained-review-data', owned);
+      this.tempRoot = null;
+      this.writeDiagnostics();
+      throw error;
+    }
+    await this.close();
+    return target;
   }
 
   private async start(restarting: boolean): Promise<void> {

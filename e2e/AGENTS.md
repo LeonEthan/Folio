@@ -23,6 +23,9 @@ also applies.
 - Harness restart reuses only its own durable directories after verified process
   and endpoint teardown. It pins the original executable/source target and reserves
   a fresh endpoint; any teardown failure stops restart and retains failed evidence.
+- Review-profile export requires a verified launch and successful owned process/endpoint
+  teardown before copying to a new external directory. Never overwrite a review
+  destination or copy live storage; retain source evidence on export failure.
 - Run scenarios serially until every remaining fixed OS endpoint has an
   explicit shared test binding. Do not raise Cucumber parallelism first.
 

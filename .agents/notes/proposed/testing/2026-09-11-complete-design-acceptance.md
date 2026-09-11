@@ -83,3 +83,22 @@ had not initialized the pinned public Bento submodule; it was initialized withou
 changing its revision. The repaired build and repeated full checks used pnpm
 10.20.0 for nested commands as well as the top-level invocation. These checks do
 not establish the installed restart journey or remove native-round cleanup failures.
+
+## Review-profile export tooling
+
+The same harness can export an owned profile only after a verified launch and
+successful existing process/endpoint teardown. The destination must be new and
+outside the source; copy failure retains the original data and reports the error.
+Successful copying is followed by normal temporary-directory cleanup. No product
+runtime, storage protocol or running Loro document is modified for this operation.
+
+A preparation round created three native Sessions using existing pending-design
+recovery, displayed each supplied source, and used the actual direct-import button.
+Their canonical documents matched the three exported native-journey revisions,
+then shutdown/export/cleanup succeeded. Launching the exported data under a long
+artifact path hit the existing Unix-socket path-length guard; the review profile
+was moved to a new short directory without editing its storage. Its launcher
+subsequently started successfully. Mac screen lock prevented physical UI inspection.
+A complete copied-profile session/save/source-preview recheck remains pending;
+the copy is not yet evidence of human usability. The owned launcher was stopped,
+all recorded children exited and its endpoint was released, retaining the profile.
