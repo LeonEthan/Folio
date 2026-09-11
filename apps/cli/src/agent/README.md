@@ -51,7 +51,7 @@ images and text. Advertising the standard host UTF-8 read RPC makes Grok route P
 through text decoding and reject the result as binary. Host `writeTextFile`, permission
 handling, and other providers retain their existing behavior. The standard text RPC
 remains text-only; no binary extension or runtime patch is introduced. See the
-[file-read decision](../../../../.agents/notes/proposed/bug-fix/2026-09-12-grok-native-file-read.md).
+[file-read decision](../../../../.agents/notes/implemented/bug-fix/2026-09-12-grok-native-file-read.md).
 
 ### Grok permission handling
 

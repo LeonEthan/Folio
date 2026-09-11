@@ -1,6 +1,6 @@
 # Preserve Grok native image file reads
 
-Status: proposed
+Status: implemented
 Date: 2026-09-12
 Translation: pending
 
@@ -11,7 +11,8 @@ which decoded PNG bytes as UTF-8 before Grok could attach them to model input.
 Folio now declines host text-read capability for builtin Grok so its existing
 native reader handles images and text. Host writes, permissions, other providers,
 and the standard text handler remain unchanged. A paired installed diagnostic
-establishes the routing cause; repaired normal-package acceptance remains pending.
+establishes the routing cause. The repaired normal package passes independent image,
+native text, and permission/write acceptance with complete owned cleanup.
 
 ## Evidence and decision
 
@@ -49,12 +50,30 @@ builtin Grok, other builtin providers, custom Grok isolation, and standard UTF-8
 write/read with line slicing. CLI typechecking and the full repository check pass. The first full check
 failed two Claude authentication tests with inherited provider environment; the
 child-only environment-filtered check passed without product/test changes.
-Formatting and documentation checks pass. A normal package without a diagnostic
-wrapper still needs independent PNG delivery, native text reading, rejection
-preserving a disposable file and one-time approval writing exact expected bytes.
+Formatting and documentation checks pass. Normal source `81d54b6194017ba91aaec78509f9364ef743aa5f` was built, packaged,
+privately installed and verified through its actual ASAR manifest. DMG SHA-256:
+`aac7aa4c81056acae144b8e0521535dca1d031c86b484ea7074b4362afbe50d2`;
+installed ASAR SHA-256:
+`93609f470b607c88e41452dfdd80bf1a28e34dbffc957c9832ba0d91ef503aef`.
+No diagnostic wrapper or capability injection was used in either normal round.
+
+The independent image round (`folio-t28-grok-input-tvSRo6`, process handle 47383)
+exited 0. Main request 5 had no images; after the correlated native reference read,
+main requests 6/7/8 contained the exact 1330-byte PNG in tool-role image blocks.
+Native SKILL reading passed. Owned cleanup finished at 2026-09-11T18:22:54.579Z.
+
+The text/permission/write round (`folio-t28-grok-ordinary-94z2bY`, handle 56905)
+also exited 0. Native text reading returned the original disposable marker. The
+actual rejection returned a correlated native refusal for the `write` tool and
+preserved that marker. Single approval returned the correlated native write
+success and the file contained exactly 23 bytes,`APPROVED SYNTHETIC ONLY`.
+Owned cleanup finished at 2026-09-11T18:23:42.336Z. An unclassified no-tool
+provider request was retained without counting it as primary execution evidence.
+These synthetic provider rounds establish native plumbing, not paid service
+quality or user account authentication.
 
 This does not resolve Grok's known HTTP cancellation behavior or missing design
 generation boundary. Direct attachment input already worked with normal
 negotiation; this repair concerns reading a separate PNG through a native tool.
-See the [installed matrix](../testing/2026-09-11-installed-five-agent-matrix.md)
-and [hook boundary](../architecture/2026-09-11-grok-design-hook-runtime-gap.md).
+See the [installed matrix](../../proposed/testing/2026-09-11-installed-five-agent-matrix.md)
+and [hook boundary](../../proposed/architecture/2026-09-11-grok-design-hook-runtime-gap.md).
