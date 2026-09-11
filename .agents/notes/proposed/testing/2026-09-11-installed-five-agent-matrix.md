@@ -638,3 +638,93 @@ Thus this installed comparison verifies a passing Codex exit but does not resolv
 Pi's cleanup failure or identify its writer. The complete T28 matrix, the three
 upstream hook blockers and other unexecuted acceptance cells remain open. These
 comparisons do not promote older evidence for other Agents to the new package.
+
+### Targeted design-worker diagnostic
+
+Two separately identified diagnostic packages retained the normal probe and
+cleanup behavior. Neither diagnostic change belongs in the release source.
+Source `18e5d63c85e6002d8201096f8ef0282e70f23b29` traced the Session helper's
+mkdir. The installed CLI contained that instrumentation, but the probe exited
+one with `ENOTEMPTY` and no trace events, including no initial coverage witness.
+Evidence is `folio-t06-desktop-ZRwX2K/evidence` and
+`/tmp/folio-workdir-site-evidence-xj2dRd`. This result cannot exclude that helper
+or identify the writer. Inspection then found that initial design creation
+already makes the directory through the store in the separate `design.js`
+worker; Session preparation skips its helper for an existing fixed workdir.
+
+Source `21c1a3d8fd8916bb7a71f8dc35b5e86a7b95ed57` restored the Session helper
+and traced only the store's existing mkdir, adding the request operation to
+the exact-root PID/PPID, path, time and stack records. The existing build and
+private-install pipeline passed (handles 55574 and 60217). The copied package
+manifest matched the source; the unpacked worker's imported store chunk
+contained the instrumentation. Package root:
+`folio-t21-diagnostic-21c1a3d8-c2214699`; DMG SHA-256
+`aa1b4c6f26f0984994cf84ed367b0761368571ca525598dbbfca51e09c3754b0`,
+ASAR SHA-256
+`b4005f911c336fa6f216287b0493f2a12eb6d67afd677fa0308cf4d4987bdfed`.
+
+The single `pi-cold-store-site-1.log` run (handle 52650) exited zero, but its
+68 trace events establish a shutdown ownership gap:
+
+- Initial `create` at 16:26:59.636Z/16:26:59.638Z recorded start/completion
+  from PID 5826, parent Electron PID 5729. This is an actual site witness.
+- The daemon also emitted read/save events at this site. The final two events
+  came from a different design worker, PID 6330 with PPID 1: `read` called mkdir
+  at 16:27:09.502Z and returned at 16:27:09.504Z for the same artwork directory.
+  Its stack names the copied `render-preview-DKaqMbxA.js` store chunk and
+  `design.js:55`.
+- The harness's 16:27:09.271Z prequit process snapshot did not contain PID 6330.
+  Application close began at 16:27:09.273Z; endpoint release was recorded at
+  16:27:09.496Z and directory removal ran from 16:27:09.497Z to 16:27:09.539Z.
+  Thus an orphaned worker executed this recursive mkdir inside the removal
+  interval, although this particular cleanup succeeded.
+
+The native evidence is `folio-t06-desktop-iKRCQW/evidence`; the external
+records are `/tmp/folio-design-store-evidence-4HoJLH/workdir.jsonl` and
+`launch.jsonl`. A completed mkdir does not establish whether it created a new
+directory, and this observation does not identify every historical failure's
+writer. The worker discards stderr, so absence of the trace-write sentinel in
+retained console logs cannot exclude a trace-write error. No process kill,
+cleanup retry, extra grace period or relaxed assertion was used. The zero exit
+does not establish a repair: the next product change must prevent reads from
+creating directories and close admission, drain requests and await design-worker
+exit through the existing application quit flow.
+
+### Codex ordinary permission and cancellation follow-up
+
+These rounds used the normal `609b2fe2` installed package, not a diagnostic or
+the subsequent design-worker repair. `codex-permission-native-2.log` (handle
+27785, evidence `folio-t28-codex-input-CKVNtS/evidence`) selected the actual Agent
+permission mode and reached a native command approval. The runtime offered
+`Yes, proceed` and `No, and tell Codex what to do differently`; it did not offer
+the fixture's expected decline-without-cancellation option. The original
+60-second locator assertion failed. This was an incorrect fixture assumption,
+not missing permission support; owned cleanup completed at 16:30:58.994Z.
+
+The corrected third script retained the second failed round and required a
+correlated native cancellation result after the actual cancel option, instead
+of requiring a further model response in a cancelled turn. It retained the
+private marker, successful command result, explicit next user input and true
+transport-close assertions. Script SHA-256:
+`ed53ecabb3c36ba0c658729fd5859d01c5179d59d9a5474c93b92c53e0f3cb03`.
+
+`codex-permission-native-3.log` (handle 20561) exited zero. Evidence under
+`folio-t28-codex-input-9T2Tp9/evidence` establishes:
+
+- The actual cancel choice left the marker unchanged. The next explicit user
+  turn contained the native `custom_tool_call_output` for
+  `native_permission_NO`, recording that the user aborted execution.
+- `Yes, proceed` on the next approval produced native exit code zero and the
+  exact expected 23 marker bytes. No persistent allow option was selected.
+- Desktop Stop closed the single held main request 9 with a recorded
+  `response-close` before fixture cleanup. The success path did not destroy
+  that response; a subsequent explicit user turn completed visibly.
+- Actual reference bytes and native skill reading also passed. Provider work
+  drained, and owned process/endpoint/directory cleanup finished at
+  16:37:07.249Z.
+
+The native outcomes and transport signal are retained in
+`permission-NO-native-from-next-turn.json`, `permission-YES-native.json` and
+`native-cancel-transport.json`. This completes these ordinary-operation
+observations on `609b2fe2`; it does not provide Codex's missing design hook,
+design writes/CAS, image MCP acceptance or acceptance of a later package.
