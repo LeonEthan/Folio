@@ -880,3 +880,44 @@ owned teardown finished at 17:08:50.992Z. The result explicitly retains
 `knownCancellationFailure=true`. This proves explicit continuation is available
 while leaving the HTTP cancellation failure, image-input gap and design-hook
 requirements unresolved.
+
+### Grok auxiliary-request scope correction and cancellation routing
+
+A bounded read-only audit of the six retained Grok rounds below found a separate
+isolated title session attempting the external default `grok-4.5` Responses
+endpoint (`cli-chat-proxy.grok.com`) and receiving HTTP 401 with no authentication
+context in every inspected round. The title-ready ACP session ID matches the
+native inference-failure session ID. Thus the earlier local synthetic-provider
+statements apply to the tested main requests, not to every auxiliary request.
+These logs do not establish successful authentication, paid execution or model
+quality. No new runtime or network request was made for this audit.
+
+The paths below are relative to each previously named evidence root. CLI lines
+refer to `evidence/cli-logs/2026-09-12.log`, except TluNMa uses `2026-09-11.log`;
+native lines refer to `grok-home/logs/unified.jsonl`.
+
+| Round suffix | Title-ready CLI line | Matching 401 CLI / native line | Observed title ACP session |
+| --- | --- | --- | --- |
+| TluNMa | 615 | 862 / 190 | 01a09124-e4f0-7370-8468-d729889b4a27 |
+| gQgTTW | 612 | 831 / 184 | 01a09161-898c-7603-9dfc-5092590e436c |
+| GUk7WW | 485 | 565 / 129 | 01a09167-1e86-75f2-bf9d-21e8c9491d06 |
+| hImvsv | 522 | 562 / 127 | 01a09168-f5b4-7b20-8761-27530f36b584 |
+| BCAW74 | 522 | 562 / 127 | 01a0916c-a34d-7dc1-a979-73d389133da3 |
+| KdI2bZ | 522 | 728 / 137 | 01a09171-6938-7211-bfdf-c24d812e8d7c |
+
+Cancellation routing has additional native evidence in KdI2bZ. Its main Grok
+PID 72971, ACP session `01a09171-708a-7681-b19d-ea9a68a5578e`, recorded
+`shell.cancel.received` with the session found and cancellation processing of
+prompt `ef31128e-602f-4714-935a-f7f972f0ea84` at 17:08:48.532Z (native lines
+144–145). The same session then started the explicit new prompt
+`e5cfa6d1-e45c-46c5-b4fa-18d061368392` and completed it successfully at
+17:08:49.795Z (lines 153–161). This supports delivery of the cancel to the correct
+runtime session and actual new-turn completion; it does not contradict the
+separately observed old HTTP request remaining open until fixture cleanup.
+
+For image reading, gQgTTW native line 178 records `read_file` / `native_reference`
+ending in an error. The retained records do not establish an actual reverse
+`fs/read_text_file` or `_x.ai/fs` call or an associated Folio handler error.
+Consequently neither Folio's UTF-8 text-file handler nor its unsupported extension
+handling is a proven cause of this PNG failure. Previous failures and the
+unresolved image/HTTP-cancellation boundaries remain unchanged.
