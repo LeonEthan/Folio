@@ -43,3 +43,11 @@ Runtime tests observe the model at prompt time with differing current/last model
 and an explicit override. Existing dialog tests verify actual new-provider submit
 contains no inferred model and edit-save preserves an explicit current model.
 No native run, package build or upstream change is part of this source fix.
+
+Subsequent installed verification used normal source `5b21c6a`: actual isolated
+helper requests retained `probe` and reached the configured local provider; a
+separate UI-only SQLite readback verified that newly saved provider title options
+omit the model key. The first two combined scripts failed on fixture/catalog
+inspection issues and remain failed records; the independent storage case passed
+without an Agent turn. The [installed matrix](../../proposed/testing/2026-09-11-installed-five-agent-matrix.md#normal-title-model-default-regression)
+records the exact package, request identities, cleanup and verification limits.

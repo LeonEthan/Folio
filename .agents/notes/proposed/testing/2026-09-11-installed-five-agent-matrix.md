@@ -921,3 +921,134 @@ ending in an error. The retained records do not establish an actual reverse
 Consequently neither Folio's UTF-8 text-file handler nor its unsupported extension
 handling is a proven cause of this PNG failure. Previous failures and the
 unresolved image/HTTP-cancellation boundaries remain unchanged.
+
+### Normal title-model default regression
+
+The normal private macOS arm64 package at `folio-t28-5b21c6aa-m3qsowke`
+contains source `5b21c6aacbab1de4798ccecab087d04b69e8e482`, including the
+[title-model default fix](../../implemented/bug-fix/2026-09-12-title-runtime-model-default.md).
+Build/package 23257 and installation 69563 exited zero. DMG verification,
+read-only mounting, copying, detaching and ad-hoc signature verification passed.
+Independent hashes of the installed artifacts matched:
+
+- DMG: `d3184d9729e8b7a22c3fcd678021c526c0aa92fe38dd5cee09ceee7890713865`.
+- ASAR: `925cb6c1b29695b49e615dba077927fb36235d261125e0e1b28756ab0812b3b3`.
+
+Directly reading the installed ASAR manifest confirmed Folio 0.76.0, its normal
+desktop entry and that exact source commit. This package has no diagnostic
+instrumentation and was not publicly published or notarized.
+
+The first title regression, handle 67450, **failed**. Its retained evidence is
+`folio-t21-grok-title-default-5ZmGTB/evidence`; normal-package log
+`grok-title-default-native-1.log`. Grok 1.0.13 made two distinct kinds of request
+to the private local provider: requests 1/4 had the sole `session_title` tool and
+a system instruction for Grok's own session naming, with model `grok-4.6`;
+requests 2/3 carried Folio's isolated title task through the normal native tool
+catalog, with model `probe`. The fixture incorrectly required every request to
+use `probe` and interrupted the native auxiliary requests. These observations
+must not be reported as a clean successful round or as an automatic retry fix.
+
+The helper's initial model was `probe`; its ACP session
+`01a09187-84f1-7b10-86e8-41191d189ff4` returned successfully (CLI lines 489–544).
+However, the subsequent saved-config inspection used the virtual ASAR CLI path
+instead of the product's unpacked CLI path and failed module resolution. It did
+not verify the stored title configuration. Owned cleanup completed at
+17:32:58.388Z. The first failure remains evidence; package success and these
+partial observations do not complete the title regression or T28.
+
+The second round, handle 53806, also **failed**, with evidence at
+`folio-t21-grok-title-default-2-2YXrIR/evidence` and normal-package log
+`grok-title-default-native-2.log`. The corrected fixture classified the observed
+native `session_title` tool/system instruction separately and responded using its
+actual schema. All six requests reached the local provider without assertion
+errors: native auxiliary requests 1/4 used `grok-4.6`, Folio isolated-helper
+requests 2/3 and main-session requests 5/6 used `probe`. The helper completed
+successfully. This supports the model/endpoint correction while keeping the
+native runtime's separate naming behavior visible.
+
+Saved-config inspection still failed: the correctly unpacked `agent-config list`
+command required `LODY_AUTH_URL`. Its existing `command-runtime.ts` auth and
+workspace-manager path is cloud-specific, so that command does not establish
+local desktop catalog contents. No authentication URL, credentials or cloud
+access were supplied to make the fixture pass. Owned cleanup completed at
+17:36:43.274Z. The saved-config assertion remains unverified in this round;
+the previous source/UI regression tests and native model observations retain
+their separate scopes.
+
+The independent UI-only saved-config case, handle 82620, **passed** on the same
+normal package. `folio-t21-grok-title-storage-b4CzRx/evidence/saved-title-config.json`
+records a read-only SQLite transaction over the actual local Machine Flock
+snapshot and ordered updates, decoded with the existing Flock/shared readers.
+The uniquely matched provider row `bb7d6629-0e6e-4cb6-a917-5a85a043750f` contains
+only `interaction_mode=plan` and `reasoning_effort=low` in its title options,
+with no model key. The case created the provider through the UI, sent no Agent
+turn, asserted zero model requests and completed owned cleanup at 17:43:31.431Z.
+Together with the second round's actual helper/model/endpoint evidence, this
+verifies the two installed paths affected by the source fix. It does not
+reclassify either earlier failed script as passed, erase legacy explicit
+overrides or establish full T28 acceptance.
+
+### Grok PNG file-RPC observation
+
+The external transparent stdio recorder in round
+`folio-t28-grok-input-N76Xyl` left the normal `5b21c6a` package and native Grok
+1.0.13 bytes unchanged. It is a diagnostic wrapper launch, not an unwrapped
+release acceptance run. Handle 97521 exited one after the original 120-second
+image assertion; owned cleanup finished at 17:40:37.050Z. The retained
+`evidence/grok-fs-wire.jsonl` provides a direct process/session/request chain:
+
+- Recorder 79086 launched native PID 79087. In ACP session
+  `01a0918c-c4d7-7410-9d87-53f9ddbbda02`, `native_reference` targeted the owned
+  reference PNG at 17:38:39.193Z.
+- Native `fs/read_text_file` request ID 0 named that same file at .204Z. Folio
+  returned a string `content` at .207Z; the tool reported failure at .215Z.
+- Independently decoding the exact 68-byte fixture PNG as UTF-8 reproduces the
+  response's 82 bytes and SHA-256
+  `c22f7d7a1419dcc393fde2c846c05068413aa26db38acf927b8c3b402d6f441f`.
+  Its PNG chunk checksums and compressed payload are valid.
+
+The resulting native tool response says the file is binary, with no image blocks
+delivered to the main model. This replaces the previous unproven routing
+inference with observed text-RPC delivery; it does not authorize returning binary
+data through ACP's text-file contract. No `_x.ai/fs` request was recorded. The
+pinned documentation does not establish a native-file fallback when client
+`readTextFile` is unavailable; that behavior and any permission/write/hook
+consequences require separate evidence before changing the product adapter.
+
+The single-variable capability contrast at `folio-t28-grok-input-pkha0p`
+changed only the native initialize frame's `fs.readTextFile` from true to false;
+`writeTextFile` remained true. This is explicitly a non-transparent diagnostic,
+not a production change. Handle 74961 exited one and cleanup completed at
+17:46:37.551Z. The native tool now completed without a reverse text-file request,
+but its result explicitly said the 1×1 image was too small to attach for vision.
+No actual image blocks reached the model, so the original image assertion still
+failed. The observation separates text-RPC routing from a second fixture-size
+constraint; neither tool completion nor a textual image description counts as
+successful image input. A same-size image comparison remains necessary before
+claiming that the alternative file route solves the input problem.
+
+The subsequent same-size pair used a deterministic 256×256 RGBA PNG made with
+the existing `pngjs` dependency, verified by chunk CRCs and pixel roundtrip:
+1,330 bytes, SHA-256
+`8bcb47e5864ff6103692b8c791304aa6a050943ac149d82d07afd5480ed30555`.
+Both scripts **failed** their original completion assertion and completed owned
+cleanup: true/transparent handle 85182 at 17:50:54.651Z
+(`folio-t28-grok-input-yEr7Wi`), false/contrast handle 54812 at 17:53:55.234Z
+(`folio-t28-grok-input-ya11tr`).
+
+Crucially, the larger reference was already attached to the actual main-model
+request under the existing true capability: yEr7Wi requests 5/6 contained a user
+`image_url` with the exact PNG bytes/hash. The false-capability requests 4/6 also
+contained that image. The user content was now a text/image array, but the old
+fixture selected only string-valued user queries and never requested
+`native_reference`. Consequently these rounds prove actual direct reference
+input, not tool-based file reading or a need to disable the capability in the
+product. Neither recorded a file request or a `native_reference` update.
+
+**Scope correction:** the 1×1 failures do not show that Grok cannot receive
+ordinary reference images. Direct 256×256 input is observed with unchanged
+protocol forwarding. Independently reading another PNG must start without an
+attached image and correlate the new image delivery to that file's actual native
+tool result; otherwise an existing attachment can falsely satisfy a file-read
+assertion. Full T28 and the previously observed HTTP-cancellation failure remain
+unresolved.
