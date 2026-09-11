@@ -1,110 +1,130 @@
 # Repository guidelines
 
-`CLAUDE.md` is a symlink to this file. Edit `AGENTS.md` only.
-Repository map and entry points: [README.md](README.md#repository).
+`CLAUDE.md` symlinks here; edit `AGENTS.md` only.
+Entry points: [README](README.md#repository).
 
-## Context and documentation
+## Working with the user
 
-- Read the applicable ancestor/scoped `AGENTS.md` files and task-relevant Specs,
-  active notes, `.agents/docs/`, and module READMEs. Follow the required topic
-  links below when their trigger applies, including changes outside the owner's
-  directory. Archives are history, not current authority.
-- Specs express intent, docs explain implementation, notes record decisions.
-  Distinguish bugs, stale docs, and unimplemented intent using code and evidence;
-  never change a Spec to justify a bug.
-- Changed intent/guarantees require a [Spec](specs/AGENTS.md) updated as `draft`.
-  `approved` requires linked human approval of that revision; `outdated` needs
-  review. Only meaning-preserving editorial edits may retain approval.
-- Non-trivial work MUST add/update the owning [Agent Note](.agents/notes/AGENTS.md#when-to-write)
-  in the same PR; substantial research/design also requires a note without a PR.
-  Only mechanical/local edits without changed decisions are exempt. Link different
-  decisions; proposals stay `proposed`. Read-only tasks report deferred updates.
-- Update affected docs/READMEs. Run `pnpm run docs status` at start and
-  `pnpm run docs check` at finish; review SHA-protected changes before confirming.
-  Checks and translations prove neither correctness nor approval. Translation may
-  follow later. Details: [document maintenance](.agents/README.md).
-- Keep binding rules in the nearest `AGENTS.md` (<8 KiB; new scopes need a
-  `CLAUDE.md` symlink). Keep explanations and rationale in their owning docs/notes.
+Finish authorized work using context and reasonable assumptions. Ask about material
+gaps while continuing independent work; reuse prior authorization.
+Planning/review requests do not authorize runtime implementation or publication.
+User instructions override skill guidelines. If a skill blocks work, link, quote and
+explain its exact instruction. Preserve unrelated changes. Report outcomes,
+evidence and limits plainly. Complete required checks; broaden verification only
+for new changes, failures or unresolved concerns.
 
-## Repository boundary
+## Design principles and migration scope
 
-- Public source: `apps/{cli,electron}` and their packages. Exclude hosted backends,
-  operator/billing config, private secrets/records, and Web/mobile app sources.
-  Never commit captured user/agent transcripts; fixtures must be synthetic.
-- Never depend on `@lody/convex`, private workspace packages, or generated backend
-  API declarations. Optional-cloud protocol names/DTOs belong in `packages/cloud-api`;
-  shared product code uses `packages/platform` capabilities and ports.
-- The OSS desktop is local-only; authenticated product-cloud requests are forbidden.
-  Public managed-runtime downloads are the exception. Shared packages stay
-  platform-neutral; local telemetry is hard-disabled.
-- Before changing composition, capability-gated settings, telemetry, or runtime
-  downloads, read [platform contracts](packages/platform/AGENTS.md).
-- Before changing daemon protocol negotiation, MCP/Role catalogs or their UI
-  consumers, per-turn MCP selection, or Role creation/dispatch, read [shared contracts](packages/shared/AGENTS.md).
-- `packages/acp-extension-kimi` stays outside the root pnpm graph in its isolated
-  submodule workspace; consume only its separately built, checksummed managed-runtime
-  artifact and versioned ACP contract. Shared ACP extension contracts belong in the
-  public `LodyAI/acp-extension-core` submodule, consumed through the root workspace;
-  never duplicate them locally.
-- Viewer packaging/version changes must follow its [rules](packages/code-review-viewer/AGENTS.md).
-  Package-scope or cloud/local composition changes require `pnpm check:public-boundary`.
+Question requirements, delete unnecessary mechanisms, then simplify and optimize. Build only
+what is needed now; completed code and concept images do not establish necessity.
+
+- Reuse Lody's architecture, UI and agent lifecycle with agentic-listing-design's
+  PPTD + Bento. Migration only reduces scope; additions need explicit confirmation.
+  Reuse modules before adding protocols/storage.
+- Keep one editable truth: BentoDoc. PPTD projections and Agent drafts serve
+  different purposes. Recompute derived views where feasible; justify persistence
+  by current use. Keep exposed Bento edits lossless in PPTD with minimal adaptation.
+  Put scene knowledge in skills; base constraints on evidence.
+- Before design changes, read the [Spec](specs/graphic-design-platform.zh.md) and
+  [scope review](.agents/notes/proposed/simplification/2026-09-11-design-result-feedback.zh.md).
+  Rules define the target; evidence establishes current support.
 
 ## Design platform: agent-naive environment
 
-The design authoring environment (skills, MCP design tools, workspace files,
-artifact intake) is agent-naive: it presents capabilities with honest
-availability. The agent owns its creative workflow, including finalizing its own
-artifacts; app-side hooks enforce only data-integrity preconditions, not design
-methods or semantic review. App-side code performs only storage-level structural
-validation (schema, kernel replay, asset integrity, version consistency) and
-classifies observable outcomes (no artifact / invalid / committed); it never
-re-runs semantic checks the agent could have run itself,
-never repairs agent output behind the agent's back, and never auto-retries paid
-model calls. Before changing design hooks, canvas synchronization, live previews,
-or draft intake, read the [design Spec](specs/graphic-design-platform.zh.md).
-Canvas editing remains independent of Agent execution; file-driven previews are
-consumer-scoped and never commit the current drawing or finalize Agent output.
+Lody owns execution; Bento owns independent editing/rendering and snapshot/flush;
+design services own conversion/storage. The product Agent owns creation,
+review and completion. Expose honest capabilities; tool absence does not imply
+absence of other agent capabilities. Preserve rendering previews and image
+reading and commit receipts; retire per-turn result cards and dedicated thumbnails.
+
+App validation/hooks enforce schema, kernel replay, asset integrity and versions,
+not creative steps or semantic review. No silent output repair or automatic paid
+retries. Read hooks synchronize context; write hooks check read baselines; final
+commits independently check versions and protect unsaved human edits. Before Agent
+execution, flush human edits; keep every Bento instance of that artwork read-only
+until execution and artifact processing end. The app enforces this through generic
+read-only and mutation checks; Bento does not track Agent lifecycle. Consumer-scoped
+file previews neither commit nor trigger sync loops. Files or previews do not end
+Agent turns. Human judgment establishes visual quality; Agent review is advisory.
+
+Agents resolve file conflicts through tool errors and re-reading; preserve drafts
+and retire candidate workflows. Never auto-restart completed turns. External import
+validates and saves the viewed snapshot directly. Image MCP supports generate/edit
+with a user-required model and no product default.
+
+## Context and documentation
+
+- Read applicable `AGENTS.md`, relevant Specs, active notes, `.agents/docs/` and
+  module READMEs. Topic triggers apply across directories. Archives are history.
+- Specs define intent, docs implementation, notes decisions. Distinguish bugs,
+  stale docs and unimplemented intent using evidence; never rewrite intent to
+  justify bugs.
+- Changed intent/guarantees return the [Spec](specs/AGENTS.md) to `draft`.
+  `approved` requires linked human approval of that revision; review `outdated`.
+  Only editorial changes preserving meaning retain approval.
+- Non-trivial changes and substantial research/design need an owning
+  [Agent Note](.agents/notes/AGENTS.md#when-to-write) in the same PR, if any. Only
+  mechanical/local edits without changed decisions are exempt. Link distinct
+  decisions; proposals stay `proposed`. Report deferred notes on read-only tasks.
+- Update affected docs/READMEs. Run `pnpm run docs status` at start and
+  `pnpm run docs check` at finish; review SHA-protected changes. Checks/translations
+  prove neither correctness nor approval. Translation may follow; see [maintenance](.agents/README.md).
+- Binding rules belong in the nearest `AGENTS.md` (<8 KiB); new scopes need a
+  `CLAUDE.md` symlink. Keep rationale in owning docs/notes.
+
+## Repository boundary
+
+- Public source is `apps/{cli,electron}` and their packages. Exclude hosted backends,
+  operator/billing config, secrets/private records and Web/mobile sources.
+  Never commit captured user/agent transcripts; use synthetic fixtures.
+- No `@lody/convex`, private workspace packages or generated backend APIs.
+  Optional-cloud names/DTOs belong in `packages/cloud-api`; shared product code
+  uses `packages/platform` capabilities/ports and remains platform-neutral.
+- OSS desktop is local-only: no authenticated product-cloud requests or telemetry.
+  Public managed-runtime downloads are the exception.
+- Before composition, capability-gated settings, telemetry or runtime download
+  changes, read [platform contracts](packages/platform/AGENTS.md).
+- Before daemon negotiation, MCP/Role catalogs or their UI consumers, per-turn MCP
+  selection, or Role creation/dispatch, read [shared contracts](packages/shared/AGENTS.md).
+- Keep `packages/acp-extension-kimi` in its isolated submodule, outside root pnpm.
+  Consume only its separately built, checksummed managed-runtime artifact and
+  versioned ACP contract. Reuse shared contracts from the public
+  `LodyAI/acp-extension-core` submodule through root pnpm; never duplicate them.
+- Viewer packaging/version changes follow its [rules](packages/code-review-viewer/AGENTS.md).
+  Package-scope or cloud/local composition changes require `pnpm check:public-boundary`.
 
 ## Contributions and checks
 
 - Identify once: Lody team if the user says so or GitHub login is `zxch3n`,
-  `Leeeon233`, or `wibus-wee`; otherwise community. Before planning a community
-  contribution, read [.github/AGENTS.md](.github/AGENTS.md) for size/assignment rules.
-  Read it before any PR/Issue work as well.
-- Node.js 22+; use the pnpm in `package.json`. `pnpm install` (nested checkouts
-  skip it); standalone work uses a separate clone. `pnpm start:local` starts the
-  desktop; root `pnpm build` uses the same local composition.
-- Before commit: `pnpm check` and `pnpm format`. If tests are skipped, report
+  `Leeeon233` or `wibus-wee`; otherwise community. Read [.github/AGENTS.md](.github/AGENTS.md)
+  before planning community contributions and before any PR/Issue work.
+- Node 22+; pnpm from `package.json`. Run `pnpm install` (skip nested checkouts);
+  standalone work uses a separate clone. `pnpm start:local` and root `pnpm build`
+  use local desktop composition.
+- Before commit, run `pnpm check` and `pnpm format`. If tests are skipped, report
   type/build/static checks. Manifest changes update `pnpm-lock.yaml`.
-- Conventional Commits: `feat:`, `fix:`, `docs:`, `chore:`, `test:`. AI commits
-  end with `Model: <runtime-model-id>`.
-- Tests use explicit signals, injected clocks, fake timers, and deterministic
-  fixtures; no real sleeps, wall-clock races, network, machine load, or scheduler
-  luck. Assert observable behavior, not mock call counts.
-- Keep edits traceable to the request and preserve unrelated work. Prefer explicit
-  contracts over hidden fallbacks; remove only unused code. Update the nearest
-  public `AGENTS.md` when an invariant or boundary changes.
+- Use Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `test:`);
+  AI commits end with `Model: <runtime-model-id>`.
+- Test observable behavior with explicit signals, injected clocks, fake timers and
+  deterministic fixtures. No real sleeps, wall-clock races, network, machine load
+  or scheduler luck; do not assert mock call counts.
+- Keep edits traceable, contracts explicit; remove only unused code. Update the
+  nearest public `AGENTS.md` for changed invariants/boundaries.
 
 ## Code Review Rules
 
-Report only P0/P1, security first. If the PR solves the linked Issue and no P0/P1
-remains, react 👍. Details: [.github/codex-review.md](.github/codex-review.md).
+Report P0/P1 only, security first. Skip style, nits, P2+, extra tests and duplication
+under 100 lines. React 👍 when a PR solves its Issue with no P0/P1 remaining.
+Details: [.github/codex-review.md](.github/codex-review.md).
 
-- P0: exploitable security, secret leak, auth/capability bypass, data loss, or a
-  broken public/cloud/local boundary.
+- P0: exploitable security, secret leak, auth/capability bypass, data loss or broken
+  public/cloud/local boundary.
 - P1: likely shipped breakage or a durable catalog/session contract violation.
-- Skip style, nits, P2+, extra tests, and duplication under 100 lines.
 
 ## Agent skills
 
-### Issue tracker
-
-Issues are tracked as GitHub issues on `LeonEthan/Folio` via the `gh` CLI. See [.agents/agent-skills/issue-tracker.md](.agents/agent-skills/issue-tracker.md).
-
-### Triage labels
-
-The five canonical labels are used as-is: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See [.agents/agent-skills/triage-labels.md](.agents/agent-skills/triage-labels.md).
-
-### Domain docs
-
-Single-context: one `CONTEXT.md` glossary plus `.agents/docs/adr/` at the repo root (top-level `docs/` is a closed product path here). See [.agents/agent-skills/domain.md](.agents/agent-skills/domain.md).
+- Issues: `LeonEthan/Folio` via `gh`; see [issue tracker](.agents/agent-skills/issue-tracker.md).
+- Triage labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`,
+  `wontfix`; see [triage rules](.agents/agent-skills/triage-labels.md).
+- Domain: one root `CONTEXT.md` glossary and `.agents/docs/adr/`; top-level `docs/`
+  is a closed product path. See [domain rules](.agents/agent-skills/domain.md).

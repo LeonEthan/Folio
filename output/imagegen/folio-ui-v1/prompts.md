@@ -1,8 +1,10 @@
 # Folio UI v1 — final prompt set
 
+**2026-09-11 范围更新：通用逐轮结果卡、逐轮历史缩略图及新增侧栏作品缩略图链路退出迁移范围。图中的对应卡片/缩略图仅保留为历史示意；候选创建/采用/拒绝流程也已删除；Agent 渲染预览/实际读图及旧内容可达保留，按 [当前方案](../../../.agents/notes/proposed/architecture/2026-09-09-graphic-design-platform.zh.md) 的 P3.0/P4 实施。**
+
 Scope update (2026-09-10): The standalone asset library and cross-design asset reuse have been removed from the entire migration plan. The 03-assets page and asset-library sidebar entries in all prompts below are obsolete. These are historical generation inputs, not implementation requirements.
 
-**同日方案复核：04-versions 中的历史版本列表与恢复承诺取消，完整三方对比不属于迁移要求；仅保留当前稿/候选查看及显式采用/丢弃的方向。旧图中的独立新建入口、作品库、品牌资源管理等控件也不构成需求，以 [Spec](../../../specs/graphic-design-platform.zh.md) 和当前阶段计划为准。原图和提示词不改写为已实现结果。**
+**同日方案复核：04-versions 中的历史版本列表与恢复承诺取消，完整三方对比不属于迁移要求；候选查看及采用/丢弃流程也已被后续收敛删除，外部文件改为预览后直接显式导入。旧图中的独立新建入口、作品库、品牌资源管理等控件也不构成需求，以 [Spec](../../../specs/graphic-design-platform.zh.md) 和当前阶段计划为准。原图和提示词不改写为已实现结果。**
 
 Mode: built-in image_gen (no CLI fallback).
 Use case: ui-mockup.
@@ -59,3 +61,5 @@ Stable common sidebar: '新建设计' plus button, '搜索', '最近作品', '�
 Synthetic design content repeated throughout suite: '夏日冷萃海报', portrait poster titled '夏日 / 冷萃' with very large elegantly arranged deep-forest-green Chinese display typography, cream paper background, beautiful realistic iced coffee glass with condensation, warm orange circular accent, small 'SUMMER BREW' and '2026 SUMMER'. Design artwork can be colorful; app chrome must stay quiet and neutral.
 Page: 05 — 设置 / Agents. Use reference screenshot only as exact design-system reference, generate settings page in same Folio application. Main app's left sidebar remains intact with bottom '设置' highlighted. Main workspace shows title '设置', with a compact second navigation list 180px wide: '通用', '外观', '快捷键', 'Agents' selected, '图像连接', '保存与导出', '高级', '关于'. Right content pane maximum width 820px, left aligned, generous whitespace, header 'Agents', description '连接本机 Agent，沿用你已有的登录与模型配置。', right secondary '重新检测'. Three neat agent rows, not excessive cards: Codex with green '可用' and text '已连接本机 CLI', small dropdown '默认'; Claude Code with neutral '需登录', button '查看指引'; OpenCode with muted '未安装', button '安装指引'. All statuses illustrative UI mock data, no token or key shown. Below thin divider, section '当前 Agent', line 'Codex', form row '可执行文件' with neutral field '/usr/local/bin/codex' and '选择文件…'; short helper '实际路径以本机检测结果为准。'. Separate row '权限模式' dropdown '由 Agent 配置决定'; no made-up named model options. Small collapsible '诊断信息'. Bottom small in-flow information strip '图片生成需单独配置图像连接。' and simple text link '前往图像连接 →'. Bottom-right restrained button '保存更改'. No cloud account, billing, quotas, API key values, remote machines, version numbers or fake usage graphs. Labels in clear Simplified Chinese, optical alignment of form rows, quiet neutral desktop UI, match supplied workbench exactly.
 ```
+
+2026-09-11 串行编辑更新：Agent 执行及产物处理期间，所属当前画稿禁止人工修改；处理结束恢复编辑。旧图不能作为运行中可编辑的依据，按[串行编辑决策](../../../.agents/notes/proposed/architecture/2026-09-11-design-serial-editing.zh.md)实施。
