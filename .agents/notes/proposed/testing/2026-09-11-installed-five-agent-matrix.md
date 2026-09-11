@@ -214,8 +214,8 @@ is used to conceal the failure.
 The installed built-in P0 and P1 probes exited zero, including source preview,
 source import, watcher and multiple-consumer assertions in the existing P1
 facility. The configured Claude image probe also exited zero with an explicit
-required model, synthetic generation and edit service requests, live result,
-native image reading, committed replacement, failed service preservation and
+required model, synthetic generation and edit service requests, reopened native
+canonical rendering, native image reading, committed replacement, failed service preservation and
 stale reference rejection. These prove protocol and packaged paths with synthetic
 inputs, not the quality or availability of paid image services.
 
@@ -245,3 +245,88 @@ The replacement-package Claude probe additionally requires the initial sent
 reference attachment to be visible, complete and have nonzero natural width.
 That new assertion is pending the corrected package; it cannot be satisfied merely
 by delivering image bytes to the model or by absence of an error string.
+
+## Replacement package: b86a1c92
+
+The replacement was built from clean
+`b86a1c92aa529511c4390dc057649bbb00a53f50`, which includes the attachment history
+gate correction. Its private installed copy again passed DMG verification and
+read-only mount/copy/detach, signature verification, embedded CLI boot/native
+bindings and packaged Bento checks. The existing `e2e:build` passed before
+packaging; acceptance-only script changes below do not change these package bytes.
+
+- DMG SHA256: `22fb673c62f4277386f15c5f47689a53fcc59e486d87ef3935884b9274a16a20`.
+- Installed ASAR SHA256: `eef1beb7a270afb515db8c1d04e09da3f2c4c8c00f8250a766a0b3a10144d5bb`.
+- Evidence round: `folio-t28-b86a1c92-24v1tix4` in the host temporary directory.
+  `runtime-files.json` rechecks the six selected runtime/ACP files against the
+  preparation hashes and records hashes/paths of the actual packaged adapters.
+  All selected file hashes matched; this does not substitute for authentication.
+- Harness used for these T28 runs: source `b86a1c92`. T29's subsequent optional
+  restart facility has separate ownership and validation; it did not build this app.
+
+The replacement Claude round exited zero after the sent attachment itself became
+visible with a real `lody-resource://file/…` URL, `complete: true` and
+`naturalWidth: 1`. Reference bytes, skill text, Manual/Allow Once permission,
+read-baseline refusal, valid writes/commit and explicit same-byte resubmission
+also passed. The initial replacement attempt used an exact original filename
+locator; uploaded attachment names have a numeric prefix, so that tool-only
+locator was corrected to match the known filename suffix. The pixel-load
+assertion was retained. That initial locator failure is not an application failure
+or a passing complete round. Successful Claude probes now preserve CLI logs as
+well as the harness diagnostics for subsequent executions.
+
+Replacement Pi cold-cache and prepared-cache recovery rounds again passed their
+functional checkpoints and again exited one during directory removal. Cold input
+and skill delivery, native read/write/commit, same-byte attempts, cancellation,
+provider failure, independent CAS conflict, explicit continuation and the real
+Pi-to-Claude switch are recorded as functional observations with failed cleanup,
+not complete passes. No permission-prompt interaction was exercised for Pi;
+its native extension UI permission route is not inferred absent. The actual Pi
+catalog still lacks the Folio image/render MCP tools, which does not imply lack
+of native image input or all other Agent capabilities.
+
+The replacement P0 and P1 probes exited zero. The replacement configured-image
+probe also exited zero for explicit model selection, generation/edit wire calls,
+actual native image reads, no premature canonical commit, exact asset replacement,
+reopened native canonical rendering, failed-service preservation and stale
+reference refusal. Source-preview/import behavior is separately covered by P1;
+these separate probes do not establish an unexecuted combined image-edit/source-
+preview journey or paid-service visual quality.
+
+The root's additional immutable-9ef teardown observation kept CLI log read file
+descriptors open through the original recursive removal. It recorded graceful
+supervisor shutdown, ACP termination and document unload before application exit,
+then the same `ENOTEMPTY`. Neither synchronous nor asynchronous probe-owned I/O
+was observed writing during deletion. Directory timestamps place the empty
+`chats/<session>` directories in the shutdown/removal second, but the responsible
+writer remains unidentified. Evidence is retained in
+`/tmp/folio-root-teardown-UkZ0KW` and `/tmp/folio-root-pi-teardown-trace.log`.
+Neither this observation nor the provider-drain control establishes a lifecycle
+repair. No delay, retry, pre-termination of the daemon or global process kill is
+used to make a failed round appear successful.
+
+| Required behavior on the replacement              | Codex           | Claude                                  | Pi                                        | Kimi            | Grok            |
+| ------------------------------------------------- | --------------- | --------------------------------------- | ----------------------------------------- | --------------- | --------------- |
+| Authenticated installed runtime/tool discovery    | Not established | Observed                                | Observed, cleanup failed                  | Not established | Not established |
+| Actual reference bytes / native skill read        | Not executed    | Passed                                  | Observed, cleanup failed                  | Not executed    | Not executed    |
+| Native permission request and response            | Not executed    | Manual / Allow Once passed              | Not exercised                             | Not executed    | Not executed    |
+| Manual edit → native read → write → commit        | Hook blocked    | Passed                                  | Observed, cleanup failed                  | Hook blocked    | Hook blocked    |
+| Stale refusal / explicit same-byte attempt        | Hook blocked    | Passed                                  | Observed, cleanup failed                  | Hook blocked    | Hook blocked    |
+| Cancel / fail / final CAS / explicit continuation | Not executed    | Only fresh-read switch destination here | Observed, cleanup failed                  | Not executed    | Not executed    |
+| Configured image generate/edit and actual read    | Not executed    | Synthetic protocol passed               | MCP tools not exposed in observed catalog | Not executed    | Not executed    |
+| Complete per-Agent installed matrix               | Incomplete      | Incomplete                              | Incomplete                                | Incomplete      | Incomplete      |
+
+The original seven Issue criteria remain the acceptance target. Missing/error/
+uncovered-hook evidence from adapter development is not promoted to an installed
+native pass, nor is final CAS substituted for a missing generation fence. Windows,
+Linux, real paid model/image quality, human visual judgment and remaining
+per-combination interactions are still unexecuted. T28 remains **blocked and
+incomplete**, including the three documented native runtime hook gaps and the
+unresolved Pi teardown failure.
+
+The replacement no-model discovery runner exited zero while recording
+`ready: false` for each Codex, Kimi and Grok configuration. Its bounded UI
+observation and actual ACP startup logs are in `folio-t28-discovery-2JMvhB`;
+runner exit zero means the observations were collected, not that authentication
+or those Agent capability cells passed. All homes, keys and configuration in
+this runner were private synthetic inputs.

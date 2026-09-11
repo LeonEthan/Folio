@@ -123,3 +123,10 @@ The installed app in this round is locally ad-hoc signed only. This procedure
 neither authorizes nor performs public release, Developer ID signing, notarization,
 update-feed changes or publication. The public README describes usable workflows
 and limitations; this document records how their evidence must be established.
+
+For cancellation followed by a complete application restart, `ElectronHarness.restart()`
+retains its own profile and artwork only after the same process and endpoint checks
+as final teardown pass. It uses the original executable/source target and a freshly
+reserved endpoint. The subsequent `close()` removes the isolated directories.
+A teardown error aborts restart; closing and reopening a Session inside one running
+application is separate evidence.

@@ -240,9 +240,15 @@ try {
   if (await page.getByRole('button', { name: 'Close', exact: true }).count())
     await page.getByRole('button', { name: 'Close', exact: true }).last().click();
   await expect(page.getByRole('button', { name: 'Close', exact: true })).toHaveCount(0);
-  await writeFile(path.join(scenarioDir, 'permission-controls.txt'), await page.locator('body').ariaSnapshot());
+  await writeFile(
+    path.join(scenarioDir, 'permission-controls.txt'),
+    await page.locator('body').ariaSnapshot()
+  );
   await page.getByRole('button', { name: 'Permission', exact: true }).click();
-  await writeFile(path.join(scenarioDir, 'permission-menu.txt'), await page.locator('body').ariaSnapshot());
+  await writeFile(
+    path.join(scenarioDir, 'permission-menu.txt'),
+    await page.locator('body').ariaSnapshot()
+  );
   await page.getByRole('menuitem', { name: /^Manual/ }).click();
   await page.locator('input[type="file"]').setInputFiles(referencePath);
   await page.locator('#chat-prompt').fill('SYNTHETIC_INITIAL');
@@ -250,9 +256,24 @@ try {
   await expect(page.locator('p').filter({ hasText: 'SYNTHETIC_INITIAL_FINISHED' })).toBeVisible({
     timeout: 120000,
   });
-  const sentReference = page.getByRole('img', { name: 'synthetic-reference.png', exact: true });
+  console.log(
+    'SENT_IMAGES',
+    await page
+      .locator('img')
+      .evaluateAll((images) =>
+        images.map((img) => ({
+          alt: img.alt,
+          src: img.src,
+          complete: img.complete,
+          naturalWidth: img.naturalWidth,
+        }))
+      )
+  );
+  const sentReference = page.getByRole('img', { name: /synthetic-reference\.png$/ });
   await expect(sentReference).toBeVisible();
-  await expect.poll(() => sentReference.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
+  await expect
+    .poll(() => sentReference.evaluate((img) => img.complete && img.naturalWidth > 0))
+    .toBe(true);
   console.log('SENT_REFERENCE_RENDERED');
   console.log('INITIAL', page.url());
   const id = page.url().match(/sessions\/([^/?#]+)/)?.[1];
@@ -382,6 +403,7 @@ try {
     referenceDelivered && skillDelivered,
     'native reference and skill delivery must both complete'
   );
+  await cp(path.join(dataRoot, 'logs'), path.join(scenarioDir, 'cli-logs'), { recursive: true });
   h.writeDiagnostics();
   console.log(
     JSON.stringify({

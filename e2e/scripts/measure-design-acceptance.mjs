@@ -49,8 +49,8 @@ try {
   await onboarding.waitForLocalBootstrap();
   await onboarding.skipConfigurationAndEnterProduct();
   report.runtime = await app.evaluate(async ({ app: nativeApp, screen }) => {
-    const fs = await import('node:fs');
-    const nativePath = await import('node:path');
+    const fs = process.getBuiltinModule('fs');
+    const nativePath = process.getBuiltinModule('path');
     const manifest = JSON.parse(
       fs.readFileSync(nativePath.join(nativeApp.getAppPath(), 'package.json'), 'utf8')
     );

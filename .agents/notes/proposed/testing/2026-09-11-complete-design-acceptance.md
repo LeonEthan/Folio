@@ -65,3 +65,21 @@ it does not substitute for canonical-store failure or physical dialog interactio
 At this preparation point the script is syntax-checked but not yet executed against
 the final package. The full repository check passed before adding this isolated
 acceptance entrypoint; scoped E2E and final documentation checks follow.
+
+The installed measurement metadata uses Electron Node’s existing
+`process.getBuiltinModule` API because Playwright main-process evaluation does not
+supply a dynamic-import callback. The existing harness now has a restart operation
+for cancel→quit→launch recovery: it pins the original launch target, preserves only
+its own durable directories after successful process/endpoint teardown, reserves
+a new endpoint, and does not force onboarding on the resumed profile. Final close
+retains the original directory cleanup and failure behavior. This is acceptance
+tooling; it neither changes application shutdown nor waives observed cleanup errors.
+Installed execution of this additional recovery path is still pending.
+
+Restart tooling verification passed the full repository check, formatting, docs
+check, E2E contracts/types/tests, development build and the three-scenario,
+18-step smoke suite. The first development build failed because this worktree
+had not initialized the pinned public Bento submodule; it was initialized without
+changing its revision. The repaired build and repeated full checks used pnpm
+10.20.0 for nested commands as well as the top-level invocation. These checks do
+not establish the installed restart journey or remove native-round cleanup failures.

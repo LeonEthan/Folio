@@ -110,12 +110,31 @@ export class ElectronHarness {
   private traceStarted = false;
   private performanceSession: CDPSession | null = null;
   private rendererPaintCount = 0;
+  private launchVerified = false;
+  private launchTarget: { installedExecutable?: string; expectedSourceCommit?: string } | null = null;
 
   constructor(readonly artifacts: ScenarioArtifacts) {}
 
   async launch(): Promise<void> {
-    const installedExecutable = process.env.FOLIO_E2E_INSTALLED_EXECUTABLE;
-    const expectedSourceCommit = process.env.FOLIO_E2E_EXPECTED_SOURCE_COMMIT;
+    if (this.app || this.tempRoot) throw new Error('Electron harness already owns a launch');
+    this.launchTarget = {
+      installedExecutable: process.env.FOLIO_E2E_INSTALLED_EXECUTABLE,
+      expectedSourceCommit: process.env.FOLIO_E2E_EXPECTED_SOURCE_COMMIT,
+    };
+    await this.start(false);
+  }
+
+  async restart(): Promise<void> {
+    if (!this.launchVerified || !this.app || !this.tempRoot) {
+      throw new Error('Only a verified running Electron harness can restart');
+    }
+    await this.shutdown(true);
+    await this.start(true);
+  }
+
+  private async start(restarting: boolean): Promise<void> {
+    if (!this.launchTarget) throw new Error('Electron launch target is missing');
+    const { installedExecutable, expectedSourceCommit } = this.launchTarget;
     if (installedExecutable && !/^[a-f0-9]{40}$/.test(expectedSourceCommit ?? '')) {
       throw new Error('Installed acceptance requires FOLIO_E2E_EXPECTED_SOURCE_COMMIT (full SHA)');
     }
@@ -129,7 +148,8 @@ export class ElectronHarness {
     }
 
     const tempBase = process.platform === 'win32' ? tmpdir() : '/tmp';
-    this.tempRoot = mkdtempSync(join(tempBase, 'lody-e2e-'));
+    if (!restarting) this.tempRoot = mkdtempSync(join(tempBase, 'lody-e2e-'));
+    if (!this.tempRoot) throw new Error('Verified restart data is missing');
     const electronUserDataDir = join(this.tempRoot, 'electron-user-data');
     const lodyDataDir = join(this.tempRoot, 'lody-data');
     mkdirSync(electronUserDataDir, { recursive: true });
@@ -149,7 +169,7 @@ export class ElectronHarness {
       ...(this.hostPipe ? { LODY_E2E_LOCAL_CLI_HOST_PIPE: this.hostPipe } : {}),
       LODY_ELECTRON_DISABLE_SHELL_ENV: '1',
       LODY_ELECTRON_DISABLE_SYSTEM_PROXY_ENV: '1',
-      LODY_ELECTRON_FORCE_ONBOARDING: '1',
+      ...(!restarting ? { LODY_ELECTRON_FORCE_ONBOARDING: '1' } : {}),
       LODY_ELECTRON_USER_DATA_DIR: electronUserDataDir,
       NODE_ENV: 'test',
     });
@@ -264,6 +284,7 @@ export class ElectronHarness {
         observer.disconnect();
       }
     });
+    this.launchVerified = true;
   }
 
   async captureSnapshot(): Promise<RuntimeSnapshot> {
@@ -347,6 +368,11 @@ export class ElectronHarness {
   }
 
   async close(): Promise<void> {
+    await this.shutdown(false);
+  }
+
+  private async shutdown(preserveData: boolean): Promise<void> {
+    this.launchVerified = false;
     let closeError: unknown;
     const appProcess = this.app?.process();
     const phase = (name: string, detail?: unknown) => {
@@ -412,12 +438,13 @@ export class ElectronHarness {
         phase('surviving-owned-processes', survivors);
         throw new Error('Owned processes remain after Electron quit; isolated data retained');
       }
-      if (this.tempRoot && !closeError) rmSync(this.tempRoot, { recursive: true, force: true });
-      else if (this.tempRoot) phase('retained-data', this.tempRoot);
+      if (this.tempRoot && !closeError && !preserveData) {
+        rmSync(this.tempRoot, { recursive: true, force: true });
+      } else if (this.tempRoot) phase('retained-data', this.tempRoot);
     } catch (error) {
       closeError ??= error;
     }
-    this.tempRoot = null;
+    if (!preserveData || closeError) this.tempRoot = null;
     this.hostPort = null;
     this.hostPipe = null;
     this.rendererPaintCount = 0;
