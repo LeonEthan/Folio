@@ -23,6 +23,17 @@ Human image inputs keep their ACP `image` block for visual context and additiona
 materialize the same bytes as a `resource_link`, so agents can echo or transform them
 through a local file path.
 
+## Sent-image previews
+
+`file/resolve-local` resolves a sent attachment from its Session history identity,
+then checks the owning machine, blob length and content hash before the desktop
+resource service exposes its bytes. An RPC-dispatched turn can arrive before its
+user history entry synchronizes. If the requested identity is not yet present,
+the resolver waits for the existing `TurnHistoryGate` and reads history again;
+an older attachment already in history does not wait for a newer turn. Opening
+the gate, including by timeout or teardown, never authorizes a staged blob:
+the normal history, owner and integrity checks still apply.
+
 ## Backfill to the relay
 
 `session-file-backfill.ts` uploads local blobs through the injected relay, flips

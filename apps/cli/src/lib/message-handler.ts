@@ -7264,15 +7264,24 @@ export class MessageHandler {
           const sessionId = request.params.sessionId;
           const identity = request.params.attachment;
           const doc = await this.workspaceDocument.getOrCreateSessionDoc(sessionId);
-          const history = await doc.getHistory();
-          const block = history
-            .flatMap((entry) => entry.items ?? [])
-            .find(
-              (item) =>
-                item.type === 'file' &&
-                item.fileId === identity.fileId &&
-                item.sha256.toLowerCase() === identity.sha256.toLowerCase()
-            );
+          const findAttachment = async () =>
+            (await doc.getHistory())
+              .flatMap((entry) => entry.items ?? [])
+              .find(
+                (item) =>
+                  item.type === 'file' &&
+                  item.fileId === identity.fileId &&
+                  item.sha256.toLowerCase() === identity.sha256.toLowerCase()
+              );
+          let block = await findAttachment();
+          if (!block) {
+            // Sent-image previews can outrun the same user-history sync as RPC
+            // turn output. Existing history must remain readable during a new
+            // turn; only missing identities wait for its existing bounded gate.
+            await this.awaitTurnHistoryGate(sessionId);
+            await assertOwner(sessionId, true);
+            block = await findAttachment();
+          }
           if (
             !block ||
             block.type !== 'file' ||

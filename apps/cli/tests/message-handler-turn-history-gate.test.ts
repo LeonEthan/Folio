@@ -1,14 +1,21 @@
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoroRepo } from 'loro-repo';
 
 import type {
   AcpSessionNotification,
+  LocalMachineRpcRequestValidated,
+  SessionFilePayload,
   SessionHistoryInput,
   SessionId,
   WorkspaceId,
 } from '@lody/shared';
 
 import { MessageHandler } from '../src/lib/message-handler';
+import { getSessionFileBlobPath } from '../src/lib/session-file-blob-store';
 import { SessionDocument } from '../src/lib/loro/doc';
 import type { LoroDocumentManager } from '../src/lib/loro/doc';
 import type { SessionManager } from '../src/session/session-manager';
@@ -103,7 +110,57 @@ const createHandlerHarness = async (sessionId: SessionId) => {
     }
   );
 
-  return { repo, doc, handler: handler as unknown as MessageHandlerHost };
+  return { repo, doc, rpcHandler: handler, handler: handler as unknown as MessageHandlerHost };
+};
+
+const attachmentBytes = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',
+  'base64'
+);
+
+const stageAttachment = (sessionId: SessionId): SessionFilePayload => {
+  const file: SessionFilePayload = {
+    type: 'file',
+    fileId: 'reference-file',
+    fileName: 'reference.png',
+    mimeType: 'image/png',
+    sizeBytes: attachmentBytes.length,
+    sha256: createHash('sha256').update(attachmentBytes).digest('hex'),
+    transport: 'local',
+    machineId: 'm-1',
+    uploadedAt: 1,
+    textPreview: false,
+  };
+  const blobPath = getSessionFileBlobPath({ workspaceId: 'ws-1', sessionId, fileId: file.fileId });
+  fs.mkdirSync(path.dirname(blobPath), { recursive: true });
+  fs.writeFileSync(blobPath, attachmentBytes);
+  return file;
+};
+
+const attachmentRequest = (
+  sessionId: SessionId,
+  file: SessionFilePayload
+): LocalMachineRpcRequestValidated => ({
+  machineId: 'm-1',
+  workspaceId: 'ws-1',
+  method: 'file/resolve-local',
+  params: { v: 3, sessionId, attachment: { fileId: file.fileId, sha256: file.sha256 } },
+});
+
+const previewBeforeHistory = async (
+  harness: Awaited<ReturnType<typeof createHandlerHarness>>,
+  request: LocalMachineRpcRequestValidated
+) => {
+  const historyRead = Promise.withResolvers<void>();
+  const getHistory = harness.doc.getHistory.bind(harness.doc);
+  vi.spyOn(harness.doc, 'getHistory').mockImplementationOnce(async () => {
+    const snapshot = await getHistory();
+    historyRead.resolve();
+    return snapshot;
+  });
+  const response = harness.rpcHandler.handleLocalMachineRpc(request);
+  await historyRead.promise;
+  return { response };
 };
 
 const userEntry = (id: string): SessionHistoryInput => ({
@@ -229,5 +286,124 @@ describe('MessageHandler turn history gate (RPC fast path ordering)', () => {
     } finally {
       await destroyRepoOnRealTimers(repo);
     }
+  });
+
+  describe('sent local attachment preview', () => {
+    let dataDir: string;
+
+    beforeEach(() => {
+      dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lody-attachment-history-'));
+      vi.stubEnv('LODY_DATA_DIR', dataDir);
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    });
+
+    it('resolves the original pending request after the sent attachment syncs into history', async () => {
+      const sessionId = 's-attachment-sync' as SessionId;
+      const harness = await createHandlerHarness(sessionId);
+      const file = stageAttachment(sessionId);
+      try {
+        harness.handler.beginConversationTurn(sessionId, 'sent-image', {
+          dispatchSource: 'rpc',
+          sessionDoc: harness.doc,
+        });
+        const { response } = await previewBeforeHistory(
+          harness,
+          attachmentRequest(sessionId, file)
+        );
+        await harness.doc.updateHistory((history) => [
+          ...history,
+          { ...userEntry('sent-image'), items: [file] },
+        ]);
+        const result = await response;
+        expect(result.ok).toBe(true);
+        if (!result.ok || !('status' in result.result) || result.result.status !== 'local-file')
+          throw new Error('Expected the synced local attachment');
+        expect(fs.readFileSync(result.result.absolutePath)).toEqual(attachmentBytes);
+      } finally {
+        await destroyRepoOnRealTimers(harness.repo);
+      }
+    });
+
+    it.each(['missing', 'wrong-hash', 'wrong-machine', 'remote-transport'])(
+      'does not authorize a %s attachment when the user entry syncs',
+      async (scenario) => {
+        const sessionId = 's-attachment-denied' as SessionId;
+        const harness = await createHandlerHarness(sessionId);
+        const file = stageAttachment(sessionId);
+        try {
+          harness.handler.beginConversationTurn(sessionId, 'sent-image', {
+            dispatchSource: 'rpc',
+            sessionDoc: harness.doc,
+          });
+          const { response } = await previewBeforeHistory(
+            harness,
+            attachmentRequest(sessionId, file)
+          );
+          const syncedFile: SessionFilePayload = {
+            ...file,
+            ...(scenario === 'wrong-hash' ? { sha256: '0'.repeat(64) } : {}),
+            ...(scenario === 'wrong-machine' ? { machineId: 'another-machine' } : {}),
+            ...(scenario === 'remote-transport' ? { transport: 'r2' } : {}),
+          };
+          await harness.doc.updateHistory((history) => [
+            ...history,
+            { ...userEntry('sent-image'), items: scenario === 'missing' ? [] : [syncedFile] },
+          ]);
+          expect(await response).toEqual({
+            ok: false,
+            error: 'Local attachment is not present in this session',
+          });
+        } finally {
+          await destroyRepoOnRealTimers(harness.repo);
+        }
+      }
+    );
+
+    it('rejects a staged blob if history is still missing when the existing gate times out', async () => {
+      const sessionId = 's-attachment-timeout' as SessionId;
+      const harness = await createHandlerHarness(sessionId);
+      const file = stageAttachment(sessionId);
+      try {
+        harness.handler.beginConversationTurn(sessionId, 'sent-image', {
+          dispatchSource: 'rpc',
+          sessionDoc: harness.doc,
+        });
+        const { response } = await previewBeforeHistory(
+          harness,
+          attachmentRequest(sessionId, file)
+        );
+        await vi.advanceTimersByTimeAsync(DEFAULT_TURN_HISTORY_GATE_TIMEOUT_MS);
+        expect(await response).toEqual({
+          ok: false,
+          error: 'Local attachment is not present in this session',
+        });
+      } finally {
+        await destroyRepoOnRealTimers(harness.repo);
+      }
+    });
+
+    it('reads an older sent attachment without waiting for an unrelated pending user turn', async () => {
+      const sessionId = 's-attachment-old' as SessionId;
+      const harness = await createHandlerHarness(sessionId);
+      const file = stageAttachment(sessionId);
+      try {
+        await harness.doc.updateHistory(() => [{ ...userEntry('old-image'), items: [file] }]);
+        harness.handler.beginConversationTurn(sessionId, 'new-message', {
+          dispatchSource: 'rpc',
+          sessionDoc: harness.doc,
+        });
+        const result = await harness.rpcHandler.handleLocalMachineRpc(
+          attachmentRequest(sessionId, file)
+        );
+        expect(result.ok).toBe(true);
+        expect((await harness.doc.getHistory()).map((entry) => entry.id)).toEqual(['old-image']);
+      } finally {
+        await destroyRepoOnRealTimers(harness.repo);
+      }
+    });
   });
 });
