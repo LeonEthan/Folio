@@ -86,8 +86,6 @@ import type {
   SessionTurnInputConfig,
   CommentReferencePayload,
   ConversationMarkdownStats,
-  GitHubCheckRun,
-  GitHubMergeMethod,
   VisualAnnotationReferencePayload,
 } from '@lody/shared';
 import {
@@ -97,7 +95,6 @@ import {
   collectConversationMessages,
   type ConversationMessage,
   countBillableSessionTurns,
-  deriveSessionPullRequestReadiness,
   evaluateBillingQuota,
   FREE_SESSION_TURN_LIMIT,
   FREE_SESSION_TURN_WARNING_REMAINING,
@@ -105,7 +102,6 @@ import {
   getAcpCapabilityCacheKey,
   getMachineFlockLocalProjects,
   getProjectRefBranch,
-  getSessionPullRequestLegacyFields,
   extractPromptPreviewFromInputBlocks,
   getServerNow,
   getSessionRoomId,
@@ -150,11 +146,9 @@ import {
   resolveSessionConversationPreparationState,
   type SessionConversationPreparationState,
 } from '@/lib/session-conversation-preparation';
-import { useAtomValue, useSetAtom } from 'jotai';
+import { useAtomValue } from 'jotai';
 import { cloudOperations } from '@/lib/cloud-api-operations';
 import { useCloudQuery } from '@lody/platform/react';
-import { ReadyForReviewStillDraftError, useGitHubPrDetails } from '@/hooks/use-github-pr-details';
-import { derivePrStatusFromDetails } from '@/lib/github-pr-details-state';
 import type { AgentSelection } from '@/components/shared/agent-selector';
 import SessionChatStream, {
   type AssistantMessageAction,
@@ -202,13 +196,7 @@ import { UserAvatar } from '@/components/user-avatar';
 import { useMachineFlockAgentConfigsForMachineIds } from '@/hooks/use-machine-flock-agent-configs';
 import { RenameSessionDialog, type RenameSessionDialogTarget } from './rename-session-dialog';
 import { useResolvedTheme } from '../../theme-provider';
-import { PullRequestBadge } from './pull-request-badge';
 import { SessionInfoBar } from './session-info-bar';
-import type { ContextChipAction, PrCiRun } from './session-info-chips';
-import {
-  resolveSessionInfoBarGitHubActionIds,
-  shouldDisableSessionInfoBarGitHubActionForHydration,
-} from './session-info-action-state';
 import {
   canPauseGoalThroughPromptBridge,
   getPromptBridgeGoalCommands,
@@ -220,25 +208,13 @@ import {
   CAPACITY_RETRY_CONTINUATION_PROMPT,
   useCapacityAutoRetry,
 } from './use-capacity-auto-retry';
-import { buildFixCiErrorsPrompt, buildResolvePrConflictsPrompt } from './session-pr-prompts';
-import { resolveConflictsActionAtomFamily } from './session-pr-agent-action';
-import { setPreferredPrMergeMethod, usePreferredPrMergeMethod } from './pr-merge-method';
 import { PrLinkProvider } from '@/components/ai-gui/pr-link-context';
-import {
-  COMMIT_AND_PUSH_PROMPT,
-  CREATE_DRAFT_PR_PROMPT,
-  CREATE_PR_PROMPT,
-} from './create-pr-prompt';
-import { AutoReviewMenuItem } from './auto-review-menu-item';
 import { WorktreeIcon } from '@/components/icons/worktree-icon';
 import {
   getSessionForkDestinationOptions,
   type SessionForkDestination,
   type SessionForkWorktreeAvailability,
 } from './session-fork-destination-menu';
-import { ReviewAgentSetupDialog } from './auto-review-info';
-import { AutoReviewStatus } from './auto-review-status';
-import { useAutoReview } from '@/hooks/use-auto-review';
 import { ConversationColumn } from '@/components/shared/conversation-column';
 import { SessionRelationCard } from '@/components/shared/session-relation-card';
 import {
@@ -292,10 +268,7 @@ import {
 import { shouldMarkSessionRead } from '@/lib/session-read-receipt';
 import { recordSessionRenderTrace, shortTraceId } from '@/lib/session-render-trace';
 import { getPathLauncherIcon } from '@/components/icons/path-launcher-icon';
-import {
-  extractIssuePRMentionsFromText,
-  useKnownIssuePrItems,
-} from '@/components/mentions/issue-pr-hash-mention';
+import { extractIssuePRMentionsFromText } from '@/components/mentions/issue-pr-hash-mention';
 import { SessionSearchProvider } from './session-search-context';
 import {
   buildSessionSearchResults,
@@ -315,6 +288,28 @@ import {
   AlertDialogTitle,
 } from '@/ui/alert-dialog';
 import { resolveSessionHtmlAttachmentAction } from './session-html-attachment-action';
+import { usePostHog } from '@posthog/react';
+import {
+  capturePostHogEvent,
+  capturePostHogOutcome,
+  getDurationSinceMs,
+  getPerformanceNowMs,
+} from '@/lib/posthog-analytics';
+import { isAskUserQuestionPermissionMeta, type AnalyticsOutcome } from '@lody/shared';
+import { collectPendingScheduledTasksFromHistory, type PendingScheduledTask } from '@lody/shared';
+import { getSessionGitHubState } from '@/lib/session-github-state';
+import {
+  resolveMachineDotlodyPath,
+  resolveSessionWorkspacePath,
+} from '@/lib/session-workspace-path';
+import { isNativeAppShell } from '@/lib/native-platform';
+import {
+  findLatestCompletedCodexProposedPlan,
+  shouldShowCodexProposedPlanDecision,
+} from '@/lib/codex-plan-decision';
+import { buildExecutionTurnConfigOverrides } from '@/lib/execution-turn-config';
+import { canShowSubscriptionRateLimits } from '@/lib/session-usage';
+import { canShowCodexResetForecast } from '@/lib/codex-reset-forecast';
 
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
@@ -368,58 +363,6 @@ function describeCopiedConversation(
     { omitted: trimmed.join(', ') }
   );
 }
-
-function mapGitHubCheckRunToInfoBar(run: GitHubCheckRun): PrCiRun {
-  const status: PrCiRun['status'] =
-    run.status === 'queued'
-      ? 'queued'
-      : run.status === 'in_progress'
-        ? 'running'
-        : run.conclusion === 'success'
-          ? 'success'
-          : run.conclusion === 'neutral' || run.conclusion === 'skipped'
-            ? 'skipped'
-            : 'failure';
-  const startedAtMs = run.startedAt ? Date.parse(run.startedAt) : Number.NaN;
-  const completedAtMs = run.completedAt ? Date.parse(run.completedAt) : Number.NaN;
-  const durationMs =
-    Number.isFinite(startedAtMs) && Number.isFinite(completedAtMs)
-      ? Math.max(0, completedAtMs - startedAtMs)
-      : undefined;
-  return {
-    name: run.name,
-    status,
-    ...(durationMs === undefined ? {} : { durationMs }),
-    ...(run.htmlUrl ? { url: run.htmlUrl } : {}),
-  };
-}
-import { usePostHog } from '@posthog/react';
-import {
-  capturePostHogEvent,
-  capturePostHogOutcome,
-  getDurationSinceMs,
-  getPerformanceNowMs,
-} from '@/lib/posthog-analytics';
-import { isAskUserQuestionPermissionMeta, type AnalyticsOutcome } from '@lody/shared';
-import { collectPendingScheduledTasksFromHistory, type PendingScheduledTask } from '@lody/shared';
-import { buildAuthorFixPrompt } from '@lody/shared';
-import {
-  getPullRequestNumber,
-  getPullRequestRepoFullName,
-  getSessionGitHubState,
-} from '@/lib/session-github-state';
-import {
-  resolveMachineDotlodyPath,
-  resolveSessionWorkspacePath,
-} from '@/lib/session-workspace-path';
-import { isNativeAppShell } from '@/lib/native-platform';
-import {
-  findLatestCompletedCodexProposedPlan,
-  shouldShowCodexProposedPlanDecision,
-} from '@/lib/codex-plan-decision';
-import { buildExecutionTurnConfigOverrides } from '@/lib/execution-turn-config';
-import { canShowSubscriptionRateLimits } from '@/lib/session-usage';
-import { canShowCodexResetForecast } from '@/lib/codex-reset-forecast';
 
 // ── Path launcher options for "Open in" split button ──
 
@@ -1022,7 +965,6 @@ export function SessionHeaderMenu({
   forkWorktreeAvailability = 'hidden',
   onForkMenuOpen,
   onRename,
-  onOpenReviewSettings,
   owner,
   openedByRelations,
   onArchive,
@@ -1087,7 +1029,6 @@ export function SessionHeaderMenu({
     sharing?.visibility === 'unknown' ||
     (sharing?.visibility === 'private' &&
       (sharing.privateReason === 'machine-not-registered' || !sharing.canManage));
-  const [reviewSetupOpen, setReviewSetupOpen] = useState(false);
 
   const openedBySession = openedByRelations?.openedBy ?? null;
   const openedSessions = openedByRelations?.opened ?? [];
@@ -1519,12 +1460,6 @@ export function SessionHeaderMenu({
             {t('sessions.shareAsImage', 'Share as image…')}
           </DropdownMenuItem>
 
-          <AutoReviewMenuItem
-            sessionId={session.id}
-            meta={session}
-            onConfigurationRequired={() => setReviewSetupOpen(true)}
-          />
-
           {/* Archive / Restore + Delete */}
           {isArchived
             ? (onRestore || onDelete) && (
@@ -1568,12 +1503,6 @@ export function SessionHeaderMenu({
               )}
         </DropdownMenuContent>
       </DropdownMenu>
-      <ReviewAgentSetupDialog
-        open={reviewSetupOpen}
-        onOpenChange={setReviewSetupOpen}
-        machineName={machineName ?? undefined}
-        onOpenSettings={() => onOpenReviewSettings?.()}
-      />
     </>
   );
 }
@@ -1972,7 +1901,6 @@ export const SessionChatInterface = memo(
       sharing,
       onShareWithTeam,
       onShareAsImage,
-      onOpenPrTab,
       browserActionSession,
       onOpenBrowser,
       onOpenExistingBrowser,
@@ -2288,53 +2216,12 @@ export const SessionChatInterface = memo(
       return formatSessionDate(session.createdAt, localeObj) || session.id;
     }, [session, localeObj]);
 
-    const {
-      repoFullName,
-      latestPr,
-      latestPrState,
-      canShowGitHubActions,
-      hasExistingPr,
-      workspaceDirty,
-      hasChanges,
-    } = useMemo(
+    const { repoFullName } = useMemo(
       () => getSessionGitHubState(session, workspaceSession),
       [session, workspaceSession]
     );
-    const latestPrNumber = getPullRequestNumber(latestPr);
-    const latestPrRepoFullName = getPullRequestRepoFullName(latestPr) ?? repoFullName;
-    const preferredMergeMethod = usePreferredPrMergeMethod();
-    const activePrDetails = useGitHubPrDetails({
-      workspaceId,
-      repoFullName: latestPrRepoFullName,
-      prNumber: latestPrNumber,
-      headCommitSha: getSessionPullRequestLegacyFields(latestPr).headCommitSha,
-      enabled: canShowGitHubActions && hasExistingPr,
-    });
-    const {
-      data: activePrData,
-      state: activePrState,
-      refreshCheckRuns: refreshActivePrCheckRuns,
-      mergePullRequest: mergeActivePullRequest,
-      isMerging: isActivePrMerging,
-      markReadyForReview: markActivePrReadyForReview,
-      isMarkingReady: isActivePrMarkingReady,
-    } = activePrDetails;
-    const [isPrActionPending, setIsPrActionPending] = useState(false);
-    // Shared with the PR-tab "Resolve conflicts" button through
-    // `resolveConflictsActionAtomFamily`; both surfaces block re-clicks + show
-    // loading off this one flag while the prompt dispatch is in flight.
-    const [isResolvingConflicts, setIsResolvingConflicts] = useState(false);
-    const repositories = useCloudQuery(
-      cloudOperations.github.getWorkspaceRepositories,
-      workspaceId ? { workspaceId } : 'skip'
-    );
-    const isRepoPublic = useMemo(() => {
-      if (!repoFullName || !repositories) return undefined;
-      const repo = repositories.find((r) => r.fullName === repoFullName);
-      return repo ? !repo.private : undefined;
-    }, [repoFullName, repositories]);
-
-    const { knownItems: knownIssuePrItems } = useKnownIssuePrItems(repoFullName, isRepoPublic);
+    const knownIssuePrItems = useMemo(() => new Map(), []);
+    const isRepoPublic = undefined;
 
     type InputActionState = 'ready' | 'dispatching';
     const [inputActionState, setInputActionState] = useState<InputActionState>('ready');
@@ -2910,7 +2797,6 @@ export const SessionChatInterface = memo(
     const editableLastUserMessageId = useMemo(() => {
       if (
         session.isArchived ||
-        session.autoReview ||
         isGoalActive ||
         session.cliType !== 'builtin' ||
         (session.agentType !== 'codex' && session.agentType !== 'claude')
@@ -2954,7 +2840,6 @@ export const SessionChatInterface = memo(
       isGoalActive,
       session.agentConfigId,
       session.agentType,
-      session.autoReview,
       session.cliType,
       session.isArchived,
       sessionHistory,
@@ -4094,8 +3979,6 @@ export const SessionChatInterface = memo(
       ]
     );
 
-    const autoReview = useAutoReview(session?.id, session);
-
     const handleContinueDiscussingProposedPlan = useCallback(() => {
       if (!latestCompletedProposedPlan) {
         return;
@@ -4322,204 +4205,6 @@ export const SessionChatInterface = memo(
       [sessionDoc?.history]
     );
 
-    const createPrPrompt = t('sessions.prompts.createPr', CREATE_PR_PROMPT);
-    const createDraftPrPrompt = t('sessions.prompts.createDraftPr', CREATE_DRAFT_PR_PROMPT);
-    const commitAndPushPrompt = t('sessions.prompts.commitAndPush', COMMIT_AND_PUSH_PROMPT);
-
-    const handleCreatePr = useCallback(() => {
-      captureSessionEvent('session/quick_action_selected', {
-        action_id: 'create-pr',
-        has_existing_pr: hasExistingPr,
-        workspace_dirty: workspaceDirty,
-      });
-      void dispatchPrompt(createPrPrompt, executionTurnConfigOverrides);
-    }, [
-      captureSessionEvent,
-      createPrPrompt,
-      dispatchPrompt,
-      executionTurnConfigOverrides,
-      hasExistingPr,
-      workspaceDirty,
-    ]);
-
-    const handleCreateDraftPr = useCallback(() => {
-      captureSessionEvent('session/quick_action_selected', {
-        action_id: 'create-draft-pr',
-        has_existing_pr: hasExistingPr,
-        workspace_dirty: workspaceDirty,
-      });
-      void dispatchPrompt(createDraftPrPrompt, executionTurnConfigOverrides);
-    }, [
-      captureSessionEvent,
-      createDraftPrPrompt,
-      dispatchPrompt,
-      executionTurnConfigOverrides,
-      hasExistingPr,
-      workspaceDirty,
-    ]);
-
-    const handleCommitAndPush = useCallback(() => {
-      captureSessionEvent('session/quick_action_selected', {
-        action_id: 'commit-and-push',
-        has_existing_pr: hasExistingPr,
-        workspace_dirty: workspaceDirty,
-      });
-      void dispatchPrompt(commitAndPushPrompt, executionTurnConfigOverrides);
-    }, [
-      captureSessionEvent,
-      commitAndPushPrompt,
-      dispatchPrompt,
-      executionTurnConfigOverrides,
-      hasExistingPr,
-      workspaceDirty,
-    ]);
-
-    const handleResolveConflicts = useCallback(async () => {
-      if (isResolvingConflicts || !latestPr?.url) return;
-      setIsResolvingConflicts(true);
-      captureSessionEvent('session/quick_action_selected', {
-        action_id: 'resolve-conflicts',
-        has_existing_pr: true,
-        workspace_dirty: workspaceDirty,
-      });
-      try {
-        await dispatchPrompt(
-          buildResolvePrConflictsPrompt(
-            {
-              repoFullName: latestPrRepoFullName,
-              prNumber: latestPrNumber,
-              prUrl: latestPr.url,
-            },
-            t
-          ),
-          executionTurnConfigOverrides
-        );
-      } finally {
-        setIsResolvingConflicts(false);
-      }
-    }, [
-      captureSessionEvent,
-      dispatchPrompt,
-      executionTurnConfigOverrides,
-      isResolvingConflicts,
-      latestPr,
-      latestPrNumber,
-      latestPrRepoFullName,
-      t,
-      workspaceDirty,
-    ]);
-
-    const handleFixCiErrors = useCallback(async () => {
-      if (isPrActionPending) return;
-      setIsPrActionPending(true);
-      captureSessionEvent('session/quick_action_selected', {
-        action_id: 'fix-ci-errors',
-        has_existing_pr: true,
-        workspace_dirty: workspaceDirty,
-      });
-      try {
-        const refreshed = await refreshActivePrCheckRuns();
-        if (!refreshed) {
-          toast.error(t('sessions.fixCiErrors.fetchError', 'Failed to load the failed CI checks'));
-          return;
-        }
-        const prompt = buildFixCiErrorsPrompt(
-          {
-            repoFullName: latestPrRepoFullName,
-            pullRequest: refreshed.pullRequest,
-            checkRuns: refreshed.checkRuns,
-          },
-          t
-        );
-        if (!prompt) {
-          toast.info(t('sessions.fixCiErrors.noFailures', 'No failing CI checks were found'));
-          return;
-        }
-        const accepted = await dispatchPrompt(prompt, executionTurnConfigOverrides);
-        if (!accepted) {
-          toast.error(t('sessions.fixCiErrors.sendError', 'Failed to send the CI fix request'));
-        }
-      } catch (error) {
-        toast.error(t('sessions.fixCiErrors.fetchError', 'Failed to load the failed CI checks'), {
-          description: getErrorMessage(error),
-        });
-      } finally {
-        setIsPrActionPending(false);
-      }
-    }, [
-      captureSessionEvent,
-      dispatchPrompt,
-      executionTurnConfigOverrides,
-      isPrActionPending,
-      latestPrRepoFullName,
-      refreshActivePrCheckRuns,
-      t,
-      workspaceDirty,
-    ]);
-
-    const handleMergePullRequest = useCallback(
-      async (method: GitHubMergeMethod) => {
-        captureSessionEvent('session/quick_action_selected', {
-          action_id: 'merge',
-          merge_method: method,
-          has_existing_pr: true,
-          workspace_dirty: workspaceDirty,
-        });
-        try {
-          await mergeActivePullRequest(method);
-        } catch (error) {
-          toast.error(t('sessions.prTab.mergeError', 'Failed to merge'), {
-            description: getErrorMessage(error),
-          });
-        }
-      },
-      [captureSessionEvent, mergeActivePullRequest, t, workspaceDirty]
-    );
-
-    const handleMarkReadyForReview = useCallback(async () => {
-      captureSessionEvent('session/quick_action_selected', {
-        action_id: 'ready-for-review',
-        has_existing_pr: true,
-        workspace_dirty: workspaceDirty,
-      });
-      try {
-        await markActivePrReadyForReview();
-      } catch (error) {
-        const description =
-          error instanceof ReadyForReviewStillDraftError
-            ? t(
-                'sessions.prTab.readyForReviewStillDraft',
-                'GitHub is still reporting this pull request as a draft. Try again in a moment.'
-              )
-            : getErrorMessage(error);
-        toast.error(t('sessions.prTab.readyForReviewError', 'Failed to mark as ready for review'), {
-          description,
-        });
-      }
-    }, [captureSessionEvent, markActivePrReadyForReview, t, workspaceDirty]);
-
-    const effectivePrStatus = activePrData
-      ? derivePrStatusFromDetails(activePrData.pullRequest)
-      : (latestPr?.status ?? null);
-
-    // The compact `SessionMeta.pullRequests` status (`latestPr.status`) is only
-    // written by the CLI PR poller / webhook fan-out, so it can lag behind
-    // ready-for-review and merge transitions. Once live PR details load, they
-    // are the action bar's complete status truth so the action and status marker
-    // switch together without waiting for background reconciliation.
-    const effectiveLatestPr = useMemo(
-      () => (latestPr ? { ...latestPr, status: effectivePrStatus ?? latestPr.status } : latestPr),
-      [latestPr, effectivePrStatus]
-    );
-
-    const infoBarPrCiRuns = useMemo(
-      () => activePrData?.checkRuns.runs.map(mapGitHubCheckRunToInfoBar),
-      [activePrData?.checkRuns.runs]
-    );
-    const handleOpenPrCiRun = useCallback((run: PrCiRun) => {
-      if (run.url) window.open(run.url, '_blank', 'noopener,noreferrer');
-    }, []);
-
     // The task this session belongs to. Titles come from the workspace task
     // index, which is already loaded for the sidebar count, so the chip costs no
     // extra read.
@@ -4614,143 +4299,8 @@ export const SessionChatInterface = memo(
       );
     }, [openedByRelations, t]);
 
-    const infoBarContextActions = useMemo<ContextChipAction[]>(() => {
-      // The CI pill renders from live check runs, so the action gating must
-      // honor them too: whenever the pill shows "CI failed", the Fix CI Errors
-      // action has to be available even if the compact meta `s` hasn't caught
-      // up (e.g. the machine-side reconciler isn't running).
-      const liveCiFailed = infoBarPrCiRuns?.some((run) => run.status === 'failure') ?? false;
-      return resolveSessionInfoBarGitHubActionIds({
-        canShowGitHubActions,
-        hasExistingPr,
-        workspaceDirty,
-        hasChanges,
-        isAgentBusy,
-        prCiState: liveCiFailed ? 'f' : latestPrState?.s,
-        prMergeState: latestPrState?.m,
-        prReadiness: deriveSessionPullRequestReadiness(latestPrState),
-        prStatus: effectivePrStatus,
-      }).map((actionId) => {
-        const disabledForHydration = shouldDisableSessionInfoBarGitHubActionForHydration(
-          actionId,
-          sessionDocReady
-        );
-        switch (actionId) {
-          case 'create-pr':
-            return {
-              id: actionId,
-              label: t('sessions.createPr', 'Create PR'),
-              onClick: handleCreatePr,
-              disabled: disabledForHydration,
-            };
-          case 'create-draft-pr':
-            return {
-              id: actionId,
-              label: t('sessions.createDraftPr', 'Create Draft PR'),
-              onClick: handleCreateDraftPr,
-              disabled: disabledForHydration,
-            };
-          case 'commit-and-push':
-            return {
-              id: actionId,
-              label: t('sessions.commitAndPush', 'Commit & Push'),
-              onClick: handleCommitAndPush,
-              disabled: disabledForHydration,
-            };
-          case 'resolve-conflicts':
-            return {
-              id: actionId,
-              label: t('sessions.resolveConflicts', 'Resolve Conflicts'),
-              onClick: () => void handleResolveConflicts(),
-              disabled: disabledForHydration || isResolvingConflicts,
-            };
-          case 'fix-ci-errors':
-            return {
-              id: actionId,
-              label: t('sessions.fixCiErrors', 'Fix CI Errors'),
-              onClick: () => void handleFixCiErrors(),
-              disabled: disabledForHydration || isPrActionPending,
-            };
-          case 'ready-for-review':
-            return {
-              id: actionId,
-              label: isActivePrMarkingReady
-                ? t('sessions.prTab.markingReadyForReview', 'Marking ready…')
-                : t('sessions.prTab.readyForReview', 'Ready for review'),
-              onClick: () => void handleMarkReadyForReview(),
-              disabled: activePrState !== 'ready' || isActivePrMarkingReady,
-            };
-          case 'merge':
-            return {
-              kind: 'merge' as const,
-              id: 'merge' as const,
-              method: preferredMergeMethod,
-              isMerging: isActivePrMerging,
-              disabled: activePrState !== 'ready',
-              onMerge: handleMergePullRequest,
-              onSelectMethod: setPreferredPrMergeMethod,
-            };
-          default: {
-            const unsupportedActionId: never = actionId;
-            throw new Error(`Unsupported Info Bar action: ${unsupportedActionId}`);
-          }
-        }
-      });
-    }, [
-      canShowGitHubActions,
-      handleCommitAndPush,
-      handleCreateDraftPr,
-      handleCreatePr,
-      handleFixCiErrors,
-      handleMarkReadyForReview,
-      handleMergePullRequest,
-      handleResolveConflicts,
-      hasExistingPr,
-      effectivePrStatus,
-      infoBarPrCiRuns,
-      isAgentBusy,
-      isPrActionPending,
-      isResolvingConflicts,
-      latestPrState,
-      activePrState,
-      isActivePrMarkingReady,
-      preferredMergeMethod,
-      isActivePrMerging,
-      sessionDocReady,
-      t,
-      workspaceDirty,
-      hasChanges,
-    ]);
-
-    // Bridge the "Resolve conflicts" action to the PR tab (a separate subtree).
-    // It is offerable exactly when the info bar would show it, so both buttons
-    // appear, disable, and disappear together.
-    const resolveConflictsAvailable = useMemo(
-      () => infoBarContextActions.some((action) => action.id === 'resolve-conflicts'),
-      [infoBarContextActions]
-    );
-    const setResolveConflictsAction = useSetAtom(resolveConflictsActionAtomFamily(session.id));
-    useEffect(() => {
-      setResolveConflictsAction({
-        run: () => void handleResolveConflicts(),
-        pending: !sessionDocReady || isResolvingConflicts,
-        available: resolveConflictsAvailable,
-      });
-      return () => setResolveConflictsAction(null);
-    }, [
-      setResolveConflictsAction,
-      handleResolveConflicts,
-      isResolvingConflicts,
-      resolveConflictsAvailable,
-      sessionDocReady,
-    ]);
-
     const headerBrowserSession =
       browserActionSession === undefined ? session : browserActionSession;
-    // Agent-driven action: it appears only once the session actually has a
-    // preview target, i.e. after `lody_report_preview_candidate` reported a
-    // url+port (or a connection from an earlier report is still live). Showing
-    // it on every session promised a preview that did not exist.
     const browserActionAvailable = Boolean(
       onOpenBrowser &&
       headerBrowserSession &&
@@ -5335,24 +4885,6 @@ export const SessionChatInterface = memo(
 
     const shouldHideHeader = hideHeader;
 
-    const prBadge =
-      canShowGitHubActions && latestPr ? (
-        <PullRequestBadge
-          pr={latestPr}
-          size="md"
-          onOpenTab={
-            onOpenPrTab && latestPrNumber && latestPrRepoFullName
-              ? () =>
-                  onOpenPrTab({
-                    prNumber: latestPrNumber,
-                    repoFullName: latestPrRepoFullName,
-                    headCommitSha: getSessionPullRequestLegacyFields(latestPr).headCommitSha,
-                  })
-              : undefined
-          }
-        />
-      ) : null;
-
     const localProjectId = useMemo(() => {
       const rawSessionProject = session.project;
       if (!rawSessionProject || rawSessionProject.kind !== 'local') {
@@ -5658,17 +5190,8 @@ export const SessionChatInterface = memo(
       }
     }, [captureSessionEvent, t]);
 
-    const headerGitHubActions = headerActionsSlot !== undefined ? headerActionsSlot : prBadge;
+    const headerGitHubActions = headerActionsSlot;
 
-    const prLinkHandler =
-      onOpenPrTab && latestPr && latestPrRepoFullName && latestPrNumber
-        ? () =>
-            onOpenPrTab({
-              prNumber: latestPrNumber,
-              repoFullName: latestPrRepoFullName,
-              headCommitSha: getSessionPullRequestLegacyFields(latestPr).headCommitSha,
-            })
-        : undefined;
     const permissionSessionHistory = sessionDoc?.history as Parameters<
       typeof FloatingPermissionRequest
     >[0]['sessionHistory'];
@@ -5809,7 +5332,7 @@ export const SessionChatInterface = memo(
     const headerArchivedNode = session.isArchived === true ? <SessionArchivedBadge /> : null;
 
     return (
-      <PrLinkProvider prUrl={latestPr?.url} onOpenPrTab={prLinkHandler}>
+      <PrLinkProvider>
         <SessionConversationPage
           className={className}
           dropActive={imageDropZone.isActive || sessionMentionOverlay}
@@ -5989,39 +5512,6 @@ export const SessionChatInterface = memo(
                     sessionCompleted={session.status?.type === 'idle' && !isSessionWorking}
                   />
 
-                  {/* An active auto-review run states itself here rather than
-                      only in the "…" menu: the failure mode worth designing
-                      against is a user who ticked the box days ago, forgot, and
-                      then finds a pull request merged itself. */}
-                  {autoReview.run && autoReview.active ? (
-                    <ConversationColumn className="px-3 pb-1.5">
-                      <AutoReviewStatus
-                        run={autoReview.run}
-                        maxRounds={autoReview.run.policy.budget.reviewRounds}
-                        onDisable={() => {
-                          void autoReview.disable();
-                        }}
-                        onConfirmMerge={() => {
-                          void autoReview.confirmMerge();
-                        }}
-                        onResume={() => {
-                          void autoReview.resume();
-                        }}
-                        onFixFinding={(finding) => {
-                          void dispatchPrompt(
-                            buildAuthorFixPrompt([finding], {
-                              // Same reason as the engine's own dispatch: with a
-                              // PR open, a committed-but-unpushed fix is invisible
-                              // to everything that reads the PR head.
-                              hasPullRequest: hasExistingPr,
-                            }),
-                            executionTurnConfigOverrides
-                          );
-                        }}
-                      />
-                    </ConversationColumn>
-                  ) : null}
-
                   {/* Session info bar (desktop AND mobile): the canonical
                       cluster + fixed stage row merging status, goal, schedule,
                       and work context, glued to the composer shell. It
@@ -6041,8 +5531,6 @@ export const SessionChatInterface = memo(
                     task={sessionTaskChip}
                     onOpenTask={handleOpenSessionTask}
                     scheduledTasks={pendingScheduledTasks}
-                    prCiRuns={infoBarPrCiRuns}
-                    onOpenPrCiRun={handleOpenPrCiRun}
                     projectName={repoFullName || resolvedLocalProjectMeta?.name || null}
                     branch={isMobile ? null : session.branchName?.trim() || null}
                     workspaceLocation={
@@ -6057,9 +5545,6 @@ export const SessionChatInterface = memo(
                           ? { kind: 'folder', path: sessionWorkspacePath }
                           : null
                     }
-                    pr={canShowGitHubActions ? effectiveLatestPr : null}
-                    onOpenPr={prLinkHandler}
-                    contextActions={infoBarContextActions}
                     onOpenAllChanges={onOpenAllChanges}
                     onOpenBrowser={browserActionAvailable ? handleOpenBrowser : undefined}
                     privateAccessStatus={

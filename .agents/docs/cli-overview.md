@@ -30,9 +30,8 @@ Two dev-build choices are load-bearing:
   externalized by ABSOLUTE path. Bundling a workspace package's `.ts` source moves its imports
   into this bundle, and pnpm's strict layout has no entry for that package's transitive deps under
   `apps/cli/node_modules`.
-- `splitting: true` keeps `await import(...)` a real lazy boundary. `review-viewer.ts` statically
-  imports the generated `lody-code-review-viewer/manifest`, which does not exist until that
-  package is built; inlining it would make `lody --version` fail.
+- `splitting: true` preserves lazy runtime imports. The retired code-review viewer
+  is no longer a CLI runtime/download dependency.
 
 The CLI's own `version` comes from `@/pkg` because each build composition aliases it to the
 manifest that actually gets published (cloud builds point it at the private composing package). A
@@ -40,26 +39,13 @@ relative `../package.json` import bakes the stale OSS version into the published
 what made `lody@0.82.1 --version` print `0.76.0`. The package `name` stays `lody` in every
 composition.
 
-## PR status reconciler
+## Retired developer workflows
 
-`src/lib/pr-poller/` reconciles PR discovery/association, lifecycle, CI rollup, and merge/conflict
-state for this machine's sessions. It is the compensation path for a broken hosted GitHub webhook
-→ Streams fan-out, and its normative spec is `specs/pr-status-reconciler.md`.
-
-`PrStatusPoller` is constructed in `LodyFleet.start()`; per-workspace handles
-(`pr-poller-workspace.ts`) are fact sources and write-back destinations only. All policy lives in
-pure modules (targets, priority, quota, selection, provider projection, write-back planning) and
-the scheduler is a thin orchestrator. Priority comes from `session-viewing` presence and
-`lastMessageAt` activity (high lane 20s, low status 5min, no-PR discovery 20min); there is no
-turn-end hook. Requests batch GraphQL per `(workspace, repo)` under a per-credential-scope point
-bucket, with a provider safety-floor freeze and 15min→2h repo cooldowns.
-
-Write-back plans against freshly read owner meta: `pullRequests` upserts by URL with the current
-PR as the LAST item (legacy fields stripped once), while CI and merge state live in
-`SessionMeta.pullRequestState` (`{s,m,t}`, ≤50B per entry; legacy `r` readiness is no longer
-written and is deleted on touch). Scheduling state — never PR status — is in
-`~/.lody/pr-poller-state.json`. `LODY_PR_POLL_DISABLED=1` is the kill switch and `LODY_PR_POLL_*`
-overrides live in `pr-poller-config.ts`. Module invariants: `src/lib/pr-poller/AGENTS.md`.
+Folio no longer runs PR discovery/status reconciliation or automatic review/merge.
+The CLI review command, viewer download and review submission MCP tool are removed.
+Existing scheduling caches, review records, working files and session history are
+not deleted. Generic task automation, workspace watchers and Agent tools remain.
+See [T24's consumer audit](../notes/implemented/simplification/2026-09-11-developer-workflow-retirement.md).
 
 ## Builtin agents and adapter provenance
 

@@ -148,7 +148,7 @@ describe('SessionHeaderMenu fork action', () => {
     expect(onFork).not.toHaveBeenCalled();
   });
 
-  it('keeps the reviewer setup dialog mounted after the actions menu closes', async () => {
+  it('omits automatic review even when the legacy experiment preference is enabled', async () => {
     const store = createStore();
     store.set(experimentalFeaturesEnabledAtom, true);
     store.set(reviewAgentExperimentEnabledAtom, true);
@@ -172,16 +172,7 @@ describe('SessionHeaderMenu fork action', () => {
     const reviewItem = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(
       (item) => item.textContent?.includes('Review this branch')
     );
-    expect(reviewItem).toBeDefined();
-    await act(async () => reviewItem?.click());
-
-    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
-    expect(dialog?.textContent).toContain('Configure a review agent');
-
-    const openSettings = Array.from(
-      dialog?.querySelectorAll<HTMLButtonElement>('button') ?? []
-    ).find((button) => button.textContent?.includes('Open review settings'));
-    await act(async () => openSettings?.click());
-    expect(onOpenReviewSettings).toHaveBeenCalledTimes(1);
+    expect(reviewItem).toBeUndefined();
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
   });
 });

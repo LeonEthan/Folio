@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useOpenSettings } from '@/hooks/use-open-settings';
 import type { TFunction } from 'i18next';
 import { formatDistanceToNow, type Locale } from 'date-fns';
 import { enUS, zhCN } from 'date-fns/locale';
@@ -38,7 +37,6 @@ import {
 import { useAtomValue } from 'jotai';
 import {
   currentWorkspaceIdAtom,
-  currentWorkspaceSlugAtom,
   settingsSelectedMachineIdAtom,
   settingsSelectedProjectKeyAtom,
 } from '@/atoms';
@@ -308,8 +306,6 @@ export function ProjectSettingsComponent({
   initialMachineId?: MachineId | null;
   initialProjectKey?: string | null;
 } = {}) {
-  const { openSettings } = useOpenSettings();
-  const workspaceSlug = useAtomValue(currentWorkspaceSlugAtom);
   const modalMachineTarget = useAtomValue(settingsSelectedMachineIdAtom);
   const modalProjectTarget = useAtomValue(settingsSelectedProjectKeyAtom);
   const resolvedInitialMachineId =
@@ -410,11 +406,6 @@ export function ProjectSettingsComponent({
     await saveGithubWorktreeCleanup(row.repoFullName, config);
   };
 
-  const handleAddGitHubProject = useCallback(() => {
-    if (!workspaceSlug) return;
-    openSettings('github');
-  }, [openSettings, workspaceSlug]);
-
   return (
     <>
       <ProjectSettingsView
@@ -435,7 +426,7 @@ export function ProjectSettingsComponent({
         onGithubWorktreeCleanupChange={onGithubWorktreeCleanupChange}
         addableMachines={addableMachines}
         onAddLocalProject={handleAddLocalProject}
-        onAddGitHubProject={workspaceSlug ? handleAddGitHubProject : undefined}
+        onAddGitHubProject={undefined}
       />
       <AddLocalProjectDialogContainer
         open={addLocalProjectDialogOpen}

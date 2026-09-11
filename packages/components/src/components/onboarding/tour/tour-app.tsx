@@ -20,7 +20,6 @@ import {
   type SessionSidePanelTabItem,
 } from '@/components/sessions/session-side-panel-tab-bar';
 import { SessionTabBar } from '@/components/sessions/session-tab-bar';
-import { PrTabView } from '@/components/sessions/pr-tab-view';
 import { TerminalDock } from '@/components/terminal/terminal-dock';
 import { buildAcpSelectorOptions } from '@/components/shared/acp-selector-options';
 import { StableSessionContext } from '@/hooks/useStableSession';
@@ -29,12 +28,6 @@ import {
   DEFAULT_TOUR_IDENTITY,
   TOUR_ANNOTATION_ANCHOR,
   TOUR_CHANGES,
-  TOUR_PR_CHECKS,
-  TOUR_PR_DETAILS,
-  TOUR_PR_MERGED,
-  TOUR_PR_NUMBER,
-  TOUR_PR_REPO,
-  TOUR_PULL_REQUEST,
   TOUR_SESSION_ID,
   TOUR_TASKS,
   buildTourHistory,
@@ -80,7 +73,6 @@ const TOUR_SIDE_PANEL_OPTIONS: SessionSidePanelOption[] = [
   { id: 'files', label: 'Files', kind: 'files' },
   { id: 'changes', label: 'All Changes', kind: 'changes' },
   { id: 'browser', label: 'Browser', kind: 'browser' },
-  { id: 'pr', label: 'Pull Request', kind: 'pr' },
 ];
 
 export type TourAppTracks = {
@@ -217,7 +209,6 @@ function TourWindow({
   selectedTaskId,
   activeTabIndex,
   onSelectTabIndex,
-  onMergePr,
   className,
 }: {
   identity: TourIdentity;
@@ -238,32 +229,18 @@ function TourWindow({
   const composerRef = useRef<SessionChatInputAreaHandle>(null);
   const terminalChannel = useMemo(() => createTourTerminalChannel(), []);
   useEffect(() => () => terminalChannel.dispose(), [terminalChannel]);
-  // 3 is merged. The scripted cursor presses the real merge control a beat
-  // before the track gets here, so the press leads its own result.
-  const merged = tracks.pr >= 3;
-
   const visibleTasks = useMemo(() => {
     const archived = Math.floor(tracks.archived);
     const visible = Math.max(archived, Math.min(TOUR_TASKS.length, Math.floor(tracks.tasks)));
-    return TOUR_TASKS.slice(archived, visible).map((task, index) => ({
+    return TOUR_TASKS.slice(archived, visible).map((task) => ({
       ...task,
       title: task.taskId === 'tour-1' ? t('onboarding.preview.designTitle') : task.title,
       // Rows keep whatever project they belong to; only the ones with no repo of
       // their own fall back to the connected project. Overwriting every row with
       // one name is what made the sidebar look single-project.
       repoFullName: task.repoFullName ?? identity.projectName,
-      // Once the pull request is out the leading row is not busy any more, and
-      // the row is where the product would say so.
-      isWorking: index === 0 && tracks.pr >= 1 ? false : task.isWorking,
-      ...(index === 0 && tracks.pr >= 1
-        ? {
-            prUrl: TOUR_PULL_REQUEST.url,
-            prNumber: 128,
-            prStatus: (merged ? 'merged' : 'open') as 'merged' | 'open',
-          }
-        : {}),
     }));
-  }, [identity.projectName, merged, tracks.archived, tracks.pr, tracks.tasks, t]);
+  }, [identity.projectName, tracks.archived, tracks.tasks, t]);
 
   /**
    * The project groups the sidebar renders.
@@ -395,7 +372,6 @@ function TourWindow({
     // kind is the product's `'browser'`, and the tour anchor follows the kind,
     // so renaming one without the other silently unaims the camera.
     tabs.push({ id: 'browser', label: 'Browser', kind: 'browser' });
-    if (tracks.pr >= 1) tabs.push({ id: 'pr', label: 'Pull Request', kind: 'pr' });
     if (tracks.changes >= 3) {
       tabs.push({
         id: 'diff:src/auth/token.ts',
@@ -406,7 +382,7 @@ function TourWindow({
       });
     }
     return tabs;
-  }, [tracks.changes, tracks.pr]);
+  }, [tracks.changes]);
 
   // What the tab bar's "+" menu offers: every panel the session has that is
   // not already open. In the film the script opens them all, so this is
@@ -609,7 +585,6 @@ function TourWindow({
                             status={null}
                             projectName={identity.projectName}
                             branch={session.branchName}
-                            pr={tracks.pr >= 1 ? TOUR_PULL_REQUEST : null}
                             prCiRuns={
                               tracks.pr >= 2
                                 ? [
@@ -750,21 +725,7 @@ function TourWindow({
                       commentBody={TOUR_ANNOTATION_REFERENCE.body}
                     />
                   </TourPanelSurface>
-                  <TourPanelSurface active={activeSidePanelTab === 'pr'}>
-                    <PrTabView
-                      repoFullName={TOUR_PR_REPO}
-                      prNumber={TOUR_PR_NUMBER}
-                      state="ready"
-                      onMerge={onMergePr}
-                      data={{
-                        pullRequest: merged ? TOUR_PR_MERGED : TOUR_PR_DETAILS,
-                        reviewThreads: [],
-                        reviews: [],
-                        issueComments: [],
-                        checkRuns: TOUR_PR_CHECKS,
-                      }}
-                    />
-                  </TourPanelSurface>
+
                   <TourPanelSurface
                     active={
                       activeSidePanelTab !== 'changes' &&

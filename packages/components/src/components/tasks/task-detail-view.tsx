@@ -574,7 +574,6 @@ export function TaskDetailView({ embedded = false }: TaskDetailViewProps) {
       repositories={repositories}
       latestMessageAtByRepo={projectRecency.byRepo}
       onAddLocalProject={() => openSettings('projects')}
-      onConnectGitRepo={() => openSettings('github')}
       canRun={canRun}
       running={running}
       hasActiveSession={rollup.running}

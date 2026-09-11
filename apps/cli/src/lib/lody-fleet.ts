@@ -73,22 +73,11 @@ import type { CloudAccessSnapshot, CloudPort } from '@lody/platform';
 import type { MachineProcessLifecycleAction } from '@/lib/machine-lifecycle';
 import { traceAsync } from '@/utils/trace-span';
 import { MemoryPressureSampler } from '@/monitor/memory-pressure-sampler';
-import { makePrStatusPoller, type PrStatusPollerShape } from '@/lib/pr-poller/pr-status-poller';
 import {
   createTaskAutomationWorkspace,
   type TaskAutomationWorkspaceHandle,
 } from '@/lib/task-automation/task-automation-workspace';
 import { startDelegatedTask } from '@/lib/task-automation/task-automation-start';
-import { ACP_PLAN_PERMISSION_MODE_ID } from '@lody/shared';
-import { createReviewAutomation } from '@/lib/review-automation/create-review-automation';
-import type { ReviewAutomationWorkspaceHandle } from '@/lib/review-automation/review-automation-workspace';
-import { GitHubCredentialResolver } from '@/lib/pr-poller/github-credential-resolver';
-import { loadPrPollerConfig } from '@/lib/pr-poller/pr-poller-config';
-import { PrPollerStateStore } from '@/lib/pr-poller/pr-poller-state';
-import {
-  createLodyPrPollerWorkspace,
-  type PrPollerWorkspaceHandle,
-} from '@/lib/pr-poller/pr-poller-workspace';
 import { WorkspaceWatchCoordinator } from '@/lib/code-collab/workspace-watch-coordinator';
 import { findWorkspacesBySelector, formatWorkspaceCandidate } from '@/lib/workspace-selector';
 import { listAliveSessionMetas } from '@/lib/command-runtime';
@@ -126,9 +115,7 @@ type WorkspaceRuntimeState = {
   workspace: WorkspaceListItem;
   lody: Lody;
   unsubscribeTerminalCleanup: () => void;
-  prPollerWorkspace: PrPollerWorkspaceHandle | null;
   taskAutomation: TaskAutomationWorkspaceHandle | null;
-  reviewAutomation: ReviewAutomationWorkspaceHandle | null;
 };
 
 export class LodyFleet {
@@ -152,11 +139,9 @@ export class LodyFleet {
   private readonly onProcessLifecycleAction?: (action: MachineProcessLifecycleAction) => void;
   private readonly startupTimeSync?: Promise<void>;
   private readonly machineLifecycleCapability: MachineLifecycleCapability;
-  private readonly prStatusPoller: PrStatusPollerShape | null;
   private readonly workspaceWatchCoordinator: WorkspaceWatchCoordinator;
 
   private readonly runtimes = new Map<string, WorkspaceRuntimeState>();
-  private readonly reviewCredentialResolvers = new Map<string, GitHubCredentialResolver>();
   private readonly startInFlight = new Map<string, Promise<void>>();
   private readonly retryTimers = new Map<string, NodeJS.Timeout>();
   private readonly desiredWorkspaces = new Map<string, WorkspaceListItem>();
@@ -239,13 +224,6 @@ export class LodyFleet {
       resolveSessionWorkdir: async (sessionId) =>
         await this.resolveTerminalSessionWorkdir(sessionId),
     });
-    this.prStatusPoller = this.cloudPort.prAssociation
-      ? makePrStatusPoller({
-          config: loadPrPollerConfig(),
-          stateStore: new PrPollerStateStore({ logger: this.logger }),
-          logger: this.logger,
-        })
-      : null;
     this.workspaceWatchCoordinator = new WorkspaceWatchCoordinator(this.logger);
   }
 
@@ -305,17 +283,6 @@ export class LodyFleet {
         await startLodyMcpHttpServer({ logger: this.logger });
       }),
     ]);
-
-    // Start the PR poller BEFORE any workspace runtime can connect: the
-    // local-first catalog bootstrap below registers each workspace with the
-    // poller as it connects, and registration on a not-yet-started poller is
-    // dropped (regression: a freshly restarted daemon polled nothing because
-    // all local-catalog workspaces registered before the poller started).
-    // Local platform: GitHub integration does not exist, so the poller never
-    // starts.
-    if (this.prStatusPoller) {
-      Effect.runSync(this.prStatusPoller.start);
-    }
 
     if (this.localPlatform) {
       // D-O14: the single implicit workspace is provisioned before bootstrap
@@ -534,9 +501,6 @@ export class LodyFleet {
     this.stopped = true;
     this.stopRuntimeStateLoop();
     this.memoryPressure.stop();
-    if (this.prStatusPoller) {
-      Effect.runSync(this.prStatusPoller.stop);
-    }
 
     // Stop accepting local work before draining workspace runtimes. Endpoint
     // teardown must not sit behind slow agent/session cleanup, and the owning
@@ -565,9 +529,7 @@ export class LodyFleet {
       try {
         await runtime.lody.cleanup();
         runtime.unsubscribeTerminalCleanup();
-        await runtime.prPollerWorkspace?.dispose();
         await runtime.taskAutomation?.dispose();
-        await runtime.reviewAutomation?.dispose();
       } catch (error) {
         runtime.unsubscribeTerminalCleanup();
         this.logger.debug(
@@ -783,17 +745,6 @@ export class LodyFleet {
         const unsubscribeTerminalCleanup = startedLody.onSessionTerminated((sessionId) => {
           this.terminalPtyService.closeSession(sessionId);
         });
-        const prPollerWorkspace = this.cloudPort.prAssociation
-          ? createLodyPrPollerWorkspace({
-              documentManager: startedLody.documentManager,
-              workspaceId: workspace.id,
-              userId: this.userId,
-              machineId: this.machineId,
-              githubTokens: this.cloudPort.githubTokens,
-              prAssociation: this.cloudPort.prAssociation,
-              logger: workspaceLogger,
-            })
-          : null;
         // Delegated automation: this machine drains the queues of the agents that
         // live here, so entrusted work continues while nobody is looking.
         const taskAutomation = createTaskAutomationWorkspace({
@@ -833,89 +784,12 @@ export class LodyFleet {
             );
           },
         });
-        // Auto review and merge. It runs here rather than through MCP because
-        // the orchestration chain-depth guard caps a chain at five hops from the
-        // last human input, and because CI and GitHub state are explicitly
-        // outside that contract.
-        const reviewAutomation = this.cloudPort.githubTokens
-          ? createReviewAutomation({
-              documentManager: startedLody.documentManager,
-              workspaceId: workspace.id as WorkspaceId,
-              machineId: this.machineId,
-              logger: workspaceLogger,
-              resolveGitHubToken: async (repoFullName) => {
-                if (!repoFullName) {
-                  return null;
-                }
-                const credential = await this.reviewCredentialResolver(
-                  workspace.id,
-                  workspaceLogger
-                ).resolve(repoFullName);
-                return credential?.token ?? null;
-              },
-              createReviewerSession: async (args) => {
-                const { createSessionResult, resolveTurnDispatchConfig } =
-                  await import('@/commands/session');
-                const created = await createSessionResult(
-                  this.reviewAuthContext(),
-                  workspace,
-                  startedLody.documentManager,
-                  args.prompt,
-                  {
-                    parent: args.parentSessionId,
-                    title: 'Review',
-                    // New runs freeze the exact machine-local config. The
-                    // agent-type fallback only exists for runs authorized by a
-                    // client from before machine reviewer configs shipped.
-                    ...(args.agentConfigId
-                      ? { agentConfig: args.agentConfigId }
-                      : args.agentType
-                        ? { agent: args.agentType }
-                        : {}),
-                  },
-                  {
-                    ...resolveTurnDispatchConfig({
-                      // New machine configs freeze the mode/config options the
-                      // settings UI displayed. Keep plan as the safe fallback
-                      // only for runs authorized by older clients.
-                      mode:
-                        args.modeId ??
-                        (args.agentConfigId ? undefined : ACP_PLAN_PERMISSION_MODE_ID),
-                      ...(args.modelId ? { model: args.modelId } : {}),
-                    }),
-                    ...(args.configOptionValues
-                      ? { configOptionValues: args.configOptionValues }
-                      : {}),
-                  }
-                );
-                return { sessionId: created.sessionId };
-              },
-              sendChat: async (sessionId, prompt) => {
-                const { sendSessionChatResult, resolveTurnDispatchConfig } =
-                  await import('@/commands/session');
-                const sent = await sendSessionChatResult(
-                  this.reviewAuthContext(),
-                  workspace,
-                  startedLody.documentManager,
-                  sessionId,
-                  prompt,
-                  resolveTurnDispatchConfig({})
-                );
-                return { userTurnId: sent.userTurnId };
-              },
-            })
-          : null;
         this.runtimes.set(workspace.id, {
           workspace,
           lody: startedLody,
           unsubscribeTerminalCleanup,
-          prPollerWorkspace,
           taskAutomation,
-          reviewAutomation,
         });
-        if (prPollerWorkspace) {
-          this.prStatusPoller?.registerWorkspace(prPollerWorkspace);
-        }
         void this.remoteBridge?.attachRuntimeIfAllowed(workspace.id);
         this.logger.debug(`[fleet] Connected workspace: ${workspaceLabel} (${workspace.id})`);
         this.logger.debug(
@@ -990,15 +864,10 @@ export class LodyFleet {
     const state = this.runtimes.get(workspaceId);
     if (!state) return;
     this.runtimes.delete(workspaceId);
-    // Keyed by workspace, so it would otherwise outlive every workspace this
-    // process ever connected to.
-    this.reviewCredentialResolvers.delete(workspaceId);
-    this.prStatusPoller?.unregisterWorkspace(workspaceId);
 
     try {
       await state.lody.cleanup();
       state.unsubscribeTerminalCleanup();
-      await state.prPollerWorkspace?.dispose();
     } catch (error) {
       state.unsubscribeTerminalCleanup();
       this.logger.debug(
@@ -1060,47 +929,6 @@ export class LodyFleet {
       Array.from(this.runtimes.values(), (runtime) => runtime.lody)
     );
     this.refreshRuntimeState();
-  }
-
-  /**
-   * Auth context for engine-authored turns.
-   *
-   * Same shape delegated task automation uses: the daemon's own CLI credential
-   * is the authorization principal, and the session's owner is inherited from
-   * the session being driven.
-   */
-  private reviewAuthContext(): {
-    token: string;
-    userId: string;
-    userName: string;
-    userEmail: string;
-    machineId: MachineId;
-    machineName: string;
-  } {
-    return {
-      token: this.cliToken,
-      userId: this.userId,
-      userName: '',
-      userEmail: '',
-      machineId: this.machineId,
-      machineName: this.machineName,
-    };
-  }
-
-  /** One resolver per workspace, so the credential cache is shared across runs. */
-  private reviewCredentialResolver(workspaceId: string, logger: Logger): GitHubCredentialResolver {
-    const existing = this.reviewCredentialResolvers.get(workspaceId);
-    if (existing) {
-      return existing;
-    }
-    const resolver = new GitHubCredentialResolver({
-      tokenManager: this.cloudPort.githubTokens?.createTokenManager(workspaceId) ?? null,
-      writeTokenContext: { requesterUserId: this.userId, machineId: this.machineId },
-      workspaceId,
-      logger,
-    });
-    this.reviewCredentialResolvers.set(workspaceId, resolver);
-    return resolver;
   }
 
   private refreshRuntimeState(): void {

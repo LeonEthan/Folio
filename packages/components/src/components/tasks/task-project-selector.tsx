@@ -7,10 +7,7 @@ import {
   type UnifiedProjectSelection,
 } from '@/components/chat/unified-project-selector';
 import { cn } from '@/lib/utils';
-import {
-  projectRefToUnifiedSelection,
-  unifiedSelectionToProjectRef,
-} from './task-project-key';
+import { projectRefToUnifiedSelection, unifiedSelectionToProjectRef } from './task-project-key';
 import { tasksMenuClassName, tasksMenuSurfaceStyle } from './tasks-surface';
 
 export type TaskProjectSelectorProps = {
@@ -20,7 +17,7 @@ export type TaskProjectSelectorProps = {
   repositories?: ReadonlyArray<{ fullName: string; description?: string | null }>;
   latestMessageAtByRepo?: ReadonlyMap<string, number>;
   onAddLocalProject: () => void;
-  onConnectGitRepo: () => void;
+  onConnectGitRepo?: () => void;
   className?: string;
   /** Defaults to `bottom` — task surfaces open downward from the trigger. */
   contentSide?: 'top' | 'bottom';

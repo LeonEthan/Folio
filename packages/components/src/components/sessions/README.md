@@ -6,22 +6,22 @@ What each file in this directory is responsible for. Binding rules live in
 
 ## Page shell and tabs
 
-| File                                         | Responsibility                                                              |
-| -------------------------------------------- | --------------------------------------------------------------------------- |
-| `design-canvas.tsx`                         | Artwork copy, association repair and native canvas lifecycle; titles belong to Session |
-| `session-detail.tsx`                         | Outer session shell: top tabs, side panel, session-switch reset, tab closer |
-| `desktop-session-detail-layout.tsx`          | Desktop two-column layout and the side-panel expand/collapse animation      |
-| `session-conversation-page.tsx`              | Shared full-page composition used by `SessionConversationPage.stories.tsx`  |
-| `session-tab-bar.tsx`                        | Desktop merged top row: session tab pills, status slot, drag sources        |
-| `adaptive-tab-strip.tsx`                     | Width sharing for the tab pills                                             |
-| `session-side-panel-tab-bar.tsx`             | Right-panel tab strip (fixed panels, side chats, viewers)                   |
-| `session-tab-close-target.ts`                | Registration for the Cmd/Ctrl+W close target                                |
-| `session-list-rows.ts`                       | Sidebar/tab row derivation, including child grouping by parent              |
-| `child-tab-empty-state.tsx`                  | Suggestions shown in an empty child tab                                     |
-| `session-not-found.tsx`                      | Missing-session surface                                                     |
-| `session-mention-drop-layer.tsx`             | Drop target that turns a dragged tab into a mention                         |
-| `session-pin.tsx`, `session-pin-context.tsx` | Pinned content above the stream                                             |
-| `session-search-context.tsx`                 | In-conversation search context                                              |
+| File                                         | Responsibility                                                                         |
+| -------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `design-canvas.tsx`                          | Artwork copy, association repair and native canvas lifecycle; titles belong to Session |
+| `session-detail.tsx`                         | Outer session shell: top tabs, side panel, session-switch reset, tab closer            |
+| `desktop-session-detail-layout.tsx`          | Desktop two-column layout and the side-panel expand/collapse animation                 |
+| `session-conversation-page.tsx`              | Shared full-page composition used by `SessionConversationPage.stories.tsx`             |
+| `session-tab-bar.tsx`                        | Desktop merged top row: session tab pills, status slot, drag sources                   |
+| `adaptive-tab-strip.tsx`                     | Width sharing for the tab pills                                                        |
+| `session-side-panel-tab-bar.tsx`             | Right-panel tab strip (fixed panels, side chats, viewers)                              |
+| `session-tab-close-target.ts`                | Registration for the Cmd/Ctrl+W close target                                           |
+| `session-list-rows.ts`                       | Sidebar/tab row derivation, including child grouping by parent                         |
+| `child-tab-empty-state.tsx`                  | Suggestions shown in an empty child tab                                                |
+| `session-not-found.tsx`                      | Missing-session surface                                                                |
+| `session-mention-drop-layer.tsx`             | Drop target that turns a dragged tab into a mention                                    |
+| `session-pin.tsx`, `session-pin-context.tsx` | Pinned content above the stream                                                        |
+| `session-search-context.tsx`                 | In-conversation search context                                                         |
 
 ## Conversation surface and composer
 
@@ -44,22 +44,20 @@ What each file in this directory is responsible for. Binding rules live in
 
 ## Info bar, status, and session actions
 
-| File                                                                          | Responsibility                                                   |
-| ----------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `session-info-bar.tsx`, `session-info-chips.tsx`, `info-chip.tsx`             | Canonical cluster + fixed stage bar above the composer           |
-| `session-info-action-state.ts`                                                | Which repository action the context stage offers                 |
-| `session-status-strip.tsx`                                                    | Priority-ordered connection/machine status (story coverage only) |
-| `session-syncing-indicator.tsx`                                               | Catch-up spinner pinned to the bar's right edge                  |
-| `session-goal-banner.tsx`, `session-goal-control.ts`                          | Goal actions reused by the goal chip                             |
-| `session-plan-bar.tsx`, `session-tasklist-mapping.ts`                         | Plan/tasklist presentation                                       |
-| `scheduled-tasks-panel.tsx`                                                   | Scheduled task list reused by the schedule chip                  |
-| `session-usage-popover.tsx`                                                   | Usage/context popover                                            |
-| `pull-request-badge.tsx`, `pr-merge-button.tsx`, `pr-merge-method.ts`         | PR identity and merge split-button                               |
-| `pr-tab-container.tsx`, `pr-tab-view.tsx`                                     | PR side-panel tab                                                |
-| `create-pr-prompt.ts`, `session-pr-prompts.ts`, `session-pr-agent-action.ts`  | Agent prompts behind Create PR / Fix CI / Resolve Conflicts      |
-| `diff-pr-analytics.ts`                                                        | Analytics for diff and PR surfaces                               |
-| `auto-review-menu-item.tsx`, `auto-review-info.tsx`, `auto-review-status.tsx` | Auto review checkbox, setup explanation, and run banner          |
-| `use-capacity-auto-retry.ts`                                                  | Capacity-error retry behaviour                                   |
+| File                                                                         | Responsibility                                                   |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `session-info-bar.tsx`, `session-info-chips.tsx`, `info-chip.tsx`            | Canonical cluster + fixed stage bar above the composer           |
+| `session-info-action-state.ts`                                               | Which repository action the context stage offers                 |
+| `session-status-strip.tsx`                                                   | Priority-ordered connection/machine status (story coverage only) |
+| `session-syncing-indicator.tsx`                                              | Catch-up spinner pinned to the bar's right edge                  |
+| `session-goal-banner.tsx`, `session-goal-control.ts`                         | Goal actions reused by the goal chip                             |
+| `session-plan-bar.tsx`, `session-tasklist-mapping.ts`                        | Plan/tasklist presentation                                       |
+| `scheduled-tasks-panel.tsx`                                                  | Scheduled task list reused by the schedule chip                  |
+| `session-usage-popover.tsx`                                                  | Usage/context popover                                            |
+| `pull-request-badge.tsx`, `pr-merge-button.tsx`, `pr-merge-method.ts`        | PR identity and merge split-button                               |
+| `create-pr-prompt.ts`, `session-pr-prompts.ts`, `session-pr-agent-action.ts` | Agent prompts behind Create PR / Fix CI / Resolve Conflicts      |
+| `diff-pr-analytics.ts`                                                       | Analytics for diff and PR surfaces                               |
+| `use-capacity-auto-retry.ts`                                                 | Capacity-error retry behaviour                                   |
 
 ## File, diff, and browser surfaces
 
@@ -93,3 +91,6 @@ What each file in this directory is responsible for. Binding rules live in
 - [File surfaces](../../../../../.agents/docs/sessions-file-surfaces.md)
 - [Render-cost invariants](../../../../../.agents/docs/sessions-render-cost.md)
 - [Stories and Storybook fidelity](../../../../../.agents/docs/sessions-stories.md)
+
+PR/CI actions, live GitHub review comments and automatic review settings/engines are
+retired from Folio. Generic file/diff viewers and send-to-chat references remain.

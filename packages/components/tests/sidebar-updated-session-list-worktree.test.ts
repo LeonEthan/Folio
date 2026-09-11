@@ -85,7 +85,7 @@ describe('SidebarUpdatedSessionList session-type icon', () => {
     expect(plainIcon).toBeNull();
   });
 
-  it('keeps PR status rightmost and line diff immediately before it', () => {
+  it('keeps file change counts while omitting legacy PR status', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -125,21 +125,15 @@ describe('SidebarUpdatedSessionList session-type icon', () => {
     const rowWithPr = container.querySelector('[data-sidebar-updated-id="session-with-pr"]');
     const rowWithoutPr = container.querySelector('[data-sidebar-updated-id="session-without-pr"]');
 
-    expect(rowWithPr?.querySelector('.lucide-git-pull-request')).not.toBeNull();
+    expect(rowWithPr?.querySelector('.lucide-git-pull-request')).toBeNull();
     expect(rowWithPr?.querySelector('.text-code-added')?.textContent).toBe('+12');
     expect(rowWithPr?.querySelector('.text-code-removed')?.textContent).toBe('-4');
-    expect(
-      Array.from(rowWithPr?.querySelectorAll('.text-code-removed, .lucide-git-pull-request') ?? [])
-    ).toEqual([
-      rowWithPr?.querySelector('.text-code-removed'),
-      rowWithPr?.querySelector('.lucide-git-pull-request'),
-    ]);
     expect(rowWithoutPr?.querySelector('.lucide-git-pull-request')).toBeNull();
     expect(rowWithoutPr?.querySelector('.text-code-added')?.textContent).toBe('+8');
     expect(rowWithoutPr?.querySelector('.text-code-removed')?.textContent).toBe('-2');
   });
 
-  it('shows the PR icon for a local row linked to a GitHub PR', () => {
+  it('omits PR navigation for a local row carrying legacy GitHub metadata', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -165,9 +159,8 @@ describe('SidebarUpdatedSessionList session-type icon', () => {
       );
     });
 
-    // Local projects linked to a GitHub repo can carry a PR; the row must not
-    // hide it just because `kind` is 'local'.
+    // Legacy metadata remains readable without becoming a product PR entry.
     const row = container.querySelector('[data-sidebar-updated-id="session-local-with-pr"]');
-    expect(row?.querySelector('.lucide-git-pull-request')).not.toBeNull();
+    expect(row?.querySelector('.lucide-git-pull-request')).toBeNull();
   });
 });

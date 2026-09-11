@@ -78,3 +78,9 @@ Parent `AGENTS.md` files also apply.
   changing that target cancels the old request, and a late reply must not clear or report an error
   over a newer interaction. Clear manual codes and form values on completion, cancellation, target
   change, and failure; never seed a secret field from retained progress.
+
+## Design navigation
+
+Sidebar rows and session hover cards do not expose PR/CI status or PR navigation.
+Legacy metadata may remain readable without mounting GitHub subscriptions or actions;
+preserve session navigation, ordinary history links and generic file/tool presentation.

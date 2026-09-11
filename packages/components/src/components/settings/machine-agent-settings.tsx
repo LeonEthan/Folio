@@ -17,7 +17,7 @@ import {
 import { Check, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { activeWorkspaceRuntimeAtom, authTokenAtom, type WorkspaceRuntime } from '@/atoms/runtime';
-import { developerModeEnabledAtom, reviewAgentFeatureEnabledAtom } from '@/atoms/settings';
+import { developerModeEnabledAtom } from '@/atoms/settings';
 import { settingsDialogOpenAtom } from '@/atoms/settings';
 import { sessionMetaCacheAtom } from '@/atoms/doc-meta';
 import { currentWorkspaceIdAtom, currentWorkspaceSlugAtom } from '@/atoms/workspace-context';
@@ -80,7 +80,6 @@ import {
   MachineConnectedResources,
   type MachineConnectedProject,
 } from './my-machine-connected-resources';
-import { ReviewPolicySection } from './review-policy-setting';
 import {
   AgentConfigDialog,
   type AgentConfigDialogMode,
@@ -178,7 +177,6 @@ export function MachineAgentSettings({
   const runtime = useAtomValue(activeWorkspaceRuntimeAtom);
   const authToken = useAtomValue(authTokenAtom);
   const developerModeEnabled = useAtomValue(developerModeEnabledAtom);
-  const reviewAgentEnabled = useAtomValue(reviewAgentFeatureEnabledAtom);
   const setSettingsDialogOpen = useSetAtom(settingsDialogOpenAtom);
   const sessionMetaCache = useAtomValue(sessionMetaCacheAtom);
   const workspaceId = useAtomValue(currentWorkspaceIdAtom);
@@ -223,7 +221,6 @@ export function MachineAgentSettings({
     useSetAtom(machineSettingsFilterAtom),
   ];
   const [mobileMachinePickerOpen, setMobileMachinePickerOpen] = useState(false);
-  const [mobileReviewPolicyOpen, setMobileReviewPolicyOpen] = useState(false);
   const effectiveFilter = filter;
   const [desktopExpandedMachineId, setDesktopExpandedMachineId] = useState<MachineId | null>(
     selectedMachineId
@@ -1075,19 +1072,6 @@ export function MachineAgentSettings({
                 onDeleteSetup={handleDeleteSetup}
               />
             ) : null}
-            {reviewAgentEnabled ? (
-              <MobileSettingsSection>
-                <MobileSettingsRow
-                  label={t('settings.review.title', 'Review agent')}
-                  helper={t(
-                    'settings.review.machineConfigHelper',
-                    'Choose the reviewer used by sessions on each machine.'
-                  )}
-                  onClick={() => setMobileReviewPolicyOpen(true)}
-                  trailing={<ChevronRight className="h-4 w-4" />}
-                />
-              </MobileSettingsSection>
-            ) : null}
           </div>
           {remoteMachinesAvailable ? (
             <Drawer open={mobileMachinePickerOpen} onOpenChange={setMobileMachinePickerOpen}>
@@ -1150,24 +1134,7 @@ export function MachineAgentSettings({
               </DrawerContent>
             </Drawer>
           ) : null}
-          {reviewAgentEnabled ? (
-            <Drawer open={mobileReviewPolicyOpen} onOpenChange={setMobileReviewPolicyOpen}>
-              <DrawerContent className="h-[88dvh]! max-h-[88dvh]! rounded-t-2xl border-border/60">
-                <DrawerTitle className="px-4 pb-1 pt-3 text-center text-[0.95rem]">
-                  {t('settings.review.title', 'Review agent')}
-                </DrawerTitle>
-                <DrawerDescription className="sr-only">
-                  {t(
-                    'settings.review.machineConfigHelper',
-                    'Choose the reviewer used by sessions on each machine.'
-                  )}
-                </DrawerDescription>
-                <div className="min-h-0 flex-1 overflow-y-auto pb-[calc(12px+max(0px,var(--safe-area-bottom,0px)))]">
-                  {mobileReviewPolicyOpen ? <ReviewPolicySection /> : null}
-                </div>
-              </DrawerContent>
-            </Drawer>
-          ) : null}
+
           {dialog}
         </div>
       );
@@ -1519,7 +1486,6 @@ export function MachineAgentSettings({
           {t('settings.agent.machineTabs.selectPromptAgent', 'Select a machine.')}
         </div>
       )}
-      <ReviewPolicySection />
       {dialog}
     </div>
   );

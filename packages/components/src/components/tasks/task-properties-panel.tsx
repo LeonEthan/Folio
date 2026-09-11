@@ -20,10 +20,7 @@ import {
 } from '@/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip';
 import { CachedAvatarImg } from '@/components/cached-avatar-img';
-import {
-  getTaskStatusPresentation,
-  TASK_STATUS_PRESENTATION,
-} from './task-status-presentation';
+import { getTaskStatusPresentation, TASK_STATUS_PRESENTATION } from './task-status-presentation';
 import {
   getTaskPriorityPresentation,
   TASK_PRIORITY_PRESENTATION,
@@ -76,7 +73,7 @@ export type TaskPropertiesPanelProps = {
   repositories?: ReadonlyArray<{ fullName: string; description?: string | null }>;
   latestMessageAtByRepo?: ReadonlyMap<string, number>;
   onAddLocalProject: () => void;
-  onConnectGitRepo: () => void;
+  onConnectGitRepo?: () => void;
   canRun: boolean;
   running?: boolean;
   hasActiveSession?: boolean;
@@ -149,10 +146,7 @@ function PropertyButton({
         <button
           type="button"
           disabled={disabled}
-          className={cn(
-            propertyRowClass,
-            hasValue ? 'text-foreground' : 'text-muted-foreground'
-          )}
+          className={cn(propertyRowClass, hasValue ? 'text-foreground' : 'text-muted-foreground')}
         >
           {leading ?? <Icon className={cn('h-3.5 w-3.5 shrink-0 opacity-70', iconClassName)} />}
           {valueContent != null ? (
@@ -288,10 +282,7 @@ export function TaskPropertiesPanel({
               style={tasksMenuSurfaceStyle}
             >
               {TASK_STATUS_PRESENTATION.map((option) => (
-                <DropdownMenuItem
-                  key={option.status}
-                  onClick={() => onStatusChange(option.status)}
-                >
+                <DropdownMenuItem key={option.status} onClick={() => onStatusChange(option.status)}>
                   <option.Icon className={cn('h-3.5 w-3.5', option.className)} />
                   {t(option.labelKey, option.labelFallback)}
                 </DropdownMenuItem>
@@ -304,11 +295,7 @@ export function TaskPropertiesPanel({
             value={ownerName}
             placeholder={t('tasks.properties.owner', 'Owner')}
             disabled={disabled}
-            leading={
-              owner ? (
-                <TaskOwnerAvatar owner={owner} />
-              ) : undefined
-            }
+            leading={owner ? <TaskOwnerAvatar owner={owner} /> : undefined}
           >
             <DropdownMenuContent
               align="start"
@@ -343,9 +330,7 @@ export function TaskPropertiesPanel({
             icon={priorityPresentation.Icon}
             iconClassName={priorityPresentation.className}
             value={
-              priority
-                ? t(priorityPresentation.labelKey, priorityPresentation.labelFallback)
-                : null
+              priority ? t(priorityPresentation.labelKey, priorityPresentation.labelFallback) : null
             }
             placeholder={t('tasks.properties.priority', 'Priority')}
             disabled={disabled}

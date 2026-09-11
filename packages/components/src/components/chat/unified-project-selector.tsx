@@ -1,7 +1,6 @@
 import { useDeferredValue, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { LocalProjectId, MachineId } from '@lody/shared';
 import {
-  ArrowUpRight,
   Check,
   CircleSlash2,
   FolderOpen,
@@ -105,11 +104,7 @@ export function compareUnifiedProjectOptions(
 
 function selectUnifiedProjectOptionsForRender<
   TOption extends Pick<UnifiedProjectOption, 'label' | 'description' | 'selection'>,
->(
-  options: readonly TOption[],
-  query: string,
-  limit?: number
-): TOption[] {
+>(options: readonly TOption[], query: string, limit?: number): TOption[] {
   if (limit !== undefined && limit <= 0) return [];
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const visible: TOption[] = [];
@@ -173,7 +168,7 @@ interface UnifiedProjectSelectorProps {
   latestMessageAtByRepo?: ReadonlyMap<string, number>;
   latestMessageAtByLocalProject?: ReadonlyMap<string, number>;
   onAddLocalProject: () => void;
-  onConnectGitRepo: () => void;
+  onConnectGitRepo?: () => void;
   projectSharing?: {
     currentUserId: string | null;
     machineAccessByMachineId: ReadonlyMap<MachineId, MachineVisibilityAccess>;
@@ -231,11 +226,10 @@ export function buildUnifiedLocalProjectOptions({
   return visible;
 }
 
-export interface UnifiedProjectSelectorViewProps
-  extends Omit<
-    UnifiedProjectSelectorProps,
-    'selectedMachineId' | 'latestMessageAtByLocalProject' | 'projectSharing'
-  > {
+export interface UnifiedProjectSelectorViewProps extends Omit<
+  UnifiedProjectSelectorProps,
+  'selectedMachineId' | 'latestMessageAtByLocalProject' | 'projectSharing'
+> {
   localProjects: ReadonlyArray<UnifiedLocalProjectOption>;
   onShareLocalProjectWithTeam?: (selection: LocalProjectSelection) => Promise<void>;
   getShareErrorMessage?: (error: unknown, fallback: string) => string;
@@ -386,7 +380,6 @@ export function UnifiedProjectSelectorView({
   className,
   latestMessageAtByRepo,
   onAddLocalProject,
-  onConnectGitRepo,
   onShareLocalProjectWithTeam,
   getShareErrorMessage,
   contentSide = 'top',
@@ -465,19 +458,16 @@ export function UnifiedProjectSelectorView({
     : undefined;
   const canShareSelectedProject = Boolean(
     selectedOption &&
-      selectedPrivateSharing?.canManage &&
-      selectedPrivateSharing.privateReason !== 'machine-not-registered' &&
-      onShareLocalProjectWithTeam
+    selectedPrivateSharing?.canManage &&
+    selectedPrivateSharing.privateReason !== 'machine-not-registered' &&
+    onShareLocalProjectWithTeam
   );
 
   const isPropertyRow = triggerVariant === 'property-row';
 
   return (
     <div
-      className={cn(
-        'group/project relative flex min-w-0 items-center',
-        isPropertyRow && 'w-full'
-      )}
+      className={cn('group/project relative flex min-w-0 items-center', isPropertyRow && 'w-full')}
     >
       {value.kind !== 'none' && !isPropertyRow ? (
         <button
@@ -631,10 +621,6 @@ export function UnifiedProjectSelectorView({
           <DropdownMenuItem onSelect={onAddLocalProject}>
             <FolderPlus className="h-4 w-4 shrink-0 text-muted-foreground" />
             <span>{t('chat.contextSwitch.addProject', 'Add a folder')}</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={onConnectGitRepo}>
-            <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span>{t('repos.connectMore', 'Connect more GitHub projects')}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

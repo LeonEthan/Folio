@@ -68,10 +68,9 @@ subdirectory; this file is the navigation index. Cross-module explanations live 
   ([AGENTS.md](file-preview/AGENTS.md)).
 - `loro/` — Loro repo/runtime layer, presence, machine flock rooms, and connection
   recovery ([AGENTS.md](loro/AGENTS.md)).
-- `pr-poller/` — PR discovery, lifecycle, CI rollup, and merge-state reconciliation
-  ([AGENTS.md](pr-poller/AGENTS.md)).
-- `review-automation/` — "Auto review and merge"
-  ([AGENTS.md](review-automation/AGENTS.md)).
+- PR polling and automatic code review/merge were retired from Folio; no scheduler,
+  credential harvest, or dedicated scheduling database is opened. Existing records remain on disk.
+
 - `task-automation/` — delegated task automation: `planTaskAutomation` is a pure
   policy holding every gate that keeps it from spending tokens by surprise, the
   scheduler is a thin orchestrator, and the per-workspace handle watches the task

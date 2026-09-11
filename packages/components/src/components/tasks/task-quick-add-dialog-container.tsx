@@ -142,7 +142,6 @@ export function TaskQuickAddDialogContainer() {
       repositories={repositories}
       latestMessageAtByRepo={projectRecency.byRepo}
       onAddLocalProject={() => openSettings('projects')}
-      onConnectGitRepo={() => openSettings('github')}
       agentOptions={agentOptions}
       onSubmit={handleSubmit}
       onClose={() => {

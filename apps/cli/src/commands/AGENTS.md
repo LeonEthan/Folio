@@ -64,17 +64,6 @@ Command entrypoints, the daemon runner, and session dispatch from the CLI/MCP bo
 - Local-project control transport and the workspace picker are shared with `lody project`
   (`../lib/local-project-control-client.ts`).
 
-## `lody review` (no-login HTML review)
-
-- `review.ts` involves no Lody login: it resolves `.review.md` against the local Git repo
-  read-only, and a render failure prints `error.message` with `process.exitCode = 1`.
-- The ~8 MB viewer is NOT bundled. `../lib/review-viewer.ts` fetches `standalone.html` at the EXACT
-  version the CLI was built against, verifies its sha256, and caches it under
-  `~/.lody/code-review-viewer/`. `LODY_REVIEW_VIEWER` overrides the source for offline/mirror use
-  and stays sha-verified. The pinned version and sha come from the bundled-at-build
-  `lody-code-review-viewer/manifest` import, and the release pipeline must publish the viewer at
-  the same version before the CLI. Keep the agent prompt embedded and lazy-imported.
-
 ## Session create and dispatch (`session.ts`)
 
 - `--local-project … --worktree` sets `ProjectRef.useWorktree`; daemon startup consumes it in

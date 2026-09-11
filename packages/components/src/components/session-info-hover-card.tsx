@@ -10,7 +10,6 @@ import * as PopoverPrimitive from '@radix-ui/react-popover';
 import {
   Check,
   Copy,
-  ExternalLink,
   FileDiff,
   Folder,
   GitBranch,
@@ -18,9 +17,6 @@ import {
   LockKeyhole,
   MessageSquare,
   Monitor,
-  CircleCheck,
-  CircleDot,
-  CircleX,
   User,
   Users,
 } from 'lucide-react';
@@ -30,12 +26,7 @@ import { cn } from '@/lib/utils';
 import { writeTextToClipboard } from '@/lib/clipboard';
 import { CachedAvatarImg } from '@/components/cached-avatar-img';
 import { menuSurfaceStyle } from '@/ui/menu-styles';
-import { PR_STATUS_META } from '@/components/sessions/pull-request-badge';
-import {
-  PR_CI_RUN_ICON,
-  usePrCiPresentation,
-  type PrCiRun,
-} from '@/components/sessions/session-info-chips';
+import { type PrCiRun } from '@/components/sessions/session-info-chips';
 import { GitHubOwnerIcon, type SidebarRowKind } from '@/components/sidebar-row-shared';
 import { WorktreeIcon } from '@/components/icons/worktree-icon';
 import { useStableNow } from '@/hooks/use-stable-now';
@@ -47,7 +38,7 @@ import { getSessionSharingDescription, getSessionSharingLabel } from '@/componen
  * A richer replacement for the old Tooltip-based session info card. This is a
  * hover card, not a tooltip: it stays open when the cursor moves from the row
  * INTO the card (open/close grace timers), so its contents can be interactive —
- * the branch is copyable and the PR opens on click.
+ * the branch is copyable. Legacy PR fields are not presented.
  *
  * `SessionInfoCard` is the standalone presentational surface (rendered directly
  * in `SessionInfoCard.stories.tsx`); `SessionInfoHoverCard` wraps a trigger with
@@ -86,8 +77,6 @@ const cardEdgeColor =
   'color-mix(in oklab, hsl(var(--sidebar-background)) 76%, hsl(var(--foreground)) 24%)';
 const cardDarkEdgeColor =
   'color-mix(in oklab, hsl(var(--sidebar-background)) 90%, hsl(var(--foreground)) 10%)';
-const cardSeparatorColor =
-  'color-mix(in oklab, hsl(var(--sidebar-background)) 86%, hsl(var(--foreground)) 14%)';
 
 const cardSurfaceStyle: CSSProperties = {
   ...menuSurfaceStyle,
@@ -150,62 +139,6 @@ function CopyableValue({
   );
 }
 
-function InfoCardCi({ runs }: { runs: readonly PrCiRun[] }) {
-  const { overallLabel, toneClassName, settled } = usePrCiPresentation(runs);
-  return (
-    <div className="flex flex-col gap-1 rounded-md bg-muted-foreground/[0.06] p-1.5">
-      <div className="flex items-center gap-1.5">
-        <span className={toneClassName}>{overallLabel}</span>
-        <span className="text-muted-foreground">
-          · {settled}/{runs.length}
-        </span>
-      </div>
-      <ul className="flex flex-col gap-0.5">
-        {runs.map((run) => {
-          const { Icon, className } = PR_CI_RUN_ICON[run.status];
-          return (
-            <li key={run.name} className="flex items-center gap-1.5">
-              <Icon className={cn('h-3 w-3 shrink-0', className)} aria-hidden="true" />
-              <span className="min-w-0 flex-1 truncate text-foreground/90">{run.name}</span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-function InfoCardCiRollup({ state }: { state: SessionPullRequestCiState }) {
-  const { t } = useTranslation();
-  const isPassing = state === 's';
-  const isFailing = state === 'f' || state === 'e';
-  const Icon = isPassing ? CircleCheck : isFailing ? CircleX : CircleDot;
-  const label = isPassing
-    ? t('sessions.prCi.passing', 'CI passed')
-    : isFailing
-      ? t('sessions.prCi.failing', 'CI failed')
-      : state === 'x'
-        ? t('sessions.prCi.expected', 'CI expected')
-        : t('sessions.prCi.running', 'CI running');
-  const toneClassName = isPassing
-    ? 'text-status-success'
-    : isFailing
-      ? 'text-destructive'
-      : 'text-status-warning';
-
-  return (
-    <div
-      className={cn(
-        'flex items-center gap-1.5 rounded-md bg-muted-foreground/[0.06] p-1.5',
-        toneClassName
-      )}
-    >
-      <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
-      <span>{label}</span>
-    </div>
-  );
-}
-
 export type SessionInfoCardProps = {
   /** Row kind — a `chat` with no repo/folder shows just a "Chat" indicator. */
   kind?: SidebarRowKind;
@@ -226,6 +159,7 @@ export type SessionInfoCardProps = {
   /** Name of the machine the session runs on. */
   machineName?: string | null;
   branchName?: string | null;
+  /** Legacy caller compatibility only; PR/CI metadata is not presented. */
   prStatus?: PrStatus | null;
   /** Compact CI rollup written by the CLI poller for the selected PR. */
   prCiState?: SessionPullRequestCiState | null;
@@ -237,7 +171,7 @@ export type SessionInfoCardProps = {
   deletedLines?: number;
   /** Effective conversation visibility inherited from its machine/project access. */
   sharing?: SessionSharingState;
-  /** Open the PR inside the app (right-panel PR tab). Falls back to `prUrl` in a new tab. */
+  /** Legacy callback accepted for compatibility; no PR action is rendered. */
   onOpenPullRequest?: () => void;
   className?: string;
 };
@@ -258,15 +192,9 @@ export function SessionInfoCard({
   folderName,
   machineName,
   branchName,
-  prStatus,
-  prCiState,
-  prNumber,
-  prUrl,
-  prCiRuns,
   addedLines,
   deletedLines,
   sharing,
-  onOpenPullRequest,
   className,
 }: SessionInfoCardProps) {
   const { t } = useTranslation();
@@ -277,7 +205,6 @@ export function SessionInfoCard({
     typeof addedLines === 'number' &&
     typeof deletedLines === 'number' &&
     (addedLines !== 0 || deletedLines !== 0);
-  const showPr = Boolean(prStatus);
 
   // Each metadata row leads with an ICON instead of a text label (GitHub owner
   // avatar / folder / branch / diff), so the card reads at a glance. `label` still
@@ -418,19 +345,8 @@ export function SessionInfoCard({
     });
   }
 
-  const prMeta = showPr ? (PR_STATUS_META[prStatus!] ?? PR_STATUS_META.open) : null;
-  const PrIcon = prMeta?.icon;
-  const canOpenPr = Boolean(onOpenPullRequest || prUrl);
-  const openPr = useCallback(() => {
-    if (onOpenPullRequest) {
-      onOpenPullRequest();
-      return;
-    }
-    if (prUrl) window.open(prUrl, '_blank', 'noopener,noreferrer');
-  }, [onOpenPullRequest, prUrl]);
-
   const hasMeta = rows.length > 0;
-  const hasBody = hasMeta || (showPr && prMeta && PrIcon);
+  const hasBody = hasMeta;
 
   return (
     <div
@@ -470,47 +386,6 @@ export function SessionInfoCard({
             </div>
           ))}
         </div>
-      ) : null}
-
-      {showPr && prMeta && PrIcon ? (
-        <>
-          {hasMeta ? (
-            <div
-              className="my-2 h-px"
-              style={{ backgroundColor: cardSeparatorColor }}
-              aria-hidden="true"
-            />
-          ) : null}
-          <div className="flex flex-col gap-1.5">
-            <button
-              type="button"
-              onClick={canOpenPr ? openPr : undefined}
-              disabled={!canOpenPr}
-              aria-label={t('sessions.pr.openTab', 'Open pull request')}
-              className={cn(
-                '-mx-1 inline-flex w-fit items-center gap-1.5 rounded px-1 py-0.5 transition-colors',
-                prMeta.iconColorClassName,
-                canOpenPr
-                  ? 'hover:bg-muted-foreground/10 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50'
-                  : 'cursor-default'
-              )}
-            >
-              <PrIcon className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} />
-              <span>
-                {t(prMeta.labelKey, prMeta.labelFallback)}
-                {typeof prNumber === 'number' ? ` #${prNumber}` : ''}
-              </span>
-              {canOpenPr ? (
-                <ExternalLink className="h-3 w-3 shrink-0 opacity-60" aria-hidden="true" />
-              ) : null}
-            </button>
-            {prCiRuns && prCiRuns.length > 0 ? (
-              <InfoCardCi runs={prCiRuns} />
-            ) : prCiState ? (
-              <InfoCardCiRollup state={prCiState} />
-            ) : null}
-          </div>
-        </>
       ) : null}
     </div>
   );

@@ -34,7 +34,6 @@ import {
   getAcpCapabilityCacheKey,
   getProjectRefBranch,
   getServerNow,
-  getSessionPullRequestLegacyFields,
   getSessionRoomId,
   getAcpCapabilityCacheEntryAuthority,
   resolveProjectGitHubRepo,
@@ -43,7 +42,6 @@ import {
   type LocalProjectHistoryProvider,
   type LocalProjectId,
   type LocalProjectMeta,
-  type PrStatus,
   type ProjectRef,
   type SessionId,
   type SessionMeta,
@@ -99,16 +97,7 @@ import {
   showNavigationSidebarAtom,
   zenLayoutModeAtom,
 } from '@/atoms/layout-state';
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { useTabStatus, type TabStatus } from '@/hooks/use-tab-status';
 import {
@@ -161,7 +150,6 @@ import { toast } from 'sonner';
 import { SessionConversationDiffPanel } from './session-conversation-diff-panel';
 import { SessionFileContentView, type SessionFileSaveViewState } from './session-file-content-view';
 import { SessionFileQuickOpen } from './session-file-quick-open';
-import { PrTabContainer } from './pr-tab-container';
 import { SessionBrowserPanel } from './session-browser-panel';
 import { deletePrCacheEntriesForSession } from '@/lib/github-pr-cache';
 import { FileTreeView } from './components/file-tree-view';
@@ -458,15 +446,8 @@ const MOBILE_DRAWER_HEADER_INSET = 'calc(3.5rem + var(--safe-area-top))';
    real viewer tabs — Files / PR / Browser open their own full-screen surface.
    Namespaced so they never collide with a real file/diff `ViewerTabItem.id`. */
 const EMPTY_LOCAL_PROJECTS: Record<LocalProjectId, LocalProjectMeta> = {};
-const MOBILE_PR_VIEWER_ID = 'mobile-viewer:pr';
 const MOBILE_BROWSER_VIEWER_ID = 'mobile-viewer:browser';
 const MOBILE_FILES_VIEWER_ID = 'mobile-viewer:files';
-
-/* Minimum width the desktop right sidebar gets when the PR tab opens into a
-   collapsed or empty panel — PR content (title + branch row + merge action +
-   conversation) is unreadably cramped at the default ~25% split. Honored only
-   when the window is wide enough; see DesktopSessionDetailLayout. */
-const PR_SIDEBAR_MIN_WIDTH_PX = 500;
 
 const selectSessionDetailMeta = (meta: SessionMeta | undefined): SessionMeta | undefined => meta;
 
@@ -694,7 +675,6 @@ const TerminalDockToggleButton = memo(function TerminalDockToggleButton() {
 const SessionDetail = ({
   sessionId,
   urlTab,
-  urlPrNumber,
   urlBrowser,
   onMobileBack,
 }: {
@@ -744,13 +724,6 @@ const SessionDetail = ({
      animating a transition nobody asked for. See
      DesktopSessionDetailLayout.sidebarRestoreSeq. */
   const [sidebarRestoreSeq, setSidebarRestoreSeq] = useState(0);
-  /* The `?pr=` restore below applies once per (session, PR number) — a STATE
-     guard for a render-phase adjustment, keyed by session id so no separate
-     session-switch reset is needed. */
-  const [restoredPrSidebar, setRestoredPrSidebar] = useState<{
-    sessionId: SessionId;
-    prNumber: number;
-  } | null>(null);
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab | null>(
     () => initialTabState.sidePanel.tab
   );
@@ -760,12 +733,6 @@ const SessionDetail = ({
   const [openedSidebarTabs, setOpenedSidebarTabs] = useState<SidebarTab[]>(
     () => initialTabState.sidePanel.tabs
   );
-  /* One-shot request for DesktopSessionDetailLayout to widen the sidebar for
-     the PR tab; `seq` bumps per request so repeats are not dropped. */
-  const [prSidebarWidthRequest, setPrSidebarWidthRequest] = useState<{
-    seq: number;
-    minWidthPx: number;
-  } | null>(null);
   const [browserCandidateNavigationRequest, setBrowserCandidateNavigationRequest] = useState<{
     sessionId: SessionId;
     id: number;
@@ -1619,12 +1586,11 @@ const SessionDetail = ({
     return 'idle';
   }, [activeSession, activeSessionLiveStatus]);
   useTabStatus(tabStatus);
-  const { latestPr, repoFullName, canShowGitHubActions } = useMemo(
+  const { latestPr, repoFullName } = useMemo(
     () => getSessionGitHubState(activeTabSession, workspaceOwnerSession),
     [activeTabSession, workspaceOwnerSession]
   );
   const latestPrNumber = getPullRequestNumber(latestPr);
-  const latestPrRepoFullName = getPullRequestRepoFullName(latestPr) ?? repoFullName;
 
   const writeSessionUrlTab = useCallback(
     (nextTab: string | undefined, { push = false }: { push?: boolean } = {}) => {
@@ -2623,7 +2589,7 @@ const SessionDetail = ({
   );
 
   useEffect(() => {
-    if (activeSidebarTab === 'pr' && (!latestPr || !repoFullName)) {
+    if (activeSidebarTab === 'pr') {
       setActiveSidebarTab(null);
     }
   }, [activeSidebarTab, latestPr, repoFullName]);
@@ -2644,68 +2610,6 @@ const SessionDetail = ({
       replaceSessionUrlBrowser(false);
     }
   }, [isMobile, replaceSessionUrlBrowser, urlBrowser]);
-
-  /* Sync ?pr=<number> into the desktop sidebar. The mobile path reads
-     `urlPrNumber` directly for its full-screen drawer.
-
-     The restore is a RENDER-PHASE state adjustment ("adjusting state when a
-     prop changes" — react.dev/learn/you-might-not-need-an-effect), not an
-     effect: as a sibling effect it armed in the same commit as the clear below
-     — the first where `latestPr` resolved — and the clear then read the
-     restore's target state BEFORE it landed (sidebar still closed, persisted
-     viewer tab still active), stripping a fresh `?pr` deep link. Adjusted
-     during render, the restored sidebar state is COMMITTED before any effect
-     can observe it, so the ordering race is unrepresentable — and the restore
-     lands in the same commit as `sidebarRestoreSeq`, which the layout
-     invariant requires anyway. Applied once per (session, PR number) via a
-     STATE guard (an aborted concurrent render retries instead of consuming
-     the restore); re-applying on every `latestPr` identity change would
-     reopen a panel the user had closed. */
-  if (!isMobile && urlPrNumber !== undefined) {
-    if (
-      latestPr &&
-      repoFullName &&
-      urlPrNumber === latestPrNumber &&
-      (restoredPrSidebar?.sessionId !== sessionId || restoredPrSidebar.prNumber !== urlPrNumber)
-    ) {
-      setRestoredPrSidebar({ sessionId, prNumber: urlPrNumber });
-      setSidebarRestoreSeq((seq) => seq + 1);
-      setIsSidebarOpen(true);
-      activateSidebarTab('pr');
-    }
-  } else if (restoredPrSidebar !== null) {
-    setRestoredPrSidebar(null);
-  }
-
-  // The PR restore token is committed with the open panel and restore sequence.
-  // Clear the transient Zen override before paint without writing Jotai during render.
-  useLayoutEffect(() => {
-    if (restoredPrSidebar !== null) setZenLayoutMode(false);
-  }, [restoredPrSidebar, setZenLayoutMode]);
-
-  // Once restored, a user switching away from the PR tab (or closing the
-  // sidebar) clears `?pr` so the URL stays consistent. The URL write must be
-  // an effect, but it can never observe pre-restore state: the render-phase
-  // adjustment above commits the restored sidebar in the same render that
-  // arms this effect.
-  useEffect(() => {
-    if (isMobile) return;
-    if (urlPrNumber === undefined) return;
-    if (!latestPr || !repoFullName || urlPrNumber !== latestPrNumber) return;
-    if (!isSidebarOpen || activeSidebarTab !== 'pr' || activeViewerTabId !== null) {
-      replaceSessionUrlPr(undefined);
-    }
-  }, [
-    activeSidebarTab,
-    activeViewerTabId,
-    isMobile,
-    isSidebarOpen,
-    latestPr,
-    latestPrNumber,
-    repoFullName,
-    replaceSessionUrlPr,
-    urlPrNumber,
-  ]);
 
   /* A child session's root URL redirects to its parent. Corrupted meta can
      hold a parentSessionId CYCLE (X↔P): following it unguarded redirects
@@ -3068,86 +2972,6 @@ const SessionDetail = ({
     nextFocusRequestSeq,
     revealRightSidebar,
   ]);
-
-  const handleOpenPrTab = useCallback(
-    (args: { prNumber: number; repoFullName: string; headCommitSha?: string }) => {
-      replaceSessionUrlPr(args.prNumber, { push: true });
-      if (!isMobile) {
-        /* Expanding a collapsed sidebar restores the default/last panel size,
-           and the empty state sits at whatever size it was left at — both are
-           too narrow for PR content. Ask the layout for a real width (it
-           checks the window can spare it); a panel already showing content
-           keeps the user's chosen size. */
-        const sidebarEmpty =
-          activeSidebarTab === null && activeSideSessionId === null && activeViewerTabId === null;
-        if (!isSidebarOpen || sidebarEmpty) {
-          setPrSidebarWidthRequest((current) => ({
-            seq: (current?.seq ?? 0) + 1,
-            minWidthPx: PR_SIDEBAR_MIN_WIDTH_PX,
-          }));
-        }
-        revealRightSidebar();
-        activateSidebarTab('pr');
-      }
-      captureSessionDetailEvent('session/pr_tab_opened', {
-        pr_number: args.prNumber,
-        repo_full_name: args.repoFullName,
-      });
-    },
-    [
-      activateSidebarTab,
-      activeSidebarTab,
-      activeSideSessionId,
-      activeViewerTabId,
-      captureSessionDetailEvent,
-      isMobile,
-      isSidebarOpen,
-      replaceSessionUrlPr,
-      revealRightSidebar,
-    ]
-  );
-
-  const handleClosePrTab = useCallback(() => {
-    replaceSessionUrlPr(undefined);
-  }, [replaceSessionUrlPr]);
-
-  // When the PR tab resolves live GitHub details, push the canonical status
-  // back into the owner session's persisted PR meta so the sidebar + session
-  // header badges (which read that persisted value, not live details) reflect
-  // reality — most visibly `draft`, which the webhook/CLI may not have
-  // propagated yet. Best-effort and idempotent: only writes on a real change.
-  // Durable session meta writes must go through the writer seam so Electron
-  // local-first mode keeps the CLI as the sole author.
-  const reconcilePersistedPrStatus = useCallback(
-    (status: PrStatus) => {
-      const ownerSession = workspaceOwnerSession;
-      const prNumber = latestPrNumber;
-      if (!runtime || !ownerSession || prNumber == null) return;
-      const list = ownerSession.pullRequests ?? [];
-      if (
-        !list.some(
-          (pr) =>
-            (getPullRequestNumber(pr) === prNumber || pr.url === latestPr?.url) &&
-            pr.status !== status
-        )
-      )
-        return;
-      const next = list.map((pr) =>
-        getPullRequestNumber(pr) === prNumber || pr.url === latestPr?.url
-          ? { url: pr.url, status }
-          : pr
-      );
-      void runtime.writer
-        .upsertDocMeta(getSessionRoomId(ownerSession.id), {
-          pullRequests: next,
-        } satisfies Partial<SessionMeta>)
-        .catch((error: unknown) => {
-          // Best-effort: the PR tab badge still shows live truth regardless.
-          console.error('Failed to reconcile persisted PR status', error);
-        });
-    },
-    [latestPr?.url, latestPrNumber, runtime, workspaceOwnerSession]
-  );
 
   const handleOpenBrowser = useCallback(
     (tabSessionId?: SessionId, navigateCandidate = false) => {
@@ -3521,16 +3345,10 @@ const SessionDetail = ({
         kind: 'browser',
       });
     }
-    if (latestPr && repoFullName && latestPrNumber != null) {
-      options.push({
-        id: 'pr',
-        label: t('sessions.detailTabs.pr', 'PR'),
-        kind: 'pr',
-      });
-    }
-    if (activeSession?.design) options.unshift({ id: 'design', label: t('design.canvas', 'Design canvas'), kind: 'design' });
+    if (activeSession?.design)
+      options.unshift({ id: 'design', label: t('design.canvas', 'Design canvas'), kind: 'design' });
     return options;
-  }, [activeSession?.design, activeBrowserSession, latestPr, latestPrNumber, repoFullName, t]);
+  }, [activeSession?.design, activeBrowserSession, t]);
   const sideChatOption = useMemo<SessionSidePanelOption | null>(() => {
     const launcherState = getSideChatLauncherState({
       providerSupportsFork: Boolean(
@@ -4187,7 +4005,12 @@ const SessionDetail = ({
         return;
       }
       if (tabId === 'design') {
-        void getIpcServices()?.design.close(sessionId).then(closed => { if (closed) handleCloseSidebarTab('design'); }).catch(error => toast.error(String(error)));
+        void getIpcServices()
+          ?.design.close(sessionId)
+          .then((closed) => {
+            if (closed) handleCloseSidebarTab('design');
+          })
+          .catch((error) => toast.error(String(error)));
         return;
       }
       handleCloseSidebarTab(tabId as SidebarTab);
@@ -4355,14 +4178,6 @@ const SessionDetail = ({
         active: false,
       });
     }
-    if (canShowGitHubActions && latestPr && latestPrNumber != null && latestPrRepoFullName) {
-      list.push({
-        id: MOBILE_PR_VIEWER_ID,
-        label: `#${latestPrNumber}`,
-        kind: 'pr',
-        active: false,
-      });
-    }
     for (const v of viewerTabItems) {
       list.push({
         id: v.id,
@@ -4376,10 +4191,6 @@ const SessionDetail = ({
     }
     return list;
   }, [
-    canShowGitHubActions,
-    latestPr,
-    latestPrNumber,
-    latestPrRepoFullName,
     activeBrowserSession,
     viewerTabItems,
     effectiveActiveViewerTabId,
@@ -4422,16 +4233,6 @@ const SessionDetail = ({
 
   const handleMobileViewerSelect = useCallback(
     (id: string) => {
-      if (id === MOBILE_PR_VIEWER_ID) {
-        if (latestPrNumber != null && latestPrRepoFullName) {
-          handleOpenPrTab({
-            prNumber: latestPrNumber,
-            repoFullName: latestPrRepoFullName,
-            headCommitSha: getSessionPullRequestLegacyFields(latestPr).headCommitSha,
-          });
-        }
-        return;
-      }
       if (id === MOBILE_BROWSER_VIEWER_ID) {
         if (activeBrowserSession) handleOpenBrowser(activeBrowserSession.id);
         return;
@@ -4449,16 +4250,7 @@ const SessionDetail = ({
       }
       handleViewerTabSelect(id);
     },
-    [
-      latestPr,
-      latestPrNumber,
-      latestPrRepoFullName,
-      activeBrowserSession,
-      handleOpenPrTab,
-      handleOpenBrowser,
-      handleViewerTabSelect,
-      viewerTabs,
-    ]
+    [activeBrowserSession, handleOpenBrowser, handleViewerTabSelect, viewerTabs]
   );
 
   const visibleMachineIds = useMemo(
@@ -5185,7 +4977,6 @@ const SessionDetail = ({
                   onVisualAnnotationReferencesSubmitted={getVisualAnnotationReferencesSubmittedHandler(
                     tabSession.id
                   )}
-                  onOpenPrTab={handleOpenPrTab}
                   onOpenAllChanges={handleOpenAllChanges}
                   onOpenBrowser={() => handleOpenBrowser(tabSession.id, true)}
                   onOpenExistingBrowser={() => handleOpenBrowser(tabSession.id, false)}
@@ -5426,54 +5217,6 @@ const SessionDetail = ({
             </VaulDrawerBody>
           </DrawerContent>
         </Drawer>
-        {/* Mobile PR full-screen drawer. Edge-only interactive back: Vaul drives
-           the drag but only from the left-edge zone (the body is wrapped in
-           `data-vaul-no-drag`), so PR diffs scroll horizontally without dragging
-           the drawer toward dismissal. The zone clears the fixed header so the
-           back button stays tappable. See mobile-workspace-stack.tsx. */}
-        {/* Native keyboard handling is owned by ui/drawer.tsx: live viewport
-           inset on non-iOS side drawers, Vaul repositioning on iOS. Mobile web
-           uses browser resizing; see mobile-workspace-stack.tsx. */}
-        <Drawer
-          direction="right"
-          repositionInputs={isNativeAppShell()}
-          open={Boolean(urlPrNumber && latestPr && repoFullName && urlPrNumber === latestPrNumber)}
-          onOpenChange={(open) => {
-            if (!open) handleClosePrTab();
-          }}
-        >
-          <DrawerContent
-            className="w-full! max-w-none! inset-0 border-0 border-l-0! rounded-none"
-            data-sidebar-swipe-open-disabled
-          >
-            <DrawerTitle className="sr-only">
-              {t('sessions.detailTabs.pullRequest', 'Pull Request')}
-            </DrawerTitle>
-            <VaulDrawerBody topInset={MOBILE_DRAWER_HEADER_INSET}>
-              {latestPr && repoFullName && urlPrNumber === latestPrNumber && latestPrNumber && (
-                <PrTabContainer
-                  repoFullName={latestPrRepoFullName}
-                  prNumber={latestPrNumber}
-                  headCommitSha={getSessionPullRequestLegacyFields(latestPr).headCommitSha}
-                  onResolvedPrStatus={reconcilePersistedPrStatus}
-                  className="h-full"
-                  leadingSlot={
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className={getSessionDetailTouchIconButtonClassName('-ml-1')}
-                      onClick={handleClosePrTab}
-                      aria-label={t('common.back', 'Back')}
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                  }
-                />
-              )}
-            </VaulDrawerBody>
-          </DrawerContent>
-        </Drawer>
         {/* Mobile Browser full-screen drawer — same stack as session ↔ PR:
            right-sliding Vaul surface over the conversation, edge-swipe / back
            to reveal the layer beneath. Do NOT portal a sibling `fixed z-50`
@@ -5585,17 +5328,6 @@ const SessionDetail = ({
         // its expanded folders per session so returning to Files restores them.
         viewStateKey={`session-files:${activeSession.id}`}
       />
-    ) : activeSidebarTab === 'pr' && latestPr && repoFullName && latestPrNumber ? (
-      <PrTabContainer
-        repoFullName={latestPrRepoFullName}
-        prNumber={latestPrNumber}
-        headCommitSha={getSessionPullRequestLegacyFields(latestPr).headCommitSha}
-        onResolvedPrStatus={reconcilePersistedPrStatus}
-        className="bg-background"
-        // The side panel stays mounted while collapsed, so GitHub polling has
-        // to be paused explicitly — same signal SessionBrowserPanel takes.
-        visible={isSidebarVisible}
-      />
     ) : activeSidebarTab === 'changes' ? (
       <SessionChangesSidebar
         ready={sessionDiffReady}
@@ -5613,8 +5345,24 @@ const SessionDetail = ({
   const sidebarContent = (
     <div className="relative h-full min-h-0">
       {activeSession.design && openedSidebarTabs.includes('design') ? (
-        <div className={cn('absolute inset-0', activeSidebarTab !== 'design' && 'invisible pointer-events-none')}>
-          <DesignCanvas name={activeSession.title || t('design.untitled', 'Untitled design')} key={activeSession.id} sessionId={activeSession.id} workspaceSlug={workspaceSlug ?? ''} active={activeSidebarTab === 'design' && isSidebarVisible && effectiveActiveViewerTabId === null && effectiveActiveSideSessionId === null} />
+        <div
+          className={cn(
+            'absolute inset-0',
+            activeSidebarTab !== 'design' && 'invisible pointer-events-none'
+          )}
+        >
+          <DesignCanvas
+            name={activeSession.title || t('design.untitled', 'Untitled design')}
+            key={activeSession.id}
+            sessionId={activeSession.id}
+            workspaceSlug={workspaceSlug ?? ''}
+            active={
+              activeSidebarTab === 'design' &&
+              isSidebarVisible &&
+              effectiveActiveViewerTabId === null &&
+              effectiveActiveSideSessionId === null
+            }
+          />
         </div>
       ) : null}
       {activeBrowserSession && openedSidebarTabs.includes('browser') ? (
@@ -5657,9 +5405,11 @@ const SessionDetail = ({
   // top; the fixed-panel body only shows when neither owns the panel.
   const showFixedSidePanelBody =
     effectiveActiveViewerTabId === null && effectiveActiveSideSessionId === null;
-  const defaultSizes = activeSession.design ? { main: 40, sidebar: 60 } : showFixedSidePanelBody
-    ? { main: 75, sidebar: 25 }
-    : { main: 60, sidebar: 40 };
+  const defaultSizes = activeSession.design
+    ? { main: 40, sidebar: 60 }
+    : showFixedSidePanelBody
+      ? { main: 75, sidebar: 25 }
+      : { main: 60, sidebar: 40 };
 
   const sidebarToggleButton = (
     <Button
@@ -5738,7 +5488,6 @@ const SessionDetail = ({
         showSessionSharing ? () => handleRequestShareSession(activeSession) : undefined
       }
       onShareAsImage={activeDraftTab ? undefined : handleShareAsImage}
-      onOpenPrTab={handleOpenPrTab}
       onNavigateSession={handleNavigateSession}
       browserActionSession={activeBrowserSession}
       onOpenBrowser={() => {
@@ -5820,7 +5569,6 @@ const SessionDetail = ({
       onVisualAnnotationReferencesSubmitted: getVisualAnnotationReferencesSubmittedHandler(
         chatSession.id
       ),
-      onOpenPrTab: handleOpenPrTab,
       onOpenAllChanges: handleOpenAllChanges,
       onNavigateSession: handleNavigateSession,
       onConversationPrepared: pendingForkSourceId
@@ -6015,7 +5763,6 @@ const SessionDetail = ({
         sidebarOpen={isSidebarVisible}
         onSidebarCollapse={handleToggleSidebar}
         deleteConfirmDialog={deleteConfirmDialog}
-        sidebarMinWidthRequest={prSidebarWidthRequest}
         sidebarRestoreSeq={sidebarRestoreSeq}
       />
       {/* These dialogs live at the desktop root too (the mobile branch renders its own

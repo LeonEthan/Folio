@@ -76,11 +76,8 @@ execution/consent rules. These rules also bind CLI callers outside that director
   DeepSeek capability source version and thread the Agent config environment through every
   probe/session source-version derivation, so two endpoint catalogs never share a cache identity.
   Never put the API key or a derivative of it in that cache key.
-- `src/lib/pr-poller/` compensates for a broken hosted GitHub webhook → Streams fan-out. Keep
-  policy in its pure modules with a thin scheduler, keep priority driven by presence and
-  `lastMessageAt` rather than a turn-end hook, and keep only scheduling state (never PR status) in
-  `~/.lody/pr-poller-state.json`. Spec: `specs/pr-status-reconciler.md`; invariants:
-  `src/lib/pr-poller/AGENTS.md`.
+- Folio does not start PR reconciliation or automatic code-review/merge engines. Preserve
+  generic task dispatch, file watchers, and existing session/history records when changing fleet wiring.
 
 ## Design workspace files
 

@@ -152,6 +152,15 @@ const listPublishedToolNames = async (taskToolsEnabled: boolean): Promise<string
   }
 };
 
+describe('Folio developer workflow retirement', () => {
+  it('publishes generic session tools without the retired review submission tool', async () => {
+    const names = await listPublishedToolNames(false);
+    expect(names).not.toContain('lody_review_submit');
+    expect(names).toContain('lody_session_list');
+    expect(names).toContain('lody_session_history');
+  });
+});
+
 describe('Lody Task MCP tool gate', () => {
   const taskToolNames = [
     'lody_task_list',

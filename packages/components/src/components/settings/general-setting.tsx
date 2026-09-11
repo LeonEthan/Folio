@@ -21,7 +21,6 @@ import { useAtom, useAtomValue } from 'jotai';
 import { CompactRow, CompactSection } from './compact-layout';
 import { settingContainerClass } from '.';
 import { AutoArchiveSection } from './auto-archive-setting';
-import { ExperimentalFeaturesSection } from './experimental-features-setting';
 import {
   getOneSignalPermissionState,
   getOneSignalPushSubscriptionOptedIn,
@@ -796,8 +795,6 @@ export function GeneralSettingsComponent() {
         )}
 
         {githubIntegrationAvailable ? <AutoArchiveSection /> : null}
-
-        <ExperimentalFeaturesSection />
 
         {isElectron && (
           <div id="path-launchers" className="scroll-mt-24">

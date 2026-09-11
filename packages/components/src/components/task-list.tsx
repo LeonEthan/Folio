@@ -20,7 +20,6 @@ import {
   Archive,
   ChevronDown,
   GitBranch,
-  GitPullRequest,
   GripVertical,
   Link2,
   Loader2,
@@ -65,12 +64,10 @@ import { useStableNow } from '@/hooks/use-stable-now';
 import { formatCompactRelativeTime } from '@/lib/format-relative-time';
 import {
   GitHubOwnerIcon,
-  SessionPrIcon,
   SessionRowLeadingSlot,
   SidebarRowArchiveButton,
   SidebarRowEndSlot,
   SidebarListSkeleton,
-  SessionMergeablePill,
 } from '@/components/sidebar-row-shared';
 import { SessionInfoHoverCard } from '@/components/session-info-hover-card';
 import { SessionSharingIndicator } from '@/components/session-sharing';
@@ -196,23 +193,6 @@ export function getVisibleTaskGroupTasks(
 function normalizeRepoFullName(value: TaskListTask['repoFullName']): string | null {
   const trimmed = typeof value === 'string' ? value.trim() : '';
   return trimmed ? trimmed : null;
-}
-
-function normalizePrUrl(value: TaskListTask['prUrl']): string | null {
-  const trimmed = typeof value === 'string' ? value.trim() : '';
-  return trimmed ? trimmed : null;
-}
-
-function parseGitHubPrNumber(url: string): number | null {
-  try {
-    const parsed = new URL(url);
-    const match = parsed.pathname.match(/\/pull\/(\d+)(?:\/|$)/);
-    if (!match) return null;
-    const value = Number(match[1]);
-    return Number.isFinite(value) ? value : null;
-  } catch {
-    return null;
-  }
 }
 
 function toDate(value: TaskListTask['latestMessageAt']): Date | null {
@@ -405,7 +385,6 @@ const TaskGroupSection = memo(function TaskGroupSection({
   onShareSessionWithTeam,
   onNew,
   onNavigateToNewSession,
-  onOpenPullRequest,
   onToggleFullList,
   getTaskHref,
   dragHandle,
@@ -645,18 +624,7 @@ const TaskGroupSection = memo(function TaskGroupSection({
               const isSelected = task.taskId === selectedTaskId;
               const showSelectedState = isSelected && !isMobile;
               const relativeTime = formatCompactRelativeTime(task.latestMessageAt, now);
-              const prUrl = normalizePrUrl(task.prUrl);
-              const prNumber =
-                typeof task.prNumber === 'number' && Number.isFinite(task.prNumber)
-                  ? task.prNumber
-                  : prUrl
-                    ? parseGitHubPrNumber(prUrl)
-                    : null;
-              const prStatus = task.prStatus ?? 'open';
-              const hasPr = Boolean(prUrl);
               const hasChanges = task.addedLines !== 0 || task.deletedLines !== 0;
-              const isMergeable = hasPr && task.prReadiness === 'y';
-              const showMergeablePill = isMergeable && !isSelected;
               const canArchive = typeof onArchiveTask === 'function';
               const showInlineArchive = canArchive && !isMobile;
               const isChatTask = group.kind === 'chat';
@@ -752,8 +720,7 @@ const TaskGroupSection = memo(function TaskGroupSection({
                   onArchiveTask ||
                   onCopySessionUrl ||
                   shareMenuState ||
-                  task.branchName ||
-                  (onOpenPullRequest && prUrl)
+                  task.branchName
                 );
               const row = (
                 <div
@@ -861,11 +828,7 @@ const TaskGroupSection = memo(function TaskGroupSection({
                             />
                             {task.sharing ? <SessionSharingIndicator state={task.sharing} /> : null}
                           </span>
-                        ) : hasPr ||
-                          hasChanges ||
-                          showMergeablePill ||
-                          isMobile ||
-                          task.sharing?.visibility === 'private' ? (
+                        ) : hasChanges || isMobile || task.sharing?.visibility === 'private' ? (
                           <span
                             className={cn(
                               'flex select-none items-center gap-1.5 text-[11px] tabular-nums text-sidebar-foreground-muted/80',
@@ -878,17 +841,13 @@ const TaskGroupSection = memo(function TaskGroupSection({
                                 className="text-muted-foreground"
                               />
                             ) : null}
-                            {showMergeablePill ? (
-                              <SessionMergeablePill />
-                            ) : hasChanges && !isMergeable ? (
+                            {hasChanges ? (
                               <span className="flex items-center gap-1">
                                 <span className="text-code-added">+{task.addedLines}</span>
                                 <span className="text-code-removed">-{task.deletedLines}</span>
                               </span>
                             ) : null}
-                            {hasPr ? (
-                              <SessionPrIcon prStatus={prStatus} prCiState={task.prCiState} />
-                            ) : null}
+
                             {task.sharing ? <SessionSharingIndicator state={task.sharing} /> : null}
                           </span>
                         ) : undefined
@@ -912,30 +871,6 @@ const TaskGroupSection = memo(function TaskGroupSection({
                 <ContextMenu key={task.taskId}>
                   <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
                   <ContextMenuContent className="min-w-[180px]">
-                    {onOpenPullRequest && prUrl ? (
-                      <>
-                        <ContextMenuItem
-                          onSelect={() => {
-                            onOpenPullRequest({
-                              taskId: task.taskId,
-                              repoFullName: group.repoFullName,
-                              prUrl,
-                              prNumber,
-                            });
-                          }}
-                        >
-                          <GitPullRequest />
-                          {contextMenuLabels.openPr}
-                        </ContextMenuItem>
-                        {onRenameTask ||
-                        onTogglePinTask ||
-                        onArchiveTask ||
-                        onCopySessionUrl ||
-                        task.branchName ? (
-                          <ContextMenuSeparator />
-                        ) : null}
-                      </>
-                    ) : null}
                     {onRenameTask ? (
                       <ContextMenuItem
                         onSelect={() => {
@@ -1034,21 +969,6 @@ const TaskGroupSection = memo(function TaskGroupSection({
                   repoFullName={group.repoFullName}
                   machineName={task.machineName}
                   branchName={task.branchName}
-                  prStatus={hasPr ? prStatus : undefined}
-                  prCiState={task.prCiState}
-                  prNumber={prNumber}
-                  prUrl={prUrl}
-                  onOpenPullRequest={
-                    onOpenPullRequest && prUrl
-                      ? () =>
-                          onOpenPullRequest({
-                            taskId: task.taskId,
-                            repoFullName: group.repoFullName,
-                            prUrl,
-                            prNumber,
-                          })
-                      : undefined
-                  }
                   addedLines={hasChanges ? task.addedLines : undefined}
                   deletedLines={hasChanges ? task.deletedLines : undefined}
                   sharing={task.sharing}
@@ -1200,7 +1120,6 @@ export const TaskList = memo(function TaskList({
   onShareSessionWithTeam,
   onNew,
   onMoveRepo,
-  onOpenPullRequest,
   onNavigateToNewSession,
   getTaskHref,
   headerAction,
@@ -1346,7 +1265,6 @@ export const TaskList = memo(function TaskList({
                     onShareSessionWithTeam={onShareSessionWithTeam}
                     onNew={onNew}
                     onNavigateToNewSession={onNavigateToNewSession}
-                    onOpenPullRequest={onOpenPullRequest}
                     onToggleFullList={handleToggleFullList}
                     getTaskHref={getTaskHref}
                     archiveTooltipLabel={archiveTooltipLabel}
@@ -1377,7 +1295,6 @@ export const TaskList = memo(function TaskList({
                   onShareSessionWithTeam={onShareSessionWithTeam}
                   onNew={onNew}
                   onNavigateToNewSession={onNavigateToNewSession}
-                  onOpenPullRequest={onOpenPullRequest}
                   onToggleFullList={handleToggleFullList}
                   getTaskHref={getTaskHref}
                   archiveTooltipLabel={archiveTooltipLabel}

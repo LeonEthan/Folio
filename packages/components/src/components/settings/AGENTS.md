@@ -66,3 +66,9 @@ component details.
   name, then calls the cloud mutation through `account-setting.tsx`. Refresh session
   and active organization after success; cache refresh failure must not claim transfer
   failed. Card changes use the billing Portal separately; transfer keeps the current card.
+
+## Design product scope
+
+GitHub connection and automatic code-review configuration are retired. Settings
+must not mount their subscriptions; existing worktree configuration remains until
+its independent consumer migration. Agent provider authentication remains supported.

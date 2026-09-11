@@ -2933,12 +2933,6 @@ export function LoroAppSidebar({ className }: LoroAppSidebarProps) {
     openSettings('account');
   }, [closeMobileDrawer, openSettings, workspaceSlug]);
 
-  const handleLinkRepoClicked = useCallback(() => {
-    if (!workspaceSlug) return;
-    closeMobileDrawer();
-    openSettings('github');
-  }, [closeMobileDrawer, openSettings, workspaceSlug]);
-
   // --- Keyboard navigation integration ---
   const keyboardNavLocalSections = useMemo<SidebarNavigationLocalSection[]>(() => {
     const result: SidebarNavigationLocalSection[] = [];
@@ -3180,7 +3174,6 @@ export function LoroAppSidebar({ className }: LoroAppSidebarProps) {
         onBugReportClicked={handleBugReportClicked}
         onSettingsClicked={handleSettingsClicked}
         onInviteClicked={handleInviteClicked}
-        onLinkRepoClicked={handleLinkRepoClicked}
       />
 
       <SessionShareDialog

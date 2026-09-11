@@ -1,15 +1,9 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  githubCreatePRReviewComment,
-  githubFetchPullRequestHeadSha,
-  getSessionPullRequestLegacyFields,
-  githubReplyPRReviewComment,
-  lodyAnchorToGitHubParams,
   type CommentReferencePayload,
   type CommentUser,
   type DiffViewerCommentCallbacks,
-  type GitHubReviewComment,
   type GitHubReviewThread,
   type FileDiff,
   type SessionId,
@@ -19,13 +13,7 @@ import { useAtomValue } from 'jotai';
 import { usePostHog } from '@posthog/react';
 import { toast } from 'sonner';
 import { currentWorkspaceIdAtom, userAtom } from '@/atoms';
-import { getDurationSinceMs, getPerformanceNowMs } from '@/lib/posthog-analytics';
-import {
-  captureDiffCommentGithubThreadCreated,
-  captureDiffCommentGithubThreadFailed,
-  captureDiffCommentSentToChat,
-  classifyGithubThreadError,
-} from './diff-pr-analytics';
+import { captureDiffCommentSentToChat } from './diff-pr-analytics';
 import { DiffViewer } from '@/ui/diff-viewer/diff-viewer';
 import { ScrollArea } from '@/ui/scroll-area';
 import { Skeleton } from '@/ui/skeleton';
@@ -43,9 +31,6 @@ import {
 import { useDiffFocusScroll } from './use-diff-focus-scroll';
 import { useSessionAllChangesDiffData } from './use-session-all-changes-diff-data';
 import { useSessionConversationDiffData } from './use-session-conversation-diff-data';
-import { useGitHubReviewComments } from '@/hooks/use-github-review-comments';
-import { withGitHubOperationTokenRetry, withGitHubTokenRetry } from '@/lib/github-token';
-import { getPullRequestNumber, getSessionGitHubState } from '@/lib/session-github-state';
 import { SessionFileDiffNoticeCard } from './session-file-diff-notice-card';
 import { DiffFileHeaderActions } from '@/ui/diff-viewer/diff-file-header-actions';
 import type { SessionFileProvider } from '@/lib/session-file-provider';
@@ -80,50 +65,6 @@ function FileDiffSkeleton({
       </div>
     </div>
   );
-}
-
-function getThreadsForPath<T extends { anchor: { path: string } }>(
-  byPath: Map<string, T[]>,
-  filePath: string
-): T[] {
-  const direct = byPath.get(filePath);
-  if (direct) {
-    return direct;
-  }
-  for (const [candidatePath, candidateThreads] of byPath) {
-    if (arePathsEquivalent(candidatePath, filePath)) {
-      return candidateThreads;
-    }
-  }
-  return [];
-}
-
-function githubSideToLody(side: 'LEFT' | 'RIGHT'): 'additions' | 'deletions' {
-  return side === 'RIGHT' ? 'additions' : 'deletions';
-}
-
-function githubReviewCommentToReference(
-  comment: GitHubReviewComment,
-  fallback: { lineNumber: number; mode?: 'conversation' | 'base'; turnId?: string }
-): CommentReferencePayload {
-  return {
-    source: 'github',
-    path: comment.path,
-    lineNumber:
-      comment.line ??
-      comment.originalLine ??
-      comment.startLine ??
-      comment.originalStartLine ??
-      fallback.lineNumber,
-    side: githubSideToLody(comment.side),
-    commentBody: comment.body,
-    authorName: comment.user?.login ?? 'ghost',
-    authorImage: comment.user?.avatarUrl,
-    replies: [],
-    turnId: fallback.turnId,
-    mode: fallback.mode,
-    githubThreadId: comment.inReplyToId ?? comment.id,
-  };
 }
 
 function getMatchingPath(paths: string[], filePath?: string | null): string | null {
@@ -337,12 +278,9 @@ function SessionConversationDiffPanelImpl({
   fileDiffs,
   fileDiffsPending,
   focusFilePath,
-  focusComment,
   focusRequestSeq,
   mode = 'conversation',
   refreshToken: _refreshToken,
-  session,
-  workspaceSession,
   onSendToChat,
   commentReferenceKeys = EMPTY_COMMENT_REFERENCE_KEYS,
   className,
@@ -428,20 +366,6 @@ function SessionConversationDiffPanelImpl({
   const { cacheKey, normalizedPaths, resolvedByPath, isDiffUnavailable } = isBaseMode
     ? allChangesDiffData
     : conversationDiffData;
-  const { repoFullName, latestPr } = useMemo(
-    () => getSessionGitHubState(session ?? null, workspaceSession ?? null),
-    [session, workspaceSession]
-  );
-  const latestPrNumber = getPullRequestNumber(latestPr);
-  const githubReviewComments = useGitHubReviewComments({
-    workspaceId: currentWorkspaceId,
-    repoFullName,
-    prNumber: latestPrNumber,
-    enabled: normalizedPaths.length > 0 && Boolean(latestPrNumber),
-  });
-  const { threads: githubReviewCommentThreads, refresh: refreshGitHubReviewComments } =
-    githubReviewComments;
-
   useEffect(() => observeDiffPerfLongTasks() ?? undefined, []);
 
   const isFocusFileResolved = useMemo(() => {
@@ -453,40 +377,8 @@ function SessionConversationDiffPanelImpl({
     );
   }, [focusFilePath, normalizedPaths, resolvedByPath]);
 
-  const githubThreadsByPath = useMemo(() => {
-    const byPath = new Map<string, GitHubReviewThread[]>();
-    for (const thread of githubReviewCommentThreads) {
-      const existing = byPath.get(thread.anchor.path);
-      if (existing) {
-        existing.push(thread);
-      } else {
-        byPath.set(thread.anchor.path, [thread]);
-      }
-    }
-    return byPath;
-  }, [githubReviewCommentThreads]);
-
-  const isFocusCommentResolved = useMemo(() => {
-    if (!focusComment) {
-      return true;
-    }
-
-    if (focusComment.source !== 'github') {
-      return true;
-    }
-
-    const threads = getThreadsForPath(githubThreadsByPath, focusComment.path);
-    if (focusComment.githubThreadId != null) {
-      return threads.some((thread) => thread.id === focusComment.githubThreadId);
-    }
-    return threads.some(
-      (thread) =>
-        thread.anchor.line === focusComment.lineNumber &&
-        githubSideToLody(thread.anchor.side) === focusComment.side
-    );
-  }, [focusComment, githubThreadsByPath]);
-
-  const focusCommentForScroll = focusComment?.source === 'github' ? focusComment : null;
+  const isFocusCommentResolved = true;
+  const focusCommentForScroll = null;
 
   const { scrollContainerRef, registerPathBlock } = useDiffFocusScroll({
     focusFilePath,
@@ -526,19 +418,6 @@ function SessionConversationDiffPanelImpl({
     [handleDiffScroll, mode, scrollContainerRef]
   );
 
-  const resolvePrHeadCommitSha = useCallback(async (): Promise<string> => {
-    if (!currentWorkspaceId || !repoFullName || !latestPr || !latestPrNumber) {
-      throw new Error('This session is not linked to a GitHub pull request');
-    }
-    const legacyHeadCommitSha = getSessionPullRequestLegacyFields(latestPr).headCommitSha;
-    if (legacyHeadCommitSha?.trim()) {
-      return legacyHeadCommitSha.trim();
-    }
-    return await withGitHubTokenRetry(currentWorkspaceId, repoFullName, (token) =>
-      githubFetchPullRequestHeadSha(token, repoFullName, latestPrNumber)
-    );
-  }, [currentWorkspaceId, latestPr, latestPrNumber, repoFullName]);
-
   const addCommentReferenceToChatInput = useCallback(
     (reference: CommentReferencePayload): boolean => {
       if (!onSendToChat) {
@@ -557,75 +436,9 @@ function SessionConversationDiffPanelImpl({
 
   const commentCallbacks = useMemo<DiffViewerCommentCallbacks>(
     () => ({
-      onCreateThreadToGitHub: async (input) => {
-        if (!currentWorkspaceId || !repoFullName || !latestPr || !latestPrNumber) {
-          throw new Error('This session is not linked to a GitHub pull request');
-        }
-        const startedAt = getPerformanceNowMs();
-        try {
-          const headCommitSha = await resolvePrHeadCommitSha();
-          const position = lodyAnchorToGitHubParams(input.anchor, latestPr, headCommitSha);
-          const comment = await withGitHubOperationTokenRetry(
-            currentWorkspaceId,
-            repoFullName,
-            'write',
-            (token) =>
-              githubCreatePRReviewComment(token, repoFullName, latestPrNumber, {
-                body: input.body,
-                path: position.path,
-                commitId: position.commit_id,
-                line: position.line,
-                side: position.side,
-              })
-          );
-          await refreshGitHubReviewComments();
-          captureDiffCommentGithubThreadCreated(postHog, diffCommentAnalyticsBase, {
-            durationMs: getDurationSinceMs(startedAt),
-          });
-          addCommentReferenceToChatInput(
-            githubReviewCommentToReference(comment, {
-              lineNumber: input.anchor.lineNumber,
-              mode: input.anchor.mode,
-              turnId: input.anchor.turnId,
-            })
-          );
-        } catch (error) {
-          captureDiffCommentGithubThreadFailed(postHog, diffCommentAnalyticsBase, {
-            errorKind: classifyGithubThreadError(error),
-            durationMs: getDurationSinceMs(startedAt),
-          });
-          throw error;
-        }
-      },
-      onReplyGitHubThread: async (input) => {
-        if (!currentWorkspaceId || !repoFullName || !latestPrNumber) {
-          throw new Error('This session is not linked to a GitHub pull request');
-        }
-        await withGitHubOperationTokenRetry(currentWorkspaceId, repoFullName, 'write', (token) =>
-          githubReplyPRReviewComment(
-            token,
-            repoFullName,
-            latestPrNumber,
-            input.githubCommentId,
-            input.body
-          )
-        );
-        await refreshGitHubReviewComments();
-      },
       onSendToChat: onSendToChat ? addCommentReferenceToChatInput : undefined,
     }),
-    [
-      addCommentReferenceToChatInput,
-      currentWorkspaceId,
-      diffCommentAnalyticsBase,
-      latestPr,
-      latestPrNumber,
-      onSendToChat,
-      postHog,
-      refreshGitHubReviewComments,
-      repoFullName,
-      resolvePrHeadCommitSha,
-    ]
+    [onSendToChat, addCommentReferenceToChatInput]
   );
 
   const handleCommentError = useCallback(
@@ -659,10 +472,10 @@ function SessionConversationDiffPanelImpl({
       <DiffFileBlock
         filePath={filePath}
         data={resolvedByPath[filePath]}
-        commentsEnabled={Boolean(latestPrNumber && repoFullName)}
+        commentsEnabled={false}
         currentUser={currentUser}
-        githubThreads={githubThreadsByPath.get(filePath) ?? EMPTY_GITHUB_THREADS}
-        prLinked={Boolean(latestPrNumber && repoFullName)}
+        githubThreads={EMPTY_GITHUB_THREADS}
+        prLinked={false}
         turnId={turnId}
         mode={mode}
         cacheKey={cacheKey}

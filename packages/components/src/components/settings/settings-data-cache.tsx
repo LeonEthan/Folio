@@ -107,7 +107,6 @@ type SettingsDataCacheContextValue = {
   canManageGithub: boolean;
   usageTimelineByRange: Partial<Record<SettingsUsageRange, SettingsUsageTimelineData | undefined>>;
   usageCalendar: SettingsUsageCalendarData | undefined;
-  repositories: SettingsWorkspaceRepository[] | undefined;
   /** All repos linked to the workspace with enabled status (reactive query). */
   workspaceReposWithStatus: SettingsWorkspaceRepoWithStatus[] | undefined;
   workspaceReposLoading: boolean;
@@ -148,12 +147,6 @@ export function SettingsDataCacheProvider({ children }: { children: ReactNode })
     workspaceId ? { workspaceId } : 'skip'
   ) as SettingsUsageCalendarData | undefined;
 
-  // Preload GitHub workspace state once at settings-root level.
-  const repositories = useCloudQuery(
-    cloudOperations.github.getWorkspaceRepositories,
-    workspaceId ? { workspaceId } : 'skip'
-  ) as SettingsWorkspaceRepository[] | undefined;
-
   // Reactive query for all repos with enabled status (used by settings integrations page).
   // Any workspace member can view; mutations (toggle) still require admin.
   const workspaceReposWithStatus = useCloudQuery(
@@ -189,13 +182,11 @@ export function SettingsDataCacheProvider({ children }: { children: ReactNode })
       canManageGithub,
       usageTimelineByRange,
       usageCalendar,
-      repositories,
       workspaceReposWithStatus: workspaceReposWithStatus ?? undefined,
       workspaceReposLoading,
     }),
     [
       canManageGithub,
-      repositories,
       usageTimelineByRange,
       usageCalendar,
       workspaceId,

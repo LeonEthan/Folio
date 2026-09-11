@@ -2874,10 +2874,6 @@ function WorkspaceChatLanding({
     attachmentInputRef.current?.click();
   }, []);
 
-  const handleConnectGitRepo = useCallback(() => {
-    openSettings('github');
-  }, [openSettings]);
-
   const handleAddLocalProject = useCallback(() => {
     openAddProjectDialog();
   }, [openAddProjectDialog]);
@@ -3841,7 +3837,6 @@ function WorkspaceChatLanding({
           localProjects={desktopLocalProjectOptions}
           repositories={repositories}
           latestMessageAtByRepo={mobileSheetRecency.byRepo}
-          onConnectGitRepo={handleConnectGitRepo}
           onAddLocalProject={handleAddLocalProject}
           onShareLocalProjectWithTeam={
             showProjectSharing ? handleShareLocalProjectWithTeam : undefined
@@ -6387,7 +6382,6 @@ function WorkspaceChatLanding({
           selectedProjectsSubTab={selectedProjectsSubTab}
           onProjectsSubTabSelect={handleMobileHomeProjectsSubTabSelect}
           onAddLocalProject={() => openAddProjectDialog()}
-          onAddGitHubRepository={handleConnectGitRepo}
           localProjects={mobileHomeLocalProjects}
           recentLocalProjects={mobileHomeRecentLocalProjects}
           githubRepositories={mobileHomeGitHubRepositories}

@@ -42,7 +42,6 @@ import {
 import { StableSessionProvider } from '../providers/stable-session-provider';
 import { isNativeAppShell } from '@/lib/native-platform';
 import { resolveDesktopCheckoutReturnDeepLinkPath } from '@/lib/desktop-checkout-return-deep-link';
-import { resolveDesktopGitHubInstallDeepLinkPath } from '@/lib/desktop-github-install-deep-link';
 import { readElectronAuthCallbackToken } from '@/lib/electron-oauth';
 import { LodyPostHogProvider } from '../providers/posthog-provider';
 import { AppLaunchAnalyticsTracker } from '@/components/app-launch-analytics-tracker';
@@ -574,23 +573,6 @@ function DesktopDeepLinkRouter() {
         navigateToResolvedPath(navigate, openLocalProjectPath);
         return;
       }
-
-      // Mid-onboarding the install was kicked off from the projects step —
-      // returning to /settings/github would leave the user behind the
-      // overlay once they finish. Land them on the workspace home so the
-      // overlay continues uninterrupted and the projects list refreshes.
-      if (location.pathname === '/onboarding') {
-        return;
-      }
-      const target = 'settings';
-      const targetPath = resolveDesktopGitHubInstallDeepLinkPath(url, location.pathname, {
-        target,
-      });
-      if (!targetPath) {
-        return;
-      }
-
-      navigateToResolvedPath(navigate, targetPath);
     });
   }, [desktopAuth, location.pathname, navigate, postHog, setElectronSignInInProgress]);
 

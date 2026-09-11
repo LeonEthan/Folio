@@ -11,7 +11,6 @@ import { startSessionMentionDrag } from '@/lib/session-mention-drag';
 import {
   Archive,
   GitBranch,
-  GitPullRequest,
   Link2,
   Loader2,
   LockKeyhole,
@@ -36,8 +35,6 @@ import {
 import { SwipeActionRow } from '@/components/shared/swipe-action-row';
 import {
   SessionOpenedByTreeRow,
-  SessionPrIcon,
-  SessionMergeablePill,
   SessionRowAuthorAvatar,
   SessionRowLeadingSlot,
   SessionRowWorktreeIndicator,
@@ -179,18 +176,6 @@ export type SidebarUpdatedContextMenuLabels = {
  */
 function HeaderActionRow({ action }: { action: ReactNode }) {
   return <div className="flex h-7 shrink-0 items-center justify-end">{action}</div>;
-}
-
-function parseGitHubPrNumber(url: string): number | null {
-  try {
-    const parsed = new URL(url);
-    const match = parsed.pathname.match(/\/pull\/(\d+)(?:\/|$)/);
-    if (!match) return null;
-    const value = Number(match[1]);
-    return Number.isFinite(value) ? value : null;
-  } catch {
-    return null;
-  }
 }
 
 function toDate(value: SidebarUpdatedItem['latestMessageAt']): Date | null {
@@ -379,7 +364,6 @@ export const SidebarUpdatedSessionList = memo(function SidebarUpdatedSessionList
   onTogglePinItem,
   onCopyItemUrl,
   onShareItemWithTeam,
-  onOpenPullRequest,
   getItemHref,
   collapsedBuckets,
   onToggleBucket,
@@ -572,7 +556,6 @@ export const SidebarUpdatedSessionList = memo(function SidebarUpdatedSessionList
                           onTogglePin={onTogglePinItem}
                           onCopyUrl={onCopyItemUrl}
                           onShareWithTeam={onShareItemWithTeam}
-                          onOpenPullRequest={onOpenPullRequest}
                           onBeginRename={beginRename}
                           openedByTree={openedByTree}
                           contextMenuLabels={contextMenuLabels}
@@ -657,7 +640,6 @@ const UpdatedItemRow = memo(function UpdatedItemRow({
   onTogglePin,
   onCopyUrl,
   onShareWithTeam,
-  onOpenPullRequest,
   onBeginRename,
   openedByTree,
   contextMenuLabels,
@@ -669,18 +651,6 @@ const UpdatedItemRow = memo(function UpdatedItemRow({
   const useAnchor = typeof href === 'string' && href.length > 0;
   // Mobile keeps a right-edge relative time (no hover info card on touch).
   const relativeTime = formatCompactRelativeTime(item.latestMessageAt, now);
-  const prUrl = typeof item.prUrl === 'string' && item.prUrl.trim() ? item.prUrl.trim() : null;
-  const prNumber =
-    typeof item.prNumber === 'number' && Number.isFinite(item.prNumber)
-      ? item.prNumber
-      : prUrl
-        ? parseGitHubPrNumber(prUrl)
-        : null;
-  const prStatus: PrStatus = item.prStatus ?? 'open';
-  // Any row carrying a PR shows its status at rest and in the hover info card.
-  // Local-project sessions can carry one too: their repo identity lives on
-  // `session.project`, not the legacy `repoFullName` field that `kind` derives from.
-  const showPr = Boolean(prUrl);
   const addedLines = typeof item.addedLines === 'number' ? item.addedLines : 0;
   const deletedLines = typeof item.deletedLines === 'number' ? item.deletedLines : 0;
   // +/- diff stats only exist for repo (worktree) sessions. Local-project and
@@ -688,13 +658,6 @@ const UpdatedItemRow = memo(function UpdatedItemRow({
   // be noise. Workspace mode reaches the same conclusion structurally because
   // only github rows pass through SessionList's diff path.
   const hasChanges = item.kind === 'github' && (addedLines !== 0 || deletedLines !== 0);
-  // A merged/closed PR can leave a stale "clean/mergeable" record in
-  // `pullRequestState` (the webhook fan-out sets status='merged' but can't
-  // clear that field, and the poller stops observing terminal PRs). Gate the
-  // pill on the PR still being live so it doesn't linger next to a merged PR.
-  const isMergeable =
-    showPr && item.prReadiness === 'y' && prStatus !== 'merged' && prStatus !== 'closed';
-  const showMergeablePill = isMergeable && !selected;
   const branchName =
     typeof item.branchName === 'string' && item.branchName.trim() ? item.branchName.trim() : null;
   const repoFullName =
@@ -758,20 +721,8 @@ const UpdatedItemRow = memo(function UpdatedItemRow({
       Boolean(shareMenuState) ||
       Boolean(branchName) ||
       canGoToOpener ||
-      (showPr && Boolean(onOpenPullRequest)) ||
       Boolean(openedByOpener));
   const titleFontClassName = item.isPinned ? 'font-normal' : 'font-medium';
-
-  const handlePrOpen =
-    onOpenPullRequest && prUrl
-      ? () =>
-          onOpenPullRequest({
-            sessionId: item.id,
-            repoFullName,
-            prUrl,
-            prNumber,
-          })
-      : undefined;
 
   const titleNode = (
     <span
@@ -893,11 +844,7 @@ const UpdatedItemRow = memo(function UpdatedItemRow({
           hasUnreadMessages={item.hasUnreadMessages}
           fadeClassName="group-hover/row:opacity-0"
           restIcon={
-            showPr ||
-            hasChanges ||
-            showMergeablePill ||
-            isMobile ||
-            (item.kind === 'local' && item.isWorktree) ? (
+            hasChanges || isMobile || (item.kind === 'local' && item.isWorktree) ? (
               <span
                 className={cn(
                   'flex select-none items-center gap-1.5 text-[11px] tabular-nums text-sidebar-foreground-muted/80',
@@ -905,9 +852,7 @@ const UpdatedItemRow = memo(function UpdatedItemRow({
                 )}
               >
                 {isMobile ? <span>{relativeTime}</span> : null}
-                {showMergeablePill ? (
-                  <SessionMergeablePill />
-                ) : hasChanges && !isMergeable ? (
+                {hasChanges ? (
                   <span className="flex items-center gap-1">
                     <span className="text-code-added">+{addedLines}</span>
                     <span className="text-code-removed">-{deletedLines}</span>
@@ -916,7 +861,6 @@ const UpdatedItemRow = memo(function UpdatedItemRow({
                 <SessionRowWorktreeIndicator
                   isWorktree={item.kind === 'local' && item.isWorktree}
                 />
-                {showPr ? <SessionPrIcon prStatus={prStatus} prCiState={item.prCiState} /> : null}
               </span>
             ) : undefined
           }
@@ -977,20 +921,7 @@ const UpdatedItemRow = memo(function UpdatedItemRow({
           }
           goToOpenerLabel={contextMenuLabels.goToOpenerSession}
         />
-        {handlePrOpen ? (
-          <ContextMenuItem
-            onSelect={() => {
-              handlePrOpen();
-            }}
-          >
-            <GitPullRequest />
-            {contextMenuLabels.openPr}
-          </ContextMenuItem>
-        ) : null}
-        {handlePrOpen &&
-        (canRename || canTogglePin || canArchive || canMarkUnread || canCopyUrl || branchName) ? (
-          <ContextMenuSeparator />
-        ) : null}
+
         {canRename ? (
           <ContextMenuItem
             onSelect={() => {
@@ -1098,11 +1029,6 @@ const UpdatedItemRow = memo(function UpdatedItemRow({
       folderName={item.kind === 'local' ? (item.subtitle ?? undefined) : undefined}
       machineName={item.machineName}
       branchName={branchName}
-      prStatus={showPr ? prStatus : undefined}
-      prCiState={item.prCiState}
-      prNumber={prNumber}
-      prUrl={prUrl}
-      onOpenPullRequest={handlePrOpen}
       addedLines={hasChanges ? addedLines : undefined}
       deletedLines={hasChanges ? deletedLines : undefined}
       sharing={item.sharing}

@@ -233,9 +233,6 @@ importers:
       '@lody/cloud-api':
         specifier: workspace:*
         version: link:../../packages/cloud-api
-      '@lody/code-review-helper':
-        specifier: workspace:*
-        version: link:../../packages/code-review-helper
       '@lody/loro-streams-rpc':
         specifier: workspace:*
         version: link:../../packages/loro-streams-rpc
@@ -350,9 +347,6 @@ importers:
       jiti:
         specifier: ^2.6.1
         version: 2.6.1
-      lody-code-review-viewer:
-        specifier: workspace:*
-        version: link:../../packages/code-review-viewer
       loro-mirror:
         specifier: 'catalog:'
         version: 2.3.1(loro-crdt@1.15.1)

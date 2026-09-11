@@ -7,7 +7,6 @@ import {
   ChartNoAxesCombined,
   CreditCard,
   FolderOpen,
-  Github,
   ImageIcon,
   Info,
   Keyboard,
@@ -34,7 +33,6 @@ export type SettingsTabId =
   | 'image-connection'
   | 'mcp'
   | 'projects'
-  | 'github'
   | 'ai-usage'
   | 'billing'
   | 'about';
@@ -52,7 +50,6 @@ export type SettingsPath =
   | '/$workspaceName/settings/image-connection'
   | '/$workspaceName/settings/mcp'
   | '/$workspaceName/settings/projects'
-  | '/$workspaceName/settings/github'
   | '/$workspaceName/settings/ai-usage'
   | '/$workspaceName/settings/billing'
   | '/$workspaceName/settings/about';
@@ -170,15 +167,6 @@ export const SETTINGS_TAB_CONFIGS: SettingsTabConfig[] = [
     path: '/$workspaceName/settings/projects',
   },
   {
-    id: 'github',
-    section: 'workspace',
-    labelKey: 'settings.tabs.github',
-    descriptionKey: 'settings.categories.github.description',
-    icon: Github,
-    capability: 'githubIntegration',
-    path: '/$workspaceName/settings/github',
-  },
-  {
     id: 'ai-usage',
     section: 'workspace',
     labelKey: 'settings.tabs.aiUsage',
@@ -236,7 +224,6 @@ export function getActiveSettingsTabId(pathname: string): SettingsTabId | null {
     ['/settings/image-connection', 'image-connection'],
     ['/settings/mcp', 'mcp'],
     ['/settings/projects', 'projects'],
-    ['/settings/github', 'github'],
     ['/settings/ai-usage', 'ai-usage'],
     ['/settings/stats', 'ai-usage'],
     ['/settings/billing', 'billing'],

@@ -38,7 +38,6 @@ import {
   CircleHelp,
   Github,
   SquarePen,
-  Link2,
   Loader2,
   MessageSquareMore,
   PanelLeft,
@@ -665,7 +664,6 @@ export const LoroSidebar = memo(function LoroSidebar({
   onWorkspaceSelected,
   onCreateWorkspaceClicked,
   onInviteClicked,
-  onLinkRepoClicked,
   onHomeClicked,
   onArchiveClicked,
   onTasksClicked,
@@ -953,10 +951,6 @@ export const LoroSidebar = memo(function LoroSidebar({
                 <DropdownMenuItem onSelect={() => onInviteClicked?.()}>
                   <Users className="h-4 w-4" />
                   {mergedLabels.inviteMembers}
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => onLinkRepoClicked?.()}>
-                  <Link2 className="h-4 w-4" />
-                  {mergedLabels.connectGithubRepo}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
