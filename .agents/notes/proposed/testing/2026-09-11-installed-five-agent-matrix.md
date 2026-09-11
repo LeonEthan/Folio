@@ -1546,3 +1546,51 @@ design service is shutting down; it does not become a successful attachment or
 restart. This completes the scoped Pi hook-error/uncovered-path negative.
 Behavior with runtime hooks entirely absent remains a separate unverified cell;
 these passing negatives do not close the full five-Agent matrix.
+
+### Claude user-disabled hooks and independent final protection
+
+The next negative uses the existing `disableAllHooks` setting in a fresh isolated
+`CLAUDE_CONFIG_DIR/settings.json`. The [native hook documentation](https://code.claude.com/docs/en/hooks#disable-or-remove-hooks)
+describes this switch and its settings precedence. Folio's bundled launch settings
+add ordinary command hooks; they neither set this switch nor install managed
+policy. Source inspection establishes a configuration route, while the following
+native execution establishes that it actually takes effect in this combination.
+
+Handle 50659 exited zero with normal package source `81d54b6`, native Claude
+2.1.258, SDK 0.3.258 and ACP 0.70.0. Evidence is
+`folio-t28-claude-absence-ZLtSb2/evidence`, package log
+`claude-hook-absence-native-1.log`. The exact isolated settings are retained and
+checked before and after execution. No installed bundle, production switch or
+upstream runtime is changed.
+
+The first native operation is Write, with no preceding Read. The target is
+confirmed absent before the call. Its actual non-error tool result reports
+creation, and the expected marker bytes are present before any Bash operation.
+This differs from the active-hook `DESIGN_READ_REQUIRED` refusal above and
+establishes disabled enforcement through observable behavior, not missing logs.
+Native Bash subsequently copies the three valid poster files. Both operations
+receive only their current single-use Manual permission response, correlated with
+the actual Session, tool arguments and request UUID. Disabling hooks does not
+substitute for those ordinary permission decisions.
+
+Natural completion still returns `invalid` / `design_read_baseline_missing`.
+The exact draft files and additional marker remain, and the full canonical
+payload is unchanged. Root inspected the native Write and Bash results, settings,
+both permission correlations and final receipt. Three main requests and one
+schema-correct native title request complete without provider errors. Normal
+cleanup finishes at 20:37:51.422Z; all 12 recorded owned processes are independently
+absent. Retained shutdown logs include a daemon-unavailable terminal request and
+a rejected late design attachment; the round has no cleanup failure.
+
+This supplies installed evidence for user-disabled Claude hooks and independent
+final protection. It does not establish Pi extension absence. Pi's launcher
+explicitly injects its bundled extension; the pinned native `--no-extensions`
+behavior disables discovery while retaining explicitly supplied extensions.
+No configuration-only route to remove that injection has been established, and
+no new production mechanism is added solely to manufacture such a test.
+
+A separate audit finds only the two historical Pi permission rounds described
+above, including the functional No/Yes observations followed by failed cleanup.
+The repaired package's cold/resubmission run contains no permission steps. Those
+observations therefore remain within their failed round until a separate normal
+installed permission run establishes both the interaction and successful cleanup.
