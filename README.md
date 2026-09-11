@@ -73,8 +73,10 @@ Pi and Claude have design synchronization implementations. The
 records passed behavior separately from remaining runtime and cleanup gaps.
 Codex, Kimi and Grok remain
 blocked on the complete native design-hook contract. This does not remove their
-ordinary execution or image-reading capabilities: Codex has earlier native
-reference-image and actual image-read evidence. An Agent appearing in Settings does
+ordinary execution or image-reading capabilities: installed Codex, Kimi and Grok
+have separately verified Folio image MCP generate/edit calls and actual native
+image reading with local synthetic services. These checks do not establish paid
+service quality or complete design synchronization. An Agent appearing in Settings does
 not establish support for the complete design workflow. The current Pi ACP
 adapter does not forward the MCP catalog, so its route does not provide Folio's
 image MCP tools. Image generation still requires your own supported connection

@@ -1329,3 +1329,133 @@ uses a child environment without inherited `ANTHROPIC_*` and `CLAUDE_CODE_USE_*`
 variables. The native evidence above belongs to
 the unchanged `81d54b6` package and does not claim the corrected wording was
 already present in that package.
+
+### Kimi preview fixture: permission handler failure
+
+Handle 15728 exited 1 on the normal `81d54b6` package, with evidence in
+`folio-t28-kimi-preview-XxAS52/evidence` and package log
+`kimi-preview-cas-native-1.log`. The actual native Bash call reached a manual
+permission request for `0:native_draft`. The fixture's assertion that the entire
+command appeared literally in the accessibility serialization failed before it
+saved that panel. This does not establish a missing product permission field;
+the actual rendered panel was not captured.
+
+The locator-handler rejection escaped the runner without entering its normal
+catch/finally path. This round therefore fails its cleanup gate as well as its
+functional checks. The retained CLI log identifies the owned app, daemon and
+recorded children; subsequent independent checks find all four recorded PIDs
+absent and all four owned Unix endpoints refusing connections. That permits
+release of the native UI slot, but is not successful harness teardown. No process
+was force-killed and the isolated data remains intact. Only two provider requests
+were recorded; rendering, image reading, watched updates and final CAS were not
+reached. A fixture correction must retain permission failures and route them
+through the existing diagnostic and cleanup path without loosening approval.
+
+### Kimi native rendering, watched preview and independent final conflict
+
+The v3 fixture exited zero as handle 90323 on the same normal `81d54b6`
+package. Evidence is `folio-t28-kimi-preview-9IQcQh/evidence`, package log
+`kimi-preview-cas-native-3.log`. The failed first round remains unchanged; v2
+was a static preparation and was never run. The revised fixture saves permission
+diagnostics before assertions and routes handler failures through the runner's
+existing catch/finally. It correlates each emitted tool call's exact arguments
+with the current Session's actual native permission request ID and pending tool
+call ID. The current card displays `Bash` or the namespaced render tool title;
+it does not display the Bash arguments. Three distinct `Approve once` responses
+are recorded, without reusing resolved permissions or changing Session mode.
+
+Native Bash copies the existing synthetic poster, then native
+`folio_render_preview` produces an absolute PNG path and `ReadMediaFile` reads
+it at full resolution. The correlated tool result and following native media
+message carry exactly 77,856 bytes, 800 × 1100 pixels, SHA-256
+`d58ca016835cf55792f140705298b5c2b30d5653c4edb1d3f54c730212e5cd46`.
+Root independently decoded and hashed the delivered image. After the source
+preview opens, another native Bash call changes the page. Without another
+Refresh action, the existing consumer displays the changed heading and
+background; root inspected both screenshots. Canonical content remains at its
+dispatch baseline throughout rendering and watched updates.
+
+The same-source external writer fixture then saves a different canonical
+background before native completion. Final collection returns `invalid` with
+`design_commit_conflict`, `design_draft_preserved` and `design_continue_required`;
+the final revision equals the external writer's revision and all three draft
+files retain their expected bytes. Root inspected the receipt and permission
+correlations. Six model requests complete, normal owned cleanup finishes at
+19:56:38.688Z, and all 12 recorded owned processes are independently absent.
+
+This establishes the installed render/read/watcher and independent final-CAS
+paths for the pinned Kimi combination. The copied poster is a fixture, not a
+claim of creative model output; the external writer is a source service fixture,
+not a second UI. Native read-hook enforcement and full T28 remain incomplete.
+
+### Grok preview fixture: shell permission label
+
+Handle 51571 exited one at the original 120-second readiness deadline on
+`81d54b6`. Evidence is `folio-t28-grok-preview-GqCTPL/evidence`, package log
+`grok-preview-cas-native-1.log`. Native search discovered the ready Folio render
+tool, then the draft-copy command reached a real shell permission request.
+The card displayed `Execute` followed by the backtick-delimited full command,
+with single-use `Yes, proceed`; the fixture expected `Yes`, the label observed
+earlier for a different native tool. Root read the captured panel and correlated
+provider request. No approval was clicked and no render, read, watched update or
+final conflict was reached. Normal owned cleanup finished at 20:02:41.583Z.
+The failed round remains intact; the next fixture changes only these observed
+shell label/title matches, retaining current request identity, single-use
+approval and the original limits.
+
+### Grok native rendering, watched preview and independent final conflict
+
+Handle 77267 exited zero on the same `81d54b6` package. Evidence is
+`folio-t28-grok-preview-qeERCE/evidence`, package log
+`grok-preview-cas-native-2.log`. The fixture changes only the three observed
+shell label/title matches; the first failed round remains intact.
+
+Native `search_tool` discovers `lody__folio_render_preview`; after the real
+shell copies the existing synthetic poster, `use_tool` invokes that MCP tool.
+Its actual tool-role result contains one successful render response with an
+absolute PNG path. Native `read_file` then delivers that exact image in its
+correlated tool result: 800 × 1100 pixels, 77,856 bytes, SHA-256
+`d58ca016835cf55792f140705298b5c2b30d5653c4edb1d3f54c730212e5cd46`.
+Root independently decoded and hashed the image and inspected the render reply.
+
+After the source preview opens, a native shell command updates the page. The
+consumer displays the new heading and background without another Refresh;
+canonical content remains at the dispatch baseline. The same-source external
+writer fixture saves a different canonical background before native completion.
+Final collection returns `design_commit_conflict`, `design_draft_preserved` and
+`design_continue_required`; the external revision remains current and all three
+draft files retain their expected bytes. This is the same disclosed service
+fixture boundary as the Codex and Kimi cases, not a second installed editor.
+
+Root inspected the changed preview, final receipt and three permission
+correlations. Eleven model requests complete; the two shell approvals use
+`Yes, proceed`, and the MCP approval uses `allow once`. Normal owned cleanup
+finishes at 20:04:07.829Z; all 14 recorded owned processes are independently
+absent. This completes the scoped Grok render/read/watcher/final-CAS case, not
+native hook integration or the full five-Agent acceptance.
+
+### Grok cancellation: direct native transport boundary
+
+The earlier desktop cancellation failure is now independently reproduced without
+Folio, its turn owner or the compatibility proxy. Handle 71999 exited one;
+evidence is `folio-native-grok-cancel-oi1orM`, with local log
+`/tmp/folio-grok-native-cancel-2-run.log`. The script verifies the pinned Grok
+1.0.13 executable SHA-256 before starting `agent stdio`, uses private synthetic
+configuration and a loopback provider, and emits no creative tool calls.
+
+The exact Session's cancel notification finishes writing at 20:03:05.381Z.
+At .382Z the original native prompt response reports `stopReason: cancelled`
+and `cancellationCategory: MidTurnAbort`. This supplies native cancellation
+acknowledgement beyond the desktop's earlier sent-signal log. Nevertheless, the
+held model HTTP response remains open through the original 60-second observation
+limit, with no provider error. Its only close event at 20:04:05.386Z is explicitly
+classified as fixture cleanup. After stdin EOF, the native process exits zero
+without a signal at 20:04:07.495Z; the recorded process is independently absent
+and the local server endpoint refuses connections. No process was killed.
+
+This establishes a native transport cancellation limitation independently of
+Folio's local abort race. It neither negates the observed native cancellation
+response nor proves tools execute after cancellation. No host recovery engine,
+runtime patch, timeout extension or successful-cancellation claim is substituted
+for the failed transport assertion. The original T21 Pi/Claude recovery evidence
+remains separate; this Grok limit remains open in the installed matrix.

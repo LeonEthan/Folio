@@ -91,6 +91,6 @@ Folio 问题和建议请提交到 [Folio Issues](https://github.com/LeonEthan/Fo
 
 发布验收尚未完成。macOS 安装包已用原生 Claude 与合成 provider 完成海报、信息图、长图的脚本化旅程，人工视觉和编辑体验判断仍待完成。Apple M4、16 GiB 内存机器已记录 9 组受控画布操作样本；这不确立最大画布尺寸、通用性能预算、应用冷启动时间或物理输入延迟。Windows/Linux 资源打包不代表原生执行通过。详见[实际证据](.agents/notes/proposed/testing/2026-09-11-complete-design-acceptance.md)和[验收说明](e2e/DESIGN-ACCEPTANCE.md)。
 
-Pi、Claude 已有设计同步实现，[安装态 Agent 矩阵](.agents/notes/proposed/testing/2026-09-11-installed-five-agent-matrix.md)分别记录已通过行为及剩余运行与清理缺口。Codex、Kimi、Grok 的完整原生设计 hook 合同接入仍受阻；这不代表它们不能普通执行、创作或看图，Codex 已有先前的原生参考图与实际读图证据。出现在设置中不代表完整设计流程已获支持。当前 Pi ACP 适配器不转发 MCP 目录，该路径不提供 Folio 图像 MCP 工具。图像生成需要自备受支持连接及明确模型，没有产品默认模型或自动付费重试。
+Pi、Claude 已有设计同步实现，[安装态 Agent 矩阵](.agents/notes/proposed/testing/2026-09-11-installed-five-agent-matrix.md)分别记录已通过行为及剩余运行与清理缺口。Codex、Kimi、Grok 的完整原生设计 hook 合同接入仍受阻；这不代表它们不能普通执行、创作或看图。安装包内三者已分别通过本地合成服务的 Folio 图像 MCP generate/edit 调用与原生实际读图验证，这不证明付费服务质量或完整设计同步。出现在设置中不代表完整设计流程已获支持。当前 Pi ACP 适配器不转发 MCP 目录，该路径不提供 Folio 图像 MCP 工具。图像生成需要自备受支持连接及明确模型，没有产品默认模型或自动付费重试。
 
 本地临时签名包验证不代表公开发布、Developer ID 签名、公证或自动更新通道已就绪。
