@@ -4177,7 +4177,7 @@ export function buildLodyMcpServer(
     {
       title: 'Render a preview of the current design project',
       description:
-        "Render the design session's current project (design.pptd and its assets) to a PNG with the Folio desktop, and return the workspace-relative path of the written file. Open the returned PNG with an actual image-reading tool to judge layout, spacing, overflow, and text fit, then continue editing as useful. Choose review depth and iterations for the task. It is available in design sessions only, and only while the user has Folio open: rendering is done by the desktop app, not by this process. It reads the project files as they are now; it does not save, commit, or change anything, so it is safe to call at any point mid-work. Each call renders one image of the whole canvas. If this tool is absent, only this rendering tool is unavailable; other Agent image capabilities may still be available. Rendering and review are not completion or commit gates.",
+        "Render the design session's current project (design.pptd and its assets) to a PNG with the Folio desktop, and return the absolute path of the written file. Open the returned PNG with an actual image-reading tool to judge layout, spacing, overflow, and text fit, then continue editing as useful. Choose review depth and iterations for the task. It is available in design sessions only, and only while the user has Folio open: rendering is done by the desktop app, not by this process. It reads the project files as they are now; it does not save, commit, or change anything, so it is safe to call at any point mid-work. Each call renders one image of the whole canvas. If this tool is absent, only this rendering tool is unavailable; other Agent image capabilities may still be available. Rendering and review are not completion or commit gates.",
       inputSchema: z.object({}).strict(),
     },
     async () => {
@@ -4203,7 +4203,7 @@ export function buildLodyMcpServer(
           width: result.width,
           height: result.height,
           bytes: result.bytes,
-          note: `The preview was written to "${result.path}" (relative to the session workspace). Open that file to see it.`,
+          note: `The preview was written to "${result.path}" (absolute path). Open that file to see it.`,
         });
       } catch (error) {
         return mcpErrorResult(error);

@@ -1253,3 +1253,79 @@ finishes at 19:18:57.990Z. This proves configured Folio MCP generate/edit transp
 and actual native image reading with local synthetic services. It does not prove
 live design preview, native design hooks, formal commits, cancellation or visual
 quality. Full T28 remains incomplete.
+
+### Codex preview and final-version protection: first attempt
+
+Handle 31198 exited 1 on the normal `81d54b6` package; evidence is
+`folio-t28-codex-input-5bnzdC/evidence`, package log
+`codex-preview-cas-native-2.log`. The native command to copy the owned synthetic
+poster reached an actual ACP permission request with `Yes, proceed`. The fixture
+instead waited for a combobox absent from that permission layout and failed its
+inner five-second assertion. Four model requests include no automatic-review
+request, so this is not an automatic-review response parsing failure. Root
+inspected the actual permission body and requests. No rendering, image reading,
+watched update or final-version conflict was reached. Owned cleanup finishes at
+19:30:59.442Z; the failed record remains intact. The earlier v1 was never run.
+
+The v3 fixture matches that command's single-use permission action. Handle 39154
+exited 1 at the original 120-second readiness deadline, with evidence in
+`folio-t28-codex-input-mKhD6V/evidence` and log `codex-preview-cas-native-3.log`.
+The actual draft command now returns exit 0. The subsequent native render request
+instead displays `mcp.lody.folio_render_preview` with `Allow`, `Allow for this
+session`, `Always allow` and `Cancel`; it does not use the command's `Yes, proceed`
+or the fixture's automatic-review responder. Root inspected the command result,
+current permission panel and correlated CLI request. Rendering, image delivery,
+watched update and CAS remain unverified. Owned cleanup finishes at 19:35:50.391Z.
+The failed record is retained; subsequent permission handling must match this
+current render action without broadening Session permissions.
+
+### Codex native rendering, watched preview and independent final conflict
+
+The v4 fixture handles the observed command and render permission requests with
+their exact single-use actions. Handle 88586 exited 0 on the normal `81d54b6`
+package. Evidence is `folio-t28-codex-input-cYT0QY/evidence`, package log
+`codex-preview-cas-native-4.log`. The two earlier failures remain unchanged.
+
+Native Codex copies the existing synthetic poster through its actual command
+tool, calls `folio_render_preview`, then reads the returned PNG with `view_image`.
+The actual render reply contains an absolute path under the owned draft's
+`design-preview/` directory. The correlated image output contains the exact
+77,856-byte, 800 × 1100 PNG, SHA-256
+`d58ca016835cf55792f140705298b5c2b30d5653c4edb1d3f54c730212e5cd46`.
+Root independently decoded and hashed it. Rendering and reading leave canonical
+content unchanged.
+
+With the unsubmitted preview open, a subsequent native command changes the page's
+background and heading. The existing consumer displays both new values without
+another Refresh action; root inspected the before/after screenshots alongside
+the native command result and snapshot assertions. Canonical content remains at
+the dispatch baseline. The independent external writer then uses the existing
+`designOperation` service to save a different background before the held native
+response completes. This writer is a fixture, not a second installed UI; its
+`store.ts` bytes match the tested package's source.
+
+Final collection records `invalid` with `design_commit_conflict`,
+`design_draft_preserved` and `design_continue_required`. The final stored revision
+equals the external writer's revision; all three draft files retain their exact
+expected bytes. Root inspected that receipt and the source checks supporting
+these assertions. Nine model requests and three single-use permission responses
+complete; no automatic-review request is used. Owned cleanup finishes at
+19:38:12.737Z, and all 16 observed owned processes are independently absent.
+
+This is installed Codex rendering, image delivery, automatic file-preview and
+final-CAS evidence. It does not establish read-hook enforcement: current
+collection requires live read evidence only for Pi and built-in Claude, while
+Codex uses the frozen manifest baseline when no verified attempt exists. A
+version conflict is therefore the expected refusal here, not a missing-hook
+error. The native generation/read-hook gap and full T28 acceptance remain open.
+
+This round also exposes stale MCP wording: the actual render reply uses an
+absolute path while its description and note still call it workspace-relative.
+The source correction aligns those two strings with the existing handler and
+design README, and updates the existing MCP passthrough fixture to an absolute
+path. No path behavior, rendering pipeline or protocol changes. The 12 existing
+render-tool tests, CLI typecheck and integrated `pnpm check` pass. The full check
+uses a child environment without inherited `ANTHROPIC_*` and `CLAUDE_CODE_USE_*`
+variables. The native evidence above belongs to
+the unchanged `81d54b6` package and does not claim the corrected wording was
+already present in that package.

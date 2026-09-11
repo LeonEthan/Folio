@@ -227,7 +227,7 @@ describe('folio_render_preview call', () => {
     await withAnsweringSocket(
       renderAnswer({
         ok: true,
-        path: 'design-preview/1789041600000-abcd1234.png',
+        path: '/workspace/artwork/design-preview/1789041600000-abcd1234.png',
         width: 320,
         height: 200,
         bytes: 4096,
@@ -238,7 +238,7 @@ describe('folio_render_preview call', () => {
         expect(result.isError).toBeFalsy();
         expect(JSON.parse(textOf(result))).toMatchObject({
           ok: true,
-          path: 'design-preview/1789041600000-abcd1234.png',
+          path: '/workspace/artwork/design-preview/1789041600000-abcd1234.png',
           width: 320,
           height: 200,
           bytes: 4096,
