@@ -136,3 +136,40 @@ as an independently retryable inline video comment on the matching open PR.
 The current active coverage is tracked in [the coverage matrix](./COVERAGE.md).
 The suite checker parses Gherkin and enforces IDs, priorities, runtime ownership,
 documentation indexes, and P0 matrix entries before any application build.
+
+## Installed Folio acceptance
+
+Set `FOLIO_E2E_INSTALLED_EXECUTABLE` to the executable in a private installed
+application copy to run the same Electron harness and manual desktop probes
+against package bytes. For macOS this is `Folio.app/Contents/MacOS/Folio` inside
+the copy extracted from the verified DMG. The executable loads its own packaged
+entry; the harness supplies no development application path and verifies
+`app.isPackaged` and its isolated user-data directory. It records executable and
+application paths in the boot evidence. Also set
+`FOLIO_E2E_EXPECTED_SOURCE_COMMIT` to the full source SHA supplied during packaging
+as `-c.extraMetadata.folioSourceCommit=<SHA>`; the harness verifies that exact
+value from the running application's own packaged manifest. CLI data and the daemon endpoint remain
+independently isolated through the existing harness.
+
+For example, after dependency setup, run the existing native Claude probe with
+`FOLIO_E2E_INSTALLED_EXECUTABLE` and `FOLIO_PROBE_CLAUDE` set to verified absolute
+paths:
+
+```sh
+corepack pnpm --filter @lody/e2e exec tsx ../apps/cli/scripts/probe-claude-design-desktop.mjs
+```
+
+The corresponding Pi probe is `probe-pi-design-desktop.mjs`, with
+`FOLIO_PROBE_PI` and `FOLIO_PROBE_RESUBMIT=1`. These manual probes simulate only
+the external model wire; successful synthetic protocol execution does not prove
+model quality. Their logs and captured synthetic conversations stay outside Git.
+Record package source commit/hash and runtime/ACP identity with each round, and
+repeat after relevant source changes. Do not infer one Agent's result from
+another or treat source-only runtime audits as installed-package evidence.
+
+## Folio design acceptance
+
+[The design acceptance procedure](DESIGN-ACCEPTANCE.md) supplies synthetic poster,
+infographic and long-image inputs, cross-behavior coverage and measurement
+criteria for the final installed package. It reuses this harness and resource
+probe; the generic lifecycle subject does not establish design acceptance.

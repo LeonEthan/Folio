@@ -775,6 +775,51 @@ describe('SessionManager.requestSessionTerminate', () => {
       }
     );
 
+  it('retires design runtime callbacks without settling or deleting the replacement', async () => {
+    const manager = buildManager();
+    const sessionId = 'design-runtime-switch' as SessionId;
+    const config = createSessionConfig({ sessionId });
+    const oldSession = await createSessionInner(manager, config);
+    const events: string[] = [];
+    const pendingEvents: (() => void)[] = [];
+    manager.on('terminated', () => events.push('terminated'));
+    manager.on('exit', () => events.push('exit'));
+    manager.on('onACPUpdateMessage', () => events.push('update'));
+    manager.on('error', () => events.push('error'));
+    const callbacks = (
+      manager as unknown as {
+        buildCreateAgentConfig(
+          session: ISession,
+          config: SessionConfig,
+          launch: { command: string; args: string[] },
+          options: { dispatchEvent: (event: () => void) => void }
+        ): {
+          onUpdateMessage: (message: unknown) => void;
+        };
+      }
+    ).buildCreateAgentConfig(
+      oldSession,
+      config,
+      { command: 'synthetic', args: [] },
+      {
+        dispatchEvent: (event) => pendingEvents.push(event),
+      }
+    );
+    callbacks.onUpdateMessage({});
+    await manager.terminateSession(sessionId, true, true);
+    const replacement = await createSessionInner(manager, config);
+    for (const event of pendingEvents) event();
+    const producer = oldSession as unknown as { emit: (event: string, value: unknown) => void };
+    producer.emit('error', { sessionId, error: 'late old runtime error' });
+    producer.emit('exit', { sessionId, exitCode: 0 });
+    producer.emit('terminated', { sessionId, exitCode: 0 });
+    expect(events).toEqual([]);
+    expect(manager.getSession(sessionId)).toBe(replacement);
+    await manager.terminateSession(sessionId, true);
+    expect(events).toEqual(['terminated']);
+    expect(manager.getSession(sessionId)).toBeNull();
+  });
+
   it('terminates a resident session', async () => {
     const manager = buildManager();
     const sessionId = 'resident-session' as SessionId;

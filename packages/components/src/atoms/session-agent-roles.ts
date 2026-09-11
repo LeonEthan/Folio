@@ -15,6 +15,8 @@ import type { AgentRoleId, SessionId } from '@lody/shared';
 export const sessionAgentRoleSelectionAtomFamily = atomFamily((_sessionId: SessionId) =>
   atom<
     | {
+        /** Exact machine/provider that owned this transient selection. */
+        providerKey: string;
         roleId: AgentRoleId | null;
         /** Logical durable Turns visible when this unsent choice was made. */
         basedOnTurnKeys: readonly string[];
@@ -35,6 +37,8 @@ export const sessionAgentRoleSelectionAtomFamily = atomFamily((_sessionId: Sessi
 export const sessionAgentRoleDurableSnapshotAtomFamily = atomFamily((_sessionId: SessionId) =>
   atom<
     | {
+        /** Exact machine/provider that owned this transient selection. */
+        providerKey: string;
         roleId: AgentRoleId | null | undefined;
         roleRevision: number | undefined;
         currentTurnKey: string | null;

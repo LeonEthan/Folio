@@ -144,7 +144,11 @@ export const resolveSessionConversationConfig = (
     $cid?: unknown;
     userTurnId?: unknown;
     acpSessionConfig?: unknown;
-  }[] = []
+  }[] = [],
+  agentScope?: {
+    agentConfigId?: ACPSessionConfig['agentConfigId'];
+    legacyAgentConfigId?: ACPSessionConfig['agentConfigId'];
+  }
 ): SessionConversationConfig => {
   const resolveConfig = (
     value: unknown,
@@ -178,6 +182,20 @@ export const resolveSessionConversationConfig = (
   const latest = sources[0];
   if (!latest) return {};
   const resolved = resolveConfig(latest.value, latest.configKey) ?? {};
+  if (
+    agentScope &&
+    (normalizeSessionTurnInputConfig(latest.value)?.agentConfigId ??
+      agentScope.legacyAgentConfigId) !== agentScope.agentConfigId
+  ) {
+    return {
+      sourceConfigKey: latest.configKey,
+      agentRoleId: null,
+      ...(resolved.mcpServerIds ? { mcpServerIds: resolved.mcpServerIds } : {}),
+      ...(resolved.taskToolsEnabled !== undefined
+        ? { taskToolsEnabled: resolved.taskToolsEnabled }
+        : {}),
+    };
+  }
   if (resolved.agentRoleId !== undefined) return resolved;
 
   // Role selection is sticky across legacy and non-composer Turn producers
@@ -185,7 +203,20 @@ export const resolveSessionConversationConfig = (
   // wins; the latest source key still fences unsent local composer drafts.
   for (const source of sources.slice(1)) {
     const older = normalizeSessionTurnInputConfig(source.value);
-    if (!older || older.agentRoleId === undefined) continue;
+    if (!older) continue;
+    // A provider change ends sticky Role inheritance. Unknown historical
+    // providers cannot borrow the current native provider association once the
+    // latest Turn carries an explicit provider identity.
+    if (
+      agentScope &&
+      (older.agentConfigId ??
+        (normalizeSessionTurnInputConfig(latest.value)?.agentConfigId
+          ? undefined
+          : agentScope.legacyAgentConfigId)) !== agentScope.agentConfigId
+    ) {
+      return { ...resolved, agentRoleId: null };
+    }
+    if (older.agentRoleId === undefined) continue;
     return {
       ...resolved,
       agentRoleId: older.agentRoleId,
@@ -620,6 +651,7 @@ export const historyItemsToInputBlocks = (
 };
 
 export const buildSessionTurnInputConfig = (args: {
+  agentConfigId?: ACPSessionConfig['agentConfigId'];
   inputBlocks: readonly SessionInputBlock[];
   cliType: AgentConfigCliType;
   agentType: string;
@@ -637,6 +669,7 @@ export const buildSessionTurnInputConfig = (args: {
   const normalizedInputBlocks = normalizeSessionInputBlocks(args.inputBlocks, '');
 
   return {
+    ...(args.agentConfigId ? { agentConfigId: args.agentConfigId } : {}),
     prompt: args.prompt ?? extractPromptPreviewFromInputBlocks(normalizedInputBlocks),
     inputBlocks: normalizedInputBlocks.length > 0 ? normalizedInputBlocks : undefined,
     cliType: args.cliType,

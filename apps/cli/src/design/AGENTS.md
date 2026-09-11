@@ -40,3 +40,14 @@ MCP resubmission consumes the original native call identity; it never invents on
 Subagent events cannot change main-session read evidence or generation state.
 Allow unrelated subagent tools; reject only native Write/Edit to shared controlled
 design paths and design resubmission. This is not a shell/custom-tool sandbox.
+
+Recovery and Agent switching bind native hooks and optional MCP resubmission to
+Session's current spawn ID, client, source turn and canvas owner. Replacements
+acquire fresh read evidence; delayed producers cannot update a replacement service.
+Pi ACP end_turn loses native errors: require latest-generation native settlement
+proof for collection, and route error/missing proof through existing turn failure.
+
+- Design Agent selection changes only the next explicit turn. Freeze provider ID in
+  Turn input, bind persisted ACP ID to its actual provider, and never resume an ID
+  across providers. Replace the idle runtime under the existing turn guard; retiring
+  callbacks cannot finalize or write into its replacement. Reuse history replay.

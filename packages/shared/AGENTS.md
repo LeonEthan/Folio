@@ -105,3 +105,7 @@ Agent. Ordinary file preview transports bytes.
 provider names. Native adapters translate verified generation/delivery events into
 one shared baseline service. Resubmission capability is independent of image and
 rendering gates; its MCP call must consume an already observed native tool call.
+
+Design continuation freezes `ACPSessionConfig.agentConfigId`; normalization and
+dispatch preserve it. `SessionMeta.acpSessionAgentConfigId` identifies the provider
+that owns the persisted ACP ID, independently of the next selected provider.

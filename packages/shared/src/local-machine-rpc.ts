@@ -318,6 +318,7 @@ export const ClaudeDesignHookSchema = z
 
 export const DesignToolHookEventSchema = z.discriminatedUnion('phase', [
   ClaudeDesignHookSchema,
+  z.object({ phase: z.literal('terminal'), generation: z.string().min(1).max(200), status: z.enum(['end_turn', 'failed', 'cancelled']) }).strict(),
   z.object({ phase: z.literal('resubmit-capability') }).strict(),
   z.object({ phase: z.literal('claude-resubmit') }).strict(),
   z
@@ -369,7 +370,7 @@ export const DesignToolHookResultSchema = z
 export const LocalMachineRpcRequestSchema = z.discriminatedUnion('method', [
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('design/tool-hook'),
-    params: z.object({ version: z.literal(1), event: DesignToolHookEventSchema }).strict(),
+    params: z.object({ version: z.literal(1), launchId: z.string().uuid().optional(), event: DesignToolHookEventSchema }).strict(),
   }).strict(),
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('design/source-path'),

@@ -54,8 +54,16 @@ this page is the full text of the rules summarised there.
   draft, its current revision re-seeds the composer after an edit, and its
   instruction is frozen into the first Turn before draft promotion.
 
-  **An existing session** (`useSessionAgentRole`) can NOT: its agent, machine,
-  and runtime are fixed. So it offers only Roles bound to that exact machine +
+  **An existing session** (`useSessionAgentRole`) applies a Role only to its
+  current provider; Role selection does not change Agent, machine, or runtime.
+  Idle desktop design sessions have one explicit exception to the ordinarily
+  fixed Agent: their Agent menu can select supported Pi/Claude for the next
+  explicit Turn. The daemon retires the prior runtime under its normal turn
+  guard and restores through existing history replay. Provider-bound model, mode,
+  permission, runtime baselines and Role identity do not transfer; the new provider
+  supplies its defaults until the user selects its run config. This uses the
+  [design continuation contract](../notes/implemented/bug-fix/2026-09-11-design-continuation-runtime-identity.md).
+  The Role menu still offers only Roles bound to that exact machine +
   Agent Config (the model provider shown by the composer) and applies only their
   RUN CONFIG, which is exactly what transfers: model / reasoning / permission
   are the values a session can still change every turn. Keep the Role's real
@@ -64,7 +72,7 @@ this page is the full text of the rules summarised there.
   first turn of a session the Role creates. The row is NOT gated on
   `isEmptyConversation`: those values stay changeable for the whole
   conversation. An unsent explicit selection (including None) lives in
-  session-keyed app state rather than the composer component: top-level
+  session-keyed app state, fenced by its exact machine/provider, rather than the composer component: top-level
   navigation unmounts that component, and one shared override slot also makes
   selecting a Role in a second Session erase the first Session's identity. On
   send, freeze `agentRoleId` (null for None) plus `agentRoleRevision` into the

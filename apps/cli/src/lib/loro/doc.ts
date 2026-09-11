@@ -2305,7 +2305,7 @@ export class SessionDocument implements LoroDocument<SessionDocMeta, SessionMeta
     }
   }
 
-  async setACPSessionId(acpSessionId: ACPSessionId) {
+  async setACPSessionId(acpSessionId: ACPSessionId, agentConfigId?: AgentConfigId) {
     if (!this.mirror) {
       throw new Error('SessionDocument not initialized');
     }
@@ -2326,6 +2326,7 @@ export class SessionDocument implements LoroDocument<SessionDocMeta, SessionMeta
     await withSlowOperationWarning(
       this.repo.upsertDocMeta(this.roomId, {
         acpSessionId,
+        ...(agentConfigId ? { acpSessionAgentConfigId: agentConfigId } : {}),
       }),
       this.logger,
       'repo.upsertDocMeta(acpSessionId)',

@@ -10,6 +10,10 @@ context/acp-agent-edit-evidence.md. Adapter source repositories and builtin prov
 [apps/cli/AGENTS.md](../../AGENTS.md). Where updates go after they arrive:
 context/message-flow.md "Upstream".
 
+Design launches carry a fresh producer ID through native hooks and optional MCP
+resubmission; [design ownership](../design/README.md) describes the per-client
+read evidence and terminal validation.
+
 ## Files
 
 - `agent-client.ts` — the ACP connection: initialize/session lifecycle, client

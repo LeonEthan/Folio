@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { AgentConfigId } from '../src/ids';
 
 import { Loro } from 'loro-crdt';
 import { Mirror } from 'loro-mirror';
@@ -119,6 +120,91 @@ const localFilePayload: SessionFilePayload = {
 };
 
 describe('session-input helpers', () => {
+  it.each(['history', 'queue'] as const)(
+    'fences sticky Role inheritance at the provider boundary for %s',
+    (placement) => {
+      const latest = {
+        id: 'latest',
+        role: 'user',
+        inputConfig: { agentConfigId: 'claude', modelId: 'x' },
+      };
+      const older = {
+        id: 'older',
+        role: 'user',
+        inputConfig: { agentConfigId: 'pi', agentRoleId: 'pi-role', agentRoleRevision: 1 },
+      };
+      const resolve = (old: typeof older, scoped = true) =>
+        resolveSessionConversationConfig(
+          placement === 'history' ? [old, latest] : [old],
+          placement === 'queue'
+            ? [{ userTurnId: latest.id, acpSessionConfig: latest.inputConfig }]
+            : [],
+          scoped ? { agentConfigId: 'claude' as AgentConfigId } : undefined
+        );
+      expect(resolve(older)).toMatchObject({ modelId: 'x', agentRoleId: null });
+      expect(resolve(older)).not.toHaveProperty('agentRoleRevision');
+      expect(
+        resolve({ ...older, inputConfig: { ...older.inputConfig, agentConfigId: 'claude' } })
+      ).toMatchObject({ modelId: 'x', agentRoleId: 'pi-role', agentRoleRevision: 1 });
+      expect(resolve(older, false)).toMatchObject({ agentRoleId: 'pi-role', agentRoleRevision: 1 });
+    }
+  );
+
+  it('does not search through a provider boundary to resurrect an earlier Role', () => {
+    expect(
+      resolveSessionConversationConfig(
+        [
+          {
+            id: 'original',
+            role: 'user',
+            inputConfig: { agentConfigId: 'claude', agentRoleId: 'stale-role' },
+          },
+          { id: 'middle', role: 'user', inputConfig: { agentConfigId: 'pi' } },
+          { id: 'latest', role: 'user', inputConfig: { agentConfigId: 'claude' } },
+        ],
+        [],
+        { agentConfigId: 'claude' as AgentConfigId }
+      )
+    ).toEqual({ sourceConfigKey: 'history:latest', agentRoleId: null });
+  });
+
+  it('does not transplant an old provider’s pinned run config or Role into a design continuation', () => {
+    const history = [
+      {
+        id: 'previous',
+        role: 'user',
+        inputConfig: {
+          agentConfigId: 'pi-provider',
+          modelId: 'shared-model-name',
+          modeId: 'bypass',
+          configOptionValues: { approval: 'never' },
+          agentRoleId: 'pi-role',
+          agentRoleRevision: 3,
+        },
+      },
+    ];
+    expect(
+      resolveSessionConversationConfig(history, [], {
+        agentConfigId: 'claude-provider' as AgentConfigId,
+      })
+    ).toEqual({ sourceConfigKey: 'history:previous', agentRoleId: null });
+    expect(
+      resolveSessionConversationConfig(history, [], {
+        agentConfigId: 'pi-provider' as AgentConfigId,
+      })
+    ).toMatchObject({ modelId: 'shared-model-name', modeId: 'bypass', agentRoleId: 'pi-role' });
+    expect(
+      resolveSessionConversationConfig(
+        [{ id: 'legacy', role: 'user', inputConfig: { modeId: 'bypass' } }],
+        [],
+        {
+          agentConfigId: 'claude-provider' as AgentConfigId,
+          legacyAgentConfigId: 'pi-provider' as AgentConfigId,
+        }
+      )
+    ).toEqual({ sourceConfigKey: 'history:legacy', agentRoleId: null });
+  });
+
   it('uses only the latest persisted user conversation config', () => {
     const history = [
       {

@@ -110,7 +110,7 @@ export function selectProcessTree(
     .sort((left, right) => left.pid - right.pid);
 }
 
-async function collectProcessTree(rootPid: number): Promise<ProcessTreeMetric[]> {
+export async function collectProcessTree(rootPid: number): Promise<ProcessTreeMetric[]> {
   if (process.platform === 'win32') return [];
   const { stdout } = await execFileAsync('/bin/ps', ['-axo', 'pid=,ppid=,rss=,%cpu=,command=']);
   return selectProcessTree(parseProcessTable(stdout), rootPid);

@@ -1584,6 +1584,8 @@ export type IssuePRMention = {
 };
 
 export type ACPSessionConfig = {
+  /** Exact selected provider frozen for an explicit design continuation. */
+  agentConfigId?: AgentConfigId;
   prompt: string;
   inputBlocks?: SessionInputBlock[];
   cliType: AgentConfigCliType;

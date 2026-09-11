@@ -2,7 +2,7 @@
 
 `CLAUDE.md` is a symlink to this file. Edit `AGENTS.md` only.
 
-ACP client side of the CLI. Responsibilities per file and background: [README.md](README.md).
+[ACP ownership](README.md); [design launch rules](../design/AGENTS.md).
 Protocol: context/acp-protocol.md; edit-payload quirks:
 context/acp-agent-edit-evidence.md; adapter repos: [apps/cli/AGENTS.md](../../AGENTS.md).
 

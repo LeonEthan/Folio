@@ -298,6 +298,8 @@ export type PreparedSessionLaunchConfigSnapshot = {
 };
 
 export interface ISession {
+  getAgentConfigId?(): AgentConfigId | undefined;
+  getDesignHookLaunchId?(): string | undefined;
   getDesignHookRuntime?(): 'pi' | 'claude' | undefined;
   agentClient: AgentClient | null;
   acpSessionId: ACPSessionId | null;
@@ -454,6 +456,7 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
   private githubTokenManager: CloudGithubTokenManager | null = null;
   private gitCredentialBroker: GitCredentialBroker | null = null;
   private readonly sessions = new Map<SessionId, Session>();
+  private readonly replacedDesignRuntimes = new WeakSet<Session>();
   private readonly pendingSessionCreates = new Map<SessionId, Promise<ISession>>();
   private readonly pendingTerminationPromises = new Map<SessionId, Promise<void>>();
   private readonly preparationSessions = new Map<SessionId, Session>();
@@ -1215,7 +1218,7 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
       session.updateGitIdentity(config.userName, config.userEmail, config.requesterUserId);
       const acpSessionId = await prepared.agentResult;
       const sessionDoc = await this.workspaceDocument.getOrCreateSessionDoc(sessionId);
-      await sessionDoc.setACPSessionId(acpSessionId as ACPSessionId);
+      await sessionDoc.setACPSessionId(acpSessionId as ACPSessionId, config.agentConfigId);
       return session;
     } catch (error) {
       await prepared.dispose();
@@ -1240,7 +1243,11 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
     }
   ): CreateAgentConfig {
     const sessionId = config.sessionId!;
-    const dispatchEvent = options?.dispatchEvent ?? ((event: () => void) => event());
+    const deliverEvent = options?.dispatchEvent ?? ((event: () => void) => event());
+    const dispatchEvent = (event: () => void) =>
+      deliverEvent(() => {
+        if (!this.replacedDesignRuntimes.has(session)) event();
+      });
     return {
       cliType: config.agentCliType,
       agentType: config.agentType,
@@ -1259,7 +1266,10 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
         dispatchEvent(() => this.emit('onACPUpdateMessage', sessionId, update));
       },
       onRequestPermission: (requestId, request) => {
-        if (options?.allowInteractiveRequest && !options.allowInteractiveRequest()) {
+        if (
+          this.replacedDesignRuntimes.has(session) ||
+          (options?.allowInteractiveRequest && !options.allowInteractiveRequest())
+        ) {
           return Promise.resolve({ outcome: { outcome: 'cancelled' } });
         }
         if (!this.requestPermissionHandler) {
@@ -1472,7 +1482,7 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
 
     this.logger.debug(`[${sessionId}] About to persist ACP session ID to doc`);
     if (!agentStart?.deferAcpSessionIdPersistence) {
-      await sessionDoc.setACPSessionId(acpSessionId as ACPSessionId);
+      await sessionDoc.setACPSessionId(acpSessionId as ACPSessionId, config.agentConfigId);
     }
     this.logger.debug(`[${sessionId}] ACP session ID persisted to doc`);
     this.logger.debug(
@@ -2077,13 +2087,18 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
     return session;
   }
 
-  async terminateSession(sessionId: SessionId, force: boolean = false): Promise<void> {
+  async terminateSession(
+    sessionId: SessionId,
+    force: boolean = false,
+    preserveOwnedDesignTurn = false
+  ): Promise<void> {
     const session = this.sessions.get(sessionId);
     if (!session) {
       this.logger.debug(`Session ${sessionId} not found`);
       return;
     }
 
+    if (preserveOwnedDesignTurn) this.replacedDesignRuntimes.add(session);
     await session.terminate(force);
     this.logger.debug(`[${sessionId}] Session terminated`);
   }
@@ -2260,22 +2275,28 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
 
   private registerSessionEvents(session: Session): void {
     session.on('output', (event: SessionOutputEvent) => {
+      if (this.replacedDesignRuntimes.has(session)) return;
       this.emit('output', event);
     });
 
     session.on('error', (event: SessionErrorEvent) => {
+      if (this.replacedDesignRuntimes.has(session)) return;
       this.emit('error', event);
     });
 
     session.on('exit', (event: SessionExitEvent) => {
+      if (this.sessions.get(event.sessionId) !== session) return;
+      if (this.replacedDesignRuntimes.has(session)) return;
       this.sessions.delete(event.sessionId);
       void this.rebalanceSessionSandboxes();
       this.emit('exit', event);
     });
 
     session.on('terminated', (event: SessionExitEvent) => {
+      if (this.sessions.get(event.sessionId) !== session) return;
       this.sessions.delete(event.sessionId);
       void this.rebalanceSessionSandboxes();
+      if (this.replacedDesignRuntimes.has(session)) return;
       const terminatedEvent: SessionTerminatedEvent = {
         sessionId: event.sessionId,
         exitCode: event.exitCode,

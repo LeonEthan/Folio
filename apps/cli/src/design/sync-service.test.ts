@@ -255,3 +255,17 @@ it('rejects a draft changed after generation without changing the active attempt
   expect(service.getAttempt()).toBeUndefined();
   expect(await readFile(draft, 'utf8')).toBe('new bytes');
 });
+
+it('native terminal proof belongs only to the latest generation and resets before arguments', async () => {
+  const { service } = await setup();
+  await service.handle({ phase: 'generation', generation: 'old', runtimeVersion: '0.85.1' });
+  await service.handle({ phase: 'terminal', generation: 'old', status: 'end_turn' });
+  expect(service.getTerminalOutcome()).toBe('end_turn');
+  await service.handle({ phase: 'generation', generation: 'new', runtimeVersion: '0.85.1' });
+  expect(service.getTerminalOutcome()).toBeUndefined();
+  await service.handle({ phase: 'terminal', generation: 'new', status: 'failed' });
+  await expect(
+    service.handle({ phase: 'terminal', generation: 'old', status: 'end_turn' })
+  ).rejects.toThrow('Unknown native terminal generation');
+  expect(service.getTerminalOutcome()).toBe('failed');
+});

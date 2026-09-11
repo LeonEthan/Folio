@@ -15,6 +15,7 @@ import { resolveDesignResubmit, resolveDesignGate, resolveRenderHost } from './d
 import { canReadProcNetTcp, lookupLoopbackPeerUid } from './loopback-peer-uid';
 import {
   MCP_HTTP_MACHINE_ID_HEADER,
+  MCP_HTTP_DESIGN_LAUNCH_ID_HEADER,
   MCP_HTTP_PREFERRED_PORT_ENV,
   MCP_HTTP_SESSION_ID_HEADER,
   MCP_HTTP_TASK_TOOLS_ENABLED_HEADER,
@@ -216,6 +217,7 @@ const parseSessionContextHeaders = (req: http.IncomingMessage): McpSessionContex
   }
   return {
     sessionId: sessionId.data,
+    designHookLaunchId: singleHeader(req, MCP_HTTP_DESIGN_LAUNCH_ID_HEADER) ?? undefined,
     workspaceId,
     machineId,
     taskToolsEnabled: taskToolsEnabled === '1',

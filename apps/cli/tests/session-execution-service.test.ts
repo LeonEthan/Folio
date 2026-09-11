@@ -2928,10 +2928,19 @@ describe('SessionExecutionService', () => {
     expect(deps.clearSessionActivePresence).toHaveBeenCalledTimes(1);
   });
 
-  it('replays durable history when a fresh ACP restore has no resumable session id', async () => {
+  it.each(['ordinary', 'cold-design-switch', 'live-design-switch'] as const)('replays durable history with a fresh runtime: %s', async (scenario) => {
+    const isDesign = scenario !== 'ordinary';
+    const launched: { resumeSessionId?: string; agentConfigId?: string }[] = [];
+    let oldRuntimeRetired = false;
     const meta = {
       repoFullName: 'owner/repo',
       isArchived: false,
+      ...(isDesign ? {
+        design: { artworkId: 'artwork-test', path: '/nonexistent/design.json' },
+        agentConfigId: 'new-provider' as AgentConfigId, cliType: 'builtin' as const, agentType: 'claude',
+        acpSessionId: 'old-provider-session' as ACPSessionId,
+        acpSessionAgentConfigId: 'old-provider' as AgentConfigId,
+      } : {}),
     };
     let history: SessionHistoryInput[] = [
       {
@@ -2985,11 +2994,17 @@ describe('SessionExecutionService', () => {
     const buildAcpPromptBlocks = vi.fn(async () => [{ type: 'text', text: 'built prompt' }] as any);
     const deps = createBaseDeps({
       sessionManager: {
-        getSession: vi.fn(() => null),
+        getSession: vi.fn(() => scenario === 'live-design-switch' && !oldRuntimeRetired ? {
+          ...restoredSession, getAgentConfigId: () => 'old-provider',
+          agentClient: { ...agentClient, prompt: async () => { throw new Error('Old runtime must never execute the new turn'); } },
+        } : null),
         getPendingSession: vi.fn(() => null),
-        createSession: vi.fn(async () => restoredSession as unknown),
+        createSession: vi.fn(async (config, start) => {
+          launched.push({ resumeSessionId: start?.resumeSessionId, agentConfigId: config.agentConfigId });
+          return restoredSession as unknown;
+        }),
         setSessionError: vi.fn(),
-        terminateSession: vi.fn(),
+        terminateSession: vi.fn(async () => { oldRuntimeRetired = true; }),
         refreshGhTokenForSession: vi.fn(async () => {}),
       } as unknown as SessionManager,
       workspaceDocument: {
@@ -2999,6 +3014,7 @@ describe('SessionExecutionService', () => {
         },
         getOrCreateSessionDoc: vi.fn(async () => sessionDoc),
         updateAcpCapabilities: vi.fn(async () => {}),
+        getAgentConfigById: async () => createLaunchConfig({ id: 'new-provider' as AgentConfigId, cliType: 'builtin', agentType: 'claude' }),
       } as unknown as LoroDocumentManager,
       buildAcpPromptBlocks,
     });
@@ -3010,13 +3026,16 @@ describe('SessionExecutionService', () => {
       machineId: 'machine-1',
       workspaceId: 'workspace-1' as WorkspaceId,
       project: { kind: 'github', repoFullName: 'owner/repo', branch: 'main' },
-      acpSessionConfig: { prompt: '?', cliType: 'builtin', agentType: 'codex' },
+      acpSessionConfig: { prompt: '?', cliType: 'builtin', agentType: isDesign ? 'claude' : 'codex',
+        ...(isDesign ? { agentConfigId: 'new-provider' as AgentConfigId, resume: 'old-provider-session' as ACPSessionId } : {}), },
       userTurnId: 'turn-current',
       userId: 'user-1',
       userName: 'User',
       userEmail: 'user@example.com',
     });
 
+    expect(launched).toEqual([{ resumeSessionId: undefined, agentConfigId: isDesign ? 'new-provider' : undefined }]);
+    expect(oldRuntimeRetired).toBe(scenario === 'live-design-switch');
     expect(buildAcpPromptBlocks).toHaveBeenCalledWith(
       expect.objectContaining({
         replayPromptText: expect.stringContaining('Build this on the two MIT packages.'),

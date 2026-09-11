@@ -909,7 +909,15 @@ export class MessageHandler {
   private readonly designCanvasHost = new DesignCanvasHost();
   private readonly designSyncServices = new Map<
     string,
-    { turnId: string; canvasTurnId: string; service: DesignSyncService; claude?: ClaudeDesignHooks }
+    {
+      turnId: string;
+      canvasTurnId: string;
+      client: NonNullable<ISession['agentClient']>;
+      launchId: string;
+      runtime: 'pi' | 'claude';
+      service: DesignSyncService;
+      claude?: ClaudeDesignHooks;
+    }
   >();
 
   private static readonly ACP_INITIAL_UPDATE_BATCH_WINDOW_MS = 10;
@@ -3380,9 +3388,24 @@ export class MessageHandler {
         await this.designCanvasHost.prepare(sessionId, meta.design.artworkId, turnId, signal);
         return true;
       },
+      designNativeTerminal: (sessionId, turnId) => {
+        const entry = this.designSyncServices.get(sessionId);
+        const session = this.sessionManager.getSession(sessionId);
+        return entry?.turnId === turnId &&
+          entry.client === session?.agentClient &&
+          entry.launchId === session?.getDesignHookLaunchId?.()
+          ? entry.service.getTerminalOutcome()
+          : undefined;
+      },
       designReadBaseline: (sessionId, turnId) => {
         const entry = this.designSyncServices.get(sessionId);
-        return entry?.turnId === turnId ? entry.service.getAttempt() : undefined;
+        const session = this.sessionManager.getSession(sessionId);
+        return entry?.turnId === turnId &&
+          entry.client === session?.agentClient &&
+          entry.launchId === session?.getDesignHookLaunchId?.() &&
+          entry.runtime === session?.getDesignHookRuntime?.()
+          ? entry.service.getAttempt()
+          : undefined;
       },
       releaseDesignCanvas: (sessionId, turnId) => {
         this.designCanvasHost.release(sessionId, turnId);
@@ -7022,7 +7045,12 @@ export class MessageHandler {
             ok: true,
           };
         try {
-          const hookRuntime = this.sessionManager.getSession(sessionId)?.getDesignHookRuntime?.();
+          const runtimeSession = this.sessionManager.getSession(sessionId);
+          const hookRuntime = runtimeSession?.getDesignHookRuntime?.();
+          const client = runtimeSession?.agentClient;
+          const launchId = runtimeSession?.getDesignHookLaunchId?.();
+          if (!launchId || request.params.launchId !== launchId)
+            throw Error('Design hook launch has ended or changed; read current design again');
           if (request.params.event.phase === 'resubmit-capability')
             return {
               type: 'design/tool-hook' as const,
@@ -7036,6 +7064,7 @@ export class MessageHandler {
               (hookRuntime === 'claude')
           )
             throw Error('Design hook does not match the launched runtime');
+          if (!client) throw Error('Design Agent runtime is unavailable');
           const invocation = this.executionService.getActiveInvocationContext(sessionId);
           const turnId = invocation?.sourceTurnId;
           const canvasTurnId = this.executionService.getActiveDesignCanvasTurnId(sessionId);
@@ -7045,6 +7074,13 @@ export class MessageHandler {
               this.executionService.getActiveInvocationContext(sessionId)?.sourceTurnId !== turnId
             )
               throw Error('Design invocation has ended or changed');
+            const currentSession = this.sessionManager.getSession(sessionId);
+            if (
+              currentSession?.agentClient !== client ||
+              currentSession.getDesignHookLaunchId?.() !== launchId ||
+              currentSession.getDesignHookRuntime?.() !== hookRuntime
+            )
+              throw Error('Design Agent runtime has ended or changed; read current design again');
             const canvas = this.designCanvasHost
               .exchange([])
               .find(
@@ -7055,11 +7091,22 @@ export class MessageHandler {
           };
           assertActive();
           let entry = this.designSyncServices.get(sessionId);
-          if (!entry || entry.turnId !== turnId) {
+          if (
+            !entry ||
+            entry.turnId !== turnId ||
+            entry.canvasTurnId !== canvasTurnId ||
+            entry.client !== client ||
+            entry.launchId !== launchId ||
+            entry.runtime !== hookRuntime
+          ) {
             const workspace = await this.resolveActiveDesignContext(sessionId, design.artworkId);
+            assertActive();
             entry = {
               turnId,
               canvasTurnId,
+              client,
+              launchId,
+              runtime: hookRuntime,
               service: new DesignSyncService({
                 artworkId: design.artworkId,
                 workspace,

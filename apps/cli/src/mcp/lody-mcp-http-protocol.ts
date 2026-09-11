@@ -13,6 +13,7 @@ export interface LodyMcpHttpEndpoint {
   token: string;
 }
 
+export const MCP_HTTP_DESIGN_LAUNCH_ID_HEADER = 'x-folio-design-launch-id';
 export const MCP_HTTP_SESSION_ID_HEADER = 'x-lody-mcp-session-id';
 export const MCP_HTTP_WORKSPACE_ID_HEADER = 'x-lody-mcp-workspace-id';
 export const MCP_HTTP_MACHINE_ID_HEADER = 'x-lody-mcp-machine-id';
@@ -36,6 +37,7 @@ export type McpHttpHostHandshake = z.infer<typeof McpHttpHostHandshakeSchema>;
 export const buildLodyMcpHttpHeaders = (
   endpoint: LodyMcpHttpEndpoint,
   context: {
+    designHookLaunchId?: string;
     sessionId: string;
     workspaceId: string;
     machineId: string;
@@ -43,6 +45,9 @@ export const buildLodyMcpHttpHeaders = (
     taskToolsEnabled: boolean;
   }
 ): Array<{ name: string; value: string }> => [
+  ...(context.designHookLaunchId
+    ? [{ name: MCP_HTTP_DESIGN_LAUNCH_ID_HEADER, value: context.designHookLaunchId }]
+    : []),
   { name: 'Authorization', value: `Bearer ${endpoint.token}` },
   { name: MCP_HTTP_SESSION_ID_HEADER, value: context.sessionId },
   { name: MCP_HTTP_WORKSPACE_ID_HEADER, value: context.workspaceId },

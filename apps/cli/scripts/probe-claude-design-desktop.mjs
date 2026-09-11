@@ -1,5 +1,5 @@
 /** Manual acceptance probe. Reuses the existing Electron harness; only provider wire is synthetic.
- * Build desktop first, then run with tsx and FOLIO_PROBE_PI. Not a registered regression journey. */
+ * Build desktop first (or select an installed executable), then run with tsx and FOLIO_PROBE_CLAUDE. Not a registered regression journey. */
 import { ElectronHarness } from '../../../e2e/src/support/electron-harness.ts';
 import { OnboardingPage } from '../../../e2e/src/support/pages/onboarding-page.ts';
 import { createRequire } from 'node:module';
@@ -20,6 +20,15 @@ import { readDesignArtifactDigest } from '../src/design/artifact.ts';
 const root = await mkdtemp(path.join(tmpdir(), 'folio-t17-desktop-'));
 const scenarioDir = path.join(root, 'evidence');
 await mkdir(scenarioDir);
+const referenceBase64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=';
+const referencePath = path.join(root, 'synthetic-reference.png');
+await writeFile(referencePath, Buffer.from(referenceBase64, 'base64'));
+let inputStep = 0;
+let referenceDelivered = false;
+let skillDelivered = false;
+let deliveredSkillPath;
+let nativeToolNames = [];
 let editCalls = 0;
 let resubmitCalls = 0;
 let artworkId;
@@ -51,6 +60,38 @@ const provider = createServer(async (req, res) => {
     name,
     input,
   });
+  if (!resubmitting && !editing && messages.includes('Design authoring directory:')) {
+    nativeToolNames = body.tools.map((entry) => entry.name);
+    if (inputStep === 0) {
+      referenceDelivered = body.messages.some(
+        (message) =>
+          Array.isArray(message.content) &&
+          message.content.some(
+            (part) => part.type === 'image' && part.source?.data === referenceBase64
+          )
+      );
+      assert(referenceDelivered, 'reference image bytes must reach the native provider');
+      const skillPath = messages.match(/Design format and optional helpers: (.+?SKILL\.md)/)?.[1];
+      assert(skillPath, 'packaged skill location must reach the native prompt');
+      deliveredSkillPath = skillPath;
+      content = [
+        { type: 'tool_use', id: 'toolu_inputs_0', name: 'Read', input: { file_path: skillPath } },
+      ];
+    } else {
+      skillDelivered = body.messages.some(
+        (message) =>
+          Array.isArray(message.content) &&
+          message.content.some(
+            (part) =>
+              part.type === 'tool_result' &&
+              part.tool_use_id === 'toolu_inputs_0' &&
+              JSON.stringify(part.content).includes('# Graphic Design')
+          )
+      );
+      assert(skillDelivered, 'native Read must deliver materialized packaged skill bytes');
+    }
+    inputStep++;
+  }
   if (resubmitting) {
     if (resubmitCalls === 0) {
       const current = await designOperation(dataRoot, { operation: 'read', sessionId: artworkId });
@@ -197,6 +238,7 @@ try {
   if (await page.getByRole('button', { name: 'Close', exact: true }).count())
     await page.getByRole('button', { name: 'Close', exact: true }).last().click();
   await expect(page.getByRole('button', { name: 'Close', exact: true })).toHaveCount(0);
+  await page.locator('input[type="file"]').setInputFiles(referencePath);
   await page.locator('#chat-prompt').fill('SYNTHETIC_INITIAL');
   await page.locator('#chat-prompt').press('Enter');
   await expect(page.locator('p').filter({ hasText: 'SYNTHETIC_INITIAL_FINISHED' })).toBeVisible({
@@ -326,9 +368,18 @@ try {
   );
 
   await page.screenshot({ path: path.join(scenarioDir, 'committed.png') });
+  assert(
+    referenceDelivered && skillDelivered,
+    'native reference and skill delivery must both complete'
+  );
+  h.writeDiagnostics();
   console.log(
     JSON.stringify({
       status: 'passed',
+      referenceDelivered,
+      skillDelivered,
+      deliveredSkillPath,
+      nativeToolNames,
       boundary:
         'Electron IPC/MessageHandler/Session actual Claude ACP runtime natural finalization',
       editCalls,
@@ -342,12 +393,15 @@ try {
   );
 } catch (error) {
   console.error('PROBE ERROR', error);
-  const ownData = await h.app.evaluate(({ app }) => app.getPath('userData'));
-  await cp(
-    path.join(path.dirname(ownData), 'lody-data', 'logs'),
-    path.join(scenarioDir, 'cli-logs'),
-    { recursive: true }
-  ).catch(() => {});
+  const ownData = await h.app
+    ?.evaluate(({ app }) => app.getPath('userData'))
+    .catch(() => undefined);
+  if (ownData)
+    await cp(
+      path.join(path.dirname(ownData), 'lody-data', 'logs'),
+      path.join(scenarioDir, 'cli-logs'),
+      { recursive: true }
+    ).catch(() => {});
   await writeFile(
     path.join(scenarioDir, 'cli-backlog.json'),
     JSON.stringify(await h.captureCliBacklog())

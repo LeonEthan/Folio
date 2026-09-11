@@ -374,6 +374,7 @@ try {
     workspaceRoot: root,
     dataRoot: root,
     designReadBaseline: service.getAttempt(),
+    designNativeTerminal: service.getTerminalOutcome(),
     sessionDoc: {
       getMetaState: async () =>
         ({

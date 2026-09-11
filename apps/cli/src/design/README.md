@@ -107,6 +107,34 @@ independently checking evidence and canonical versions. No upstream adapter patc
 new runtime, global settings edit or mandatory completion tool is introduced.
 See the [Claude decision and evidence](../../../../.agents/notes/implemented/architecture/2026-09-11-claude-design-hooks.md).
 
+Continuation reuses the ordinary Session dispatch and persistent workspace paths.
+Each actual Agent spawn registers a fresh design launch ID, carried by native
+hooks and the existing MCP HTTP/stdio context. The daemon checks that producer ID
+before accepting an event, then binds ephemeral read/attempt state to the current
+client and source/canvas turn. Replaced clients cannot borrow earlier evidence,
+and delayed native or MCP requests cannot attach to the replacement. This is a
+lifecycle fence, not a secret or a sandbox. The original frozen input, drafts,
+assets and receipts remain unchanged; a new explicit turn reads the current
+projection through its selected runtime's supported hooks.
+
+Pinned Pi ACP reports `end_turn` even after native provider errors. Pi's awaited
+`agent_settled` extension event therefore supplies the native last-assistant
+terminal status. The service resets this proof before each assistant generation;
+only that latest generation can finish it. Native error or missing proof follows
+Lody's existing failure path, and collection independently requires explicit native
+success before committing a Pi draft. A cancelled/error/missing terminal fact
+preserves the current canvas, draft and diagnostic receipt. File writes, previews
+and an ACP success response are not native success evidence.
+
+Idle desktop design sessions expose supported Pi/Claude choices in Lody’s existing
+run configuration menu. Selection only records the next provider. The explicit
+Turn freezes that provider ID; a changed/unavailable selection fails visibly.
+The owned dispatch retires a mismatched live runtime, ignoring its retiring
+callbacks, then uses existing restore/history replay. Persisted ACP identity is
+paired with its actual provider in SessionMeta, so a cold reopen never resumes
+another provider’s native session. The canvas association and retained files stay
+in place, and ordinary conversations retain their existing Agent selection rules.
+
 Codex hook integration remains blocked at the pinned CLI `0.153.4` / ACP `1.10.0`:
 native pre/post tool events do not supply the required awaited model-generation
 fence. Interactive `write_stdin` has no separate prehook, and Bash posthook text

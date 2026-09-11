@@ -2,9 +2,9 @@
 
 `CLAUDE.md` is a symlink to this file. Edit `AGENTS.md` only.
 
-Rules only; responsibilities and reasoning: [README.md](README.md). Worktrees and git
-credentials: [worktree/AGENTS.md](worktree/AGENTS.md). Architecture: context/message-flow.md.
-Contract: specs/session-orchestration.md.
+[Ownership](README.md), [worktree rules](worktree/AGENTS.md),
+[design rules](../design/AGENTS.md). Architecture: context/message-flow.md;
+contract: specs/session-orchestration.md.
 
 ## Authorization and identity
 

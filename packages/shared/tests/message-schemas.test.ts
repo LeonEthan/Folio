@@ -883,6 +883,11 @@ describe('message-schemas acpSessionConfig', () => {
 });
 
 describe('normalizeSessionTurnInputConfig', () => {
+  it('retains the exact provider frozen for design continuation', () => {
+    expect(
+      normalizeSessionTurnInputConfig({ agentConfigId: 'provider-claude', prompt: 'continue' })
+    ).toEqual({ agentConfigId: 'provider-claude', prompt: 'continue' });
+  });
   it('keeps valid fields and drops invalid ones', () => {
     const normalized = normalizeSessionTurnInputConfig({
       prompt: '  hello  ',

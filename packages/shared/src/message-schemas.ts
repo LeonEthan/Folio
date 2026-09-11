@@ -9,7 +9,7 @@ import {
   type ACPSessionId,
   type SessionTurnInputConfig,
 } from './ai';
-import type { AgentRoleId, SessionId } from './ids';
+import type { AgentConfigId, AgentRoleId, SessionId } from './ids';
 import { MAX_MESSAGE_TEXT_SPAN_MARK_LENGTH, MESSAGE_TEXT_SPAN_KINDS } from './message-text-spans';
 import { RpcSecretPublicKeySchema } from './rpc-secret';
 import { LodyOperationIdSchema } from './session-orchestration';
@@ -356,6 +356,7 @@ export const SessionInputBlocksSchema = z
 
 export const ACPSessionConfigSchema = z
   .object({
+    agentConfigId: z.string().trim().min(1).optional(),
     prompt: z.string(),
     inputBlocks: SessionInputBlocksSchema.optional(),
     cliType: AgentConfigCliTypeSchema,
@@ -428,6 +429,8 @@ export const normalizeSessionTurnInputConfig = (
 
   const record = value as Record<string, unknown>;
   const normalized: SessionTurnInputConfig = {};
+  const agentConfigId = trimOptionalString(record.agentConfigId);
+  if (agentConfigId) normalized.agentConfigId = agentConfigId as AgentConfigId;
 
   const prompt = trimOptionalString(record.prompt);
   if (prompt) {

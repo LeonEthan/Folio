@@ -41,6 +41,43 @@ You can also select and edit text, change colors, insert an image and adjust the
 layout directly in Bento. Save the design before exporting PNG or JPEG. Generated
 images are optional; text and shape design does not require an image service.
 
+## Continue, preview and recover
+
+Save your manual changes and continue the conversation. Folio flushes open canvas
+edits before dispatch and keeps the artwork read-only while the Agent executes
+and its files are processed. A file preview shows the working source; it is not a
+saved canvas or proof that the Agent has finished. After a formal commit, edit the
+current canvas again. When explicitly importing a preview, Folio binds the import
+to the displayed snapshot.
+
+If a file or final-save conflict occurs, the current saved canvas and Agent draft
+are preserved. Use a new message to continue and resolve the conflict; Folio does
+not automatically restart the finished turn. Existing draft files and historical
+content remain available through the file interface. A save failure must be
+resolved before treating your latest edits as saved or quitting.
+
+## Release status and support limits
+
+Release acceptance is pending. The final installed macOS journey and measured
+load/edit/save/export/memory limits are not yet established for this development
+revision. There is no verified maximum canvas size or universal performance
+budget. Windows and Linux resource packaging is not native execution evidence.
+See the [acceptance procedure](e2e/DESIGN-ACCEPTANCE.md) for the evidence required
+before release.
+
+Pi and Claude have design synchronization implementations; final installed
+switching and recovery acceptance remains pending. Codex, Kimi and Grok remain
+blocked on the complete native design-hook contract. This does not remove their
+ordinary execution or image-reading capabilities: Codex has earlier native
+reference-image and actual image-read evidence. An Agent appearing in Settings does
+not establish support for the complete design workflow. The current Pi ACP
+adapter does not forward the MCP catalog, so its route does not provide Folio's
+image MCP tools. Image generation still requires your own supported connection
+and an explicit model; there is no product default or automatic paid retry.
+
+No public release, Developer ID signing, notarization or automatic update channel
+is established by the local ad-hoc package checks.
+
 ## Run locally
 
 Use Node.js 22.14 or later and the repository-pinned pnpm through Corepack:

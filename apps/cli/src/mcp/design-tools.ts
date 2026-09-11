@@ -85,6 +85,7 @@ export type McpDesignGate = {
 export const EMPTY_DESIGN_GATE: McpDesignGate = { imageConnection: null };
 
 export type DesignGateContext = {
+  designHookLaunchId?: string;
   machineId: string;
   workspaceId: string;
   /** The asking session; sent as `ownerSessionId` so the daemon can apply the design-session rule. */
@@ -306,6 +307,7 @@ export async function requestDesignResubmit(context: DesignGateContext, capabili
         ownerSessionId: context.sessionId,
         params: {
           version: 1,
+          launchId: context.designHookLaunchId,
           event: { phase: capability ? 'resubmit-capability' : 'claude-resubmit' },
         },
       },

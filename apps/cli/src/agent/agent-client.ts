@@ -575,6 +575,7 @@ function extractImageGenerationContentFields(content: unknown): {
  * Synchronous: everything that needs I/O already happened in the load phase.
  */
 export interface AgentClientOptions {
+  designHookLaunchId?: string;
   claudeDesignHookSettings?: ReturnType<typeof claudeDesignSettings>;
   sessionId: SessionId;
   workspaceId?: WorkspaceId;
@@ -715,6 +716,7 @@ export class AgentClient implements acp.Client {
             url: endpoint.url,
             headers: buildLodyMcpHttpHeaders(endpoint, {
               sessionId: this.options.sessionId,
+              designHookLaunchId: this.options.designHookLaunchId,
               workspaceId: this.options.workspaceId,
               machineId: this.options.machineId,
               workdir,
@@ -740,6 +742,9 @@ export class AgentClient implements acp.Client {
         value: this.options.taskToolsEnabled === true ? '1' : '0',
       },
     ];
+
+    if (this.options.designHookLaunchId)
+      env.push({ name: 'FOLIO_DESIGN_LAUNCH_ID', value: this.options.designHookLaunchId });
 
     // ACP MCP config is an explicit environment allowlist. The MCP subprocess
     // invokes normal CLI services, so forward their public deployment endpoints

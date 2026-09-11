@@ -982,6 +982,7 @@ const readRequiredEnv = (...names: string[]): string => {
 };
 
 export interface McpSessionContext {
+  designHookLaunchId?: string;
   machineId: string;
   workspaceId: string;
   sessionId: SessionId;
@@ -1001,6 +1002,7 @@ export const runWithMcpSessionContext = <T>(context: McpSessionContext, fn: () =
 
 const getSessionContext = (): McpSessionContext =>
   mcpSessionContextStorage.getStore() ?? {
+    designHookLaunchId: readOptionalEnv('FOLIO_DESIGN_LAUNCH_ID'),
     machineId: readRequiredEnv('LODY_MCP_MACHINE_ID', 'LODY_PREVIEW_MCP_MACHINE_ID'),
     workspaceId: readRequiredEnv('LODY_MCP_WORKSPACE_ID', 'LODY_PREVIEW_MCP_WORKSPACE_ID'),
     sessionId: SessionIdSchema.parse(

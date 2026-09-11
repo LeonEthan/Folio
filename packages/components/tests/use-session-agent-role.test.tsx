@@ -69,6 +69,7 @@ describe('useSessionAgentRole', () => {
   let control: SessionAgentRoleControl | null = null;
   let hookProps: {
     sessionId: string;
+    agentConfigId?: AgentConfigId;
     provenanceRoleId?: AgentRoleId;
     durableRoleId?: AgentRoleId | null;
     durableRoleRevision?: number;
@@ -90,7 +91,7 @@ describe('useSessionAgentRole', () => {
       durableRoleReady: hookProps.durableRoleReady,
       runConfigHasUserEdits: hookProps.runConfigHasUserEdits,
       machineId: 'machine-1' as MachineId,
-      agentConfigId: 'agent-1' as AgentConfigId,
+      agentConfigId: hookProps.agentConfigId ?? ('agent-1' as AgentConfigId),
       modelOptions: [{ value: 'model-1', label: 'Model 1' }],
       selectedModelId: hookProps.selectedModelId,
       modeOptions: [],
@@ -103,6 +104,7 @@ describe('useSessionAgentRole', () => {
 
   const render = async ({
     sessionId = 'session-1',
+    agentConfigId,
     provenanceRoleId,
     durableRoleId,
     durableRoleRevision,
@@ -113,6 +115,7 @@ describe('useSessionAgentRole', () => {
     selectedModelId = 'model-1',
   }: {
     sessionId?: string;
+    agentConfigId?: AgentConfigId;
     provenanceRoleId?: AgentRoleId;
     durableRoleId?: AgentRoleId | null;
     durableRoleRevision?: number;
@@ -124,6 +127,7 @@ describe('useSessionAgentRole', () => {
   }) => {
     hookProps = {
       sessionId,
+      agentConfigId,
       provenanceRoleId,
       durableRoleId,
       durableRoleRevision,
@@ -294,6 +298,36 @@ describe('useSessionAgentRole', () => {
       durableKnownSourceTurnKeys: ['turn:turn-1'],
     });
     expect(control?.selectedRoleId).toBe('role-2');
+  });
+
+  it('does not carry an unsent Role override to a new provider during catalog loading', async () => {
+    catalog.roles = [role('old-role', 'model-1')];
+    await render({ durableRoleId: null, durableSourceTurnKey: 'turn:previous' });
+    await act(async () => control?.onSelect('old-role' as AgentRoleId));
+    expect(control?.selectedRoleId).toBe('old-role');
+    catalog.synced = false;
+    catalog.roles = [];
+    await render({
+      agentConfigId: 'new-provider' as AgentConfigId,
+      durableRoleId: null,
+      durableSourceTurnKey: 'turn:previous',
+    });
+    expect(control?.selectedRoleId).toBeNull();
+    expect(control?.turnSelection).toBeNull();
+  });
+
+  it('never freezes a known other-provider Role while the catalog is syncing', async () => {
+    catalog.synced = false;
+    catalog.roles = [
+      { ...role('old-provider-role', 'model-1'), agentConfigId: 'other-provider' as AgentConfigId },
+    ];
+    await render({
+      durableRoleId: 'old-provider-role' as AgentRoleId,
+      durableRoleRevision: 1,
+      durableSourceTurnKey: 'turn:previous',
+    });
+    expect(control?.selectedRoleId).toBeNull();
+    expect(control?.turnSelection).toBeNull();
   });
 
   it('preserves durable Role metadata while its catalog row is still syncing', async () => {

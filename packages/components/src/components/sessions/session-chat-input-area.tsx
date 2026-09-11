@@ -120,7 +120,7 @@ import {
 } from '@/lib/session-file-upload';
 import { formatFileSize } from '@/lib/session-file-presentation';
 import { SESSION_FILE_MAX_COUNT, SESSION_IMAGE_MAX_SIZE_BYTES } from '@lody/shared';
-import type { SessionFilePayload } from '@lody/shared';
+import type { SessionFilePayload, AgentConfigMeta } from '@lody/shared';
 import {
   arePastedTextDraftsEqual,
   getPastedTextCharacterCount,
@@ -395,6 +395,8 @@ export interface SessionChatInputAreaProps {
   externalHistorySyncLabel?: string;
   isDark: boolean;
   isEmptyConversation: boolean;
+  allowDesignAgentSwitch?: boolean;
+  designAgentConfigs?: readonly AgentConfigMeta[];
   selectedModeId: string | null;
   selectedModelId: string | null;
   /** Role identity restored from the latest accepted/queued Turn. */
@@ -504,11 +506,14 @@ export const SessionChatInputArea = memo(
       claimNavigationFocus,
       sessionLocalProjectRootPath,
       isMachineRemoved,
+      isAgentBusy,
       canStopAgent = false,
       isExternalHistoryRefreshing = false,
       externalHistorySyncLabel,
       isDark,
       isEmptyConversation,
+      allowDesignAgentSwitch = false,
+      designAgentConfigs,
       selectedModeId,
       selectedModelId,
       durableAgentRoleId,
@@ -2257,7 +2262,10 @@ export const SessionChatInputArea = memo(
               : null
           }
           allowedMachineIds={desktopAgentMachineIds}
-          agentLocked={!isEmptyConversation}
+          availableAgentConfigs={designAgentConfigs}
+          agentLocked={
+            !(isEmptyConversation || allowDesignAgentSwitch) || submissionPending || isAgentBusy
+          }
           fallbackAgent={{ cliType: session.cliType, agentType: session.agentType }}
           onAgentConfigChange={onAgentConfigChange}
           modelOptions={modelOptions}

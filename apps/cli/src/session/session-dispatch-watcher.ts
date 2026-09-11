@@ -1959,6 +1959,7 @@ export class SessionDispatchWatcher {
       workspaceId: this.deps.workspaceId,
       project,
       acpSessionConfig: {
+        agentConfigId: entry.inputConfig?.agentConfigId,
         prompt,
         inputBlocks: inputBlocks.length > 0 ? inputBlocks : undefined,
         cliType: entry.inputConfig?.cliType ?? meta.cliType,
@@ -2003,6 +2004,7 @@ export class SessionDispatchWatcher {
           }
         : undefined,
       acpSessionConfig: {
+        agentConfigId: entry.inputConfig?.agentConfigId,
         prompt,
         inputBlocks: inputBlocks.length > 0 ? inputBlocks : undefined,
         cliType: entry.inputConfig?.cliType ?? meta.cliType,

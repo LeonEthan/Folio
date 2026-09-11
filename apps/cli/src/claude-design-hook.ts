@@ -57,7 +57,7 @@ try {
         machineId: process.env.FOLIO_DESIGN_MACHINE_ID ?? '',
         workspaceId: process.env.FOLIO_DESIGN_WORKSPACE_ID ?? '',
         ownerSessionId: process.env.LODY_SESSION_ID,
-        params: { version: 1, event },
+        params: { version: 1, launchId: process.env.FOLIO_DESIGN_LAUNCH_ID, event },
       },
       { timeoutMs: 30_000 }
     )

@@ -1,4 +1,5 @@
 import { prepareClaudeDesignLaunch } from '@/design/claude-launch';
+import { randomUUID } from 'node:crypto';
 import EventEmitter from 'eventemitter3';
 import { ACPSessionId, getServerNow, MachineId, SessionId } from '@lody/shared';
 import type { CreateAgentConfig, ISession, SessionMonitorRuntimeInfo } from './session-manager';
@@ -116,6 +117,13 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
   private gitIdentity: { id: string; name: string; email: string };
   public agentClient: AgentClient | null = null;
   private designHookRuntime: 'pi' | 'claude' | undefined;
+  private designHookLaunchId: string | undefined;
+  getAgentConfigId() {
+    return this.config.agentConfigId;
+  }
+  getDesignHookLaunchId() {
+    return this.designHookLaunchId;
+  }
   getDesignHookRuntime() {
     return this.designHookRuntime;
   }
@@ -546,6 +554,8 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
     ): Promise<string> => {
       lastStderrTail = '';
       lastAgentProcessHandle = null;
+      this.designHookLaunchId = this.designHookRuntime ? randomUUID() : undefined;
+      env = { ...env, FOLIO_DESIGN_LAUNCH_ID: this.designHookLaunchId };
       this.logger.debug(
         `[${this.sessionId}] Starting ACP agent process (cwd=${this.getWorkdir()} cmd=${
           callbacks.command
@@ -640,6 +650,7 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
       try {
         const started = await createAcpClient({
           claudeDesignHookSettings: claudeLaunch?.settings,
+          designHookLaunchId: this.designHookLaunchId,
           stream,
           workdir: this.getWorkdir(),
           logger: this.logger,

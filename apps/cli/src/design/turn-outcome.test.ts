@@ -320,6 +320,7 @@ async function freezeTurnInput(harness: Harness): Promise<void> {
 }
 
 const contextFor = (harness: Harness, now = new Date('2026-09-10T01:00:00.000Z')) => ({
+  designNativeTerminal: 'end_turn' as const,
   sessionId: harness.sessionId,
   sessionDoc: harness.sessionDoc,
   turnId: harness.turnId,
@@ -1246,5 +1247,44 @@ it.each(['pi-acp', 'claude'])(
     });
     expect(current.revisionId).not.toBe(created.revisionId);
     expect(current.doc.elements).toHaveLength(0);
+  }
+);
+
+it.each(['failed', 'cancelled', undefined] as const)(
+  'preserves Pi draft after native terminal %s despite ACP end_turn',
+  async (terminal) => {
+    const harness = createHarness();
+    const meta = await harness.sessionDoc.getMetaState();
+    if (!meta) throw Error('Synthetic meta missing');
+    meta.agentType = 'pi-acp';
+    const created = await createDesign(harness);
+    await writeArtifact(harness, PAGE);
+    await writeManifest(harness, created.revisionId);
+    const artifact = await readDesignArtifact(harness.workdir);
+    if (artifact.status !== 'present') throw Error('Synthetic artifact missing');
+    const outcome = await collectDesignTurnOutcome({
+      ...contextFor(harness),
+      designNativeTerminal: terminal,
+      designReadBaseline: {
+        artworkId: harness.sessionId,
+        draftId: harness.workdir,
+        revisionId: created.revisionId,
+        contentHash: 'a'.repeat(64),
+        artifactDigest: artifact.digest,
+      },
+    });
+    expect(outcome).toMatchObject({
+      status: 'recorded',
+      outcome: { status: terminal === 'cancelled' ? 'cancelled' : 'failed' },
+    });
+    expect(
+      (await designOperation(harness.root, { operation: 'read', sessionId: harness.sessionId }))
+        .revisionId
+    ).toBe(created.revisionId);
+    expect(await readDesignArtifact(harness.workdir)).toEqual(artifact);
+    harness.forgetOutcome();
+    expect(
+      await collectDesignTurnOutcome({ ...contextFor(harness), designNativeTerminal: 'end_turn' })
+    ).toEqual(outcome);
   }
 );

@@ -6,12 +6,15 @@ import { createRequire } from 'node:module';
 const { expect } = createRequire(new URL('../../../e2e/package.json', import.meta.url))(
   '@playwright/test'
 );
+const recoveryMode = process.env.FOLIO_PROBE_RECOVERY === '1';
 const resubmitMode = process.env.FOLIO_PROBE_RESUBMIT === '1';
 const pi = process.env.FOLIO_PROBE_PI;
 if (!pi) throw Error('Set FOLIO_PROBE_PI to the verified Pi executable');
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { mkdir, mkdtemp, writeFile, cp } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { mkdir, mkdtemp, writeFile, readFile, readdir, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -30,15 +33,111 @@ let externalRevision;
 let draft = '';
 let sourceFiles = new Map();
 let blocked = false;
+let recoveryStep = 0;
+let recoveryModeName = '';
+let modelRequests = 0;
+let switchCalls = 0;
+let heldResponse;
+let reachedHold;
+let holdReached = new Promise((resolve) => {
+  reachedHold = resolve;
+});
+
 const provider = createServer(async (req, res) => {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
-  const body = JSON.parse(Buffer.concat(chunks).toString());
+  const raw = Buffer.concat(chunks).toString();
+  if (!raw) {
+    res.end('{}');
+    return;
+  }
+  const body = JSON.parse(raw);
+  if (!Array.isArray(body.messages)) {
+    res.end('{}');
+    return;
+  }
+  if (req.url.includes('/messages')) {
+    const n = switchCalls++;
+    const tool = (name, input, i) => ({
+      type: 'tool_use',
+      id: `toolu_switch_${n}_${i}`,
+      name,
+      input,
+    });
+    let content;
+    if (n === 0) {
+      content = ['design.pptd', 'pages/design.page'].map((f, i) =>
+        tool('Read', { file_path: path.join(draft, 'design-current', f) }, i)
+      );
+      content.push(
+        tool(
+          'Write',
+          { file_path: path.join(draft, 'design.pptd'), content: 'MUST NOT INHERIT PI READS' },
+          2
+        )
+      );
+    } else if (n === 1) {
+      assert(JSON.stringify(body.messages).includes('DESIGN_READ_REQUIRED'));
+      content = [];
+      for (const [i, f] of ['design.pptd', 'pages/design.page'].entries()) {
+        const text = await readFile(path.join(draft, 'design-current', f), 'utf8');
+        content.push(
+          tool(
+            'Write',
+            { file_path: path.join(draft, f), content: text.replace(/#667788/gi, '#7788AA') },
+            i
+          )
+        );
+      }
+    } else content = [{ type: 'text', text: 'SYNTHETIC_SWITCH_FINISHED' }];
+    const stopReason = content[0].type === 'tool_use' ? 'tool_use' : 'end_turn';
+    const msg = {
+      id: `msg_switch_${n}`,
+      type: 'message',
+      role: 'assistant',
+      model: body.model,
+      content,
+      stop_reason: stopReason,
+      stop_sequence: null,
+      usage: { input_tokens: 10, output_tokens: 10 },
+    };
+    if (body.stream) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      const send = (type, data) =>
+        res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`);
+      send('message_start', { message: { ...msg, content: [], stop_reason: null } });
+      content.forEach((c, i) => {
+        send('content_block_start', {
+          index: i,
+          content_block: c.type === 'tool_use' ? { ...c, input: {} } : { type: 'text', text: '' },
+        });
+        send('content_block_delta', {
+          index: i,
+          delta:
+            c.type === 'tool_use'
+              ? { type: 'input_json_delta', partial_json: JSON.stringify(c.input) }
+              : { type: 'text_delta', text: c.text },
+        });
+        send('content_block_stop', { index: i });
+      });
+      send('message_delta', { delta: { stop_reason: stopReason }, usage: { output_tokens: 10 } });
+      send('message_stop', {});
+      res.end();
+    } else {
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify(msg));
+    }
+    return;
+  }
   const userMessages = body.messages
     .filter((m) => m.role === 'user')
     .map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
     .join('\n');
-  const editing = userMessages.includes('SYNTHETIC_EDIT');
+  modelRequests++;
+  const latestUser = body.messages.filter((m) => m.role === 'user').at(-1);
+  const latestText = JSON.stringify(latestUser?.content ?? '');
+  const recovering = recoveryMode && latestText.includes('SYNTHETIC_RECOVERY_');
+  const editing = !recovering && userMessages.includes('SYNTHETIC_EDIT');
   let calls = [];
   let text = 'SYNTHETIC_INITIAL_FINISHED';
   if (editing) {
@@ -140,6 +239,79 @@ const provider = createServer(async (req, res) => {
     }
     resubmitCalls++;
   }
+  if (recovering) {
+    const mode = latestText.match(/SYNTHETIC_RECOVERY_(CANCEL|FAIL|CONFLICT|CONTINUE)/)?.[1];
+    assert(mode);
+    if (recoveryModeName !== mode) {
+      recoveryModeName = mode;
+      recoveryStep = 0;
+    }
+    const n = recoveryStep++;
+    const tool = (name, args, i) => ({
+      index: i,
+      id: `recovery_${mode}_${n}_${i}`,
+      type: 'function',
+      function: { name, arguments: JSON.stringify(args) },
+    });
+    if (n === 0) {
+      calls = [
+        'design-current/design.pptd',
+        'design-current/pages/design.page',
+        'design.pptd',
+        'pages/design.page',
+      ].map((file, i) => tool('read', { path: path.join(draft, file) }, i));
+    } else if (n === 1) {
+      if (mode === 'CONTINUE') calls = [tool('folio_resubmit_draft', {}, 0)];
+      else
+        calls = [...sourceFiles].map(([file, content], i) =>
+          tool(
+            'write',
+            {
+              path: path.join(draft, file),
+              content: content.replace(
+                /#ffffff/i,
+                { CANCEL: '#445566', FAIL: '#556677', CONFLICT: '#667788' }[mode]
+              ),
+            },
+            i
+          )
+        );
+    } else if (mode === 'CANCEL') {
+      heldResponse = res;
+      reachedHold();
+      return;
+    } else if (mode === 'FAIL') {
+      res.writeHead(400, { 'content-type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          error: {
+            message: 'Synthetic unrecoverable provider failure',
+            type: 'invalid_request_error',
+          },
+        })
+      );
+      return;
+    } else {
+      if (mode === 'CONFLICT') {
+        const current = await designOperation(dataRoot, {
+          operation: 'read',
+          sessionId: artworkId,
+        });
+        const saved = await designOperation(dataRoot, {
+          operation: 'save',
+          sessionId: artworkId,
+          baseRevisionId: current.revisionId,
+          content: {
+            doc: { ...current.doc, background: { type: 'solid', color: '#AABBCC' } },
+            assets: current.assets,
+          },
+        });
+        externalRevision = saved.revisionId;
+      }
+      text = `SYNTHETIC_RECOVERY_${mode}_FINISHED`;
+      calls = [];
+    }
+  }
   res.writeHead(200, { 'content-type': 'text/event-stream' });
   const send = (delta, finish_reason) =>
     res.write(
@@ -180,6 +352,15 @@ try {
   await h.launch();
   dataRoot = await h.app.evaluate(() => process.env.LODY_DATA_DIR);
   assert(dataRoot);
+  // Prepare the actual pinned adapter before capability probing and main launch
+  // can race installation into this probe's private npm cache. No model call.
+  await promisify(execFile)(
+    'npm',
+    ['exec', '--yes', '--package=pi-acp@0.0.33', '--', 'node', '-e', 'process.exit(0)'],
+    {
+      env: { ...process.env, npm_config_cache: path.join(dataRoot, 'npm-cache') },
+    }
+  );
   const page = h.page;
   const onboarding = new OnboardingPage(page);
   await onboarding.waitForLocalBootstrap();
@@ -318,6 +499,147 @@ try {
     assert.deepEqual(await readDesignArtifactDigest(draft), originalDraft);
     assert.equal(retained.doc.elements.length, edited.doc.elements.length);
   }
+  if (recoveryMode) {
+    const readonly = async () =>
+      h.app.evaluate(async ({ BrowserWindow }) => {
+        const owner = BrowserWindow.getAllWindows().find((w) =>
+          w.webContents.getURL().includes('#/local/')
+        );
+        const view = owner?.contentView.children.find((v) =>
+          v.webContents?.getURL().includes('design')
+        );
+        return view
+          ? await view.webContents.executeJavaScript('window.folio?.state().readonly')
+          : true;
+      });
+    const readSaved = () => page.evaluate(async (id) => window.ipc.invoke('design.read', id), id);
+    const receipts = async () => {
+      const directory = path.join(dataRoot, 'chats', id, 'design-input');
+      const names = await readdir(directory);
+      return (
+        await Promise.all(
+          names.map(async (name) => {
+            try {
+              return JSON.parse(await readFile(path.join(directory, name, 'receipt.json'), 'utf8'));
+            } catch {
+              return null;
+            }
+          })
+        )
+      ).filter(Boolean);
+    };
+    const submit = async (mode) => {
+      await page.getByRole('combobox').fill(`SYNTHETIC_RECOVERY_${mode}`);
+      await page.getByRole('button', { name: /^(Send|发送)$/ }).click();
+    };
+    for (const mode of ['CANCEL', 'FAIL', 'CONFLICT']) {
+      const before = await readSaved();
+      const previous = new Set((await receipts()).map((r) => r.turnId));
+      await submit(mode);
+      if (mode === 'CANCEL') {
+        await holdReached;
+        assert.equal(await readonly(), true);
+        const url = page.url();
+        await page.reload();
+        await expect(page.getByRole('button', { name: /^(Stop|停止)$/ })).toBeVisible({
+          timeout: 60000,
+        });
+        assert.equal(page.url(), url);
+        assert.equal(await readonly(), true);
+        await page.getByRole('button', { name: /^(Stop|停止)$/ }).click();
+        heldResponse.destroy();
+      }
+      await expect
+        .poll(async () => (await receipts()).find((r) => !previous.has(r.turnId))?.status, {
+          timeout: 120000,
+        })
+        .toBe(mode === 'CANCEL' ? 'cancelled' : mode === 'FAIL' ? 'failed' : 'invalid');
+      await expect.poll(readonly, { timeout: 60000 }).toBe(false);
+      const after = await readSaved();
+      assert.equal(after.revisionId, mode === 'CONFLICT' ? externalRevision : before.revisionId);
+      const retained = await readDesignArtifactDigest(draft);
+      assert.equal(retained.status, 'present');
+      const requestCount = modelRequests;
+      await page.reload();
+      await expect.poll(readonly, { timeout: 60000 }).toBe(false);
+      assert.equal(modelRequests, requestCount);
+      assert.equal((await readSaved()).revisionId, after.revisionId);
+      assert.deepEqual(await readDesignArtifactDigest(draft), retained);
+      const beforeContinue = new Set((await receipts()).map((r) => r.turnId));
+      await submit('CONTINUE');
+      await expect(
+        page.locator('p').filter({ hasText: 'SYNTHETIC_RECOVERY_CONTINUE_FINISHED' }).last()
+      ).toBeVisible({ timeout: 120000 });
+      await expect
+        .poll(async () => (await receipts()).find((r) => !beforeContinue.has(r.turnId))?.status, {
+          timeout: 120000,
+        })
+        .toBe('committed');
+      await expect.poll(readonly, { timeout: 60000 }).toBe(false);
+      assert.equal(
+        (await readSaved()).doc.background.color,
+        { CANCEL: '#445566', FAIL: '#556677', CONFLICT: '#667788' }[mode]
+      );
+      assert.deepEqual(await readDesignArtifactDigest(draft), retained);
+      console.log('RECOVERY', mode, 'preserved, reopened, explicitly continued');
+    }
+    if (process.env.FOLIO_PROBE_CLAUDE) {
+      await page.addLocatorHandler(
+        page.getByRole('button', { name: 'Allow Once', exact: true }).first(),
+        async () => {
+          await page.getByRole('button', { name: 'Allow Once', exact: true }).first().click();
+        },
+        { noWaitAfter: true }
+      );
+      await page.getByRole('button', { name: 'Settings', exact: true }).click();
+      await page.getByRole('button', { name: 'Agents', exact: true }).click();
+      await page
+        .getByRole('button', { name: /^(Add provider|添加 Provider)$/ })
+        .first()
+        .click();
+      await page.getByRole('option', { name: 'Claude', exact: true }).click();
+      await page.locator('#agent-config-name').fill('Synthetic Claude');
+      await page.locator('#builtin-runtime-path').fill(process.env.FOLIO_PROBE_CLAUDE);
+      await page.getByRole('button', { name: 'Environment variables', exact: true }).click();
+      await page
+        .locator('textarea')
+        .last()
+        .fill(
+          `ANTHROPIC_API_KEY=synthetic-only\nANTHROPIC_BASE_URL=http://127.0.0.1:${port}\nCLAUDE_CONFIG_DIR=${root}/claude-config\nCLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`
+        );
+      await page.getByRole('button', { name: /^(Create|创建)$/ }).click();
+      await expect(page.getByText('Synthetic Claude', { exact: true }).first()).toBeVisible({
+        timeout: 60000,
+      });
+      await expect(page.locator('#agent-config-name')).toBeHidden();
+      await page.getByRole('button', { name: 'Close', exact: true }).last().click();
+      await page.getByRole('button', { name: 'Run configuration', exact: true }).click();
+      await page
+        .getByRole('menuitem')
+        .filter({ hasText: /^Agent/ })
+        .hover();
+      await page.getByRole('menuitemradio').filter({ hasText: 'Synthetic Claude' }).click();
+      await page.keyboard.press('Escape');
+      await page.keyboard.press('Escape');
+      const beforeSwitch = new Set((await receipts()).map((r) => r.turnId));
+      assert.equal(switchCalls, 0, 'Selecting an Agent must not call a model');
+      await page.getByRole('combobox').fill('SYNTHETIC_SWITCH');
+      await page.getByRole('button', { name: /^(Send|发送)$/ }).click();
+      await expect
+        .poll(async () => (await receipts()).find((r) => !beforeSwitch.has(r.turnId))?.status, {
+          timeout: 120000,
+        })
+        .toBe('committed');
+      await expect.poll(readonly, { timeout: 60000 }).toBe(false);
+      assert.equal((await readSaved()).doc.background.color, '#7788AA');
+      assert.equal((await readSaved()).doc.elements.length, edited.doc.elements.length);
+      console.log('SWITCH Pi to Claude reacquired current design and committed');
+    }
+    await writeFile(
+      path.join(scenarioDir, 'recovery-receipts.json'),
+      JSON.stringify(await receipts(), null, 2)
+    );
+  }
   const canvasImage = await h.app.evaluate(async ({ BrowserWindow }) => {
     const owner = BrowserWindow.getAllWindows().find((w) =>
       w.webContents.getURL().includes('#/local/')
@@ -331,16 +653,30 @@ try {
   );
 
   await page.screenshot({ path: path.join(scenarioDir, 'committed.png') });
+  const observedFinal = await page.evaluate(
+    async (canvasId) => window.ipc.invoke('design.read', canvasId),
+    id
+  );
+  await writeFile(
+    path.join(scenarioDir, 'final-canvas.json'),
+    JSON.stringify(observedFinal, null, 2)
+  );
+  await cp(path.join(dataRoot, 'logs'), path.join(scenarioDir, 'cli-logs'), { recursive: true });
   console.log(
     JSON.stringify({
       status: 'passed',
-      boundary: 'Electron IPC/MessageHandler/Session actual Pi ACP runtime natural finalization',
+      boundary:
+        recoveryMode && process.env.FOLIO_PROBE_CLAUDE
+          ? 'Electron IPC/MessageHandler/Session actual Pi and Claude ACP native runtimes'
+          : 'Electron IPC/MessageHandler/Session actual Pi ACP runtime natural finalization',
+      preparedPiAcpCache: true,
+      syntheticExternalProvider: true,
       editCalls,
       resubmitCalls,
       externalRevision,
       blocked,
-      finalRevision: final.revisionId,
-      elementCount: final.doc.elements.length,
+      finalRevision: observedFinal.revisionId,
+      elementCount: observedFinal.doc.elements.length,
       root,
     })
   );

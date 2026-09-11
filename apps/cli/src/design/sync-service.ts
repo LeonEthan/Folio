@@ -8,6 +8,7 @@ import { readDesignArtifactDigest } from './artifact';
 
 export type DesignToolEvent =
   | { phase: 'generation'; generation: string; runtimeVersion: string }
+  | { phase: 'terminal'; generation: string; status: 'end_turn' | 'failed' | 'cancelled' }
   | { phase: 'resubmit'; generation: string; callId: string }
   | {
       phase: 'call';
@@ -24,6 +25,11 @@ export type DesignToolEvent =
 /** One active turn, created only from the daemon's resolved Session identity. */
 export class DesignSyncService {
   readonly baseline = new DesignSyncBaseline();
+  private latestGeneration: string | undefined;
+  private terminal: 'end_turn' | 'failed' | 'cancelled' | undefined;
+  getTerminalOutcome() {
+    return this.terminal;
+  }
   private revision: string | undefined;
   private projected: Map<string, Uint8Array> | undefined;
   private pending = Promise.resolve();
@@ -83,7 +89,18 @@ export class DesignSyncService {
 
   private async apply(event: DesignToolEvent): Promise<void> {
     this.context.assertActive();
+    if (event.phase === 'terminal') {
+      if (
+        event.generation !== this.latestGeneration ||
+        !this.generationDrafts.has(event.generation)
+      )
+        throw Error('Unknown native terminal generation');
+      this.terminal = event.status;
+      return;
+    }
     if (event.phase === 'generation') {
+      this.terminal = undefined;
+      this.latestGeneration = event.generation;
       if (event.runtimeVersion !== (this.context.runtimeVersion ?? '0.85.1'))
         throw Error(
           `Folio design hooks require verified runtime ${this.context.runtimeVersion ?? '0.85.1'}; choose that runtime explicitly`

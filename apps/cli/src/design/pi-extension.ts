@@ -6,7 +6,7 @@ import type { DesignToolEvent } from './sync-service';
 
 /** Structural adapter for Pi 0.85.1's documented extension events. No Pi SDK copy. */
 interface PiEvent {
-  message?: { role?: string };
+  message?: { role?: string; stopReason?: string };
   toolName?: string;
   toolCallId?: string;
   input?: { path?: string; offset?: number; limit?: number };
@@ -29,6 +29,7 @@ interface PiExtensionApi {
 
 export default function folioDesignExtension(pi: PiExtensionApi): void {
   let generation = '';
+  let terminal: 'end_turn' | 'failed' | 'cancelled' | undefined;
   let generationError: string | undefined;
   let supported = true;
   const resubmissions = new Map<string, { generation: string; error?: string }>();
@@ -42,7 +43,7 @@ export default function folioDesignExtension(pi: PiExtensionApi): void {
           machineId: process.env.FOLIO_DESIGN_MACHINE_ID ?? '',
           workspaceId: process.env.FOLIO_DESIGN_WORKSPACE_ID ?? '',
           ownerSessionId: process.env.LODY_SESSION_ID,
-          params: { version: 1, event },
+          params: { version: 1, launchId: process.env.FOLIO_DESIGN_LAUNCH_ID, event },
         },
         { timeoutMs: 30_000 }
       )
@@ -86,6 +87,7 @@ export default function folioDesignExtension(pi: PiExtensionApi): void {
   });
   pi.on('message_start', async (event) => {
     if (event.message?.role !== 'assistant') return undefined;
+    terminal = undefined;
     generation = randomUUID();
     generationError = undefined;
     try {
@@ -98,6 +100,23 @@ export default function folioDesignExtension(pi: PiExtensionApi): void {
       generationError = error instanceof Error ? error.message : String(error);
     }
     return undefined;
+  });
+  pi.on('message_end', async (event) => {
+    if (event.message?.role === 'assistant') {
+      terminal =
+        event.message.stopReason === 'error'
+          ? 'failed'
+          : event.message.stopReason === 'aborted'
+            ? 'cancelled'
+            : event.message.stopReason === 'stop'
+              ? 'end_turn'
+              : undefined;
+    }
+  });
+  // pi-acp 0.0.33 reports end_turn even for native provider errors. Pi awaits
+  // this event after retries/compaction settle; never infer success from ACP alone.
+  pi.on('agent_settled', async () => {
+    if (terminal) await request({ phase: 'terminal', generation, status: terminal });
   });
   pi.on('tool_call', async (event) => {
     if (event.toolName === 'folio_resubmit_draft' && event.toolCallId) {

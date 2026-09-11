@@ -471,6 +471,10 @@ export type SessionExecutionServiceDeps = {
     signal: AbortSignal
   ) => Promise<boolean | void>;
   releaseDesignCanvas?: (sessionId: SessionId, turnId: string) => void;
+  designNativeTerminal?: (
+    sessionId: SessionId,
+    turnId: string
+  ) => 'end_turn' | 'failed' | 'cancelled' | undefined;
   designReadBaseline?: (
     sessionId: SessionId,
     turnId: string
@@ -2543,6 +2547,7 @@ export class SessionExecutionService {
           sessionId,
           sessionDoc,
           designReadBaseline: this.deps.designReadBaseline?.(sessionId, userTurnId),
+          designNativeTerminal: this.deps.designNativeTerminal?.(sessionId, userTurnId),
           turnId: userTurnId,
           workdir: getDefaultSessionWorkdir(sessionId),
           workspaceRoot:
@@ -3087,6 +3092,24 @@ export class SessionExecutionService {
                               promptPromise: providerPrompt,
                             });
                             await self.awaitPromptHandoffTail(runtime, initialRun);
+                            if (
+                              runtime.canvasPrepared &&
+                              activeSession.getDesignHookRuntime?.() === 'pi'
+                            ) {
+                              const sourceTurnId =
+                                self.getActiveInvocationContext(sessionId)?.sourceTurnId;
+                              const terminal = sourceTurnId
+                                ? self.deps.designNativeTerminal?.(sessionId, sourceTurnId)
+                                : undefined;
+                              if (terminal === 'failed')
+                                throw Error(
+                                  'Native Pi execution failed; current canvas and draft preserved. Explicitly continue to retry.'
+                                );
+                              if (terminal === undefined)
+                                throw Error(
+                                  'Native Pi completion could not be verified; current canvas and draft preserved. Explicitly continue.'
+                                );
+                            }
                           }
                         )
                       )
@@ -3691,6 +3714,7 @@ export class SessionExecutionService {
 
     let replayPromptResult: ReplayPromptResult | null = null;
     let usedHistoryReplay = false;
+    let freshDesignRuntime = false;
     const self = this;
     const turnErrorContext: VisibleSessionTurnUnhandledErrorContext = {
       code: 'session_chat_failed',
@@ -3771,6 +3795,21 @@ export class SessionExecutionService {
             logger: self.deps.logger,
           })
         );
+        if (
+          meta?.design &&
+          acpSessionConfig.agentConfigId &&
+          (meta.agentConfigId !== acpSessionConfig.agentConfigId ||
+            storedLaunchConfig.source !== 'agent-config')
+        ) {
+          return yield* self.recordKnownChatFailureAndHaltEffect({
+            sessionId,
+            sessionDoc,
+            userTurnId: executionUserTurnId,
+            reason: 'session_init_failed',
+            message:
+              'The selected design Agent is unavailable; choose an available Agent and explicitly continue.',
+          });
+        }
         const agentConfigEnv = storedLaunchConfig.config?.env;
         const resumeCustomAcp =
           acpSessionConfig.customAcp ?? storedLaunchConfig.config?.customAcp ?? undefined;
@@ -3782,8 +3821,13 @@ export class SessionExecutionService {
           `[${sessionId}] Resume env resolved (agentConfigId=${meta?.agentConfigId ?? 'none'} source=${storedLaunchConfig.source} keys=${agentConfigEnv ? Object.keys(agentConfigEnv).length : 0})`
         );
 
-        const requestedResumeSessionId = acpSessionConfig.resume;
-        const storedResumeSessionId = resolveResumableAcpSessionId(meta);
+        const sameDesignProvider =
+          !meta?.design ||
+          (!freshDesignRuntime && meta.acpSessionAgentConfigId === acpSessionConfig.agentConfigId);
+        const requestedResumeSessionId = sameDesignProvider ? acpSessionConfig.resume : undefined;
+        const storedResumeSessionId = sameDesignProvider
+          ? resolveResumableAcpSessionId(meta)
+          : undefined;
         const resumeSessionId = requestedResumeSessionId ?? storedResumeSessionId;
         const resumeSource = requestedResumeSessionId
           ? 'request'
@@ -3816,6 +3860,7 @@ export class SessionExecutionService {
         const restoreBranch = project?.branch?.trim() || undefined;
         const restoreConfig: SessionConfig = {
           sessionId,
+          agentConfigId: meta?.agentConfigId,
           workspaceId: message.workspaceId,
           agentCliType: acpSessionConfig.cliType,
           agentType: acpSessionConfig.agentType,
@@ -4437,6 +4482,34 @@ export class SessionExecutionService {
           self.captureStatusChanged(sessionId, 'initializing', undefined, 'chat_dispatch');
 
           let readySession = session;
+          const dispatchMeta = yield* self.tryPromise(() => sessionDoc.getMetaState());
+          if (dispatchMeta?.design && acpSessionConfig.agentConfigId) {
+            if (
+              dispatchMeta.agentConfigId !== acpSessionConfig.agentConfigId ||
+              dispatchMeta.agentType !== acpSessionConfig.agentType ||
+              dispatchMeta.cliType !== acpSessionConfig.cliType
+            ) {
+              yield* self.recordKnownChatFailureAndHaltEffect({
+                sessionId,
+                sessionDoc,
+                userTurnId: executionUserTurnId,
+                reason: 'agent_type_mismatch',
+                message:
+                  'Selected design Agent changed after this turn was accepted; explicitly send again.',
+              });
+            }
+            if (
+              readySession &&
+              readySession.getAgentConfigId?.() !== acpSessionConfig.agentConfigId
+            ) {
+              freshDesignRuntime = true;
+              yield* self.tryPromise(() =>
+                self.deps.sessionManager.terminateSession(sessionId, true, true)
+              );
+              readySession = null;
+              session = null;
+            }
+          }
           if (
             readySession &&
             (!readySession.agentClient?.isCreated() || !readySession.acpSessionId)

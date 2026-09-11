@@ -36,7 +36,7 @@ export type SessionAgentRoleControl = {
 /**
  * The Role row for an EXISTING session's composer.
  *
- * A live session's agent is fixed, so this is deliberately not the landing's
+ * This controls the currently selected provider, deliberately not the landing's
  * feature. It offers only Roles bound to the Session's exact machine and Agent
  * Config (its model provider), and applies only their RUN CONFIG — model,
  * reasoning, permission, and whatever else that agent publishes — because
@@ -134,12 +134,17 @@ export function useSessionAgentRole({
      seed in session-keyed app state. Whether the Role still describes the run
      config is derived below, so a knob moved by hand takes the name away on its
      own. */
-  const [selectionOverride, setSelectionOverride] = useAtom(
+  const [storedSelectionOverride, setSelectionOverride] = useAtom(
     sessionAgentRoleSelectionAtomFamily(sessionId)
   );
-  const [durableSnapshot, setDurableSnapshot] = useAtom(
+  const [storedDurableSnapshot, setDurableSnapshot] = useAtom(
     sessionAgentRoleDurableSnapshotAtomFamily(sessionId)
   );
+  const providerKey = `${machineId ?? ''}:${agentConfigId ?? ''}`;
+  const selectionOverride =
+    storedSelectionOverride?.providerKey === providerKey ? storedSelectionOverride : undefined;
+  const durableSnapshot =
+    storedDurableSnapshot?.providerKey === providerKey ? storedDurableSnapshot : undefined;
   const hydratedTurnKey = durableSourceTurnKey ?? null;
   const hydratedKnownTurnKeys = useMemo(
     () =>
@@ -164,6 +169,7 @@ export function useSessionAgentRole({
     setDurableSnapshot((current) => {
       if (
         current &&
+        current.providerKey === providerKey &&
         current.roleId === durableRoleId &&
         current.roleRevision === durableRoleRevision &&
         current.currentTurnKey === hydratedTurnKey &&
@@ -173,6 +179,7 @@ export function useSessionAgentRole({
         return current;
       }
       return {
+        providerKey,
         roleId: durableRoleId,
         roleRevision: durableRoleRevision,
         currentTurnKey: hydratedTurnKey,
@@ -180,6 +187,7 @@ export function useSessionAgentRole({
       };
     });
   }, [
+    providerKey,
     durableRoleId,
     durableRoleReady,
     durableRoleRevision,
@@ -227,8 +235,13 @@ export function useSessionAgentRole({
       : provenanceRoleId === pickedRoleId
         ? provenanceRoleRevision
         : undefined;
-  const turnSelection: SessionTurnAgentRoleSelection =
-    selectedRoleId && pickedItem
+  const knownPickedRole = roles.find((role) => role.id === pickedRoleId);
+  const wrongProvider =
+    knownPickedRole &&
+    (knownPickedRole.machineId !== machineId || knownPickedRole.agentConfigId !== agentConfigId);
+  const turnSelection: SessionTurnAgentRoleSelection = wrongProvider
+    ? null
+    : selectedRoleId && pickedItem
       ? {
           agentRoleId: selectedRoleId,
           agentRoleRevision: pickedItem.role.revision,
@@ -257,13 +270,17 @@ export function useSessionAgentRole({
         // Clears the NAME, not the configuration: the values are the user's own
         // now, and rolling them back would undo choices they never asked to undo.
         if (!durableRoleReady) return;
-        setSelectionOverride({ roleId: null, basedOnTurnKeys: effectiveKnownTurnKeys });
+        setSelectionOverride({
+          providerKey,
+          roleId: null,
+          basedOnTurnKeys: effectiveKnownTurnKeys,
+        });
         return;
       }
       const item = items.find((candidate) => candidate.role.id === roleId);
       if (!item || item.availability.kind !== 'available') return;
       const { role } = item;
-      setSelectionOverride({ roleId, basedOnTurnKeys: effectiveKnownTurnKeys });
+      setSelectionOverride({ providerKey, roleId, basedOnTurnKeys: effectiveKnownTurnKeys });
 
       const { modelId, modeId, configOptionValues: pinned } = role.runConfig;
       const appliedModelId =
@@ -288,6 +305,7 @@ export function useSessionAgentRole({
       }
     },
     [
+      providerKey,
       configOptionSelectors,
       durableRoleReady,
       effectiveKnownTurnKeys,

@@ -9,6 +9,10 @@ also applies.
   Electron. A browser-only renderer test belongs in `packages/components`.
 - Build once before a run. Scenarios consume `apps/electron/out/main/index.js`
   and the synced CLI under `apps/electron/resources/cli`; they never rebuild.
+- Installed acceptance uses the same harness with an explicit executable and
+  expected source commit, consuming the package's own entry and resources.
+  Read [installed launch instructions](README.md#installed-folio-acceptance)
+  before selecting that target; preserve the same profile and endpoint isolation.
 - Use a real Electron main process, preload, renderer, IPC graph, and bundled
   CLI. Only an external model/provider wire may be simulated.
 - Every run owns a temporary Electron user-data directory, Lody data directory,

@@ -9,6 +9,10 @@ Dispatch architecture: context/message-flow.md — user turns arrive by being wr
 session doc (meta pointers), not via a message bus. The WS/DO path is DEPRECATED. The
 CLI/MCP orchestration contract is specs/session-orchestration.md.
 
+Design continuation uses the same guarded dispatch and restore path. Its frozen
+provider selection, persisted ACP/provider association, retiring callback fence,
+and native terminal evidence are described in [design ownership](../design/README.md).
+
 ## Files
 
 - `session-dispatch-watcher.ts` — the current dispatch entry: watches

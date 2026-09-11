@@ -2011,8 +2011,24 @@ export const SessionChatInterface = memo(
       syncEnabled: !hideMessageArea && syncEnabled,
     });
     const sessionConversationConfig = useMemo(
-      () => resolveSessionConversationConfig(sessionDoc?.history ?? [], sessionDoc?.mq ?? []),
-      [sessionDoc?.history, sessionDoc?.mq]
+      () =>
+        resolveSessionConversationConfig(
+          sessionDoc?.history ?? [],
+          sessionDoc?.mq ?? [],
+          session.design
+            ? {
+                agentConfigId: session.agentConfigId,
+                legacyAgentConfigId: session.acpSessionAgentConfigId,
+              }
+            : undefined
+        ),
+      [
+        sessionDoc?.history,
+        sessionDoc?.mq,
+        session.design,
+        session.agentConfigId,
+        session.acpSessionAgentConfigId,
+      ]
     );
     const sessionConversationSourceFence = useMemo(
       () => resolveSessionConversationSourceFence(sessionDoc?.history ?? [], sessionDoc?.mq ?? []),
@@ -2020,12 +2036,24 @@ export const SessionChatInterface = memo(
     );
     const sessionRuntimeConfig = useMemo(
       () =>
-        resolveSessionAcpRuntimeConfig(
-          sessionDoc?.history ?? [],
-          sessionDoc?.mq ?? [],
-          sessionDoc?.acpRuntimeConfig
-        ),
-      [sessionDoc?.acpRuntimeConfig, sessionDoc?.history, sessionDoc?.mq]
+        session.design &&
+        (session.acpSessionAgentConfigId !== session.agentConfigId ||
+          sessionDoc?.acpRuntimeConfig?.acpSessionId !== session.acpSessionId)
+          ? null
+          : resolveSessionAcpRuntimeConfig(
+              sessionDoc?.history ?? [],
+              sessionDoc?.mq ?? [],
+              sessionDoc?.acpRuntimeConfig
+            ),
+      [
+        sessionDoc?.acpRuntimeConfig,
+        sessionDoc?.history,
+        sessionDoc?.mq,
+        session.design,
+        session.acpSessionAgentConfigId,
+        session.agentConfigId,
+        session.acpSessionId,
+      ]
     );
     // `sourceConfigKey` identifies the durable turn selected by the resolver,
     // so there is no need to hash its mode/model/option values separately.
@@ -2058,7 +2086,7 @@ export const SessionChatInterface = memo(
       selectConfigOption: handleConfigOptionChange,
     } = useAcpSessionConfigSelectionState({
       enabled: !hideMessageArea && sessionDocReady,
-      targetKey: `${session.id}:${session.cliType}:${session.agentType}`,
+      targetKey: `${session.id}:${session.cliType}:${session.agentType}:${session.design ? session.agentConfigId : ''}`,
       preferenceRevision: sessionConversationConfigRevision,
       preferences: sessionConfigPreferences,
       runtimePreferences: sessionRuntimeConfig,
@@ -3462,6 +3490,7 @@ export const SessionChatInterface = memo(
             : undefined;
           const inputConfig = buildSessionTurnInputConfig({
             inputBlocks,
+            agentConfigId: session.design ? session.agentConfigId : undefined,
             cliType: session.cliType,
             agentType: session.agentType,
             modeId: turnModeId,
@@ -3569,6 +3598,8 @@ export const SessionChatInterface = memo(
         selectedModeId,
         selectedModelId,
         session.acpSessionId,
+        session.agentConfigId,
+        session.design,
         session.agentType,
         session.cliType,
         session.id,
@@ -3603,6 +3634,7 @@ export const SessionChatInterface = memo(
             : undefined;
           const inputConfig = buildSessionTurnInputConfig({
             inputBlocks,
+            agentConfigId: session.design ? session.agentConfigId : undefined,
             cliType: session.cliType,
             agentType: session.agentType,
             modeId: turnModeId,
@@ -3618,6 +3650,7 @@ export const SessionChatInterface = memo(
           });
           const queuedInputConfig: MessageQueueItemInput['acpSessionConfig'] = {
             prompt: inputConfig.prompt,
+            agentConfigId: inputConfig.agentConfigId,
             inputBlocks,
             cliType: inputConfig.cliType,
             agentType: inputConfig.agentType,
@@ -3670,6 +3703,8 @@ export const SessionChatInterface = memo(
         selectedModeId,
         selectedModelId,
         session.acpSessionId,
+        session.agentConfigId,
+        session.design,
         session.agentType,
         session.cliType,
         session.userId,
@@ -4098,6 +4133,16 @@ export const SessionChatInterface = memo(
         if (!runtime) return;
         const config = agentConfigs.find((c) => c.id === selection.agentId);
         if (!config) return;
+        if (
+          session.design &&
+          (isSessionWorking ||
+            activeAssistantTurnId != null ||
+            !(
+              config.agentType === 'pi-acp' ||
+              (config.cliType === 'builtin' && config.agentType === 'claude')
+            ))
+        )
+          return;
         const roomId = getSessionRoomId(session.id);
         void runtime.writer.upsertDocMeta(roomId, {
           agentConfigId: config.id,
@@ -4105,7 +4150,7 @@ export const SessionChatInterface = memo(
           agentType: config.agentType,
         } as Partial<SessionMeta>);
       },
-      [runtime, agentConfigs, session.id]
+      [runtime, agentConfigs, session.id, session.design, isSessionWorking, activeAssistantTurnId]
     );
 
     // ── Pin management ──────────────────────────────────────────────────
@@ -5278,7 +5323,22 @@ export const SessionChatInterface = memo(
                           void handleStop();
                         }}
                         onRemoveQueueItem={handleRemoveQueueItem}
-                        onAgentConfigChange={isChildSession ? handleAgentConfigChange : undefined}
+                        onAgentConfigChange={
+                          isChildSession || session.design ? handleAgentConfigChange : undefined
+                        }
+                        designAgentConfigs={
+                          session.design
+                            ? agentConfigs.filter(
+                                (config) =>
+                                  config.machineId === session.machineId &&
+                                  (config.agentType === 'pi-acp' ||
+                                    (config.cliType === 'builtin' && config.agentType === 'claude'))
+                              )
+                            : undefined
+                        }
+                        allowDesignAgentSwitch={
+                          !!session.design && !isSessionWorking && activeAssistantTurnId == null
+                        }
                         onNavigateToComment={onNavigateToComment}
                         onCommentReferencesChange={onCommentReferencesChange}
                         onVisualAnnotationReferencesChange={onVisualAnnotationReferencesChange}

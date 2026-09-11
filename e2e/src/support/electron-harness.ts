@@ -24,6 +24,7 @@ import {
 } from './world-utils.js';
 import {
   collectPostGcRuntimeSnapshot,
+  collectProcessTree,
   collectRuntimeSnapshot,
   type RuntimeSnapshot,
 } from './resource-probe.js';
@@ -112,7 +113,15 @@ export class ElectronHarness {
   constructor(readonly artifacts: ScenarioArtifacts) {}
 
   async launch(): Promise<void> {
-    if (!existsSync(MAIN_ENTRY) || !existsSync(BUNDLED_CLI_ENTRY)) {
+    const installedExecutable = process.env.FOLIO_E2E_INSTALLED_EXECUTABLE;
+    const expectedSourceCommit = process.env.FOLIO_E2E_EXPECTED_SOURCE_COMMIT;
+    if (installedExecutable && !/^[a-f0-9]{40}$/.test(expectedSourceCommit ?? '')) {
+      throw new Error('Installed acceptance requires FOLIO_E2E_EXPECTED_SOURCE_COMMIT (full SHA)');
+    }
+    if (installedExecutable && !existsSync(installedExecutable)) {
+      throw new Error(`Installed Electron executable does not exist: ${installedExecutable}`);
+    }
+    if (!installedExecutable && (!existsSync(MAIN_ENTRY) || !existsSync(BUNDLED_CLI_ENTRY))) {
       throw new Error(
         'Desktop E2E artifacts are missing. Run `pnpm e2e:build` before launching scenarios.'
       );
@@ -150,13 +159,16 @@ export class ElectronHarness {
         // which breaks Electron's SUID sandbox from an unpacked dev tree.
         ...(process.platform === 'linux' && process.env.CI ? ['--no-sandbox'] : []),
         // The app directory preserves app.getAppPath() for bundled design resources.
-        ELECTRON_DIR,
+        // Packaged executables locate their own app.asar; never inject source into them.
+        ...(installedExecutable ? [] : [ELECTRON_DIR]),
         `--user-data-dir=${electronUserDataDir}`,
         '--lang=en-US',
       ],
-      cwd: ELECTRON_DIR,
+      cwd: installedExecutable ? dirname(resolve(installedExecutable)) : ELECTRON_DIR,
       env,
-      executablePath: resolveElectronExecutable(),
+      executablePath: installedExecutable
+        ? resolve(installedExecutable)
+        : resolveElectronExecutable(),
       timeout: 60_000,
     });
     const childProcess = this.app.process();
@@ -176,8 +188,35 @@ export class ElectronHarness {
       ).__LODY_E2E_BOOT_DIAGNOSTIC__,
       rendererCount: BrowserWindow.getAllWindows().length,
       userDataPath: app.getPath('userData'),
+      appPath: app.getAppPath(),
+      executablePath: process.execPath,
+      isPackaged: app.isPackaged,
     }));
     this.record('electron-main', 'boot-state', JSON.stringify(bootState));
+    if (bootState.userDataPath !== electronUserDataDir) {
+      throw new Error('Electron did not use the isolated acceptance user-data directory');
+    }
+    if (installedExecutable && !bootState.isPackaged) {
+      throw new Error('Installed acceptance target did not boot as a packaged application');
+    }
+    if (installedExecutable) {
+      const sourceCommit = await this.app.evaluate(async ({ app }) => {
+        const fs = await import('node:fs');
+        const path = await import('node:path');
+        const manifest: unknown = JSON.parse(
+          fs.readFileSync(path.join(app.getAppPath(), 'package.json'), 'utf8')
+        );
+        return manifest && typeof manifest === 'object' && 'folioSourceCommit' in manifest
+          ? manifest.folioSourceCommit
+          : null;
+      });
+      this.record('electron-main', 'installed-source', JSON.stringify({ sourceCommit }));
+      if (sourceCommit !== expectedSourceCommit) {
+        throw new Error(
+          `Installed application source commit does not match ${expectedSourceCommit}`
+        );
+      }
+    }
     if (bootState.diagnostic?.stage === 'failed') {
       throw new Error(
         `Electron main boot failed:\n${bootState.diagnostic.error ?? 'unknown error'}`
@@ -309,16 +348,33 @@ export class ElectronHarness {
   async close(): Promise<void> {
     let closeError: unknown;
     const appProcess = this.app?.process();
+    const phase = (name: string, detail?: unknown) => {
+      this.record('electron-main', 'teardown', JSON.stringify({ phase: name, detail }));
+      this.writeDiagnostics();
+    };
+    phase('owned-processes');
+    const ownedProcesses = appProcess?.pid
+      ? await boundedTeardown('Owned process snapshot', collectProcessTree(appProcess.pid)).catch(
+          (error: unknown) => {
+            closeError = error;
+            return [];
+          }
+        )
+      : [];
+    phase('trace-stop', ownedProcesses);
     try {
-      await this.stopTrace();
-    } catch (error) {
-      closeError = error;
-    }
-    try {
-      await this.performanceSession?.detach();
+      await boundedTeardown('Trace stop', this.stopTrace());
     } catch (error) {
       closeError ??= error;
     }
+    phase('performance-detach');
+    try {
+      if (this.performanceSession)
+        await boundedTeardown('Performance session detach', this.performanceSession.detach());
+    } catch (error) {
+      closeError ??= error;
+    }
+    phase('application-close');
     try {
       if (this.app) await boundedTeardown('Electron application close', this.app.close());
     } catch (error) {
@@ -334,14 +390,29 @@ export class ElectronHarness {
       this.performanceSession = null;
     }
 
+    phase('endpoint-release');
     try {
       if (this.hostPort !== null) await assertTcpPortReleased(this.hostPort);
       if (this.hostPipe !== null) await assertNamedPipeReleased(this.hostPipe);
     } catch (error) {
       closeError ??= error;
     }
+    phase('directory-cleanup');
     try {
-      if (this.tempRoot) rmSync(this.tempRoot, { recursive: true, force: true });
+      const survivors = ownedProcesses.filter(({ pid }) => {
+        try {
+          process.kill(pid, 0);
+          return true;
+        } catch (error) {
+          return (error as NodeJS.ErrnoException).code !== 'ESRCH';
+        }
+      });
+      if (survivors.length) {
+        phase('surviving-owned-processes', survivors);
+        throw new Error('Owned processes remain after Electron quit; isolated data retained');
+      }
+      if (this.tempRoot && !closeError) rmSync(this.tempRoot, { recursive: true, force: true });
+      else if (this.tempRoot) phase('retained-data', this.tempRoot);
     } catch (error) {
       closeError ??= error;
     }
@@ -349,6 +420,7 @@ export class ElectronHarness {
     this.hostPort = null;
     this.hostPipe = null;
     this.rendererPaintCount = 0;
+    phase('finished', closeError instanceof Error ? closeError.message : closeError);
     if (closeError) throw closeError;
   }
 

@@ -120,6 +120,7 @@ export interface DesignTurnOutcomeSession {
 export interface DesignTurnOutcomeContext {
   /** Live daemon evidence; never read from Agent-writable input files. */
   designReadBaseline?: import('./sync-baseline').DesignReadBaseline;
+  designNativeTerminal?: 'end_turn' | 'failed' | 'cancelled';
   sessionId: string;
   sessionDoc: DesignTurnOutcomeSession;
   /**
@@ -263,6 +264,7 @@ async function recordTurnOutcome(
     dataRoot: string;
     manifestFile: ManifestPresent;
     requiresReadBaseline: boolean;
+    requiresNativeTerminal: boolean;
   }) => Promise<{ outcome: DesignTurnOutcome }>
 ): Promise<DesignTurnAttempt> {
   const dataRoot = ctx.dataRoot ?? getLodyDataDir();
@@ -336,6 +338,7 @@ async function recordTurnOutcome(
     workdir: artifactWorkdir,
     dataRoot,
     manifestFile,
+    requiresNativeTerminal: meta.agentType === 'pi-acp',
     requiresReadBaseline:
       meta.agentType === 'pi-acp' || (meta.cliType === 'builtin' && meta.agentType === 'claude'),
   });
@@ -376,7 +379,14 @@ export async function collectDesignTurnOutcome(
 ): Promise<DesignTurnAttempt> {
   return await recordTurnOutcome(
     ctx,
-    async ({ artworkId, workdir, dataRoot, manifestFile, requiresReadBaseline }) => {
+    async ({
+      artworkId,
+      workdir,
+      dataRoot,
+      manifestFile,
+      requiresReadBaseline,
+      requiresNativeTerminal,
+    }) => {
       const base = outcomeBase(ctx, artworkId);
       const invalid = (
         entries: readonly DesignTurnOutcomeDiagnostic[]
@@ -390,6 +400,27 @@ export async function collectDesignTurnOutcome(
           },
         };
       };
+      if (requiresNativeTerminal && ctx.designNativeTerminal !== 'end_turn') {
+        return {
+          outcome: {
+            ...base,
+            status: ctx.designNativeTerminal === 'cancelled' ? 'cancelled' : 'failed',
+            diagnostics: [
+              {
+                code: ctx.designNativeTerminal
+                  ? 'design_native_turn_failed'
+                  : 'design_native_terminal_missing',
+                message:
+                  ctx.designNativeTerminal === 'cancelled'
+                    ? 'Native Pi execution was cancelled; draft and current canvas preserved.'
+                    : ctx.designNativeTerminal === 'failed'
+                      ? 'Native Pi reported an execution failure; draft and current canvas preserved. Explicitly continue to read the current design and retained files.'
+                      : 'Native Pi completion could not be verified; draft and current canvas preserved. Explicitly continue rather than assuming ACP end_turn proves success.',
+              },
+            ],
+          },
+        };
+      }
       if (manifestFile.kind === 'unreadable') {
         return invalid([{ code: 'design_manifest_unreadable', message: manifestFile.message }]);
       }

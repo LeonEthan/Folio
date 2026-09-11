@@ -1,7 +1,6 @@
 # React hooks
 
-Root and `packages/components/AGENTS.md` also apply. `CLAUDE.md` is a symlink;
-edit `AGENTS.md` only. Per-hook background and reasoning: [README.md](README.md).
+Parent rules apply. `CLAUDE.md` links here; edit `AGENTS.md`. [Ownership](README.md).
 
 ## Conversation scrolling
 
@@ -119,3 +118,5 @@ edit `AGENTS.md` only. Per-hook background and reasoning: [README.md](README.md)
   native iOS shell are BOTH required and are not equivalent. Derive the activity id
   separately from that gate so the disable and unmount paths can still end an activity
   the payload no longer describes.
+
+Known other-provider Roles never inherit the unsynced-catalog Turn fallback.

@@ -835,6 +835,8 @@ export type SessionMeta = {
   agentRoleId?: AgentRoleId;
   agentRoleRevision?: number;
   acpSessionId?: ACPSessionId;
+  /** Actual provider that owns acpSessionId; independent of the next selected Agent. */
+  acpSessionAgentConfigId?: AgentConfigId;
   /** Exact Session or child Tab that created/opened this session, when known. */
   openedBySessionId?: SessionId;
   /**
