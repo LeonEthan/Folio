@@ -18,18 +18,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { deflateSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
-import type {
-  DesignRenderHostWork,
-  SessionHistoryInput,
-  SessionId,
-  SessionMeta,
-} from '@lody/shared';
+import type { SessionHistoryInput, SessionId, SessionMeta } from '@lody/shared';
 import { sanitizeDesignTurnOutcome, type DesignTurnOutcome } from '@lody/shared';
-import type { DesignRenderQueue } from './render-output';
 import { DESIGN_ARTIFACT_ENTRY, readDesignArtifact } from './artifact';
 import { DESIGN_LOCK_FILENAME } from './lock';
 import { designOperation, listDesignCandidates, readDesignCandidate } from './store';
-import { MAX_THUMBNAIL_EDGE, DESIGN_THUMBNAIL_DIRNAME } from './thumbnail';
 import {
   collectDesignTurnOutcome,
   recordDesignTurnTerminalOutcome,
@@ -330,24 +323,6 @@ const contextFor = (harness: Harness, now = new Date('2026-09-10T01:00:00.000Z')
   now: () => now,
 });
 
-/** A stand-in desktop: it writes a real, small PNG wherever it was asked to. */
-const renderingHost = (
-  size: { width: number; height: number } = { width: 160, height: 100 },
-  onWork?: (work: DesignRenderHostWork) => void
-): DesignRenderQueue => ({
-  isConnected: () => true,
-  enqueue: async (work) => {
-    onWork?.(work);
-    writeFileSync(work.outputPath, syntheticPng(size.width, size.height, [31, 107, 138]));
-    return { status: 'rendered', absolutePath: work.outputPath };
-  },
-});
-
-const withHost = (harness: Harness, host: DesignRenderQueue) => ({
-  ...contextFor(harness),
-  thumbnail: { host, machineId: 'test-machine' },
-});
-
 const recordedOutcome = (harness: Harness): DesignTurnOutcome | undefined => {
   const entry = harness.history.find((item) => item.id === harness.turnId);
   return sanitizeDesignTurnOutcome(entry?.designOutcome);
@@ -421,66 +396,39 @@ describe('collectDesignTurnOutcome', () => {
     }
   );
 
-  it('records a reference to the thumbnail the desktop rendered for the commit', async () => {
-    const harness = createHarness();
-    const created = await createDesign(harness);
-    await writeArtifact(harness, PAGE);
-    await writeManifest(harness, created.revisionId);
-    let asked: DesignRenderHostWork | undefined;
-
-    const attempt = await collectDesignTurnOutcome(
-      withHost(
-        harness,
-        renderingHost({ width: 160, height: 100 }, (work) => {
-          asked = work;
-        })
-      )
-    );
-    expect(attempt.status).toBe('recorded');
-    if (attempt.status !== 'recorded' || attempt.outcome.status !== 'committed') return;
-
-    const thumbnail = attempt.outcome.thumbnail;
-    expect(thumbnail).toMatchObject({ width: 160, height: 100 });
-    expect(thumbnail?.path).toMatch(new RegExp(`^${DESIGN_THUMBNAIL_DIRNAME}/[a-f0-9]{64}\\.png$`));
-    // The canvas's own size is what the host lays out; the card gets a small copy.
-    expect(asked).toMatchObject({ width: 320, height: 200, maxEdge: MAX_THUMBNAIL_EDGE });
-    // The reference names a file that is really there, and it survives the
-    // write onto the history entry the renderer reopens.
-    expect(existsSync(path.join(harness.workdir, thumbnail!.path))).toBe(true);
-    expect(recordedOutcome(harness)?.thumbnail).toEqual(thumbnail);
-    // Staging is scratch; the staged payload is gone.
-    expect(readdirSync(path.join(harness.root, 'design-preview-stage'))).toEqual([]);
-  });
-
-  it('records a thumbnail for the candidate it kept, not just for a commit', async () => {
-    const harness = createHarness();
-    const created = await createDesign(harness);
-    await writeArtifact(harness, PAGE);
-    await writeManifest(harness, created.revisionId);
-    await moveBaseline(harness, created.revisionId);
-
-    const attempt = await collectDesignTurnOutcome(withHost(harness, renderingHost()));
-    expect(attempt.status).toBe('recorded');
-    if (attempt.status !== 'recorded' || attempt.outcome.status !== 'candidate') return;
-    expect(attempt.outcome.thumbnail?.path).toMatch(
-      new RegExp(`^${DESIGN_THUMBNAIL_DIRNAME}/[a-f0-9]{64}\\.png$`)
-    );
-    expect(recordedOutcome(harness)?.thumbnail).toEqual(attempt.outcome.thumbnail);
-  });
-
-  it('records the verdict exactly as before when there is no desktop to render it', async () => {
+  it('records a commit without creating thumbnail or render scratch files', async () => {
     const harness = createHarness();
     const created = await createDesign(harness);
     await writeArtifact(harness, PAGE);
     await writeManifest(harness, created.revisionId);
 
-    // No `thumbnail` in the context at all: a machine whose daemon has no render
-    // host. The outcome is complete without an image, and nothing is written.
     const attempt = await collectDesignTurnOutcome(contextFor(harness));
     expect(attempt.status).toBe('recorded');
     if (attempt.status !== 'recorded') return;
     expect(attempt.outcome).not.toHaveProperty('thumbnail');
-    expect(existsSync(path.join(harness.workdir, DESIGN_THUMBNAIL_DIRNAME))).toBe(false);
+    expect(existsSync(path.join(harness.workdir, 'design-thumbnail'))).toBe(false);
+    expect(existsSync(path.join(harness.root, 'design-preview-stage'))).toBe(false);
+  });
+
+  it('preserves legacy thumbnail files when recording and reopening a turn', async () => {
+    const harness = createHarness();
+    const created = await createDesign(harness);
+    await writeManifest(harness, created.revisionId);
+    await writeArtifact(harness, PAGE);
+    const directory = path.join(harness.workdir, 'design-thumbnail');
+    mkdirSync(directory);
+    const file = path.join(directory, `${'a'.repeat(64)}.png`);
+    const bytes = syntheticPng(8, 8, [31, 107, 138]);
+    writeFileSync(file, bytes);
+    const first = await collectDesignTurnOutcome(contextFor(harness));
+    expect(first.status).toBe('recorded');
+    expect(await collectDesignTurnOutcome(contextFor(harness))).toEqual({
+      status: 'skipped',
+      reason: 'already_recorded',
+    });
+    expect(readdirSync(directory)).toEqual([path.basename(file)]);
+    expect(readFileSync(file)).toEqual(Buffer.from(bytes));
+    expect(recordedOutcome(harness)).not.toHaveProperty('thumbnail');
   });
 
   it('reports no_artifact and leaves an existing canvas untouched', async () => {
@@ -738,22 +686,18 @@ describe('collectDesignTurnOutcome', () => {
     await writeArtifact(harness, PAGE);
     await writeManifest(harness, created.revisionId);
 
-    const first = await collectDesignTurnOutcome(withHost(harness, renderingHost()));
+    const first = await collectDesignTurnOutcome(contextFor(harness));
     expect(first.status).toBe('recorded');
     if (first.status !== 'recorded') return;
     // The verdict is on disk twice: the receipt this turn's directory keeps, and
-    // the entry the card renders. The receipt is written before the render, so it
-    // is the verdict itself and never the image.
+    // the history entry. Both preserve the same verdict.
     const receiptFile = path.join(
       harness.workdir,
       DESIGN_TURN_INPUT_DIRNAME,
       harness.turnId,
       'receipt.json'
     );
-    expect(JSON.parse(readFileSync(receiptFile, 'utf8'))).toEqual({
-      ...first.outcome,
-      thumbnail: undefined,
-    });
+    expect(JSON.parse(readFileSync(receiptFile, 'utf8'))).toEqual(first.outcome);
     const committed = await designOperation(harness.root, {
       operation: 'read',
       sessionId: harness.sessionId,
@@ -770,24 +714,12 @@ describe('collectDesignTurnOutcome', () => {
       operation: 'read',
       sessionId: harness.sessionId,
     });
-    let renderedAgain = 0;
-
-    const second = await collectDesignTurnOutcome(
-      withHost(
-        harness,
-        renderingHost(undefined, () => {
-          renderedAgain += 1;
-        })
-      )
-    );
+    const second = await collectDesignTurnOutcome(contextFor(harness));
     expect(second.status).toBe('recorded');
     if (second.status !== 'recorded') return;
-    // Exactly what was written down, image included: recovery stamps, it does not
-    // re-derive — so a verdict whose thumbnail was already captured still has no
-    // second one.
-    expect(second.outcome).toEqual({ ...first.outcome, thumbnail: undefined });
+    // Recovery stamps exactly what was written down without collecting again.
+    expect(second.outcome).toEqual(first.outcome);
     expect(recordedOutcome(harness)).toEqual(second.outcome);
-    expect(renderedAgain).toBe(0);
     expect(await listDesignCandidates(harness.root, harness.sessionId)).toEqual([]);
     // The canvas the user saved is still theirs, byte for byte, and nothing was
     // committed a second time.
@@ -896,29 +828,6 @@ describe('collectDesignTurnOutcome', () => {
       expect(attempt.outcome.status).toBe('committed');
       expect(attempt.outcome.revisionId).not.toBe(forged.revisionId);
     }
-  });
-
-  it('stamps the verdict before the desktop renders it a thumbnail', async () => {
-    const harness = createHarness();
-    const created = await createDesign(harness);
-    await writeArtifact(harness, PAGE);
-    await writeManifest(harness, created.revisionId);
-    let duringRender: DesignTurnOutcome | undefined;
-
-    const attempt = await collectDesignTurnOutcome(
-      withHost(
-        harness,
-        renderingHost({ width: 160, height: 100 }, () => {
-          duringRender = recordedOutcome(harness);
-        })
-      )
-    );
-    expect(attempt.status).toBe('recorded');
-    // The entry already carries the truth — without the image — while the image
-    // is being made: a render that fails or never lands cannot un-record it.
-    expect(duringRender).toMatchObject({ status: 'committed', turnId: harness.turnId });
-    expect(duringRender?.thumbnail).toBeUndefined();
-    expect(recordedOutcome(harness)?.thumbnail).toMatchObject({ width: 160, height: 100 });
   });
 
   it('reports invalid with the validator diagnostics for a broken artifact', async () => {

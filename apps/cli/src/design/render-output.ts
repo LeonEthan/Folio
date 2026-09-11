@@ -1,10 +1,8 @@
 /**
  * The filesystem half of the design render bridge.
  *
- * Both halves of the daemon side — the agent-facing preview
- * (`./render-preview.ts`) and the result-card thumbnail (`./thumbnail.ts`) —
- * stage a payload the desktop will read and then check the file it claims to
- * have written. That rule is the same for both, so it lives here once:
+ * The agent-facing preview (`./render-preview.ts`) stages a payload the
+ * desktop reads, then checks the file it claims to have written:
  *
  * - **Staging is atomic.** Temp file, fsync, rename; a half-written payload is
  *   never observable by a host that polls mid-write.
@@ -27,17 +25,12 @@ import { sniffStaticV1ImageMime } from '../../../../packages/design-bento/vendor
 import type { DesignRenderPreviewOutcome } from './render-host';
 
 /**
- * The part of the render host the two callers drive. Narrow on purpose: staging
+ * The part of the render host the preview caller drives. Narrow on purpose: staging
  * a payload and verifying the image are filesystem concerns, and keeping them
  * apart from the queue is what lets each be tested without the other.
  */
 export interface DesignRenderQueue {
-  /** Whether a host is polling right now. Asked before staging, which writes real bytes. */
-  isConnected(): boolean;
-  enqueue(
-    work: DesignRenderHostWork,
-    options?: { timeoutMs?: number }
-  ): Promise<DesignRenderPreviewOutcome>;
+  enqueue(work: DesignRenderHostWork): Promise<DesignRenderPreviewOutcome>;
 }
 
 /** One staged payload, shared by every bridge request. */
@@ -46,10 +39,8 @@ export const MAX_STAGED_PAYLOAD_BYTES = 64 * 1024 * 1024;
 /**
  * Where staged payloads wait, relative to the daemon data root.
  *
- * Both bridge callers stage into the same scratch directory — the file is
- * consumed by the host within one poll, so one directory is one queue's worth of
- * transient bytes, and a preview and a thumbnail never collide because each
- * stage name is its own request id.
+ * The host consumes staged previews within one poll. Each transient payload
+ * has its request id as its name, so independent renders never collide.
  */
 export const DESIGN_PREVIEW_STAGE_DIRNAME = 'design-preview-stage';
 

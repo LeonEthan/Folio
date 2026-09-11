@@ -13,7 +13,7 @@ Translation: pending
 - `a09858632afaf2a9d1929af95f593308951d8ae9` 实现 P2.5 卡片和候选动作，`baed947b6f16263cb6a2f8f37e10f1695d146fe0` 增加 P2.6 缩略图引用。它不是 P2 开发时无计划增加的功能。
 - [消息渲染入口](../../../../packages/components/src/components/ai-gui/view.tsx)在设计会话的用户回合下挂载卡片；[状态解析](https://github.com/LeonEthan/Folio/blob/a09858632afaf2a9d1929af95f593308951d8ae9/packages/components/src/lib/design-turn-result.ts)读取持久 `designOutcome`，另提供 live 显示，状态包括 committed、candidate、invalid、no_artifact、failed、cancelled。
 - [卡片组件](https://github.com/LeonEthan/Folio/blob/a09858632afaf2a9d1929af95f593308951d8ae9/packages/components/src/components/sessions/design-turn-result-card.tsx)读取候选状态和缩略图，提供定位、采用、丢弃和用户触发修复。修复经 [session-chat-interface](../../../../packages/components/src/components/sessions/session-chat-interface.tsx) 的普通 `dispatchPrompt`，不是自动修复或私有 Agent 通道；卡片不执行语义质量评审。
-- [缩略图生成](../../../../apps/cli/src/design/thumbnail.ts)、[读取](../../../../apps/cli/src/design/thumbnail-read.ts)以及共享 outcome 的可选引用，是展示以外的额外维护面。它们复用现有渲染桥，并非第二套渲染器；没有实测数据证明其成本不可接受，也不能因为复用就认定这项需求不可删除。
+- [缩略图生成](https://github.com/LeonEthan/Folio/blob/baed947b6f16263cb6a2f8f37e10f1695d146fe0/apps/cli/src/design/thumbnail.ts)、[读取](https://github.com/LeonEthan/Folio/blob/baed947b6f16263cb6a2f8f37e10f1695d146fe0/apps/cli/src/design/thumbnail-read.ts)以及共享 outcome 的可选引用，是展示以外的额外维护面。它们复用现有渲染桥，并非第二套渲染器；没有实测数据证明其成本不可接受，也不能因为复用就认定这项需求不可删除。
 
 ## 必要信息和展示形式
 
@@ -78,7 +78,7 @@ Translation: pending
 
 ## 退役边界及设计原则来源
 
-Agent 看图与结果卡分属不同消费者：[skill 的 Review 用法](../../../../packages/design-authoring/skills/graphic-design/SKILL.md)调用 `folio_render_preview` 后用可用图片工具打开 PNG；[thumbnail.ts](../../../../apps/cli/src/design/thumbnail.ts)则在产物已分类后生成给 UI 的小图。删除后仍需保留工具注册、预览队列/宿主和读图用法；渲染成功、模型说看过和成功读取图片是不同事实。旧内容预览按需复用渲染，不建立候选面板或持久缩略图服务。
+Agent 看图与结果卡分属不同消费者：[skill 的 Review 用法](../../../../packages/design-authoring/skills/graphic-design/SKILL.md)调用 `folio_render_preview` 后用可用图片工具打开 PNG；[thumbnail.ts](https://github.com/LeonEthan/Folio/blob/baed947b6f16263cb6a2f8f37e10f1695d146fe0/apps/cli/src/design/thumbnail.ts)则在产物已分类后生成给 UI 的小图。删除后仍需保留工具注册、预览队列/宿主和读图用法；渲染成功、模型说看过和成功读取图片是不同事实。旧内容预览按需复用渲染，不建立候选面板或持久缩略图服务。
 
 P3.0 删除范围必须贯穿卡片挂载、专用修复动作、采集缩略图、字段生产、读回接口和孤立测试/文案。共享 `maxEdge` 与缩放分支当前用于卡片，实施时核对是否有新消费者再删除；旧 outcome 容忍遗留字段，无需批量重写会话或启动后台文件清理。采集与回执不能因预览曾成功而省略；P6 验证旧内容重开可读、保存保护、旧记录可读、Agent 真实读图和无专用缩略图生成。
 

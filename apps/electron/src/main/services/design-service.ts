@@ -6,8 +6,6 @@ import { readFile, open, rename, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
 import type { DesignPayload, DesignRequest } from '../../../../cli/src/design/store'
-import type { DesignThumbnailRead } from '../../../../cli/src/design/thumbnail-read'
-import { scaleToLongestEdge } from './design-render-host-core'
 import { openDesignCanvasNeedsReload, selectCanvasInstance } from './design-canvas-sync-core'
 import { DesignCanvasAccess, type CanvasInstance } from './design-canvas-access'
 
@@ -46,7 +44,6 @@ export function designRequest<T = DesignPayload>(
     | { operation: 'pending' }
     | { operation: 'acknowledge'; sessionId: string }
     | ({ operation: 'candidate-file' } & DesignCandidateRequest)
-    | { operation: 'thumbnail'; sessionId: string; reference: string }
 ): Promise<T> {
   const result = queue
     .catch(() => {})
@@ -290,27 +287,6 @@ export async function readDesignCandidateFile(
 }
 
 /**
- * The bytes of a result card's recorded thumbnail (P2.6), as a data URI.
- *
- * The reference comes from the session history's durable outcome, so this is a
- * read of a file the daemon already wrote, by a name the daemon already
- * validated — the worker re-checks the shape and the workspace before reading.
- * `unavailable` is the honest answer for a reference that no longer resolves
- * (a deleted file, a history from another build), and the card shows no image;
- * nothing here re-renders to fill the gap.
- */
-export async function readDesignCardThumbnail(
-  id: string,
-  reference: string
-): Promise<DesignThumbnailRead> {
-  return await designRequest<DesignThumbnailRead>({
-    operation: 'thumbnail',
-    sessionId: id,
-    reference
-  })
-}
-
-/**
  * P2-A2: if this artwork's editor is open on a superseded revision, tear it
  * down and re-create it from the store.
  *
@@ -318,8 +294,8 @@ export async function readDesignCardThumbnail(
  * see that write. The renderer calls here when session history records a
  * committed outcome. A canvas that was never attached this run is left
  * untouched — the next attach reads the store. An editor whose loaded
- * revision already matches is left untouched, so a historical committed card
- * on first mount, a thumbnail amendment, or a later manual save does not
+ * revision already matches is left untouched, so a historical committed receipt
+ * on first mount or a later manual save does not
  * destroy undo. Two callers are serialized per artwork so a second signal
  * cannot tear down the reload of the first.
  *
@@ -477,19 +453,9 @@ export async function exportDesign(id: string, format: 'png' | 'jpeg', title: st
   }
 }
 
-/**
- * Rasterize a document at the canvas's own size, or scaled to fit `maxEdge`.
- *
- * The scale is applied to the captured image rather than to the canvas: laying
- * the document out at 480 px would reflow what the agent authored and produce a
- * different design, while downscaling the true render is the same picture
- * smaller. `maxEdge` is absent for exports and previews and present only for the
- * result-card thumbnail (P2.6).
- */
 export async function renderSavedDesign(
   payload: DesignPayload,
-  format: 'png' | 'jpeg',
-  maxEdge?: number
+  format: 'png' | 'jpeg'
 ): Promise<Buffer> {
   const source = await surface(payload, false)
   const { width, height } = payload.doc.canvas
@@ -535,9 +501,7 @@ export async function renderSavedDesign(
     })`)
     const image = await window.webContents.capturePage({ x: 0, y: 0, width, height })
     const exact = image.resize({ width, height })
-    const scaled = scaleToLongestEdge({ width, height }, maxEdge)
-    const output = scaled ? exact.resize({ ...scaled, quality: 'good' }) : exact
-    return format === 'png' ? output.toPNG() : output.toJPEG(95)
+    return format === 'png' ? exact.toPNG() : exact.toJPEG(95)
   } finally {
     window.destroy()
     source.dispose()

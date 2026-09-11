@@ -50,15 +50,20 @@ describe('the desktop host’s poll', () => {
       requestId: `request-${index}`,
       ok: true as const,
     }));
-    expect(LocalMachineRpcRequestSchema.safeParse(request('design/render-host', { reports })).success).toBe(false);
     expect(
-      LocalMachineRpcRequestSchema.safeParse(request('design/render-host', { reports: reports.slice(0, 8) }))
-        .success
+      LocalMachineRpcRequestSchema.safeParse(request('design/render-host', { reports })).success
+    ).toBe(false);
+    expect(
+      LocalMachineRpcRequestSchema.safeParse(
+        request('design/render-host', { reports: reports.slice(0, 8) })
+      ).success
     ).toBe(true);
   });
 
   it('requires a failed report to say why', () => {
-    expect(DesignRenderHostReportSchema.safeParse({ requestId: 'r', ok: false }).success).toBe(false);
+    expect(DesignRenderHostReportSchema.safeParse({ requestId: 'r', ok: false }).success).toBe(
+      false
+    );
     expect(DesignRenderHostReportSchema.safeParse({ requestId: 'r', ok: true }).success).toBe(true);
   });
 
@@ -77,9 +82,9 @@ describe('the desktop host’s poll', () => {
     // `ownerSessionId` is optional on every method: what makes a request
     // legitimate is the daemon's answer (a session it cannot read is refused
     // there), not a schema that cannot see the session table.
-    expect(LocalMachineRpcRequestSchema.safeParse(request('design/render-preview', {})).success).toBe(
-      true
-    );
+    expect(
+      LocalMachineRpcRequestSchema.safeParse(request('design/render-preview', {})).success
+    ).toBe(true);
   });
 });
 
@@ -89,19 +94,13 @@ describe('the work the daemon hands out', () => {
     expect(DesignRenderHostWorkSchema.safeParse(work({ width: 4097 })).success).toBe(false);
     expect(DesignRenderHostWorkSchema.safeParse(work({ height: 0 })).success).toBe(false);
     expect(DesignRenderHostWorkSchema.safeParse(work({ requestId: '   ' })).success).toBe(false);
-    expect(DesignRenderHostWorkSchema.safeParse(work({ payloadPath: undefined })).success).toBe(false);
+    expect(DesignRenderHostWorkSchema.safeParse(work({ payloadPath: undefined })).success).toBe(
+      false
+    );
   });
 
-  it('carries an optional bounded output edge, and no edge means full size', () => {
-    // A thumbnail asks for a scaled copy; a preview omits the field and is
-    // rendered at the canvas's own dimensions.
-    const plain = DesignRenderHostWorkSchema.safeParse(work());
-    expect(plain.success && plain.data).not.toHaveProperty('maxEdge');
-    expect(DesignRenderHostWorkSchema.safeParse(work({ maxEdge: 480 })).success).toBe(true);
-    // Bounded at both ends: a scale factor is never requested this way.
-    expect(DesignRenderHostWorkSchema.safeParse(work({ maxEdge: 15 })).success).toBe(false);
-    expect(DesignRenderHostWorkSchema.safeParse(work({ maxEdge: 4097 })).success).toBe(false);
-    expect(DesignRenderHostWorkSchema.safeParse(work({ maxEdge: 480.5 })).success).toBe(false);
+  it('rejects the retired thumbnail-only scale parameter', () => {
+    expect(DesignRenderHostWorkSchema.safeParse(work({ maxEdge: 480 })).success).toBe(false);
   });
 });
 
@@ -112,7 +111,9 @@ describe('the daemon’s render answers', () => {
       requests: [work()],
     });
     expect(parsed.success).toBe(true);
-    expect(parsed.success && parsed.data.type === 'design/render-host' && parsed.data.requests).toHaveLength(1);
+    expect(
+      parsed.success && parsed.data.type === 'design/render-host' && parsed.data.requests
+    ).toHaveLength(1);
   });
 
   it('parses the host status', () => {
@@ -177,8 +178,11 @@ describe('the daemon’s render answers', () => {
       }).success
     ).toBe(false);
     expect(
-      DesignRenderRpcResultSchema.safeParse({ type: 'design/render-preview', ok: false, error: '  ' })
-        .success
+      DesignRenderRpcResultSchema.safeParse({
+        type: 'design/render-preview',
+        ok: false,
+        error: '  ',
+      }).success
     ).toBe(false);
     expect(
       DesignRenderRpcResultSchema.safeParse({

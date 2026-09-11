@@ -1,12 +1,6 @@
 /**
  * The daemon half of the design preview render bridge (P2.4b).
  *
- * The queue is shared by the two things the daemon needs rasterized: an agent's
- * `folio_render_preview` call, and the one small thumbnail of a turn's document
- * that the post-turn collection records on its outcome. They differ only in how
- * long the caller is willing to wait (`timeoutMs`) and in what they ask the host
- * to produce (`maxEdge`).
- *
  * The daemon cannot rasterize a design — that needs the desktop's Chromium — so
  * a preview is a hand-off to a *render host*: the running Folio desktop, which
  * polls `design/render-host` over the machine-local control socket and returns
@@ -44,18 +38,6 @@ import {
  * open indefinitely.
  */
 export const DESIGN_RENDER_PREVIEW_TIMEOUT_MS = 60_000;
-
-/**
- * How long the post-turn thumbnail may take before the turn gives up on it.
- *
- * Much shorter than a preview's budget because of *when* it runs: the outcome is
- * stamped at turn finalization, so this is time the user waits before the result
- * card appears. A desktop that is polling takes the work within one poll
- * interval and renders it in a couple of seconds, so this is ample for the
- * ordinary case and a missing thumbnail is the honest outcome for the rest —
- * never a reason to hold the turn open.
- */
-export const DESIGN_THUMBNAIL_TIMEOUT_MS = 8_000;
 
 /** Queue ceiling. One waiting preview belongs to one live tool call, so this is a backstop. */
 export const MAX_PENDING_PREVIEWS = 8;
@@ -121,14 +103,8 @@ export class DesignRenderHost {
    * here rather than becoming a promise the caller waits on, so the tool can
    * answer honestly and at once.
    *
-   * `timeoutMs` is the caller's own patience, because the two callers wait for
-   * different reasons: an agent preview may take a cold render, while the
-   * post-turn thumbnail is time the user spends waiting for a result card.
    */
-  enqueue(
-    work: DesignRenderHostWork,
-    options: { timeoutMs?: number } = {}
-  ): Promise<DesignRenderPreviewOutcome> {
+  enqueue(work: DesignRenderHostWork): Promise<DesignRenderPreviewOutcome> {
     if (!this.isConnected()) {
       return Promise.resolve({
         status: 'refused',
@@ -142,7 +118,7 @@ export class DesignRenderHost {
         error: `too many previews are already waiting (${MAX_PENDING_PREVIEWS}); wait for the earlier ones to finish`,
       });
     }
-    const timeoutMs = options.timeoutMs ?? DESIGN_RENDER_PREVIEW_TIMEOUT_MS;
+    const timeoutMs = DESIGN_RENDER_PREVIEW_TIMEOUT_MS;
     return new Promise<DesignRenderPreviewOutcome>((resolve) => {
       const timer = this.setTimer(
         () =>

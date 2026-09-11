@@ -10,11 +10,9 @@ import type { SessionId } from '../src/ai';
 import {
   MAX_DESIGN_TURN_OUTCOME_DIAGNOSTICS,
   MAX_DESIGN_TURN_OUTCOME_DIAGNOSTIC_MESSAGE_LENGTH,
-  MAX_DESIGN_TURN_OUTCOME_THUMBNAIL_EDGE,
   DESIGN_TURN_OUTCOME_VERSION,
   sanitizeDesignTurnOutcome,
   sanitizeDesignTurnOutcomeDiagnostics,
-  sanitizeDesignTurnOutcomeThumbnail,
   type DesignTurnOutcome,
 } from '../src/design-turn-outcome';
 
@@ -67,10 +65,13 @@ describe('sanitizeDesignTurnOutcome', () => {
   });
 
   it('bounds and deduplicates diagnostics, and drops an empty list', () => {
-    const many = Array.from({ length: MAX_DESIGN_TURN_OUTCOME_DIAGNOSTICS + 5 }, (_value, index) => ({
-      code: `PPTD-E${String(index).padStart(3, '0')}`,
-      message: `problem ${index}`,
-    }));
+    const many = Array.from(
+      { length: MAX_DESIGN_TURN_OUTCOME_DIAGNOSTICS + 5 },
+      (_value, index) => ({
+        code: `PPTD-E${String(index).padStart(3, '0')}`,
+        message: `problem ${index}`,
+      })
+    );
     const bounded = sanitizeDesignTurnOutcomeDiagnostics([...many, many[0]]);
     expect(bounded).toHaveLength(MAX_DESIGN_TURN_OUTCOME_DIAGNOSTICS);
     expect(sanitizeDesignTurnOutcomeDiagnostics([])).toBeUndefined();
@@ -93,49 +94,15 @@ describe('sanitizeDesignTurnOutcome', () => {
     expect(kept?.message).toHaveLength(MAX_DESIGN_TURN_OUTCOME_DIAGNOSTIC_MESSAGE_LENGTH);
   });
 
-  it('keeps a thumbnail reference and carries it through the outcome', () => {
-    expect(sanitizeDesignTurnOutcomeThumbnail(THUMBNAIL)).toEqual(THUMBNAIL);
-    expect(sanitizeDesignTurnOutcome(outcome({ thumbnail: THUMBNAIL }))).toEqual(
-      outcome({ thumbnail: THUMBNAIL })
-    );
-  });
-
-  it('accepts an outcome written before thumbnails existed', () => {
-    // Additive and optional, so a v1 payload from an older build still reads.
-    expect(sanitizeDesignTurnOutcome(outcome())).toEqual(outcome());
-  });
-
-  it.each([
-    ['an absolute path', '/etc/passwd'],
-    ['a traversal segment', 'design-thumbnail/../../design.json'],
-    ['a nested path', 'design-thumbnail/sub/dir.png'],
-    ['a Windows separator', `design-thumbnail\\${SHA}.png`],
-    ['another directory', `design-preview/${SHA}.png`],
-    ['a bare file name', `${SHA}.png`],
-    ['a non-digest name', 'design-thumbnail/turn-1.png'],
-    ['an upper-case digest', `design-thumbnail/${SHA.toUpperCase()}.png`],
-    ['another extension', `design-thumbnail/${SHA}.jpg`],
-    ['a query string', `design-thumbnail/${SHA}.png?w=1`],
-    ['a non-string path', 42],
-  ])('drops a reference with %s', (_label, path) => {
-    expect(sanitizeDesignTurnOutcomeThumbnail({ ...THUMBNAIL, path })).toBeUndefined();
-  });
-
-  it.each([
-    ['a zero edge', 0],
-    ['a negative edge', -1],
-    ['a fractional edge', 1.5],
-    ['an edge past the bound', MAX_DESIGN_TURN_OUTCOME_THUMBNAIL_EDGE + 1],
-    ['a numeric string', '320'],
-  ])('drops a reference with %s', (_label, width) => {
-    expect(sanitizeDesignTurnOutcomeThumbnail({ ...THUMBNAIL, width })).toBeUndefined();
-  });
-
-  it('drops a reference whose path is fine but whose size is not, keeping nothing of it', () => {
-    // All-or-nothing: half a reference is not something a card may show.
-    expect(sanitizeDesignTurnOutcomeThumbnail({ ...THUMBNAIL, height: 0 })).toBeUndefined();
-    expect(sanitizeDesignTurnOutcome({ ...outcome(), thumbnail: 'yes' })).toEqual(outcome());
-  });
+  it.each([THUMBNAIL, 'invalid legacy reference', null])(
+    'ignores legacy thumbnail metadata without changing the source',
+    (thumbnail) => {
+      const stored = { ...outcome(), thumbnail };
+      const before = JSON.stringify(stored);
+      expect(sanitizeDesignTurnOutcome(stored)).toEqual(outcome());
+      expect(JSON.stringify(stored)).toBe(before);
+    }
+  );
 });
 
 describe('session document persistence', () => {
@@ -214,9 +181,8 @@ describe('session document persistence', () => {
     }
   });
 
-  it('reopens a candidate with the thumbnail the desktop rendered for it', () => {
-    // Story 20's preview survives a reopen because the reference — not the
-    // image — is what the durable entry carries.
+  it('reopens legacy history without rewriting its thumbnail metadata', () => {
+    // The read view drops retired fields; the durable history retains them.
     const doc = new Loro();
     const mirror = new Mirror({
       doc,
@@ -228,12 +194,8 @@ describe('session document persistence', () => {
       } satisfies Partial<SessionDoc>,
       throwOnValidationError: true,
     });
-    const stored = outcome({
-      status: 'candidate',
-      candidateId: SHA,
-      revisionId: undefined,
-      thumbnail: THUMBNAIL,
-    });
+    const current = outcome({ status: 'candidate', candidateId: SHA, revisionId: undefined });
+    const stored = { ...current, thumbnail: THUMBNAIL };
     mirror.setState((prev) => ({ ...prev, history: [entryWith(stored)] }));
     const snapshot = doc.export({ mode: 'snapshot' });
     mirror.dispose();
@@ -247,8 +209,9 @@ describe('session document persistence', () => {
     });
     try {
       expect(sanitizeDesignTurnOutcome(revived.getState().history[0]?.designOutcome)).toEqual(
-        stored
+        current
       );
+      expect(revived.getState().history[0]?.designOutcome).toEqual(stored);
     } finally {
       revived.dispose();
     }

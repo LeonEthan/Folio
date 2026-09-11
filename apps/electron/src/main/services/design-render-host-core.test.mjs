@@ -12,8 +12,7 @@ import test from 'node:test'
 import {
   DesignRenderHostLoop,
   MAX_REPORT_ERROR_CHARS,
-  MAX_REPORTS_PER_POLL,
-  scaleToLongestEdge
+  MAX_REPORTS_PER_POLL
 } from './design-render-host-core.ts'
 
 /** Let every already-scheduled promise callback run. */
@@ -249,50 +248,4 @@ void test('stop() only stops scheduling: an answer the loop already owes is stil
   // `pollOnce` is independent of `running`, so the report is still owed — the
   // loop only stops *scheduling*, it does not abandon an answer it already has.
   assert.deepEqual(state.sent[1], [{ requestId: 'one', ok: true }])
-})
-
-void test('hands the work item to the renderer, so a requested scale is never dropped', async () => {
-  const seen = []
-  const { loop, state } = createLoop({
-    renderPng: async (payload, item) => {
-      seen.push(item)
-      return new Uint8Array([1])
-    }
-  })
-  state.queue.push([work('one', { maxEdge: 480 })])
-  await loop.pollOnce()
-  await flush()
-
-  assert.equal(seen.length, 1)
-  assert.equal(seen[0].maxEdge, 480)
-  assert.equal(seen[0].requestId, 'one')
-  // The scale is refused by the daemon's schema outside these bounds, so the
-  // renderer only ever sees one that is meaningful.
-  assert.equal(seen[0].width, 320)
-})
-
-void test('scales to the longest edge, keeping the aspect ratio and never an empty edge', () => {
-  // No bound, or one the canvas already fits: the render stays at its own size
-  // rather than being upscaled or rounded through a pointless resize.
-  assert.equal(scaleToLongestEdge({ width: 320, height: 200 }, undefined), undefined)
-  assert.equal(scaleToLongestEdge({ width: 320, height: 200 }, 320), undefined)
-  assert.equal(scaleToLongestEdge({ width: 320, height: 200 }, 400), undefined)
-
-  // Landscape, portrait and square all scale by the longest edge.
-  assert.deepEqual(scaleToLongestEdge({ width: 320, height: 200 }, 160), {
-    width: 160,
-    height: 100
-  })
-  assert.deepEqual(scaleToLongestEdge({ width: 200, height: 320 }, 160), {
-    width: 100,
-    height: 160
-  })
-  assert.deepEqual(scaleToLongestEdge({ width: 300, height: 300 }, 150), {
-    width: 150,
-    height: 150
-  })
-
-  // A canvas thin enough to round to zero keeps a one-pixel edge: a zero-edge
-  // PNG is not a smaller thumbnail, it is an unencodable one.
-  assert.deepEqual(scaleToLongestEdge({ width: 4000, height: 3 }, 16), { width: 16, height: 1 })
 })

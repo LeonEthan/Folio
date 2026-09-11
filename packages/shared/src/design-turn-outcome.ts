@@ -6,7 +6,7 @@
  * in the workspace either committed, was kept as a candidate, or never became an
  * editable design. That verdict is stamped as
  * this payload on the history entry whose `id` is the turn-input manifest's
- * turnId, so a client reopening the session renders the same result card
+ * turnId, so a client reopening the session reads the same receipt
  * without re-reading the workspace, and `status` survives even if the artifact
  * is later edited or deleted.
  *
@@ -22,26 +22,10 @@
  * - `candidate` — the validated document was kept beside the design
  *   (`candidateId`) instead of being written to the current canvas. That is the
  *   verdict when the turn cannot be shown to own the canvas: the user saved while
- *   the agent worked, or the workspace project is not this turn's own output. The
- *   card offers it for an explicit apply or discard.
+ *   the agent worked, or the workspace project is not this turn's own output. Existing
+ *   content remains accessible through ordinary files.
  * - `failed` — the turn failed before an artifact could be collected.
  * - `cancelled` — the user stopped the turn; nothing was collected or written.
- *
- * ## The thumbnail reference
- *
- * `committed` and `candidate` also carry a `thumbnail`: a reference to one small
- * PNG of the document the turn produced, captured once at collection time by the
- * desktop's render host (`apps/cli/src/design/thumbnail.ts`). It is a *reference*
- * and not bytes because the durable entry is read by every client that opens the
- * session; the card resolves the path through the design channel and shows the
- * image the same way after a reopen as it did the first time.
- *
- * The field is optional, so a `version: 1` payload written before it existed
- * still reads, and a turn that produced nothing to render — the desktop was not
- * running, the render did not land inside its deadline — honestly carries none.
- * The path is a session-workdir-relative location under `design-thumbnail/`,
- * named after the document's own content digest, so nothing here is a guess and
- * nothing needs provisioning.
  *
  * ## Trust
  *
@@ -50,9 +34,8 @@
  * it — including a future or a buggy client. `sanitizeDesignTurnOutcome` is the
  * only supported way to read it, and every boundary that renders a design
  * result runs it. Writers bound their own diagnostics through
- * `sanitizeDesignTurnOutcomeDiagnostics` and their own thumbnail through
- * `sanitizeDesignTurnOutcomeThumbnail`, so one rule produces both the persisted
- * and the read-back shape.
+ * `sanitizeDesignTurnOutcomeDiagnostics`. Legacy optional fields, including
+ * `thumbnail`, are ignored in the read view; stored history is never rewritten.
  */
 
 export const DESIGN_TURN_OUTCOME_VERSION = 1;
@@ -79,18 +62,6 @@ export type DesignTurnOutcomeDiagnostic = {
   message: string;
 };
 
-/**
- * A reference to the one small PNG rendered for this turn's document, not the
- * image itself. `path` is relative to the session workdir and is resolved by the
- * owning machine; `width`/`height` are the real pixel dimensions of the rendered
- * file (read back from its header), never the canvas's.
- */
-export type DesignTurnOutcomeThumbnail = {
-  path: string;
-  width: number;
-  height: number;
-};
-
 export type DesignTurnOutcome = {
   version: typeof DESIGN_TURN_OUTCOME_VERSION;
   status: DesignTurnOutcomeStatus;
@@ -107,12 +78,6 @@ export type DesignTurnOutcome = {
   /** Present only for `committed`: the design revision that landed. */
   revisionId?: string;
   /**
-   * Present when the turn produced a document (`committed`/`candidate`) *and* a
-   * desktop was there to render it. Absent is the ordinary honest state, not a
-   * failure: the card simply shows no image.
-   */
-  thumbnail?: DesignTurnOutcomeThumbnail;
-  /**
    * Why the artifact was rejected, deduplicated and bounded. Absent when there
    * is nothing to explain (`committed`/`no_artifact`/`cancelled`).
    */
@@ -126,33 +91,8 @@ export const MAX_DESIGN_TURN_OUTCOME_DIAGNOSTIC_CODE_LENGTH = 64;
 export const MAX_DESIGN_TURN_OUTCOME_DIAGNOSTIC_MESSAGE_LENGTH = 500;
 export const MAX_DESIGN_TURN_OUTCOME_ID_LENGTH = 200;
 export const MAX_DESIGN_TURN_OUTCOME_TIMESTAMP_LENGTH = 64;
-/**
- * The largest pixel edge a recorded thumbnail may claim. Higher than the
- * renderer's own canvas bound on purpose: a reader refuses an impossible claim
- * rather than trusting it, and the card has no reason to scale anything up.
- */
-export const MAX_DESIGN_TURN_OUTCOME_THUMBNAIL_EDGE = 4096;
-
 const STATUS_SET: ReadonlySet<string> = new Set<string>(DESIGN_TURN_OUTCOME_STATUSES);
 const SHA256_RE = /^[a-f0-9]{64}$/;
-/**
- * A thumbnail reference is a location this build may hand to the design channel
- * and nothing else, so it is matched exactly rather than sanitized into shape:
- * one directory, one content digest, one `.png`. That rejects an absolute path,
- * a `..` segment, a Windows drive, a UNC share and a query string without
- * needing to enumerate them — none of them can match this pattern.
- */
-export const DESIGN_TURN_OUTCOME_THUMBNAIL_RE = /^design-thumbnail\/[a-f0-9]{64}\.png$/;
-
-/**
- * The longest reference every boundary will carry. The pattern above is 82
- * characters; this is the outer bound a caller's string is held to *before* the
- * pattern is applied, so no layer ever builds a path from an unbounded string —
- * and it is one number rather than one per boundary, so the worker's request
- * schema and the desktop's IPC guard cannot drift apart.
- */
-export const MAX_DESIGN_TURN_OUTCOME_THUMBNAIL_REFERENCE_LENGTH = 256;
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
@@ -195,37 +135,9 @@ export const sanitizeDesignTurnOutcomeDiagnostics = (
 };
 
 /**
- * Keep a thumbnail reference only when every part of it is usable, and drop the
- * whole thing otherwise.
- *
- * All-or-nothing rather than partially repaired: a reference with a plausible
- * path but an impossible size is not a thumbnail this build can show, and half
- * of one is not worth carrying into a card. Both facts are checked here so a
- * writer can use the same rule to decide what it may record.
- */
-export const sanitizeDesignTurnOutcomeThumbnail = (
-  value: unknown
-): DesignTurnOutcomeThumbnail | undefined => {
-  if (!isRecord(value)) return undefined;
-  const path = typeof value.path === 'string' ? value.path : undefined;
-  if (path === undefined || !DESIGN_TURN_OUTCOME_THUMBNAIL_RE.test(path)) return undefined;
-  const edge = (candidate: unknown): number | undefined =>
-    typeof candidate === 'number' &&
-    Number.isInteger(candidate) &&
-    candidate >= 1 &&
-    candidate <= MAX_DESIGN_TURN_OUTCOME_THUMBNAIL_EDGE
-      ? candidate
-      : undefined;
-  const width = edge(value.width);
-  const height = edge(value.height);
-  if (width === undefined || height === undefined) return undefined;
-  return { path, width, height };
-};
-
-/**
  * Drop everything that does not describe a real design turn outcome, and
  * return the survivor. A payload this build cannot render reads as absent
- * rather than as a broken card.
+ * rather than as a broken receipt.
  */
 export const sanitizeDesignTurnOutcome = (value: unknown): DesignTurnOutcome | undefined => {
   if (!isRecord(value)) return undefined;
@@ -245,7 +157,6 @@ export const sanitizeDesignTurnOutcome = (value: unknown): DesignTurnOutcome | u
       ? value.revisionId
       : undefined;
   const diagnostics = sanitizeDesignTurnOutcomeDiagnostics(value.diagnostics);
-  const thumbnail = sanitizeDesignTurnOutcomeThumbnail(value.thumbnail);
 
   return {
     version: DESIGN_TURN_OUTCOME_VERSION,
@@ -254,7 +165,6 @@ export const sanitizeDesignTurnOutcome = (value: unknown): DesignTurnOutcome | u
     artworkId,
     ...(candidateId === undefined ? {} : { candidateId }),
     ...(revisionId === undefined ? {} : { revisionId }),
-    ...(thumbnail === undefined ? {} : { thumbnail }),
     ...(diagnostics === undefined ? {} : { diagnostics }),
     timestamp,
   };

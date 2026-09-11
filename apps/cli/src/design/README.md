@@ -42,3 +42,10 @@ Old `candidates/<digest>.json` files retain complete documents and embedded asse
 The design worker returns a checksum/identity-verified original path, and ordinary
 file preview supplies its bytes. No candidate approval, deletion, export-copy or
 history catalogue is needed. New candidate production is retired separately.
+
+Agent previews continue through `render-preview.ts` and the shared desktop render
+host, at the canvas's actual dimensions. The returned PNG path is available to
+ordinary image-reading tools; rendering alone does not prove model image input.
+Turn collection writes verdicts/receipts only, with no thumbnail generation,
+reference amendment, or dedicated readback. Legacy optional outcome fields and
+existing image files remain stored; the current read view ignores retired fields.

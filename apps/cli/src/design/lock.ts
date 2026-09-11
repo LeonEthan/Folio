@@ -14,7 +14,7 @@
  * The lock is a file in the artwork's own directory, the only thing two
  * processes of this app share, and it is per artwork: two sessions never wait
  * for each other. Every other design-store write is content-addressed and
- * idempotent (a candidate, a thumbnail, a frozen turn manifest) and needs no
+ * idempotent (a candidate or a frozen turn manifest) and needs no
  * lock.
  *
  * Three rules keep it from becoming a new way to fail:

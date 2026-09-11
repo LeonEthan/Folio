@@ -3365,7 +3365,6 @@ export class MessageHandler {
       logger: this.logger,
       sessionManager: this.sessionManager,
       workspaceDocument: this.workspaceDocument,
-      designRenderHost: this.designRenderHost,
       prepareDesignCanvas: async (sessionId, turnId, signal) => {
         const doc = await this.workspaceDocument.getOrCreateSessionDoc(sessionId);
         const meta = await doc.getMetaState();

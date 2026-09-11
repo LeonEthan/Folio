@@ -110,7 +110,6 @@ import {
   recordDesignTurnTerminalOutcome,
   type DesignTurnAttempt,
 } from '@/design/turn-outcome';
-import type { DesignRenderQueue } from '@/design/render-output';
 import { getDefaultSessionWorkdir } from './session';
 import {
   GIT_EXECUTABLE_NOT_FOUND_CODE,
@@ -465,13 +464,6 @@ export type SessionExecutionServiceDeps = {
   logger: Logger;
   sessionManager: SessionManager;
   workspaceDocument: LoroDocumentManager;
-  /**
-   * The desktop render host, so a design turn can record a thumbnail for its
-   * result card. Optional because the daemon owns exactly one and a test that
-   * does not exercise the render bridge should not have to build one; a design
-   * turn without it simply records no thumbnail (`../design/thumbnail.ts`).
-   */
-  designRenderHost?: DesignRenderQueue;
   /** Desktop must freeze and flush before any design prompt/baseline is built. */
   prepareDesignCanvas?: (
     sessionId: SessionId,
@@ -2552,12 +2544,6 @@ export class SessionExecutionService {
             session?.getHostWorkdir() ??
             session?.getWorkdir() ??
             getDefaultSessionWorkdir(sessionId),
-          // The result card's thumbnail (P2.6). Present only when this daemon has
-          // a render host; the collection treats a host with no desktop polling
-          // the same way, as "no thumbnail today".
-          ...(this.deps.designRenderHost === undefined
-            ? {}
-            : { thumbnail: { host: this.deps.designRenderHost, machineId: this.deps.machineId } }),
         };
         const attempt: DesignTurnAttempt =
           outcome.status === 'collect'
