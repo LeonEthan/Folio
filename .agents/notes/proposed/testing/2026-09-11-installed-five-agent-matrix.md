@@ -1226,3 +1226,30 @@ missing MCP tool or an invalid result wrapper. Owned cleanup finishes at
 bound was corrected offline before this round. The next fixture must select the
 actual single-use permission action for the currently pending image tool while
 preserving mode, byte checks and the failed record.
+
+### Grok native generate/edit and image reading
+
+The v3 fixture selects the actual `allow once` action only after matching the
+current `Permission Required` header, exact pending image-tool name and expected
+request stage. It retains the original permission mode, completion deadline and
+image assertions. Handle 59009 exited 0 on the normal `81d54b6` package with
+unchanged Grok 1.0.13. Evidence is `folio-t28-grok-input-7Mito5/evidence`, package
+log `grok-image-mcp-native-3.log`; the v2 failure remains preserved.
+
+Actual `search_tool` discovery precedes the two native `use_tool` calls. Their
+correlated results contain JSON asset objects directly in tool-role text; no
+deeper result-wrapper fallback was needed. Generation returns the 1,330-byte PNG
+recorded above. Editing uploads those exact bytes, returns the distinct
+1,393-byte PNG and preserves the original file. Both assets remain in the same
+owned Session's `media/` directory. The two HTTP receipts record one generation
+and one edit with explicit `synthetic-image` and the matching fixture credential.
+
+The initial main request contains no images. Requests 8 and 10 first contain the
+generated and edited PNG respectively, each in its correlated `read_file` tool
+result. Root independently decoded both and verified the previously recorded
+hashes. Permission records 6 and 8 identify the respective generation/edit
+requests and exact tool names. Eleven model requests complete; owned cleanup
+finishes at 19:18:57.990Z. This proves configured Folio MCP generate/edit transport
+and actual native image reading with local synthetic services. It does not prove
+live design preview, native design hooks, formal commits, cancellation or visual
+quality. Full T28 remains incomplete.
