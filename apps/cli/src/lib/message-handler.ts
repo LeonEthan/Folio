@@ -3323,7 +3323,7 @@ export class MessageHandler {
     });
     this.filePreviewService = new FilePreviewService({
       resolveWorkspace: async (sessionId) => {
-        const resolved = await this.resolveCodeCollabV2Workspace(sessionId);
+        const resolved = await this.resolveCodeCollabV2Workspace(sessionId, undefined, true);
         return resolved.ok
           ? {
               ok: true,
@@ -6412,7 +6412,8 @@ export class MessageHandler {
   }
 
   private async resolveCodeCollabWorkspaceRoot(
-    sessionId: SessionId
+    sessionId: SessionId,
+    historicalDesignRead = false
   ): Promise<CodeCollabWorkspaceRootResolution> {
     const resolveActiveSessionWorkspaceRoot = (
       targetSessionId: SessionId,
@@ -6529,7 +6530,7 @@ export class MessageHandler {
         message: 'Session metadata is not available.',
       };
     }
-    if (meta.isArchived) {
+    if (meta.isArchived && !(historicalDesignRead && meta.design)) {
       return {
         ok: false,
         error: 'session_archived',
@@ -6709,6 +6710,15 @@ export class MessageHandler {
       };
     }
 
+    if (meta.design && !project && !repoFullName) {
+      return {
+        ok: true,
+        workspaceRoot: getDefaultSessionWorkdir(ownerSessionId),
+        source: 'design-chat-metadata',
+        ...ownerSessionIdField(ownerSessionId),
+      };
+    }
+
     return {
       ok: false,
       error: 'workspace_unavailable',
@@ -6716,12 +6726,13 @@ export class MessageHandler {
     };
   }
 
-  private readonly resolveCodeCollabV2Workspace: CodeCollabV2WorkspaceResolver = async (
-    sessionId,
-    options?: CodeCollabV2WorkspaceResolveOptions
-  ) => {
+  private readonly resolveCodeCollabV2Workspace = async (
+    sessionId: SessionId,
+    options?: CodeCollabV2WorkspaceResolveOptions,
+    historicalDesignRead = false
+  ): ReturnType<CodeCollabV2WorkspaceResolver> => {
     try {
-      const resolved = await this.resolveCodeCollabWorkspaceRoot(sessionId);
+      const resolved = await this.resolveCodeCollabWorkspaceRoot(sessionId, historicalDesignRead);
       if (resolved.ok) {
         const ownerSessionId = resolved.ownerSessionId ?? sessionId;
         const ownerMeta = await this.resolveCodeCollabOwnerSessionMeta(ownerSessionId);
@@ -6844,11 +6855,23 @@ export class MessageHandler {
   private async dispatchLocalMachineRpc(
     request: LocalMachineRpcRequestValidated
   ): Promise<LocalMachineRpcResult> {
-    const assertOwner = async (sessionId: SessionId): Promise<void> => {
+    const assertOwner = async (
+      sessionId: SessionId,
+      historicalDesignRead = false
+    ): Promise<void> => {
       if (!request.ownerSessionId) {
         return;
       }
-      const ownerSessionId = await this.resolveCodeCollabV2OwnerSessionId(sessionId);
+      const resolved = await this.resolveCodeCollabV2Workspace(
+        sessionId,
+        undefined,
+        historicalDesignRead
+      );
+      if (!resolved.ok)
+        throw new CodeCollabV2ServiceError(resolved.code, resolved.message, {
+          retryable: resolved.code === 'transient_io' || resolved.code === 'machine_offline',
+        });
+      const ownerSessionId = resolved.ownerSessionId;
       if (ownerSessionId !== request.ownerSessionId) {
         throw new CodeCollabV2ServiceError(
           'permission_denied',
@@ -6859,6 +6882,31 @@ export class MessageHandler {
     };
 
     switch (request.method) {
+      case 'design/source-path': {
+        const sessionId = request.ownerSessionId as SessionId;
+        const design = await this.readDesignSession(sessionId);
+        if (!design)
+          return { type: 'design/source-path', ok: false, error: 'Design session is unavailable.' };
+        try {
+          const resolved = await this.resolveCodeCollabWorkspaceRoot(sessionId, true);
+          if (!resolved.ok) throw Error(resolved.message);
+          const workspace = await resolveDesignContext({
+            workspaceRoot: resolved.workspaceRoot,
+            sessionId,
+            artworkId: design.artworkId,
+            legacyWorkdir: getDefaultSessionWorkdir(sessionId),
+            turnId: request.params.turnId,
+            requireTurnManifest: true,
+          });
+          const sourcePath = path.join(workspace.artifactWorkdir, 'design.pptd');
+          const stat = await fs.promises.lstat(sourcePath);
+          if (!stat.isFile() || stat.isSymbolicLink())
+            throw Error('Original design file is unavailable.');
+          return { type: 'design/source-path', ok: true, path: sourcePath };
+        } catch (error) {
+          return { type: 'design/source-path', ok: false, error: formatErrorMessage(error) };
+        }
+      }
       // The machine's image connection (P2.4). Both methods read this machine's
       // own Flock row, so there is no workspace or target selector a caller
       // could point elsewhere. The read method additionally requires the asking
@@ -7051,10 +7099,10 @@ export class MessageHandler {
         await assertOwner(request.params.sessionId as SessionId);
         return await this.codeCollabV2Service.lspReferences();
       case 'file/preview':
-        await assertOwner(request.params.sessionId as SessionId);
+        await assertOwner(request.params.sessionId as SessionId, true);
         return await this.filePreviewService.previewFile(request.params);
       case 'file/resolve-local': {
-        await assertOwner(request.params.sessionId as SessionId);
+        await assertOwner(request.params.sessionId as SessionId, true);
         if ('attachment' in request.params) {
           if (request.workspaceId !== this.workspaceId || request.machineId !== this.machineId)
             throw new Error('Attachment owner mismatch');

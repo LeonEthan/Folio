@@ -5,12 +5,7 @@ import { randomUUID, createHash } from 'node:crypto'
 import { readFile, open, rename, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
-import type {
-  DesignCandidateAdoption,
-  DesignCandidateState,
-  DesignPayload,
-  DesignRequest
-} from '../../../../cli/src/design/store'
+import type { DesignPayload, DesignRequest } from '../../../../cli/src/design/store'
 import type { DesignThumbnailRead } from '../../../../cli/src/design/thumbnail-read'
 import { scaleToLongestEdge } from './design-render-host-core'
 import { openDesignCanvasNeedsReload, selectCanvasInstance } from './design-canvas-sync-core'
@@ -50,9 +45,7 @@ export function designRequest<T = DesignPayload>(
     | DesignRequest
     | { operation: 'pending' }
     | { operation: 'acknowledge'; sessionId: string }
-    | ({ operation: 'candidate-state' } & DesignCandidateRequest)
-    | ({ operation: 'adopt-candidate' } & DesignCandidateRequest)
-    | ({ operation: 'discard-candidate' } & DesignCandidateRequest)
+    | ({ operation: 'candidate-file' } & DesignCandidateRequest)
     | { operation: 'thumbnail'; sessionId: string; reference: string }
 ): Promise<T> {
   const result = queue
@@ -284,53 +277,13 @@ export async function saveDesignForDispatch(id: string) {
   await queryCanvasState?.()
   await designCanvasAccess.prepareForSend(id)
 }
-/**
- * P2.5 result-card actions. The card reads a candidate's standing and acts on
- * it here, so the renderer never reaches into `chats/<artworkId>/`: the worker
- * owns the store, and the store owns `design.json` and `candidates/`.
- */
-export async function readDesignCandidateState(
+/** Resolve one historical file; the existing local file capability serves its bytes. */
+export async function readDesignCandidateFile(
   id: string,
   candidateId: string
-): Promise<DesignCandidateState> {
-  return await designRequest<DesignCandidateState>({
-    operation: 'candidate-state',
-    sessionId: id,
-    candidateId
-  })
-}
-
-/**
- * Replace the current canvas with a kept candidate, at the user's explicit
- * request. Pending editor edits are flushed first (the same "tolerate a bridge
- * that has not loaded, reject a real save failure" contract the dispatch gate
- * uses): adopting replaces the document, and edits that were never written would
- * otherwise be replaced without a trace. On success an already-open editor is
- * re-created so it shows the adopted document instead of the one it just lost.
- */
-export async function adoptDesignCandidate(
-  id: string,
-  candidateId: string
-): Promise<DesignCandidateAdoption> {
-  await saveDesignForDispatch(id)
-  const result = await designCanvasAccess.write(id, undefined, () =>
-    designRequest<DesignCandidateAdoption>({
-      operation: 'adopt-candidate',
-      sessionId: id,
-      candidateId
-    })
-  )
-  if (result.status === 'adopted') await reloadDesignCanvas(id)
-  return result
-}
-
-/** Deletes the candidate file only; `design.json` is not touched. */
-export async function discardDesignCandidate(
-  id: string,
-  candidateId: string
-): Promise<{ candidateId: string; removed: boolean }> {
-  return await designRequest<{ candidateId: string; removed: boolean }>({
-    operation: 'discard-candidate',
+): Promise<{ path: string }> {
+  return await designRequest<{ path: string }>({
+    operation: 'candidate-file',
     sessionId: id,
     candidateId
   })

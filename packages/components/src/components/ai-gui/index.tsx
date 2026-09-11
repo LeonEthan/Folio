@@ -122,7 +122,6 @@ const MessageRowConnected = memo(function MessageRowConnected({
   onResendUndelivered,
   capacityRetry,
   conversationFontSize,
-  isLatestUserTurn,
 }: {
   message: SessionHistoryParsed;
   sessionId: SessionId;
@@ -134,8 +133,6 @@ const MessageRowConnected = memo(function MessageRowConnected({
   onResendUndelivered?: (userTurnId: string, inputBlocks: SessionInputBlock[]) => Promise<boolean>;
   capacityRetry?: CapacityRetryControl;
   conversationFontSize: ConversationFontSize;
-  /** Trailing user turn: the only one a design result card may call generating. */
-  isLatestUserTurn?: boolean;
 }) {
   const userInfo = useCloudQuery(
     cloudOperations.auth.getUserById,
@@ -152,7 +149,6 @@ const MessageRowConnected = memo(function MessageRowConnected({
       onResendUndelivered={onResendUndelivered}
       capacityRetry={capacityRetry}
       conversationFontSize={conversationFontSize}
-      isLatestUserTurn={isLatestUserTurn}
     />
   );
 });
@@ -254,7 +250,6 @@ const SessionChatStreamImpl = forwardRef<SessionChatStreamHandle, SessionChatStr
             onResendUndelivered={onResendUndelivered}
             capacityRetry={message.id === capacityRetry?.noticeId ? capacityRetry : undefined}
             conversationFontSize={conversationFontSize}
-            isLatestUserTurn={message.id === lastUserMessageId}
           />
         );
       },

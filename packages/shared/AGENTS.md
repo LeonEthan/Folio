@@ -94,3 +94,10 @@ and CommonJS installation profiles together; never migrate or delete Lody data.
 visible-turn owner supplies whole active snapshots; a preparation report is bound
 to artwork and owner token, never an unlock signal. View removal and transport
 failure leave ownership intact. Keep this independent of preview rendering.
+
+## Historical design files
+
+`design/source-path` resolves one history Session/turn through trusted workspace
+metadata and frozen input, including read-only archived Sessions. Return an error
+when the original project root cannot be established; never trust a manifest path
+as authority or start an Agent. Ordinary file preview transports the bytes.

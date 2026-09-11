@@ -235,6 +235,56 @@ describe('SessionChatInputArea submission feedback', () => {
     container = null;
   });
 
+  it('continues a design file through the ordinary composer without a result-card action', async () => {
+    const request =
+      'Read /synthetic/chats/original/candidates/draft.json and use its embedded assets to continue the poster.';
+    let sent: SessionInputBlock[] | undefined;
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(async () => {
+      root?.render(
+        createElement(SessionChatInputArea, {
+          session: {
+            id: 'design-file-continuation',
+            userId: 'user-1',
+            machineId: 'machine-1',
+            cliType: 'builtin',
+            agentType: 'codex',
+            status: { type: 'idle' },
+            isArchived: false,
+            createdAt: '2026-09-11T00:00:00.000Z',
+            design: { artworkId: 'aacdd4fb-a160-4c25-9c15-02297145a521', path: 'design.json' },
+          } as SessionMeta,
+          sessionLocalProjectRootPath: null,
+          isMachineRemoved: false,
+          isAgentBusy: false,
+          isDark: false,
+          isEmptyConversation: false,
+          selectedModeId: null,
+          selectedModelId: null,
+          modeOptions: [],
+          modelOptions: [],
+          onModeChange: () => undefined,
+          onModelChange: () => undefined,
+          onSendMessage: async (blocks) => {
+            sent = blocks;
+            return true;
+          },
+          onStop: () => undefined,
+          onRemoveQueueItem: async () => undefined,
+          initialInputText: request,
+        })
+      );
+    });
+    expect(container.querySelector('[data-design-result-status]')).toBeNull();
+    await act(async () =>
+      container?.querySelector<HTMLButtonElement>('button[aria-label="Send"]')?.click()
+    );
+    expect(sent).toEqual([{ type: 'text', text: request }]);
+    expect(container.querySelector('textarea')?.value).toBe('');
+  });
+
   it('clears immediately and restores the preserved draft when acceptance fails', async () => {
     const acceptance = deferredBoolean();
     container = document.createElement('div');

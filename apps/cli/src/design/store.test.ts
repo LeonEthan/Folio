@@ -5,14 +5,12 @@ import { createHash, randomUUID } from 'node:crypto';
 import { afterEach, expect, test } from 'vitest';
 import { DESIGN_LOCK_FILENAME } from './lock';
 import {
-  adoptDesignCandidate,
+  canvasHoldsContent,
   designOperation,
-  discardDesignCandidate,
   pendingDesigns,
   acknowledgeDesign,
   listDesignCandidates,
   readDesignCandidate,
-  readDesignCandidateState,
   saveDesignCandidate,
   type DesignPayload,
 } from './store';
@@ -282,159 +280,6 @@ test('a candidate is written beside the canvas, addressed by content and never t
   ).rejects.toThrow();
 });
 
-test('a kept candidate reports its standing, adopts only on request, and discards alone', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'folio-design-'));
-  roots.push(root);
-  const association = {
-    sessionId: randomUUID(),
-    name: 'Synthetic',
-    userId: 'local:test',
-    machineId: 'test-machine',
-    createdAt: '2026-09-09T00:00:00.000Z',
-  };
-  const created = await designOperation(root, { operation: 'create', association });
-  const candidate = {
-    artworkId: association.sessionId,
-    turnId: 'turn-1',
-    // The P2.3 shape: a candidate only exists because the canvas already left
-    // this baseline, which is why adoption cannot use it as its CAS base.
-    baselineRevisionId: created.revisionId,
-    createdAt: '2026-09-10T01:00:00.000Z',
-    content: {
-      doc: { ...created.doc, background: { type: 'solid', color: '#123456' } },
-      assets: {},
-    },
-  };
-  const { candidateId } = await saveDesignCandidate(root, candidate);
-  const designFile = path.join(root, 'chats', association.sessionId, 'design.json');
-  const candidateFile = path.join(
-    root,
-    'chats',
-    association.sessionId,
-    'candidates',
-    `${candidateId}.json`
-  );
-  const absent = 'a'.repeat(64);
-
-  // Nothing on disk: said plainly, and no claim about the canvas.
-  expect(await readDesignCandidateState(root, association.sessionId, absent)).toEqual({
-    status: 'unavailable',
-    candidateId: absent,
-    reason: 'missing',
-  });
-  // A candidate beside the untouched canvas is pending, carrying the live revision.
-  expect(await readDesignCandidateState(root, association.sessionId, candidateId)).toEqual({
-    status: 'pending',
-    candidateId,
-    baselineRevisionId: created.revisionId,
-    createdAt: candidate.createdAt,
-    revisionId: created.revisionId,
-  });
-  // Unverifiable bytes are reported as unusable, not offered on trust.
-  const candidateBytes = await readFile(candidateFile, 'utf8');
-  await writeFile(candidateFile, '{}');
-  expect(await readDesignCandidateState(root, association.sessionId, candidateId)).toEqual({
-    status: 'unavailable',
-    candidateId,
-    reason: 'unreadable',
-  });
-  await writeFile(candidateFile, candidateBytes);
-
-  // The user's explicit adopt replaces the canvas through the store.
-  const adopted = await adoptDesignCandidate(root, association.sessionId, candidateId);
-  expect(adopted).toEqual({
-    status: 'adopted',
-    candidateId,
-    revisionId: expect.any(String),
-    alreadyCurrent: false,
-  });
-  const live = await designOperation(root, { operation: 'read', sessionId: association.sessionId });
-  expect(live.doc).toEqual(candidate.content.doc);
-  expect(live.association.name).toBe(created.association.name);
-  expect(await readDesignCandidateState(root, association.sessionId, candidateId)).toEqual({
-    status: 'adopted',
-    candidateId,
-    baselineRevisionId: created.revisionId,
-    createdAt: candidate.createdAt,
-    revisionId: live.revisionId,
-  });
-
-  // Adopting again is the same result: the same revision, no second revision.
-  const adoptedBytes = await readFile(designFile, 'utf8');
-  expect(await adoptDesignCandidate(root, association.sessionId, candidateId)).toEqual({
-    status: 'adopted',
-    candidateId,
-    revisionId: (adopted as { revisionId: string }).revisionId,
-    alreadyCurrent: true,
-  });
-  expect(await readFile(designFile, 'utf8')).toBe(adoptedBytes);
-
-  // A canvas that moves between the read and the write is refused by the store's
-  // CAS: the candidate stays, and the newer canvas is never overwritten.
-  const other = await saveDesignCandidate(root, {
-    ...candidate,
-    turnId: 'turn-2',
-    content: { doc: created.doc, assets: {} },
-  });
-  const moved = { doc: { ...created.doc, background: { type: 'solid', color: '#00ff00' } } };
-  const rejected = await adoptDesignCandidate(root, association.sessionId, other.candidateId, {
-    onBeforeWrite: async () => {
-      const current = await designOperation(root, {
-        operation: 'read',
-        sessionId: association.sessionId,
-      });
-      await designOperation(root, {
-        operation: 'save',
-        sessionId: association.sessionId,
-        baseRevisionId: current.revisionId,
-        content: { doc: moved.doc, assets: {} },
-      });
-    },
-  });
-  expect(rejected).toEqual({
-    status: 'rejected',
-    candidateId: other.candidateId,
-    reason: 'baseline_moved',
-  });
-  const afterRefusal = await designOperation(root, {
-    operation: 'read',
-    sessionId: association.sessionId,
-  });
-  expect(afterRefusal.doc).toEqual(moved.doc);
-  expect(
-    await readDesignCandidateState(root, association.sessionId, other.candidateId)
-  ).toMatchObject({ status: 'pending', candidateId: other.candidateId });
-
-  // Discard removes the candidate file and nothing else: the canvas bytes are
-  // untouched, and a candidate that is already gone is reported, not an error.
-  const beforeDiscard = await readFile(designFile, 'utf8');
-  expect(await discardDesignCandidate(root, association.sessionId, candidateId)).toEqual({
-    candidateId,
-    removed: true,
-  });
-  expect(await readDesignCandidateState(root, association.sessionId, candidateId)).toEqual({
-    status: 'unavailable',
-    candidateId,
-    reason: 'missing',
-  });
-  expect(await discardDesignCandidate(root, association.sessionId, candidateId)).toEqual({
-    candidateId,
-    removed: false,
-  });
-  expect(await readFile(designFile, 'utf8')).toBe(beforeDiscard);
-  expect(await listDesignCandidates(root, association.sessionId)).toEqual([
-    expect.objectContaining({ candidateId: other.candidateId }),
-  ]);
-  await expect(discardDesignCandidate(root, '../outside', candidateId)).rejects.toThrow();
-  await expect(
-    discardDesignCandidate(root, association.sessionId, '../design.json')
-  ).rejects.toThrow();
-  await expect(adoptDesignCandidate(root, association.sessionId, absent)).rejects.toThrow(
-    'not found'
-  );
-  expect(await readFile(designFile, 'utf8')).toBe(beforeDiscard);
-});
-
 test('a candidate is refused when the canvas could not take it', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'folio-design-'));
   roots.push(root);
@@ -479,10 +324,12 @@ test('a candidate is refused when the canvas could not take it', async () => {
     ...candidate,
     content: { doc: fixture.doc, assets: fixture.assets },
   });
-  expect(await adoptDesignCandidate(root, association.sessionId, candidateId)).toMatchObject({
-    status: 'adopted',
-    alreadyCurrent: false,
-  });
+  const { candidate: readable } = await readDesignCandidate(
+    root,
+    association.sessionId,
+    candidateId
+  );
+  expect(readable.content.doc).toEqual(fixture.doc);
 });
 
 test('a document is the canvas even when its table carries assets the document does not use', async () => {
@@ -528,23 +375,5 @@ test('a document is the canvas even when its table carries assets the document d
   const { candidate } = await readDesignCandidate(root, association.sessionId, candidateId);
   expect(candidate.content.assets[UNUSED_ASSET_KEY]).toBe(UNUSED_ASSET_URI);
 
-  // The candidate *is* the canvas, so the card must read it that way: an
-  // `adopted` verdict is what stops it from offering an Apply that rewrites
-  // identical bytes and leaves the candidate looking pending forever.
-  expect(await readDesignCandidateState(root, association.sessionId, candidateId)).toEqual({
-    status: 'adopted',
-    candidateId,
-    baselineRevisionId: created.revisionId,
-    createdAt: candidate.createdAt,
-    revisionId: created.revisionId,
-  });
-  const designFile = path.join(root, 'chats', association.sessionId, 'design.json');
-  const bytes = await readFile(designFile, 'utf8');
-  expect(await adoptDesignCandidate(root, association.sessionId, candidateId)).toEqual({
-    status: 'adopted',
-    candidateId,
-    revisionId: created.revisionId,
-    alreadyCurrent: true,
-  });
-  expect(await readFile(designFile, 'utf8')).toBe(bytes);
+  expect(await canvasHoldsContent(root, association.sessionId, candidate.content)).toBe(true);
 });

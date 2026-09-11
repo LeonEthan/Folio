@@ -28,15 +28,8 @@
  * is the revisionId. A lost reply is safely retryable when the requested bytes
  * already landed.
  *
- * P2.5 adds the user's handling of a kept candidate to this module, so the
- * result card never writes on its own: `readDesignCandidateState` reports where
- * a candidate stands against the live canvas — by the document and the assets it
- * actually uses, not by the table it arrived with (`storedAssets`) — and
- * `adoptDesignCandidate` replaces
- * the canvas through `designOperation` (losing a simultaneous writer is
- * `DESIGN_CONFLICT`, i.e. a refusal that keeps the candidate), and
- * `discardDesignCandidate` deletes the candidate file and nothing else —
- * `design.json` is not touched by a discard.
+ * Historical candidate files remain readable through `readDesignCandidate`,
+ * including embedded assets. There are no candidate approval or deletion APIs.
  */
 
 import {
@@ -309,6 +302,8 @@ export async function readDesignCandidate(
   const file = path.join(await candidatesDirectory(dataRoot, id), `${candidate}.json`);
   const parsed = await readCandidateFile(file);
   if (!parsed) throw Error('Design candidate not found');
+  if (parsed.artworkId !== id || parsed.candidateId !== candidate)
+    throw Error('Design candidate identity mismatch');
   return { candidate: parsed, file };
 }
 
@@ -329,11 +324,6 @@ export async function listDesignCandidates(
   }
   return summaries.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
-
-const candidateIdSchema = z.string().regex(/^[a-f0-9]{64}$/);
-
-const candidateFile = async (dataRoot: string, artworkId: string, candidateId: string) =>
-  path.join(await candidatesDirectory(dataRoot, artworkId), `${candidateId}.json`);
 
 /**
  * The assets this document would leave stored, i.e. the ones it really uses.
@@ -385,9 +375,6 @@ const sameDocument = (content: z.output<typeof designInput>, payload: DesignPayl
 /**
  * Whether the live canvas already holds this document and its assets.
  *
- * Read-only, and compared exactly the way `readDesignCandidateState` decides a
- * candidate is adopted, so a caller gets the same answer the card will get.
- *
  * It throws rather than answering when the canvas cannot be read or the document
  * cannot be parsed: "we could not tell" is not "no", and only the caller knows
  * which direction is safe for it.
@@ -401,149 +388,6 @@ export async function canvasHoldsContent(
   const content = designInput.parse(raw);
   const current = await designOperation(dataRoot, { operation: 'read', sessionId: id });
   return sameDocument(content, current);
-}
-
-/**
- * Where a kept candidate stands against the live canvas (P2.5).
- *
- * Read-only on purpose. The durable `designOutcome` says what a turn produced;
- * whether the user has adopted or discarded the candidate since is a fact about
- * the store, observed here rather than written back into the session history.
- * `revisionId` is the current canvas revision, absent when there is no canvas
- * to compare against.
- */
-export type DesignCandidateState =
-  | { status: 'unavailable'; candidateId: string; reason: 'missing' | 'unreadable' }
-  | {
-      status: 'pending' | 'adopted';
-      candidateId: string;
-      baselineRevisionId: string;
-      createdAt: string;
-      revisionId: string;
-    };
-
-/**
- * Read one candidate's standing without changing anything.
- *
- * A candidate file this build cannot verify is reported as `unavailable`
- * (`unreadable`) rather than as a usable candidate, and the filesystem message
- * is not passed on — it carries an absolute path.
- */
-export async function readDesignCandidateState(
-  dataRoot: string,
-  artworkId: unknown,
-  candidateId: unknown
-): Promise<DesignCandidateState> {
-  const id = designId.parse(artworkId);
-  const candidate = candidateIdSchema.parse(candidateId);
-  const file = await candidateFile(dataRoot, id, candidate);
-  let parsed: DesignCandidate | null;
-  try {
-    parsed = await readCandidateFile(file);
-  } catch {
-    return { status: 'unavailable', candidateId: candidate, reason: 'unreadable' };
-  }
-  if (!parsed || parsed.candidateId !== candidate)
-    return { status: 'unavailable', candidateId: candidate, reason: 'missing' };
-  const current = await designOperation(dataRoot, { operation: 'read', sessionId: id });
-  return {
-    status: sameDocument(parsed.content, current) ? 'adopted' : 'pending',
-    candidateId: candidate,
-    baselineRevisionId: parsed.baselineRevisionId,
-    createdAt: parsed.createdAt,
-    revisionId: current.revisionId,
-  };
-}
-
-export type DesignCandidateAdoption =
-  | { status: 'adopted'; candidateId: string; revisionId: string; alreadyCurrent: boolean }
-  | { status: 'rejected'; candidateId: string; reason: 'baseline_moved' };
-
-export interface AdoptDesignCandidateOptions {
-  /**
-   * Test seam: runs once after the live canvas revision is read and before the
-   * write is attempted. Production callers pass nothing — a real concurrent
-   * writer is caught by the store's own CAS at the write, not by this hook
-   * (`./store.test.ts` uses it to place that writer deterministically).
-   */
-  onBeforeWrite?: () => Promise<void>;
-}
-
-/**
- * Replace the current canvas with a kept candidate (P2.5).
- *
- * The user asked for this explicitly, so the CAS base is the revision the
- * canvas holds at this moment — not the candidate's frozen baseline, which by
- * construction is a revision the canvas already left (that is why the candidate
- * exists). If the canvas moved between this read and the write, `designOperation`
- * rejects with `DESIGN_CONFLICT`: the caller reports that honestly, the
- * candidate stays, and nothing is forced over the other writer's bytes.
- *
- * Idempotent: a canvas that already is this candidate's document is reported as
- * adopted with the current revisionId and is not written a second time.
- */
-export async function adoptDesignCandidate(
-  dataRoot: string,
-  artworkId: unknown,
-  candidateId: unknown,
-  options?: AdoptDesignCandidateOptions
-): Promise<DesignCandidateAdoption> {
-  const id = designId.parse(artworkId);
-  const candidate = candidateIdSchema.parse(candidateId);
-  const parsed = await readCandidateFile(await candidateFile(dataRoot, id, candidate));
-  if (!parsed || parsed.candidateId !== candidate) throw Error('Design candidate not found');
-  const current = await designOperation(dataRoot, { operation: 'read', sessionId: id });
-  if (sameDocument(parsed.content, current))
-    return {
-      status: 'adopted',
-      candidateId: candidate,
-      revisionId: current.revisionId,
-      alreadyCurrent: true,
-    };
-  await options?.onBeforeWrite?.();
-  try {
-    const saved = await designOperation(dataRoot, {
-      operation: 'save',
-      sessionId: id,
-      baseRevisionId: current.revisionId,
-      content: parsed.content,
-    });
-    return {
-      status: 'adopted',
-      candidateId: candidate,
-      revisionId: saved.revisionId,
-      alreadyCurrent: false,
-    };
-  } catch (error) {
-    if (error instanceof Error && error.message === 'DESIGN_CONFLICT')
-      return { status: 'rejected', candidateId: candidate, reason: 'baseline_moved' };
-    throw error;
-  }
-}
-
-/**
- * Drop one kept candidate. Nothing else: `design.json` is never read, written,
- * or unlinked here, so a discard cannot change the current canvas.
- *
- * A candidate that is already gone is reported as `removed: false` rather than
- * failing — the caller's intent ("this candidate is not on disk") holds either
- * way, and the only path this can touch is built from validated ids.
- */
-export async function discardDesignCandidate(
-  dataRoot: string,
-  artworkId: unknown,
-  candidateId: unknown
-): Promise<{ candidateId: string; removed: boolean }> {
-  const id = designId.parse(artworkId);
-  const candidate = candidateIdSchema.parse(candidateId);
-  try {
-    await unlink(await candidateFile(dataRoot, id, candidate));
-    return { candidateId: candidate, removed: true };
-  } catch (error) {
-    if (error instanceof Error && 'code' in error && error.code === 'ENOENT')
-      return { candidateId: candidate, removed: false };
-    throw error;
-  }
 }
 
 function validateAssets(content: z.output<typeof designInput>) {

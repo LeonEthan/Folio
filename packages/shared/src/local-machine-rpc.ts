@@ -268,7 +268,26 @@ export const DesignCanvasHostResultSchema = z.object({
   active: z.array(DesignCanvasStateSchema),
 }).strict();
 
+/** Read-only historical draft location; byte transport stays with ordinary file preview. */
+export const DesignSourcePathResultSchema = z.discriminatedUnion('ok', [
+  z
+    .object({ type: z.literal('design/source-path'), ok: z.literal(true), path: z.string().min(1) })
+    .strict(),
+  z
+    .object({
+      type: z.literal('design/source-path'),
+      ok: z.literal(false),
+      error: z.string().min(1),
+    })
+    .strict(),
+]);
+
 export const LocalMachineRpcRequestSchema = z.discriminatedUnion('method', [
+  BaseLocalMachineRpcRequestSchema.extend({
+    method: z.literal('design/source-path'),
+    ownerSessionId: SessionIdSchema,
+    params: z.object({ turnId: z.string().min(1).max(200) }).strict(),
+  }).strict(),
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('design/canvas-host'),
     params: z.object({ version: z.literal(1), reports: z.array(DesignCanvasReportSchema).max(100) }).strict(),
@@ -475,6 +494,7 @@ export type LocalMachineRpcRequest = z.infer<typeof LocalMachineRpcRequestSchema
 export type LocalMachineRpcRequestValidated = LocalMachineRpcRequest;
 
 export const LocalMachineRpcResultSchema = z.union([
+  DesignSourcePathResultSchema,
   ImageConnectionRpcResultSchema,
   DesignRenderRpcResultSchema,
   DesignCanvasHostResultSchema,

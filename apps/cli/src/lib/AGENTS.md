@@ -110,5 +110,8 @@ never pushed to renderers as local room health.
 - `task-automation/`: an agent counts as busy while its task is **in progress**, not
   merely while being dispatched, or one agent gets two concurrent sessions in one
   working copy.
+- Historical design file reads reuse workspace metadata for unloaded/archived
+  Sessions, never deleted Sessions or Agent startup. Keep Code Collab archive
+  restrictions for other consumers.
 - **A `file-preview/` preview must never activate Code Collab**: no workspace watch, no
   All Changes recompute, no Flock publish.

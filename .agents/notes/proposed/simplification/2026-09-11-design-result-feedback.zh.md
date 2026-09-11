@@ -11,8 +11,8 @@ Translation: pending
 
 - 首版方案提交 `b660bb34f3bf3d0cd28d7a86dddbc1c7c271ee46` 的功能表已提出“作品卡”，P2.5 明确要求“真实结果卡和画布定位”；原 Spec 要求候选采用/拒绝与失败状态可见，未指定卡片形态。可用 `git show b660bb3:.agents/notes/proposed/architecture/2026-09-09-graphic-design-platform.zh.md` 核对；当前入口为[阶段计划](../architecture/2026-09-09-graphic-design-platform.zh.md)。这证明它来自方案，不证明形态本身必要，也不能把方向性认可等同于每个控件得到单独认可。
 - `a09858632afaf2a9d1929af95f593308951d8ae9` 实现 P2.5 卡片和候选动作，`baed947b6f16263cb6a2f8f37e10f1695d146fe0` 增加 P2.6 缩略图引用。它不是 P2 开发时无计划增加的功能。
-- [消息渲染入口](../../../../packages/components/src/components/ai-gui/view.tsx)在设计会话的用户回合下挂载卡片；[状态解析](../../../../packages/components/src/lib/design-turn-result.ts)读取持久 `designOutcome`，另提供 live 显示，状态包括 committed、candidate、invalid、no_artifact、failed、cancelled。
-- [卡片组件](../../../../packages/components/src/components/sessions/design-turn-result-card.tsx)读取候选状态和缩略图，提供定位、采用、丢弃和用户触发修复。修复经 [session-chat-interface](../../../../packages/components/src/components/sessions/session-chat-interface.tsx) 的普通 `dispatchPrompt`，不是自动修复或私有 Agent 通道；卡片不执行语义质量评审。
+- [消息渲染入口](../../../../packages/components/src/components/ai-gui/view.tsx)在设计会话的用户回合下挂载卡片；[状态解析](https://github.com/LeonEthan/Folio/blob/a09858632afaf2a9d1929af95f593308951d8ae9/packages/components/src/lib/design-turn-result.ts)读取持久 `designOutcome`，另提供 live 显示，状态包括 committed、candidate、invalid、no_artifact、failed、cancelled。
+- [卡片组件](https://github.com/LeonEthan/Folio/blob/a09858632afaf2a9d1929af95f593308951d8ae9/packages/components/src/components/sessions/design-turn-result-card.tsx)读取候选状态和缩略图，提供定位、采用、丢弃和用户触发修复。修复经 [session-chat-interface](../../../../packages/components/src/components/sessions/session-chat-interface.tsx) 的普通 `dispatchPrompt`，不是自动修复或私有 Agent 通道；卡片不执行语义质量评审。
 - [缩略图生成](../../../../apps/cli/src/design/thumbnail.ts)、[读取](../../../../apps/cli/src/design/thumbnail-read.ts)以及共享 outcome 的可选引用，是展示以外的额外维护面。它们复用现有渲染桥，并非第二套渲染器；没有实测数据证明其成本不可接受，也不能因为复用就认定这项需求不可删除。
 
 ## 必要信息和展示形式
@@ -155,3 +155,5 @@ P3.0 删除范围必须贯穿卡片挂载、专用修复动作、采集缩略图
 [收敛记录](2026-09-11-design-workflow-convergence.zh.md)记录用户已确认的后续决定与源码差异，取代本记录初轮讨论中的最小候选方向。当前需要纠正的既有实现包括：候选生产/审批、产品默认模型、仅文本生成的图像接口、Bento/PPTD 表达差异，以及结束后诊断不能直接反馈给已结束 Agent 的时序边界。P3 交付文件工具可见冲突、普通继续、旧内容可达和直接导入；P4 不为这些机制新增管理页。
 
 本轮文档已同步，不表示运行时完成。原附件复用、非 PNG 脚本限制、渲染读图、回执与手工异常保稿结论继续适用；正常人机并发、临时预览元素指令和固定创作流程不再进入首期。
+
+后续 T07 已实现[普通文件读回与卡片退役](../../implemented/simplification/2026-09-11-design-files-without-result-cards.zh.md)：旧候选原 JSON 与内嵌素材、旧/新草稿通过既有文件入口可达，卡片和专用采用/丢弃/修复动作退出。上文保留原审查时点；新候选生产和缩略图生产仍由独立任务退役。

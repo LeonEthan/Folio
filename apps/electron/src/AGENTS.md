@@ -116,5 +116,6 @@ and flush only. Before changing these boundaries, read
 [design resources](../../../packages/design-bento/README.md).
 The preview host uses the same local socket, independently of canvas preparation.
 Keep render policy in the Node-testable `design-render-host-core.ts`; no automatic
-render retry/repair. `maxEdge` scales captured pixels, never layout; result-card
-thumbnails use the design worker.
+render retry/repair. `maxEdge` scales captured pixels, never layout.
+Historical files resolve by artwork/digest in the worker; local resources serve
+original bytes and embedded assets.

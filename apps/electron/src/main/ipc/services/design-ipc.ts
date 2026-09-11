@@ -11,17 +11,15 @@ import {
 } from '@lody/shared/electron-ipc'
 import { getIpcServiceDeps } from '../ipc-service-deps'
 import {
-  adoptDesignCandidate,
   attachDesign,
   hideDesign,
   destroyDesign,
   designRequest,
-  discardDesignCandidate,
   leaveDesign,
   copyDesign,
   exportDesign,
   finishDesignCopy,
-  readDesignCandidateState,
+  readDesignCandidateFile,
   readDesignCardThumbnail,
   renameDesign,
   saveDesignForDispatch,
@@ -85,22 +83,10 @@ export class DesignIpc extends IpcService {
     owner()
     await syncDesignCanvasFromStore(id.parse(sessionId))
   }
-  /**
-   * P2.5 result-card actions on a kept candidate. Read-only state first; the
-   * user's explicit adopt/discard go through the design worker's store, never
-   * through this process.
-   */
-  @IpcMethod() async candidateState(sessionId: string, rawCandidateId: string) {
+  /** Existing historical content, addressed by artwork and its recorded digest. */
+  @IpcMethod() async candidateFile(sessionId: string, rawCandidateId: string) {
     owner()
-    return readDesignCandidateState(id.parse(sessionId), candidateId.parse(rawCandidateId))
-  }
-  @IpcMethod() async adoptCandidate(sessionId: string, rawCandidateId: string) {
-    owner()
-    return adoptDesignCandidate(id.parse(sessionId), candidateId.parse(rawCandidateId))
-  }
-  @IpcMethod() async discardCandidate(sessionId: string, rawCandidateId: string) {
-    owner()
-    return discardDesignCandidate(id.parse(sessionId), candidateId.parse(rawCandidateId))
+    return readDesignCandidateFile(id.parse(sessionId), candidateId.parse(rawCandidateId))
   }
   /**
    * P2.6: the bytes behind a recorded thumbnail reference, for the result card.

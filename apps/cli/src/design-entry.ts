@@ -3,11 +3,9 @@ import { getLodyDataDir } from '@lody/shared/node/installation-profile';
 import { z } from 'zod';
 import {
   acknowledgeDesign,
-  adoptDesignCandidate,
   designOperation,
-  discardDesignCandidate,
   pendingDesigns,
-  readDesignCandidateState,
+  readDesignCandidate,
 } from './design/store';
 import { MAX_DESIGN_TURN_OUTCOME_THUMBNAIL_REFERENCE_LENGTH } from '@lody/shared';
 import { readDesignThumbnail } from './design/thumbnail-read';
@@ -39,21 +37,14 @@ for await (const line of createInterface({ input: process.stdin, crlfDelay: Infi
         .parse(request);
       await acknowledgeDesign(dataRoot, input.sessionId);
       value = null;
-    } else if (request?.operation === 'candidate-state') {
+    } else if (request?.operation === 'candidate-file') {
       const input = candidateRequest
-        .extend({ operation: z.literal('candidate-state') })
+        .extend({ operation: z.literal('candidate-file') })
         .parse(request);
-      value = await readDesignCandidateState(dataRoot, input.sessionId, input.candidateId);
-    } else if (request?.operation === 'adopt-candidate') {
-      const input = candidateRequest
-        .extend({ operation: z.literal('adopt-candidate') })
-        .parse(request);
-      value = await adoptDesignCandidate(dataRoot, input.sessionId, input.candidateId);
-    } else if (request?.operation === 'discard-candidate') {
-      const input = candidateRequest
-        .extend({ operation: z.literal('discard-candidate') })
-        .parse(request);
-      value = await discardDesignCandidate(dataRoot, input.sessionId, input.candidateId);
+      // Return the verified original file, including its embedded assets. The
+      // ordinary file preview owns byte transport; never copy/rewrite history.
+      const { file } = await readDesignCandidate(dataRoot, input.sessionId, input.candidateId);
+      value = { path: file };
     } else if (request?.operation === 'thumbnail') {
       // The reference is bounded but not pattern-checked here: the shape rule is
       // `readDesignThumbnail`'s own, and the answer it gives a reference this

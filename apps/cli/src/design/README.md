@@ -30,3 +30,15 @@ relative paths there and may read explicitly named attachments from the trusted
 Session cwd. Render replies include the absolute preview path because their
 output directory can differ from Agent cwd. Hooks and file watching are separate
 work; they should reuse `resolveDesignContext` instead of constructing paths.
+
+Historical design readback uses the same context with the persisted Session's
+project/worktree metadata when no runtime Session is loaded. Read-only source and
+file-preview requests may read archived designs; deleted Sessions stay unavailable
+and other Code Collab operations keep their archive gate. A historical project turn
+with missing/invalid frozen input or a changed root fails explicitly; it never
+substitutes today's draft. Work files may have changed since the original turn.
+
+Old `candidates/<digest>.json` files retain complete documents and embedded assets.
+The design worker returns a checksum/identity-verified original path, and ordinary
+file preview supplies its bytes. No candidate approval, deletion, export-copy or
+history catalogue is needed. New candidate production is retired separately.

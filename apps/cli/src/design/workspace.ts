@@ -75,12 +75,18 @@ export function resolveDesignTurnWorkspace(
 export async function resolveDesignContext(
   args: Parameters<typeof resolveDesignWorkspace>[0] & {
     turnId?: string;
+    /** Historical reads may not guess a project draft when its frozen input is absent. */
+    requireTurnManifest?: boolean;
   }
 ): Promise<DesignWorkspace> {
   const workspace = resolveDesignWorkspace(args);
   const manifest = args.turnId
     ? await readFrozenManifest(designTurnInputDir(workspace.inputWorkdir, args.turnId), args.turnId)
     : undefined;
+  if (args.requireTurnManifest && !manifest && workspace.workspaceRoot !== workspace.inputWorkdir)
+    throw Error(
+      'frozen design input is unavailable; original draft location cannot be established'
+    );
   const resolved = manifest
     ? resolveDesignTurnWorkspace(workspace, manifest, args.artworkId)
     : workspace;

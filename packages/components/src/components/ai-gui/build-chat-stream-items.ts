@@ -20,7 +20,7 @@ type CachedChatStreamMessageItem = {
   readonly rawModelInfo: unknown;
   readonly rawFileDiff: unknown;
   readonly rawPlan: unknown;
-  /** P2.5 read-side payload: the design result card must see a new verdict. */
+  /** Durable design facts and diagnostics must reflect a newly recorded outcome. */
   readonly rawDesignOutcome: unknown;
   /** Preceding user-turn config attached for assistant header display. */
   readonly rawTurnInputConfig: unknown;

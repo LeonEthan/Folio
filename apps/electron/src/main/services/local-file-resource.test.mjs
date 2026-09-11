@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { mkdtemp, writeFile, rm, open, rename } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { mkdtemp, writeFile, readFile, rm, open, rename } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { LocalFileResources } from './local-file-resource.ts'
@@ -146,3 +147,43 @@ for (const extension of ['bmp', 'ico']) {
     assert.deepEqual(Buffer.from(await response.arrayBuffer()), bytes)
   })
 }
+
+void test('historical JSON and embedded assets survive reopening through opaque paged file resources', async (t) => {
+  const content = JSON.parse(
+    await readFile(
+      new URL('../../../../../packages/design-bento/sample.json', import.meta.url),
+      'utf8'
+    )
+  )
+  const original = Buffer.from(' '.repeat(600_000) + JSON.stringify({ version: 1, content }))
+  const file = await fixture(t, 'historical.json', original)
+  file.external = true
+  const first = new LocalFileResources()
+  const preview = await first.preview(1, file)
+  assert.equal(preview.status, 'resource')
+  assert.equal(preview.external, true)
+  assert.equal(preview.url.includes(file.absolutePath), false)
+  first.releaseOwner(1)
+  assert.equal((await first.respond(new Request(preview.url))).status, 404)
+  const reopened = new LocalFileResources()
+  const current = await reopened.preview(2, file)
+  const chunks = []
+  for (let offset = 0; offset < original.length; offset += 64 * 1024) {
+    const response = await reopened.respond(
+      new Request(current.url, {
+        headers: { Range: `bytes=${offset}-${Math.min(offset + 64 * 1024, original.length) - 1}` }
+      })
+    )
+    assert.equal(response.status, 206)
+    chunks.push(Buffer.from(await response.arrayBuffer()))
+  }
+  const actual = Buffer.concat(chunks)
+  assert.deepEqual(actual, original)
+  const restored = JSON.parse(actual.toString()).content
+  assert.deepEqual(restored.doc, content.doc)
+  assert.ok(Object.keys(restored.assets).length > 0)
+  for (const [hash, dataUri] of Object.entries(restored.assets)) {
+    const bytes = Buffer.from(dataUri.slice(dataUri.indexOf(',') + 1), 'base64')
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), hash)
+  }
+})
