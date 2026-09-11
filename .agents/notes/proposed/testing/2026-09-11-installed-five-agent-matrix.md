@@ -1594,3 +1594,34 @@ above, including the functional No/Yes observations followed by failed cleanup.
 The repaired package's cold/resubmission run contains no permission steps. Those
 observations therefore remain within their failed round until a separate normal
 installed permission run establishes both the interaction and successful cleanup.
+
+### Pi permission interaction after the shutdown repair
+
+Handle 60276 exited zero on normal package source `81d54b6`, Pi 0.85.1 and
+pi-acp 0.0.33. Evidence is `folio-t28-pi-permission-KD27Yx/evidence`, package
+log `pi-permission-native-3.log`. It reuses the pinned native distribution's
+existing `examples/extensions/permission-gate.ts` through isolated user settings,
+the same disposable fixture and the original No/Yes interaction. Its private ACP
+cache is prepared. No product permission mode or additional adapter is introduced.
+
+The fixture now distinguishes the actual main tool catalog and explicit user
+label from the title request. All five requests are retained: one auxiliary title
+request emits no tools, followed by four main requests. Provider failures affect
+the final verdict after requests drain; diagnostic failures cannot bypass owned
+application cleanup.
+
+Before each response, the marker still exists and the current owned Session,
+sole pending Bash command, exact multiline permission title and actual `pi-ui-*`
+request UUID are correlated. Pi's UI request ID is not misrepresented as the
+native Bash call ID. No returns `Blocked by user` and preserves the marker; Yes
+returns `(no output)` and the marker read subsequently returns ENOENT. Root
+inspected both actual tool results, request classifications and permission
+correlations. Normal cleanup finishes at 20:41:50.705Z, and all 14 recorded owned
+processes are independently absent.
+
+This supplies the previously missing successful installed permission round after
+the shutdown repair. It retains the existing scope: authorization by a
+user-configured native extension through the desktop controls. Both Pi ACP select
+options use `allow_once`; No is enforced by the extension. This is not a native
+ACP `reject_once` option or a built-in Manual mode. The historical selector and
+cleanup failures remain unchanged, and full T28 is still incomplete.
