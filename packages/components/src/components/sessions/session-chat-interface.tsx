@@ -1783,7 +1783,7 @@ export type SessionChatInterfaceHandle = {
   ) => void;
   openSearch: () => void;
   getLastAssistantTurnId: () => string | null;
-  insertDesignElementMention: (reference: DesignElementReference, label: string) => boolean;
+  insertDesignElementMention: (reference: DesignElementReference, label: string, prompt?: string) => boolean;
   insertSessionMention: (sessionId: string) => boolean;
 };
 
@@ -4372,7 +4372,7 @@ export const SessionChatInterface = memo(
         startShareImageSelection: shareSelection.start,
         openSearch,
         getLastAssistantTurnId: () => lastCompletedAssistantMessageId,
-        insertDesignElementMention: (reference, label) => inputAreaRef.current?.insertDesignElementMention(reference, label) ?? false,
+        insertDesignElementMention: (reference, label, prompt) => inputAreaRef.current?.insertDesignElementMention(reference, label, prompt) ?? false,
         insertSessionMention: (sessionId: string) => {
           return inputAreaRef.current?.insertSessionMention(sessionId) ?? false;
         },

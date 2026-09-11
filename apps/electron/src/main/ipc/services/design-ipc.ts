@@ -81,9 +81,10 @@ export class DesignIpc extends IpcService {
     owner()
     return designRequest({ operation: 'read', sessionId: id.parse(sessionId) })
   }
-  @IpcMethod() async selection(sessionId: string, hostId: string) {
+  @IpcMethod() async selection(sessionId: string, hostId: string, kind?: 'image') {
     owner()
-    return getDesignSelection(id.parse(sessionId), id.parse(hostId))
+    if (kind !== undefined && kind !== 'image') throw Error('Invalid selection kind')
+    return getDesignSelection(id.parse(sessionId), id.parse(hostId), kind)
   }
   @IpcMethod() async save(sessionId: string) {
     owner()

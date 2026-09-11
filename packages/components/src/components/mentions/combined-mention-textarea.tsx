@@ -498,7 +498,7 @@ function AgentRoleMentionHydrator({
  * re-slugging every visible session on every session-list tick.
  */
 export type CombinedMentionTextareaHandle = {
-  insertDesignElementMention: (reference: DesignElementReference, label: string) => boolean;
+  insertDesignElementMention: (reference: DesignElementReference, label: string, prompt?: string) => boolean;
   /**
    * Append a session mention. Returns false when nothing was written: an
    * unknown/archived/own session, or one the draft already mentions.
@@ -527,10 +527,10 @@ function MentionActionsBridge({
   React.useImperativeHandle(
     actionsRef,
     () => ({
-      insertDesignElementMention: (reference, label) => {
+      insertDesignElementMention: (reference, label, prompt) => {
         if (composing.current) throw Error(t('design.finishComposition', 'Finish composing text before adding an element reference'));
-        if (mentions.some((mention) => mention.kind === 'design_element' && mention.value === JSON.stringify(reference))) return false;
-        onMentionInsert(buildDesignElementMentionInsertion(reference, label));
+        if (!prompt && mentions.some((mention) => mention.kind === 'design_element' && mention.value === JSON.stringify(reference))) return false;
+        onMentionInsert(buildDesignElementMentionInsertion(reference, label, prompt));
         return true;
       },
       insertSessionMention: (sessionId: string) => {

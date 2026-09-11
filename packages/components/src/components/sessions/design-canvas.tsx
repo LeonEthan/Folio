@@ -80,7 +80,7 @@ export function DesignCanvas({
   active: boolean;
   workspaceSlug: string;
   name: string;
-  onReferenceSelection?: (reference: DesignElementReference) => void;
+  onReferenceSelection?: (reference: DesignElementReference, prompt?: string) => void;
 }) {
   const { t } = useTranslation();
   const host = useRef<HTMLDivElement>(null);
@@ -230,6 +230,17 @@ export function DesignCanvas({
       .catch((e) => setError(String(e)))
       .finally(() => setBusy(false));
   };
+  const referenceSelection = (prompt?: string, kind?: 'image') =>
+    run(async () => {
+      const service = getIpcServices()?.design;
+      if (!service) throw Error('Local workspace is not ready');
+      const generation = attachmentGeneration.current;
+      const reference = await service.selection(sessionId, hostId, kind);
+      if (generation !== attachmentGeneration.current)
+        throw Error(t('design.selectionChanged', 'Artwork view changed; select the current elements again'));
+      setFocused(false);
+      onReferenceSelection?.(reference, prompt);
+    });
   return (
     <div
       data-design-canvas-focus={active && focused}
@@ -241,15 +252,23 @@ export function DesignCanvas({
         }
       </style>
       <div className="flex flex-wrap items-center gap-2 border-b p-2">
-        {onReferenceSelection && <Button size="sm" variant="outline" disabled={busy || preview} onClick={() => run(async () => {
-          const service = getIpcServices()?.design;
-          if (!service) throw Error('Local workspace is not ready');
-          const generation = attachmentGeneration.current;
-          const reference = await service.selection(sessionId, hostId);
-          if (generation !== attachmentGeneration.current) throw Error(t('design.selectionChanged', 'Artwork view changed; select the current elements again'));
-          setFocused(false);
-          onReferenceSelection(reference);
-        })}>{t('design.referenceSelection', 'Reference selected elements')}</Button>}
+        {onReferenceSelection && <>
+          <Button size="sm" variant="outline" disabled={busy || preview} onClick={() => referenceSelection()}>
+            {t('design.referenceSelection', 'Reference selected elements')}
+          </Button>
+          <Button size="sm" variant="outline" disabled={busy || preview} onClick={() => referenceSelection(
+            t('design.generateImagesPrompt', 'Generate a new image for each selected image, using the current design as context. Replace only the selected images with the resulting assets.'), 'image'
+          )}>{t('design.generateSelectedImages', 'Generate selected images')}</Button>
+          <Button size="sm" variant="outline" disabled={busy || preview} onClick={() => referenceSelection(
+            t('design.editImagesPrompt', 'Edit each selected image using its current image as the source. Replace only the selected images with the resulting assets. Requested changes: '), 'image'
+          )}>{t('design.editSelectedImages', 'Edit selected images')}</Button>
+          <Button size="sm" variant="outline" disabled={busy || preview} onClick={() => referenceSelection(
+            t('design.adjustStylePrompt', 'Adjust the style of the selected elements while preserving their content. Requested style: ')
+          )}>{t('design.adjustSelectedStyle', 'Adjust selected style')}</Button>
+          <Button size="sm" variant="outline" disabled={busy || preview} onClick={() => referenceSelection(
+            t('design.regenerateSelectionPrompt', 'Regenerate the selected elements using the current design and our conversation as context. Preserve the rest of the artwork.')
+          )}>{t('design.regenerateSelection', 'Regenerate selection')}</Button>
+        </>}
 
         <Button size="sm" variant={preview ? 'outline' : 'default'} onClick={() => switchPreview(false)}>
           {t('design.currentCanvas', 'Current artwork')}

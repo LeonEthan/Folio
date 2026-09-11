@@ -489,7 +489,7 @@ export type SessionChatInputAreaHandle = {
    * written (archived draft, unknown/own session, already mentioned), so the
    * caller can leave the gesture unacknowledged instead of implying a change.
    */
-  insertDesignElementMention: (reference: DesignElementReference, label: string) => boolean;
+  insertDesignElementMention: (reference: DesignElementReference, label: string, prompt?: string) => boolean;
   insertSessionMention: (sessionId: string) => boolean;
   /** Role identity committed in the currently rendered composer. */
   getAgentRoleSelection: (
@@ -1649,7 +1649,7 @@ export const SessionChatInputArea = memo(
         toggleVisualAnnotationReference,
         handleImageDrop,
         insertSessionMention,
-        insertDesignElementMention: (reference, label) => !isArchived && (mentionActionsRef.current?.insertDesignElementMention(reference, label) ?? false),
+        insertDesignElementMention: (reference, label, prompt) => !isArchived && (mentionActionsRef.current?.insertDesignElementMention(reference, label, prompt) ?? false),
         getAgentRoleSelection: (runConfigOverrides) =>
           resolveTurnAgentRoleForRunConfig({
             turnSelection: agentRoleTurnSelectionRef.current,

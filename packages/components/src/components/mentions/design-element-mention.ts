@@ -8,14 +8,15 @@ import type { MentionInsertRequest } from '@/ui/mention/index';
 
 export function buildDesignElementMentionInsertion(
   reference: DesignElementReference,
-  label: string
+  label: string,
+  prompt?: string
 ): MentionInsertRequest {
   return {
     text: '@' + label,
     value: JSON.stringify(DesignElementReferenceSchema.parse(reference)),
     kind: 'design_element',
     separate: true,
-    suffix: ' ',
+    suffix: prompt ? ` ${prompt} ` : ' ',
   };
 }
 

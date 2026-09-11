@@ -46,3 +46,7 @@ rules live in [AGENTS.md](AGENTS.md); the pipeline and its reasoning live in
 for canonical Bento selection. Expansion sends artwork, saved baseline and stable
 IDs as an ordinary prompt marker; the transcript reuses the frozen mention span.
 No display label resolves an element. The canvas toolbar is the selection source.
+
+Canvas context actions may append an editable prompt through the existing mention
+insertion suffix. The prompt remains outside the persisted identity range and does
+not submit the conversation. Existing draft text and references remain intact.

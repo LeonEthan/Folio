@@ -100,3 +100,21 @@ The generic `folio.selection()` bridge exposes the existing stable selection IDs
 Electron captures those IDs, flushes, and pairs them with the saved canonical
 revision before inserting a normal composer mention. Bento has no conversation or
 reference lifecycle; source previews cannot supply element references.
+
+
+## Image and selection actions
+
+The current-artwork toolbar inserts selected-element references and editable prompts
+for image generation/editing, style adjustment and regeneration into the ordinary
+conversation. Image actions accept only selected canonical image elements; each
+selected image is an explicit target. The saved revision stays frozen until send,
+so edits after choosing an action require selecting the current elements again.
+These actions do not launch a separate job or replace an image. The Agent receives
+readable assets from the existing image MCP, decides how to modify PPTD and uses
+the ordinary version-checked final save.
+
+Bento's image insertion, crop, fit and replacement commands remain available without
+an image connection. A failed image tool leaves the current document untouched and
+does not automatically retry a paid call. Canonical saves retain their referenced
+embedded assets; authoring media and historical content keep the bytes they need.
+There is no asset library, gallery or additional cleanup pass.

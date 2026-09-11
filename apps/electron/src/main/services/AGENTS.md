@@ -33,3 +33,7 @@ original bytes and embedded assets.
 Element references originate only from visible canonical selections while idle.
 Capture IDs before flush and pair them with its saved revision; never rebase stored
 composer references. Validate artwork, revision and IDs again before dispatch.
+
+Image context actions check image kinds in that saved canonical document, then
+insert only a target mention and editable prompt into the ordinary composer.
+They never mutate the artwork or dispatch a separate image job.

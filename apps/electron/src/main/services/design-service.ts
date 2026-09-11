@@ -286,7 +286,7 @@ export async function saveDesign(id: string) {
   await designCanvasAccess.prepareForSend(id)
 }
 /** Capture only the visible canonical editor, after its ordinary save finishes. */
-export async function getDesignSelection(id: string, hostId: string) {
+export async function getDesignSelection(id: string, hostId: string, kind?: 'image') {
   await queryCanvasState?.()
   if (designCanvasAccess.isReadonly(id))
     throw Error('Wait for execution to finish before referencing elements')
@@ -311,6 +311,15 @@ export async function getDesignSelection(id: string, hostId: string) {
     )
   })
   validateDesignElementReferences([reference], id, saved)
+  if (
+    kind === 'image' &&
+    reference.elementIds.some(
+      (elementId) =>
+        saved.doc.elements.find((element: { id: string; kind: string }) => element.id === elementId)
+          ?.kind !== 'image'
+    )
+  )
+    throw Error('Select only images in the current artwork for this action')
   if (designCanvasAccess.isReadonly(id) || records.get(hostId) !== record || !hosts.has(hostId))
     throw Error('Artwork changed while selecting; select the current elements again')
   return reference

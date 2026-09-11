@@ -5253,12 +5253,12 @@ const SessionDetail = ({
           )}
         >
           <DesignCanvas
-            onReferenceSelection={(reference) => {
+            onReferenceSelection={(reference, prompt) => {
               const chat = chatRefsMap.current.get(activeTabSessionId);
               if (activeTabSessionId !== activeSession.id || !chat || !('insertDesignElementMention' in chat))
                 throw Error(t('design.referenceConversationUnavailable', 'Open this artwork’s conversation before referencing elements'));
               chat.insertDesignElementMention(reference,
-                t('design.selectedElements', 'Selected elements ({{count}})', { count: reference.elementIds.length }));
+                t('design.selectedElements', 'Selected elements ({{count}})', { count: reference.elementIds.length }), prompt);
             }}
             name={activeSession.title || t('design.untitled', 'Untitled design')}
             key={activeSession.id}

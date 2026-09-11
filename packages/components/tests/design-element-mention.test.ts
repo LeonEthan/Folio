@@ -14,6 +14,33 @@ import {
 } from '../src/components/mentions/mention-persistence';
 
 describe('canonical element mentions', () => {
+  it('keeps an action prompt editable outside the persisted target range', () => {
+    const reference = {
+      artworkId: 'art',
+      baselineRevisionId: 'a'.repeat(64),
+      elementIds: ['image-1', 'image-2'],
+    };
+    const insertion = buildDesignElementMentionInsertion(
+      reference,
+      'Selected images',
+      'Edit each image. Changes: '
+    );
+    const text = 'Existing draft ' + insertion.text + insertion.suffix + 'warm colors';
+    const ranges = [
+      {
+        start: 'Existing draft '.length,
+        end: 'Existing draft '.length + insertion.text.length,
+        value: insertion.value,
+        kind: insertion.kind,
+      },
+    ];
+    const restored = sanitizeMentionRanges(text, toPersistedMentionRanges(ranges));
+    const expanded = applyTextRewrites(text, buildDesignElementMentionRewrites(text, restored));
+    expect(readDesignElementReferences(expanded.text)).toEqual([reference]);
+    expect(expanded.text).toContain('Existing draft ');
+    expect(expanded.text).toContain('Edit each image. Changes:  warm colors');
+    expect(expanded.spans?.[0]?.label).toBe('@Selected images');
+  });
   it('restores the original identity and expands only its range alongside other content', () => {
     const reference = {
       artworkId: 'art',
