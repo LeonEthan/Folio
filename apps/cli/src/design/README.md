@@ -41,7 +41,7 @@ substitutes today's draft. Work files may have changed since the original turn.
 Old `candidates/<digest>.json` files retain complete documents and embedded assets.
 The design worker returns a checksum/identity-verified original path, and ordinary
 file preview supplies its bytes. No candidate approval, deletion, export-copy or
-history catalogue is needed. New candidate production is retired separately.
+history catalogue is needed. New candidate production is retired; final conflicts preserve the existing draft and receipt diagnostics.
 
 Agent previews continue through `render-preview.ts` and the shared desktop render
 host, at the canvas's actual dimensions. The returned PNG path is available to
@@ -71,8 +71,29 @@ Successful controlled writes bind the collected artifact digest to the attempt.
 Natural completion independently validates the artifact and assets and performs
 canonical compare-and-swap using the live daemon baseline. Missing facts after
 restart or changed bytes fail closed and preserve the draft. Re-reading never
-rebases an established attempt or rewrites a frozen manifest; explicit new
-attempt/resubmission semantics belong to the workflow-convergence slice.
+rebases an established attempt or rewrites a frozen manifest.
+
+`folio_resubmit_draft` is an optional explicit operation for retaining an existing
+draft, including unchanged bytes after a conflict. It binds the complete read
+baseline and exact draft digest captured before its assistant generation, then
+checks both against current state. It never commits or finishes a turn. The new
+attempt invalidates earlier generated writes, duplicate resubmissions and delayed
+write results; subsequent generations may edit through the ordinary path.
+Same-byte writes and rereading alone still leave inherited output `no_artifact`.
+
+The operation uses the shared service and existing tool-hook RPC. Pi's thin native
+registration is necessary because pinned `pi-acp@0.0.33` stores but never forwards
+its MCP servers. Future adapters can expose the same operation through their real
+hook/MCP facilities only after verifying generation fencing; there is no new MCP
+transport or runtime framework here.
+
+A final CAS conflict is recorded as `invalid` with durable reason, retained draft
+path and explicit-continuation instructions in the existing receipt/history.
+The Agent has already ended at that point: no automatic restart, paid retry,
+semantic merge or mandatory finalize tool is introduced. The next user continuation
+can read that receipt, current projection and unchanged draft. Ordinary changes and
+regeneration use the same intake/assets/atomic-save pipeline. P1 manual save-copy
+and read-only historical candidate JSON remain available.
 
 ## Read-only source snapshots
 

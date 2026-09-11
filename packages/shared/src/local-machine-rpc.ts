@@ -278,6 +278,13 @@ export const DesignSourcePathResultSchema = z.discriminatedUnion('ok', [
 export const DesignToolHookEventSchema = z.discriminatedUnion('phase', [
   z
     .object({
+      phase: z.literal('resubmit'),
+      generation: z.string().min(1).max(200),
+      callId: z.string().min(1).max(200),
+    })
+    .strict(),
+  z
+    .object({
       phase: z.literal('generation'),
       generation: z.string().min(1).max(200),
       runtimeVersion: z.string().min(1).max(100),

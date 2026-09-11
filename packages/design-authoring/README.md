@@ -137,3 +137,8 @@ Reads reject redirected/nonregular files, bound each file to 16 MiB and the clos
 to 48 MiB, and recheck opened file identity/content metadata. Consumers compare
 complete observations by exact content before importing one frozen map. Matching
 observations do not establish completion of an external multi-file transaction.
+
+`digestAuthoring` reuses the guarded full-tree collector to compute the existing
+canonical path/length/byte artifact digest with a 64 KiB streaming buffer. It
+retains no file contents and adds no authoring-size cap. This supports explicit
+Agent draft resubmission; it is not a preview, semantic review or commit operation.

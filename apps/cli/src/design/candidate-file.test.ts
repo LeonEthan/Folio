@@ -6,7 +6,9 @@ import { gunzipSync } from 'node:zlib';
 import { afterEach, expect, test } from 'vitest';
 import type { SessionId } from '@lody/shared';
 import { FilePreviewService } from '../lib/file-preview/file-preview-service';
-import { designOperation, readDesignCandidate, saveDesignCandidate } from './store';
+import { designOperation, readDesignCandidate } from './store';
+
+import { writeHistoricalCandidate } from './historical-candidate.fixture';
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -34,7 +36,7 @@ test('reopened historical file yields exact original document and extractable as
       'utf8'
     )
   );
-  const saved = await saveDesignCandidate(root, {
+  const saved = await writeHistoricalCandidate(root, {
     artworkId,
     turnId: 'old-conflicted-turn',
     baselineRevisionId: created.revisionId,

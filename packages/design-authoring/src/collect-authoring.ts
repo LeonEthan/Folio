@@ -11,6 +11,7 @@
 
 import { lstatSync, readdirSync, readFileSync, realpathSync, openSync, closeSync, fstatSync, readSync, constants, type Stats } from "node:fs";
 import { join, sep } from "node:path";
+import { createHash, type Hash } from "node:crypto";
 import { parse } from "yaml";
 import { listSemanticAssetRefs } from "./semantic-assets.ts";
 import type { ValidatedPptd } from "./contracts.ts";
@@ -47,8 +48,22 @@ export function isAuthoringRelPath(rel: string): boolean {
 
 const posix = (p: string): string => p.split(sep).join("/");
 
-export function collectAuthoring(dir: string, options: { referencedOnly?: boolean; onDependencies?: (paths: string[]) => void } = {}): Map<string, Uint8Array> {
+type CollectionOptions = { referencedOnly?: boolean; onDependencies?: (paths: string[]) => void };
+
+export function collectAuthoring(dir: string, options: CollectionOptions = {}): Map<string, Uint8Array> {
+  return scanAuthoring(dir, options);
+}
+
+/** Exact full authoring digest, using the same guarded scan without retaining file bytes. */
+export function digestAuthoring(dir: string): string {
+  const hash = createHash("sha256");
+  scanAuthoring(dir, {}, hash);
+  return hash.digest("hex");
+}
+
+function scanAuthoring(dir: string, options: CollectionOptions, hash?: Hash): Map<string, Uint8Array> {
   let totalBytes = 0;
+  const chunk = hash ? new Uint8Array(64 * 1024) : undefined;
   options.onDependencies?.([ENTRY_PPTD]);
   let rootStat;
   try {
@@ -93,6 +108,24 @@ export function collectAuthoring(dir: string, options: { referencedOnly?: boolea
       const opened = fstatSync(fd);
       const same = (a: Stats, b: Stats) => a.dev === b.dev && a.ino === b.ino && a.size === b.size && a.mtimeMs === b.mtimeMs && a.ctimeMs === b.ctimeMs && b.nlink === 1;
       if (!same(st, opened)) throw new AuthoringSnapshotError(`file changed while opening: ${rel}`);
+      if (hash && chunk) {
+        hash.update(posix(rel));
+        hash.update("\0");
+        hash.update(String(st.size));
+        hash.update("\0");
+        let offset = 0;
+        while (offset < st.size) {
+          const count = readSync(fd, chunk, 0, Math.min(chunk.length, st.size - offset), offset);
+          if (count === 0) throw new AuthoringSnapshotError(`file shortened while reading: ${rel}`);
+          hash.update(chunk.subarray(0, count));
+          offset += count;
+        }
+        if (readSync(fd, chunk, 0, 1, offset) !== 0 || !same(st, fstatSync(fd)) || !same(st, lstatSync(abs)))
+          throw new AuthoringSnapshotError(`file changed while reading: ${rel}`);
+        // Keep only the path for the common required-entry check, never file bytes.
+        out.set(posix(rel), new Uint8Array());
+        return;
+      }
       // Fixed-size reads also bound allocation if the file grows after lstat.
       const bytes = options.referencedOnly ? (() => {
         const buffer = new Uint8Array(st.size + 1);
@@ -155,7 +188,9 @@ export function collectAuthoring(dir: string, options: { referencedOnly?: boolea
     if (!st.isDirectory()) {
       throw new AuthoringSnapshotError(`collectAuthoring: not a directory: ${subdir}`);
     }
-    for (const name of readdirSync(abs)) {
+    const names = readdirSync(abs);
+    if (hash) names.sort();
+    for (const name of names) {
       const rel = accept(name);
       if (rel === undefined) {
         // 非 allowlist 入口：若是非普通文件（symlink/FIFO）仍须拒绝，不能静默跳过后门。
@@ -179,8 +214,10 @@ export function collectAuthoring(dir: string, options: { referencedOnly?: boolea
     }
   };
 
-  takeDir("pages", (name) => (isAuthoringRelPath(`pages/${name}`) ? `pages/${name}` : undefined));
-  takeDir("media", (name) => (isAuthoringRelPath(`media/${name}`) ? `media/${name}` : undefined));
+  // Digest order must match the existing sorted path/length/bytes encoding.
+  // Preserve ordinary snapshot insertion order for existing consumers.
+  for (const directory of hash ? ["media", "pages"] : ["pages", "media"])
+    takeDir(directory, (name) => (isAuthoringRelPath(`${directory}/${name}`) ? `${directory}/${name}` : undefined));
 
   assertAuthoringEntry(out.keys());
   return out;

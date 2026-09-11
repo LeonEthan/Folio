@@ -13,7 +13,7 @@
  * materializer refused to overwrite), the workspace project as it stood at send
  * time (`artifactAtSend`; see `./artifact.ts`), and one entry per reference
  * image with its real sha256. P2.3's post-turn collection compares the post-turn
- * design against `baselineRevisionId` to decide commit-vs-candidate, so this
+ * design against `baselineRevisionId` to decide commit versus preserved conflict, so this
  * manifest is the integrity anchor: failures here must block the dispatch, never
  * warn and continue.
  *
@@ -353,7 +353,7 @@ export function designTurnReceiptFile(workdir: string, turnId: string): string {
  * independently, and either can be lost to a crash. The receipt is the record
  * that makes the pair recoverable: a collection that finds one stamps it
  * instead of deciding again, so a turn never commits twice and never turns its
- * own already-committed work into a candidate.
+ * own already-committed work into a conflict.
  *
  * It is the same payload the entry carries, by construction: `./turn-outcome.ts`
  * stamps what it wrote here.

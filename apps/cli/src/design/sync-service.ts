@@ -4,10 +4,11 @@ import path from 'node:path';
 import { designOperation, type DesignPayload } from './store';
 import { ensureDesignDirectory, type DesignWorkspace } from './workspace';
 import { DesignSyncBaseline } from './sync-baseline';
-import { readDesignArtifact } from './artifact';
+import { readDesignArtifactDigest } from './artifact';
 
 export type DesignToolEvent =
   | { phase: 'generation'; generation: string; runtimeVersion: string }
+  | { phase: 'resubmit'; generation: string; callId: string }
   | {
       phase: 'call';
       generation: string;
@@ -26,7 +27,8 @@ export class DesignSyncService {
   private revision: string | undefined;
   private projected: Map<string, Uint8Array> | undefined;
   private pending = Promise.resolve();
-  private readonly writes = new Set<string>();
+  private readonly writes = new Map<string, string>();
+  private readonly generationDrafts = new Map<string, string | undefined>();
   private readonly seenWrites = new Set<string>();
   private artifactDigest: string | undefined;
   getAttempt() {
@@ -71,12 +73,43 @@ export class DesignSyncService {
           'Folio design hooks currently require verified Pi 0.85.1; choose that runtime explicitly'
         );
       this.baseline.beginGeneration(event.generation);
+      const artifact = await readDesignArtifactDigest(this.context.workspace.artifactWorkdir);
+      this.generationDrafts.set(
+        event.generation,
+        artifact.status === 'present' ? artifact.digest : undefined
+      );
+      return;
+    }
+    if (event.phase === 'resubmit') {
+      try {
+        const current = await this.current();
+        const artifact = await readDesignArtifactDigest(this.context.workspace.artifactWorkdir);
+        const expected = this.generationDrafts.get(event.generation);
+        if (!expected || artifact.status !== 'present' || artifact.digest !== expected)
+          throw Error(
+            'DESIGN_DRAFT_CHANGED: the draft differs from the generation snapshot or is unavailable; inspect it and generate a new resubmission'
+          );
+        if (this.seenWrites.has(event.callId)) throw Error('Duplicate controlled operation');
+        if (this.seenWrites.size >= 10000) throw Error('Design write limit reached');
+        this.baseline.resubmit(event.generation, {
+          artworkId: this.context.artworkId,
+          draftId: this.context.workspace.artifactWorkdir,
+          revisionId: current.revisionId,
+        });
+        this.seenWrites.add(event.callId);
+        this.artifactDigest = artifact.digest;
+      } catch (error) {
+        throw this.actionable(error);
+      }
       return;
     }
     if (event.phase === 'result') {
-      if (this.writes.delete(event.callId)) {
+      const generation = this.writes.get(event.callId);
+      if (generation !== undefined) {
+        this.writes.delete(event.callId);
+        if (!this.baseline.isCurrentGeneration(generation)) return;
         if (!event.isError) {
-          const artifact = await readDesignArtifact(this.context.workspace.artifactWorkdir);
+          const artifact = await readDesignArtifactDigest(this.context.workspace.artifactWorkdir);
           this.artifactDigest = artifact.status === 'present' ? artifact.digest : undefined;
         }
         return;
@@ -103,16 +136,20 @@ export class DesignSyncService {
       if (inProjection) throw Error('DESIGN_INPUT_READ_ONLY: write the separate authoring draft');
       if (!inDraft) return;
       const current = await this.current();
-      this.baseline.checkWrite(event.generation, {
-        artworkId,
-        draftId: workspace.artifactWorkdir,
-        revisionId: current.revisionId,
-      });
+      try {
+        this.baseline.checkWrite(event.generation, {
+          artworkId,
+          draftId: workspace.artifactWorkdir,
+          revisionId: current.revisionId,
+        });
+      } catch (error) {
+        throw this.actionable(error);
+      }
       if (this.seenWrites.has(event.callId)) throw Error('Duplicate controlled write');
       if (this.seenWrites.size >= 10000) throw Error('Design write limit reached');
       this.seenWrites.add(event.callId);
       this.artifactDigest = undefined;
-      this.writes.add(event.callId);
+      this.writes.set(event.callId, event.generation);
       return;
     }
     if (!inProjection) return;
@@ -138,6 +175,13 @@ export class DesignSyncService {
       { offset: event.offset, limit: event.limit }
     );
     this.partialReads.set(event.callId, event.partial === true);
+  }
+
+  private actionable(error: unknown): Error {
+    const { workspace } = this.context;
+    return Error(
+      `${error instanceof Error ? error.message : String(error)}. Current projection: ${workspace.projectionWorkdir}/design.pptd (read entry and listed pages). Preserved draft: ${workspace.artifactWorkdir}. Compare the files; folio_resubmit_draft explicitly starts a new attempt without committing.`
+    );
   }
 
   private async project(current: DesignPayload): Promise<void> {

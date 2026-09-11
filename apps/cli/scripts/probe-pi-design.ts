@@ -17,6 +17,7 @@ import { materializeDesignTurnInput } from '../src/design/turn-input';
 import { collectDesignTurnOutcome } from '../src/design/turn-outcome';
 import type { SessionMeta, SessionHistoryInput } from '@lody/shared';
 
+const resubmit = process.env.FOLIO_PROBE_RESUBMIT === '1';
 const pi = process.env.FOLIO_PROBE_PI;
 const acp = process.env.FOLIO_PROBE_PI_ACP;
 if (!pi || !acp)
@@ -66,6 +67,14 @@ const saved = await designOperation(root, {
     assets: {},
   },
 });
+const files = exportPptd(saved.doc, new Map());
+if (resubmit) {
+  for (const [file, bytes] of files) {
+    const target = path.join(workspace.artifactWorkdir, file);
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, Buffer.from(bytes).toString().replace('#223344', '#556677'));
+  }
+}
 await materializeDesignTurnInput({
   workdir: workspace.inputWorkdir,
   artifactWorkdir: workspace.artifactWorkdir,
@@ -77,13 +86,13 @@ await materializeDesignTurnInput({
 });
 const frozenPath = path.join(workspace.inputWorkdir, 'design-input/probe-turn/manifest.json');
 const frozen = await readFile(frozenPath);
-const files = exportPptd(saved.doc, new Map());
 const service = new DesignSyncService({
   artworkId: sessionId,
   workspace,
   dataRoot: root,
   assertActive: () => {},
 });
+const generationDurations: number[] = [];
 const events: { phase: string; tool?: string; ok: boolean; error?: string }[] = [];
 const socket = path.join(root, 'control.sock');
 const control = createServer(async (req, res) => {
@@ -94,7 +103,10 @@ const control = createServer(async (req, res) => {
   try {
     LocalMachineRpcRequestSchema.parse(request);
     assert.equal(request.ownerSessionId, sessionId);
+    const started = performance.now();
     await service.handle(request.params.event);
+    if (request.params.event.phase === 'generation')
+      generationDurations.push(performance.now() - started);
   } catch (caught) {
     error = String(caught);
   }
@@ -145,7 +157,7 @@ const provider = createServer(async (req, res) => {
     type: 'function',
     function: { name, arguments: JSON.stringify(args) },
   });
-  const toolCalls =
+  let toolCalls =
     requests === 0
       ? [...files.keys()]
           .map((file, i) => tool('read', { path: path.join(workspace.projectionWorkdir, file) }, i))
@@ -182,6 +194,51 @@ const provider = createServer(async (req, res) => {
               )
             )
           : [];
+  if (resubmit && requests >= 2) {
+    const returned = JSON.stringify(recentTools);
+    if (requests === 2) {
+      await designOperation(root, {
+        operation: 'save',
+        sessionId,
+        baseRevisionId: saved.revisionId,
+        content: {
+          doc: { ...saved.doc, background: { type: 'solid', color: '#778899' } },
+          assets: {},
+        },
+      });
+      toolCalls = [
+        tool(
+          'write',
+          {
+            path: path.join(workspace.artifactWorkdir, 'design.pptd'),
+            content: 'MUST BE REJECTED',
+          },
+          0
+        ),
+      ];
+    } else if (requests === 3) {
+      assert(returned.includes('DESIGN_READ_STALE'));
+      assert(returned.includes(workspace.projectionWorkdir));
+      assert(returned.includes(workspace.artifactWorkdir));
+      toolCalls = [...files.keys()].map((file, i) =>
+        tool('read', { path: path.join(workspace.projectionWorkdir, file) }, i)
+      );
+      toolCalls.push(
+        ...[...files.keys()].map((file, i) =>
+          tool('read', { path: path.join(workspace.artifactWorkdir, file) }, files.size + i)
+        )
+      );
+      toolCalls.push(tool('folio_resubmit_draft', {}, files.size * 2));
+    } else if (requests === 4) {
+      assert(returned.includes('#778899'));
+      assert(returned.includes('#556677')); // real native draft and current reads allow comparison
+      assert(returned.includes('DESIGN_READ_STALE'));
+      toolCalls = [tool('folio_resubmit_draft', {}, 0)];
+    } else {
+      assert(returned.includes('Explicit attempt recorded'));
+      toolCalls = [];
+    }
+  }
   if (continuation) continuations++;
   if (requests > 0 && !continuation && !wrote) wrote = true;
   requests++;
@@ -298,6 +355,14 @@ try {
     events.some((event) => event.tool === 'write' && event.error?.includes('DESIGN_READ_REQUIRED'))
   );
   assert(service.getAttempt()?.artifactDigest);
+  if (resubmit) {
+    assert(service.getAttempt()?.explicitResubmission);
+    assert.equal(
+      service.getAttempt()?.artifactDigest,
+      JSON.parse(frozen.toString()).artifactAtSend.digest
+    );
+    assert(events.some((event) => event.phase === 'resubmit' && event.ok));
+  }
   assert.deepEqual(await readFile(frozenPath), frozen);
   let history: SessionHistoryInput[] = [
     { id: 'probe-turn', role: 'user', content: [], timestamp: 1 } as SessionHistoryInput,
@@ -334,6 +399,7 @@ try {
         'real Pi ACP/extension/tools + shared design service/store; synthetic provider and control host; no Electron claim',
       requests,
       continuations,
+      generationMilliseconds: generationDurations,
       events,
       finalRevision: final.revisionId,
     }) + '\n'

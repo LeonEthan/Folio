@@ -146,3 +146,112 @@ it('leaves ordinary files outside design guards and refuses projection writes', 
   ).rejects.toThrow('DESIGN_INPUT_READ_ONLY');
   expect(await readDesignArtifact(workspace.artifactWorkdir)).toEqual({ status: 'absent' });
 });
+
+it('rereads after a conflict and explicitly resubmits identical bytes while fencing old calls and results', async () => {
+  const { root, workspace, payload, service, sessionId } = await setup();
+  const generate = (generation: string) =>
+    service.handle({ phase: 'generation', generation, runtimeVersion: '0.85.1' });
+  const readCurrent = async (generation: string) => {
+    for (const file of ['design.pptd', 'pages/design.page']) {
+      const target = path.join(workspace.projectionWorkdir, file);
+      const callId = `${generation}-${file}`;
+      await service.handle({ phase: 'call', generation, callId, tool: 'read', path: target });
+      await service.handle({
+        phase: 'result',
+        callId,
+        isError: false,
+        text: await readFile(target, 'utf8'),
+      });
+    }
+  };
+  await generate('read1');
+  await readCurrent('read1');
+  await generate('write1');
+  for (const file of ['design.pptd', 'pages/design.page']) {
+    const target = path.join(workspace.artifactWorkdir, file);
+    await service.handle({
+      phase: 'call',
+      generation: 'write1',
+      callId: file,
+      tool: 'write',
+      path: target,
+    });
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, await readFile(path.join(workspace.projectionWorkdir, file)));
+    await service.handle({ phase: 'result', callId: file, isError: false });
+  }
+  // An authorized write is still in flight when an abnormal external writer wins.
+  const draft = path.join(workspace.artifactWorkdir, 'design.pptd');
+  await service.handle({
+    phase: 'call',
+    generation: 'write1',
+    callId: 'late',
+    tool: 'write',
+    path: draft,
+  });
+  const newer = await designOperation(root, {
+    operation: 'save',
+    sessionId,
+    baseRevisionId: payload.revisionId,
+    content: {
+      doc: { ...payload.doc, background: { type: 'solid', color: '#123456' } },
+      assets: {},
+    },
+  });
+  await expect(
+    service.handle({
+      phase: 'call',
+      generation: 'write1',
+      callId: 'stale',
+      tool: 'write',
+      path: draft,
+    })
+  ).rejects.toThrow(workspace.projectionWorkdir);
+  const preserved = await readDesignArtifact(workspace.artifactWorkdir);
+  await generate('read2');
+  await readCurrent('read2');
+  expect(service.getAttempt()).toBeUndefined(); // unfinished write does not attest output
+  await expect(
+    service.handle({ phase: 'resubmit', generation: 'read2', callId: 'same-batch' })
+  ).rejects.toThrow('DESIGN_READ_STALE');
+  await generate('resubmit');
+  await service.handle({ phase: 'resubmit', generation: 'resubmit', callId: 'intent' });
+  expect(service.getAttempt()).toMatchObject({
+    revisionId: newer.revisionId,
+    explicitResubmission: true,
+    artifactDigest: preserved.status === 'present' ? preserved.digest : '',
+  });
+  expect(await readDesignArtifact(workspace.artifactWorkdir)).toEqual(preserved);
+  await expect(
+    service.handle({ phase: 'resubmit', generation: 'resubmit', callId: 'duplicate-intent' })
+  ).rejects.toThrow('DESIGN_ATTEMPT_STALE');
+  await expect(
+    service.handle({
+      phase: 'call',
+      generation: 'resubmit',
+      callId: 'parallel',
+      tool: 'write',
+      path: draft,
+    })
+  ).rejects.toThrow('DESIGN_ATTEMPT_STALE');
+  const accepted = service.getAttempt();
+  await writeFile(draft, 'late obsolete write');
+  await service.handle({ phase: 'result', callId: 'late', isError: false });
+  expect(service.getAttempt()).toEqual(accepted); // cannot attest bytes from a retired operation
+  const changed = await readDesignArtifact(workspace.artifactWorkdir);
+  expect(changed.status === 'present' ? changed.digest : '').not.toBe(accepted?.artifactDigest);
+});
+
+it('rejects a draft changed after generation without changing the active attempt', async () => {
+  const { workspace, service } = await setup();
+  await mkdir(workspace.artifactWorkdir, { recursive: true });
+  const draft = path.join(workspace.artifactWorkdir, 'design.pptd');
+  await writeFile(draft, 'original');
+  await service.handle({ phase: 'generation', generation: 'g', runtimeVersion: '0.85.1' });
+  await writeFile(draft, 'new bytes');
+  await expect(
+    service.handle({ phase: 'resubmit', generation: 'g', callId: 'intent' })
+  ).rejects.toThrow('DESIGN_DRAFT_CHANGED');
+  expect(service.getAttempt()).toBeUndefined();
+  expect(await readFile(draft, 'utf8')).toBe('new bytes');
+});

@@ -15,6 +15,15 @@ interface PiEvent {
   details?: { truncation?: { truncated?: boolean; firstLineExceedsLimit?: boolean } };
 }
 interface PiExtensionApi {
+  registerTool(tool: {
+    name: string;
+    label: string;
+    description: string;
+    parameters: { type: 'object'; properties: Record<string, never>; additionalProperties: false };
+    execute(
+      callId: string
+    ): Promise<{ content: { type: 'text'; text: string }[]; details: Record<string, never> }>;
+  }): void;
   on(event: string, handler: (event: PiEvent) => Promise<unknown>): void;
 }
 
@@ -22,6 +31,7 @@ export default function folioDesignExtension(pi: PiExtensionApi): void {
   let generation = '';
   let generationError: string | undefined;
   let supported = true;
+  const resubmissions = new Map<string, { generation: string; error?: string }>();
   const request = async (event: DesignToolEvent): Promise<boolean> => {
     const result = await Effect.runPromise(
       makeLocalControlClientAuto({
@@ -43,6 +53,37 @@ export default function folioDesignExtension(pi: PiExtensionApi): void {
     if (!answer.ok) throw Error(answer.error ?? 'Design hook refused');
     return answer.supported;
   };
+  // pi-acp 0.0.33 does not forward its MCP catalog. Keep this native adapter
+  // thin; the generation-fenced operation belongs to the shared design service.
+  pi.registerTool({
+    name: 'folio_resubmit_draft',
+    label: 'Resubmit preserved design draft',
+    description:
+      'Explicitly start a new authoring attempt with the exact existing PPTD draft observed before this response. First read the complete current projection and compare the preserved draft. Use this when retaining identical draft bytes or resolving a stale attempt. This records your intent only: it does not commit, finish the turn, or judge the design. Natural completion still validates and atomically saves. Generate later edits in a subsequent response.',
+    parameters: { type: 'object', properties: {}, additionalProperties: false },
+    async execute(callId) {
+      const captured = resubmissions.get(callId);
+      resubmissions.delete(callId);
+      if (!captured) throw Error('Missing native resubmission call event');
+      if (captured.error) throw Error(captured.error);
+      if (!supported) throw Error('Design resubmission is unavailable for this session');
+      const available = await request({
+        phase: 'resubmit',
+        generation: captured.generation,
+        callId,
+      });
+      if (!available) throw Error('Design resubmission is unavailable for this session');
+      return {
+        content: [
+          {
+            type: 'text',
+            text: 'Explicit attempt recorded for the exact preserved draft and delivered current baseline. Nothing committed yet; continue editing or finish naturally.',
+          },
+        ],
+        details: {},
+      };
+    },
+  });
   pi.on('message_start', async (event) => {
     if (event.message?.role !== 'assistant') return undefined;
     generation = randomUUID();
@@ -59,6 +100,12 @@ export default function folioDesignExtension(pi: PiExtensionApi): void {
     return undefined;
   });
   pi.on('tool_call', async (event) => {
+    if (event.toolName === 'folio_resubmit_draft' && event.toolCallId) {
+      if (resubmissions.size >= 10000)
+        return { block: true, reason: 'Design operation limit reached' };
+      resubmissions.set(event.toolCallId, { generation, error: generationError });
+      return undefined;
+    }
     if (
       !['read', 'write', 'edit'].includes(event.toolName ?? '') ||
       !event.input?.path ||

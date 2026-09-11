@@ -95,3 +95,34 @@ it('accumulates native 2000-line continuation ranges, retaining holes and revisi
   service.beginGeneration('complete');
   expect(service.checkWrite('complete', current).revisionId).toBe('v1');
 });
+
+it('never lends an established attempt to arguments generated before successful reads', () => {
+  const service = new DesignSyncBaseline();
+  service.beginGeneration('old');
+  read(service, 'entry', 'design.pptd', 'entry');
+  read(service, 'page', 'pages/one.pptd', 'page');
+  service.beginGeneration('ready');
+  service.checkWrite('ready', current);
+  expect(() => service.checkWrite('old', current)).toThrow('DESIGN_READ_REQUIRED');
+});
+
+it('explicit resubmission alone changes baseline and invalidates all earlier generated arguments', () => {
+  const service = new DesignSyncBaseline();
+  read(service, 'entry1', 'design.pptd', 'entry');
+  read(service, 'page1', 'pages/one.pptd', 'page');
+  service.beginGeneration('old');
+  service.checkWrite('old', current);
+  service.beginGeneration('read-new');
+  read(service, 'entry2', 'design.pptd', 'entry', 'v2');
+  read(service, 'page2', 'pages/one.pptd', 'page', 'v2');
+  const next = { ...current, revisionId: 'v2' };
+  expect(() => service.resubmit('read-new', next)).toThrow('DESIGN_READ_STALE');
+  service.beginGeneration('resubmit');
+  service.resubmit('resubmit', next);
+  expect(service.getAttempt()).toMatchObject({ revisionId: 'v2', explicitResubmission: true });
+  expect(() => service.resubmit('resubmit', next)).toThrow('DESIGN_ATTEMPT_STALE');
+  expect(() => service.checkWrite('resubmit', next)).toThrow('DESIGN_ATTEMPT_STALE');
+  expect(() => service.checkWrite('old', next)).toThrow('DESIGN_ATTEMPT_STALE');
+  service.beginGeneration('after');
+  expect(service.checkWrite('after', next).revisionId).toBe('v2');
+});

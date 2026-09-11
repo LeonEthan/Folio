@@ -45,7 +45,7 @@ export function designWorkspacePointer(workspace: DesignWorkspace, turnId?: stri
     `Design authoring directory: ${workspace.artifactWorkdir}. Write design.pptd, pages/ and media/ here; render and final collection use this directory.`,
     `Reserved current canvas projection path (may be absent until synchronized): ${workspace.projectionWorkdir}/design.pptd. This is application input, not an Agent draft or a submitted result. Copy it and its required pages/media into the authoring directory only if you choose to work from it; preserve existing drafts.`,
     `Previous chat drafts remain accessible at ${workspace.inputWorkdir}; they are never relocated or overwritten.`,
-    `Frozen turn inputs and references: ${inputDirectory}. Agent cwd remains ${workspace.workspaceRoot}.`,
+    `Frozen turn inputs and references: ${inputDirectory}. Earlier durable collection diagnostics are in ${path.join(workspace.inputWorkdir, 'design-input')}/<turnId>/receipt.json; on explicit continuation inspect the previous receipt and retained draft. Agent cwd remains ${workspace.workspaceRoot}.`,
   ].join('\n');
 }
 

@@ -14,15 +14,15 @@
  * The lock is a file in the artwork's own directory, the only thing two
  * processes of this app share, and it is per artwork: two sessions never wait
  * for each other. Every other design-store write is content-addressed and
- * idempotent (a candidate or a frozen turn manifest) and needs no
+ * idempotent (a frozen turn manifest) and needs no
  * lock.
  *
  * Three rules keep it from becoming a new way to fail:
  *
  * - **Bounded.** Acquisition gives up after `DESIGN_LOCK_TIMEOUT_MS` and rejects
  *   with `DESIGN_BUSY` instead of waiting forever, so a caller can decide what
- *   its own failure means — the collection keeps the turn's document as a
- *   candidate rather than retrying a paid call (`agent-naive`; root `AGENTS.md`).
+ *   its own failure means — collection preserves the draft and diagnostics
+ *   rather than retrying a paid call (`agent-naive`; root `AGENTS.md`).
  * - **Recoverable.** A holder that dies without releasing would otherwise wedge
  *   the canvas for good, so a lock older than `DESIGN_LOCK_STALE_MS` is stolen:
  *   renaming the stale file aside is the atomic step, so of two stealers exactly

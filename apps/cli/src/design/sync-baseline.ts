@@ -18,6 +18,8 @@ export interface DesignReadBaseline {
   revisionId: string;
   contentHash: string;
   artifactDigest?: string;
+  /** Only an explicit resubmission may promote unchanged inherited bytes. */
+  explicitResubmission?: boolean;
 }
 
 /**
@@ -28,7 +30,11 @@ export interface DesignReadBaseline {
 export class DesignSyncBaseline {
   private readonly reads = new Map<string, Read>();
   private readonly delivered = new Map<string, Map<string, [number, number][]>>();
-  private readonly generations = new Map<string, DesignReadBaseline | undefined>();
+  private readonly generations = new Map<
+    string,
+    { baseline?: DesignReadBaseline; epoch: number }
+  >();
+  private epoch = 0;
   private readonly seenCalls = new Set<string>();
   private latest: DesignReadBaseline | undefined;
   private attempt: DesignReadBaseline | undefined;
@@ -36,7 +42,7 @@ export class DesignSyncBaseline {
   beginGeneration(id: string): void {
     if (this.generations.size >= 10000) throw Error('Design generation limit reached');
     if (this.generations.has(id)) throw Error('Duplicate design generation');
-    this.generations.set(id, this.latest);
+    this.generations.set(id, { baseline: this.latest, epoch: this.epoch });
   }
 
   beginRead(
@@ -106,28 +112,53 @@ export class DesignSyncBaseline {
     }
   }
 
-  checkWrite(
+  private eligible(
     generation: string,
     current: { artworkId: string; draftId: string; revisionId: string }
   ): DesignReadBaseline {
-    if (!this.generations.has(generation)) throw Error('DESIGN_READ_REQUIRED: unknown generation');
-    const baseline = this.attempt ?? this.generations.get(generation);
-    if (!baseline)
+    const captured = this.generations.get(generation);
+    if (!captured?.baseline)
       throw Error(
-        'DESIGN_READ_REQUIRED: read the complete current projection before generating this write'
+        'DESIGN_READ_REQUIRED: read the complete current projection before generating this operation'
       );
+    if (captured.epoch !== this.epoch)
+      throw Error('DESIGN_ATTEMPT_STALE: generate a new operation after the explicit resubmission');
+    const baseline = captured.baseline;
     if (
       baseline.artworkId !== current.artworkId ||
       baseline.draftId !== current.draftId ||
       baseline.revisionId !== current.revisionId
-    ) {
+    )
       throw Error(
-        'DESIGN_READ_STALE: preserve the draft, read the current projection and explicitly start a new attempt'
+        'DESIGN_READ_STALE: preserve the draft, read the current projection and explicitly resubmit the draft'
       );
-    }
-    // Captured when a write is authorized, never changed by a later read/result.
-    this.attempt = baseline;
-    return { ...baseline };
+    return baseline;
+  }
+
+  checkWrite(
+    generation: string,
+    current: { artworkId: string; draftId: string; revisionId: string }
+  ): DesignReadBaseline {
+    const eligible = this.eligible(generation, current);
+    if (this.attempt && this.attempt.contentHash !== eligible.contentHash)
+      throw Error(
+        'DESIGN_READ_STALE: rereading does not rebase an old draft; explicitly resubmit the draft'
+      );
+    this.attempt ??= eligible;
+    return { ...this.attempt };
+  }
+
+  resubmit(
+    generation: string,
+    current: { artworkId: string; draftId: string; revisionId: string }
+  ): void {
+    const baseline = this.eligible(generation, current);
+    this.attempt = { ...baseline, explicitResubmission: true };
+    this.epoch++;
+  }
+
+  isCurrentGeneration(generation: string): boolean {
+    return this.generations.get(generation)?.epoch === this.epoch;
   }
 
   getAttempt(): DesignReadBaseline | undefined {

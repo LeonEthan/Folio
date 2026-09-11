@@ -12,6 +12,12 @@ Root and CLI instructions apply. `CLAUDE.md` links to this file.
 - A generation captures eligible reads before its tools execute. Never authorize
   old Write/Edit arguments from a same-generation read or mutate an existing
   attempt when later reads succeed.
+- Explicit resubmission alone may replace an attempt, binding the generation-frozen
+  complete read and exact draft digest. Retire earlier generated calls/results;
+  rereading and same-byte writes never authorize unchanged inherited output.
+- Final conflicts preserve draft and durable diagnostics for explicit continuation;
+  never create candidates, restart the Agent or require a finalize tool. Keep
+  historical candidate readback and the independent P1 manual save-copy escape.
 - Controlled write success binds the exact artifact digest. Pi final collection
   requires live daemon evidence independently of writable manifests, then runs
   existing structural/assets/CAS checks. Missing evidence preserves drafts.

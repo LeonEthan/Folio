@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 const { expect } = createRequire(new URL('../../../e2e/package.json', import.meta.url))(
   '@playwright/test'
 );
+const resubmitMode = process.env.FOLIO_PROBE_RESUBMIT === '1';
 const pi = process.env.FOLIO_PROBE_PI;
 if (!pi) throw Error('Set FOLIO_PROBE_PI to the verified Pi executable');
 import { createServer } from 'node:http';
@@ -14,10 +15,18 @@ import { mkdir, mkdtemp, writeFile, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-const root = await mkdtemp(path.join(tmpdir(), 'folio-t05-desktop-'));
+import { designOperation } from '../src/design/store.ts';
+import { readDesignArtifactDigest } from '../src/design/artifact.ts';
+const root = await mkdtemp(
+  path.join(tmpdir(), resubmitMode ? 'folio-t06-desktop-' : 'folio-t05-desktop-')
+);
 const scenarioDir = path.join(root, 'evidence');
 await mkdir(scenarioDir);
 let editCalls = 0;
+let resubmitCalls = 0;
+let artworkId;
+let dataRoot;
+let externalRevision;
 let draft = '';
 let sourceFiles = new Map();
 let blocked = false;
@@ -75,6 +84,62 @@ const provider = createServer(async (req, res) => {
     }
     editCalls++;
   }
+  if (resubmitMode && userMessages.includes('SYNTHETIC_RESUBMIT')) {
+    const tool = (name, args, i) => ({
+      index: i,
+      id: `retry_${resubmitCalls}_${i}`,
+      type: 'function',
+      function: { name, arguments: JSON.stringify(args) },
+    });
+    const latestAssistant = body.messages.findLastIndex((m) => m.role === 'assistant');
+    const returned = JSON.stringify(
+      body.messages.slice(latestAssistant + 1).filter((m) => m.role === 'tool')
+    );
+    if (resubmitCalls === 0) {
+      calls = ['design.pptd', 'pages/design.page'].map((file, i) =>
+        tool('read', { path: path.join(draft, 'design-current', file) }, i)
+      );
+    } else if (resubmitCalls === 1) {
+      calls = [...sourceFiles].map(([file, content], i) =>
+        tool(
+          'write',
+          { path: path.join(draft, file), content: content.replace(/#ffffff/i, '#8899AA') },
+          i
+        )
+      );
+    } else if (resubmitCalls === 2) {
+      const current = await designOperation(dataRoot, { operation: 'read', sessionId: artworkId });
+      const saved = await designOperation(dataRoot, {
+        operation: 'save',
+        sessionId: artworkId,
+        baseRevisionId: current.revisionId,
+        content: {
+          doc: { ...current.doc, background: { type: 'solid', color: '#778899' } },
+          assets: current.assets,
+        },
+      });
+      externalRevision = saved.revisionId;
+      calls = [
+        tool('write', { path: path.join(draft, 'design.pptd'), content: 'MUST NOT WRITE' }, 0),
+      ];
+    } else if (resubmitCalls === 3) {
+      assert(returned.includes('DESIGN_READ_STALE'));
+      calls = [
+        'design-current/design.pptd',
+        'design-current/pages/design.page',
+        'design.pptd',
+        'pages/design.page',
+      ].map((file, i) => tool('read', { path: path.join(draft, file) }, i));
+    } else if (resubmitCalls === 4) {
+      assert(returned.includes('#778899') && returned.includes('#8899AA'));
+      calls = [tool('folio_resubmit_draft', {}, 0)];
+    } else {
+      assert(returned.includes('Explicit attempt recorded'));
+      calls = [];
+      text = 'SYNTHETIC_RESUBMIT_FINISHED';
+    }
+    resubmitCalls++;
+  }
   res.writeHead(200, { 'content-type': 'text/event-stream' });
   const send = (delta, finish_reason) =>
     res.write(
@@ -106,9 +171,15 @@ await writeFile(
   path.join(agentDir, 'settings.json'),
   JSON.stringify({ defaultProvider: 'synthetic', defaultModel: 'synthetic', quietStartup: true })
 );
-const h = new ElectronHarness({ rootDir: root, scenarioDir, stableId: 'FOLIO-T05' });
+const h = new ElectronHarness({
+  rootDir: root,
+  scenarioDir,
+  stableId: resubmitMode ? 'FOLIO-T06' : 'FOLIO-T05',
+});
 try {
   await h.launch();
+  dataRoot = await h.app.evaluate(() => process.env.LODY_DATA_DIR);
+  assert(dataRoot);
   const page = h.page;
   const onboarding = new OnboardingPage(page);
   await onboarding.waitForLocalBootstrap();
@@ -139,6 +210,7 @@ try {
   console.log('INITIAL', page.url());
   const id = page.url().match(/sessions\/([^/?#]+)/)?.[1];
   assert(id);
+  artworkId = id;
   await expect
     .poll(
       async () =>
@@ -206,6 +278,46 @@ try {
       { timeout: 60000 }
     )
     .toBe(false);
+  if (resubmitMode) {
+    const originalDraft = await readDesignArtifactDigest(draft);
+    assert.equal(originalDraft.status, 'present');
+    await page.getByRole('combobox').fill('SYNTHETIC_RESUBMIT');
+    await page.getByRole('button', { name: /^(Send|发送)$/ }).click();
+    await expect(page.locator('p').filter({ hasText: 'SYNTHETIC_RESUBMIT_FINISHED' })).toBeVisible({
+      timeout: 120000,
+    });
+    await expect
+      .poll(
+        async () => {
+          const saved = await page.evaluate(async (id) => window.ipc.invoke('design.read', id), id);
+          return saved.doc.background.color;
+        },
+        { timeout: 60000 }
+      )
+      .toBe('#8899AA');
+    await expect
+      .poll(
+        async () =>
+          h.app.evaluate(async ({ BrowserWindow }) => {
+            const owner = BrowserWindow.getAllWindows().find((w) =>
+              w.webContents.getURL().includes('#/local/')
+            );
+            const view = owner.contentView.children.find((v) =>
+              v.webContents?.getURL().includes('design')
+            );
+            return view
+              ? await view.webContents.executeJavaScript('window.folio?.state().readonly')
+              : true;
+          }),
+        { timeout: 60000 }
+      )
+      .toBe(false);
+    const retained = await page.evaluate(async (id) => window.ipc.invoke('design.read', id), id);
+    assert.equal(retained.revisionId, final.revisionId);
+    assert.notEqual(retained.revisionId, externalRevision);
+    assert.deepEqual(await readDesignArtifactDigest(draft), originalDraft);
+    assert.equal(retained.doc.elements.length, edited.doc.elements.length);
+  }
   const canvasImage = await h.app.evaluate(async ({ BrowserWindow }) => {
     const owner = BrowserWindow.getAllWindows().find((w) =>
       w.webContents.getURL().includes('#/local/')
@@ -224,6 +336,8 @@ try {
       status: 'passed',
       boundary: 'Electron IPC/MessageHandler/Session actual Pi ACP runtime natural finalization',
       editCalls,
+      resubmitCalls,
+      externalRevision,
       blocked,
       finalRevision: final.revisionId,
       elementCount: final.doc.elements.length,

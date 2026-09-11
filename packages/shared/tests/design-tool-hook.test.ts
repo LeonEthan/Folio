@@ -14,8 +14,17 @@ describe('native design Read range contract', () => {
     };
     expect(DesignToolHookEventSchema.parse(continuation)).toEqual(continuation);
     expect(DesignToolHookEventSchema.safeParse({ ...continuation, offset: 0 }).success).toBe(true);
-    expect(DesignToolHookEventSchema.safeParse({ ...continuation, limit: 1.5 }).success).toBe(
-      true
-    );
+    expect(DesignToolHookEventSchema.safeParse({ ...continuation, limit: 1.5 }).success).toBe(true);
   });
+});
+
+it('bounds resubmission identity without accepting caller-controlled baseline or paths', () => {
+  const event = { phase: 'resubmit', generation: 'g', callId: 'call' };
+  expect(DesignToolHookEventSchema.parse(event)).toEqual(event);
+  expect(DesignToolHookEventSchema.safeParse({ ...event, revisionId: 'forged' }).success).toBe(
+    false
+  );
+  expect(
+    DesignToolHookEventSchema.safeParse({ ...event, generation: 'x'.repeat(201) }).success
+  ).toBe(false);
 });

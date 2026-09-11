@@ -23,6 +23,7 @@ export {
 } from './migrate.ts';
 export {
   collectAuthoring,
+  digestAuthoring,
   assertAuthoringEntry,
   isAuthoringRelPath,
   AuthoringSnapshotError,

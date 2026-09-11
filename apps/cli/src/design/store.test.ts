@@ -5,15 +5,14 @@ import { createHash, randomUUID } from 'node:crypto';
 import { afterEach, expect, test } from 'vitest';
 import { DESIGN_LOCK_FILENAME } from './lock';
 import {
-  canvasHoldsContent,
   designOperation,
   pendingDesigns,
   acknowledgeDesign,
-  listDesignCandidates,
   readDesignCandidate,
-  saveDesignCandidate,
   type DesignPayload,
 } from './store';
+
+import { writeHistoricalCandidate } from './historical-candidate.fixture';
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -209,129 +208,6 @@ test('a read is not blocked by a writer holding the lock', async () => {
   ).toEqual(created);
 });
 
-test('a candidate is written beside the canvas, addressed by content and never twice', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'folio-design-'));
-  roots.push(root);
-  const association = {
-    sessionId: randomUUID(),
-    name: 'Synthetic',
-    userId: 'local:test',
-    machineId: 'test-machine',
-    createdAt: '2026-09-09T00:00:00.000Z',
-  };
-  const created = await designOperation(root, { operation: 'create', association });
-  const candidate = {
-    artworkId: association.sessionId,
-    turnId: 'turn-1',
-    baselineRevisionId: created.revisionId,
-    createdAt: '2026-09-10T01:00:00.000Z',
-    content: {
-      doc: { ...created.doc, background: { type: 'solid', color: '#123456' } },
-      assets: {},
-    },
-  };
-  const first = await saveDesignCandidate(root, candidate);
-  expect(first.candidateId).toMatch(/^[a-f0-9]{64}$/);
-
-  // Same content, later turn: still one candidate, still the first one's bytes.
-  const again = await saveDesignCandidate(root, {
-    ...candidate,
-    turnId: 'turn-2',
-    createdAt: '2026-09-11T09:00:00.000Z',
-  });
-  expect(again).toEqual(first);
-  const { candidate: stored, file } = await readDesignCandidate(
-    root,
-    association.sessionId,
-    first.candidateId
-  );
-  expect(stored.turnId).toBe('turn-1');
-  expect(stored.content.doc).toEqual(candidate.content.doc);
-  expect(await listDesignCandidates(root, association.sessionId)).toEqual([first]);
-
-  // The candidate is an addition, not a write: the canvas is untouched.
-  expect(
-    await designOperation(root, { operation: 'read', sessionId: association.sessionId })
-  ).toEqual(created);
-
-  // A different design is a different candidate id, and an unreadable one is
-  // reported instead of being adopted on trust.
-  const other = await saveDesignCandidate(root, {
-    ...candidate,
-    content: { doc: created.doc, assets: {} },
-  });
-  expect(other.candidateId).not.toBe(first.candidateId);
-  expect(await listDesignCandidates(root, association.sessionId)).toHaveLength(2);
-  await writeFile(file, '{}');
-  await expect(
-    readDesignCandidate(root, association.sessionId, first.candidateId)
-  ).rejects.toThrow();
-  await rm(path.join(root, 'chats', association.sessionId, 'candidates'), { recursive: true });
-  await expect(readDesignCandidate(root, association.sessionId, first.candidateId)).rejects.toThrow(
-    'not found'
-  );
-  expect(await listDesignCandidates(root, association.sessionId)).toEqual([]);
-  await expect(readDesignCandidate(root, '../outside', first.candidateId)).rejects.toThrow();
-  await expect(
-    readDesignCandidate(root, association.sessionId, '../design.json')
-  ).rejects.toThrow();
-  await expect(
-    saveDesignCandidate(root, { ...candidate, artworkId: '../outside' })
-  ).rejects.toThrow();
-});
-
-test('a candidate is refused when the canvas could not take it', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'folio-design-'));
-  roots.push(root);
-  const association = {
-    sessionId: randomUUID(),
-    name: 'Synthetic',
-    userId: 'local:test',
-    machineId: 'test-machine',
-    createdAt: '2026-09-09T00:00:00.000Z',
-  };
-  const created = await designOperation(root, { operation: 'create', association });
-  const fixture = JSON.parse(
-    await readFile(
-      new URL('../../../../packages/design-bento/sample.json', import.meta.url),
-      'utf8'
-    )
-  );
-  // Past the store's own element-id bound, which a save enforces. An offer the
-  // canvas would refuse is one an Apply could never accept, so it is refused
-  // here rather than kept as a card that cannot work.
-  const candidate = {
-    artworkId: association.sessionId,
-    turnId: 'turn-1',
-    baselineRevisionId: created.revisionId,
-    createdAt: '2026-09-10T01:00:00.000Z',
-    content: {
-      doc: {
-        ...fixture.doc,
-        elements: [
-          ...fixture.doc.elements,
-          { id: 'x'.repeat(250), kind: 'text', bounds: [0, 0, 10, 10], zIndex: 90 },
-        ],
-      },
-      assets: fixture.assets,
-    },
-  };
-  await expect(saveDesignCandidate(root, candidate)).rejects.toThrow(/200/);
-  expect(await listDesignCandidates(root, association.sessionId)).toEqual([]);
-
-  // The same document without that element is a candidate the canvas can take.
-  const { candidateId } = await saveDesignCandidate(root, {
-    ...candidate,
-    content: { doc: fixture.doc, assets: fixture.assets },
-  });
-  const { candidate: readable } = await readDesignCandidate(
-    root,
-    association.sessionId,
-    candidateId
-  );
-  expect(readable.content.doc).toEqual(fixture.doc);
-});
-
 test('a document is the canvas even when its table carries assets the document does not use', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'folio-design-'));
   roots.push(root);
@@ -365,7 +241,7 @@ test('a document is the canvas even when its table carries assets the document d
   // Only what the document replays is stored, so the two tables really do differ.
   expect(Object.keys(created.assets)).not.toContain(UNUSED_ASSET_KEY);
 
-  const { candidateId } = await saveDesignCandidate(root, {
+  const { candidateId } = await writeHistoricalCandidate(root, {
     artworkId: association.sessionId,
     turnId: 'turn-1',
     baselineRevisionId: created.revisionId,
@@ -375,5 +251,12 @@ test('a document is the canvas even when its table carries assets the document d
   const { candidate } = await readDesignCandidate(root, association.sessionId, candidateId);
   expect(candidate.content.assets[UNUSED_ASSET_KEY]).toBe(UNUSED_ASSET_URI);
 
-  expect(await canvasHoldsContent(root, association.sessionId, candidate.content)).toBe(true);
+  expect(
+    await designOperation(root, {
+      operation: 'save',
+      sessionId: association.sessionId,
+      baseRevisionId: created.revisionId,
+      content: candidate.content,
+    })
+  ).toEqual(created);
 });

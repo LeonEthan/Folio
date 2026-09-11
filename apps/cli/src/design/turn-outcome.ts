@@ -13,7 +13,7 @@ import {
  *   unchanged since send          -> no_artifact (nothing this turn produced)
  *   structure/collection failure   -> invalid (+ bounded diagnostics)
  *   imported and saved             -> committed (revisionId)
- *   baseline moved under us        -> candidate  (kept beside the canvas)
+ *   baseline moved under us        -> invalid (+ durable conflict diagnostics)
  *   cancelled / turn failed        -> cancelled / failed (nothing collected)
  *
  * The verdict is stamped as a `DesignTurnOutcome` on the history entry whose id
@@ -28,11 +28,11 @@ import {
  *   branch), so there is nothing to report and nothing is written.
  * - A turn that produced nothing is not a turn that found something. The
  *   workspace project is compared against the manifest's `artifactAtSend`
- *   (`./artifact.ts`): a byte-identical project was not written by this turn, so
- *   it is never committed and never credited to this turn. Without that check a
+ *   (`./artifact.ts`): a byte-identical inherited project requires an explicit,
+ *   exact-content resubmission attempt before it can commit. Without that check a
  *   turn whose agent wrote nothing would re-import the previous turn's project
  *   and report it as its own.
- * - Proven unchanged projects return before import or canvas comparison. Their
+ * - Unchanged projects without explicit intent return before import or canvas comparison. Their
  *   files, existing candidates, and historical receipts remain untouched. A
  *   missing dispatch digest is not proof of no change: legacy manifests keep
  *   their existing validation and atomic save path. An explicit resubmission
@@ -44,12 +44,12 @@ import {
  *   call is retried (agent-naive; root `AGENTS.md`).
  * - The design store is the single committer. This module never writes
  *   `design.json` itself: it asks `designOperation` to save against the frozen
- *   baseline, and the store's `DESIGN_CONFLICT` is what turns a lost race into
- *   a candidate. `DESIGN_BUSY` — the store's lock held past its deadline — is
+ *   baseline, and the store's `DESIGN_CONFLICT` records a lost race without
+ *   overwriting the canvas or creating a candidate. `DESIGN_BUSY` — the store's lock held past its deadline — is
  *   read the same way, because it means a writer was in there, so this turn's
  *   document may be behind the canvas.
  * - Idempotent per turn: an outcome already stamped on the turn is the truth,
- *   and a re-run does not re-collect, re-commit, or re-write a candidate.
+ *   and a re-run does not re-collect, re-commit, or re-create work.
  * - A verdict survives losing its stamp, up to the reach of a later collection.
  *   The verdict is written to the turn's own directory first
  *   (`design-input/<turnId>/receipt.json`, P2.2's `writeDesignTurnReceipt`) and
@@ -62,8 +62,8 @@ import {
  *   that dies between the store write and the receipt (or before either) meets no
  *   receipt when it finalizes that turn again, so the turn is decided again — safe,
  *   because the store's CAS means a canvas that moved is never overwritten, but not
- *   identical, since a document this turn already committed comes back as a
- *   candidate if the user saved in between. And a stamp that fails on a *live*
+ *   identical, since a document this turn already committed reports a
+ *   conflict if the user saved in between. And a stamp that fails on a *live*
  *   daemon is not recovered at all: it is logged, the turn finalizes, and nothing
  *   re-runs this stage for a turn that already ended (the canvas holds the truth;
  *   the history receipt is missing).
@@ -95,7 +95,7 @@ import { getLodyDataDir } from '@lody/shared/node/installation-profile';
 import { DESIGN_ARTIFACT_ENTRY, readDesignArtifact } from './artifact';
 import { buildAssetDataUris } from './authoring-assets';
 import { DESIGN_BUSY, type DesignLockTiming } from './lock';
-import { designOperation, saveDesignCandidate } from './store';
+import { designOperation } from './store';
 import {
   DESIGN_TURN_INPUT_DIRNAME,
   DESIGN_TURN_MANIFEST_FILENAME,
@@ -290,7 +290,7 @@ async function recordTurnOutcome(
   // and this is it finalizing that turn again. Stamping what it says is the whole
   // recovery: nothing is collected, committed, or rendered a second time — so a
   // turn can never commit twice, and a revision it already committed can never
-  // come back as a candidate. Both ids are checked because the file is in the
+  // come back as a conflict. Both ids are checked because the file is in the
   // agent's workspace (see the module doc): it may only speak for the turn it
   // names, and for this artwork.
   const receipt = await readDesignTurnReceipt(workdir, ctx.turnId);
@@ -425,48 +425,24 @@ export async function collectDesignTurnOutcome(
       const unchangedSinceSend =
         manifestFile.manifest.artifactAtSend?.status === 'present' &&
         manifestFile.manifest.artifactAtSend.digest === artifact.digest;
-      if (unchangedSinceSend) return { outcome: { ...base, status: 'no_artifact' } };
-
-      /**
-       * Keep a validated document beside the canvas for an explicit adopt or
-       * discard. Never a commit: this turn's evidence that the canvas is its to
-       * write has not held up.
-       */
-      const keepCandidate = async (
-        content: DesignTurnContent
-      ): Promise<{ outcome: DesignTurnOutcome }> => {
-        try {
-          const candidate = await saveDesignCandidate(dataRoot, {
-            artworkId,
-            turnId: ctx.turnId,
-            baselineRevisionId: manifestFile.manifest.baselineRevisionId,
-            createdAt: base.timestamp,
-            content,
-          });
-          return { outcome: { ...base, status: 'candidate', candidateId: candidate.candidateId } };
-        } catch (error) {
-          return invalid([{ code: 'design_candidate_failed', message: errorMessage(error) }]);
-        }
-      };
-
       const baseline = ctx.designReadBaseline;
-      if (
-        requiresReadBaseline &&
-        (!baseline ||
-          baseline.artworkId !== artworkId ||
-          baseline.draftId !== workdir ||
-          baseline.artifactDigest !== artifact.digest)
-      ) {
+      const verifiedAttempt =
+        baseline?.artworkId === artworkId &&
+        baseline.draftId === workdir &&
+        baseline.artifactDigest === artifact.digest;
+      if (unchangedSinceSend && !(verifiedAttempt && baseline.explicitResubmission))
+        return { outcome: { ...base, status: 'no_artifact' } };
+
+      if (requiresReadBaseline && !verifiedAttempt) {
         return invalid([
           {
             code: 'design_read_baseline_missing',
-            message:
-              'No verified current-design read and controlled draft-write attempt; draft preserved',
+            message: `No verified current-design read and exact draft attempt. Draft preserved at ${workdir}; read the current projection and explicitly continue.`,
           },
         ]);
       }
       const baselineRevisionId =
-        requiresReadBaseline && baseline
+        verifiedAttempt && baseline
           ? baseline.revisionId
           : manifestFile.manifest.baselineRevisionId;
 
@@ -505,20 +481,28 @@ export async function collectDesignTurnOutcome(
         );
         return { outcome: { ...base, status: 'committed', revisionId: saved.revisionId } };
       } catch (error) {
-        if (
-          !(error instanceof Error) ||
-          (error.message !== 'DESIGN_CONFLICT' && error.message !== DESIGN_BUSY)
-        ) {
-          // Observable, never a silent success: the canvas was not written.
-          return invalid([{ code: 'design_store_failed', message: errorMessage(error) }]);
-        }
+        const conflict =
+          error instanceof Error &&
+          (error.message === 'DESIGN_CONFLICT' || error.message === DESIGN_BUSY);
+        return invalid([
+          {
+            code: conflict ? 'design_commit_conflict' : 'design_store_failed',
+            message: errorMessage(error),
+          },
+          ...(conflict
+            ? [
+                {
+                  code: 'design_draft_preserved',
+                  message: `Draft preserved: ${workdir}. The current drawing was not overwritten.`,
+                },
+                {
+                  code: 'design_continue_required',
+                  message: `Final collection found this conflict after the Agent ended. On explicit continuation, read ${path.join(workdir, 'design-current', 'design.pptd')} and its pages, compare the draft, and explicitly resubmit or adjust it. No automatic Agent restart.`,
+                },
+              ]
+            : []),
+        ]);
       }
-
-      // The user saved while the agent worked — or another writer held the
-      // artwork's lock past its deadline, which means the canvas may be moving
-      // under us right now. Either way their canvas stays current; the validated
-      // document waits beside it for an explicit adopt or discard.
-      return await keepCandidate(content);
     }
   );
 }

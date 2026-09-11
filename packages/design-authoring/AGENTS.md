@@ -31,3 +31,7 @@
 - Read-only previews collect the entry, referenced pages and semantic assets only.
   Bound reads and compare exact document/asset bytes across observations; stability
   is not author completion. Conversion consumes only those frozen bytes.
+
+- Digest-only authoring reads reuse the collector's path and file-identity checks,
+  stream fixed-size buffers in sorted path/length/byte order, and preserve the
+  existing full-snapshot digest. Do not add a smaller total-size admission limit.

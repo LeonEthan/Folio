@@ -1,9 +1,9 @@
 /**
  * The single design committer.
  *
- * Everything that writes a design session's workspace goes through this module:
- * the canonical `design.json` (via `designOperation`) and the validated conflict
- * candidates kept beside it (via `saveDesignCandidate`). The one exception is the
+ * Canonical `design.json` writes go through `designOperation` in this module.
+ * Historical conflict candidates remain readable, with no candidate writer.
+ * The one exception to canonical storage is the
  * P0 fixed sample, which `./sample.ts` links into `chats/folio-p0/` — an id that
  * is not a design session, holding the raw fixture rather than a saved design,
  * created once and never replaced.
@@ -14,7 +14,7 @@
  * `./turn-outcome.ts`). What a caller has is a baseline — a sha256 revision id
  * it believes is current — and a save whose baseline moved gets
  * `DESIGN_CONFLICT` instead of overwriting someone else's work; the daemon turns
- * that into a candidate (P2.3). The comparison and the write are one step
+ * that into durable conflict diagnostics. The comparison and the write are one step
  * because they happen under the artwork's own write lock (`./lock.ts`): two
  * callers that read the same revision cannot both land, and a caller that cannot
  * get the lock in time is told `DESIGN_BUSY` rather than waiting forever.
@@ -46,7 +46,6 @@ import { createHash, randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
 import { mkdir, open, rename, unlink, lstat, readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { isDeepStrictEqual } from 'node:util';
 import { z } from 'zod';
 import { withDesignLock, type DesignLockTiming } from './lock';
 
@@ -132,7 +131,6 @@ export type DesignPayload = z.output<typeof savedSchema> & { revisionId: string 
 const digest = (bytes: string | Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
 export const DESIGN_CANDIDATES_DIRNAME = 'candidates';
-const candidateFileRe = /^([a-f0-9]{64})\.json$/;
 
 const candidateEnvelope = z
   .object({
@@ -141,32 +139,13 @@ const candidateEnvelope = z
     candidateId: z.string().regex(/^[a-f0-9]{64}$/),
     artworkId: designId,
     turnId: z.string().min(1).max(200),
-    /** The revision the agent started from; adopting re-checks against the live one. */
+    /** Historical dispatch baseline; this envelope remains read-only. */
     baselineRevisionId: z.string().regex(/^[a-f0-9]{64}$/),
     createdAt: z.string().datetime(),
     content: designInput,
   })
   .strict();
-const saveCandidateRequest = candidateEnvelope.omit({ version: true, candidateId: true });
-export type SaveDesignCandidateRequest = z.input<typeof saveCandidateRequest>;
 export type DesignCandidate = z.output<typeof candidateEnvelope>;
-
-/** Everything a candidate list needs without carrying a second copy of the document. */
-export type DesignCandidateSummary = {
-  candidateId: string;
-  artworkId: string;
-  turnId: string;
-  baselineRevisionId: string;
-  createdAt: string;
-};
-
-const candidateSummary = (candidate: DesignCandidate): DesignCandidateSummary => ({
-  candidateId: candidate.candidateId,
-  artworkId: candidate.artworkId,
-  turnId: candidate.turnId,
-  baselineRevisionId: candidate.baselineRevisionId,
-  createdAt: candidate.createdAt,
-});
 
 /**
  * Content-addressed without depending on key insertion order: the id must be
@@ -248,46 +227,6 @@ async function candidatesDirectory(dataRoot: string, artworkId: string): Promise
   return directory;
 }
 
-/**
- * Keep a validated design beside the current canvas instead of overwriting it.
- *
- * Written when a post-turn commit loses its baseline (`DESIGN_CONFLICT`, P2.3):
- * the user saved while the agent worked, so their canvas stays current and the
- * imported document waits here for an explicit adopt/discard. Idempotent by
- * content — the id is the digest of the canonical content, and an existing
- * candidate with that id is left byte-for-byte alone — so re-collecting a turn
- * cannot accumulate duplicates.
- *
- * A candidate is a document the canvas could take, and that is enforced here
- * rather than trusted: the content must pass the same rules a save applies,
- * because an offer this store would refuse is one applying it can never accept.
- */
-export async function saveDesignCandidate(
-  dataRoot: string,
-  raw: unknown
-): Promise<DesignCandidateSummary> {
-  const request = saveCandidateRequest.parse(raw);
-  validateAssets(request.content);
-  const candidateId = digest(canonicalContentBytes(request.content));
-  const directory = await candidatesDirectory(dataRoot, request.artworkId);
-  const file = path.join(directory, `${candidateId}.json`);
-  const existing = await readCandidateFile(file);
-  if (existing) return candidateSummary(existing);
-  const envelope: DesignCandidate = candidateEnvelope.parse({
-    version: 1,
-    candidateId,
-    artworkId: request.artworkId,
-    turnId: request.turnId,
-    baselineRevisionId: request.baselineRevisionId,
-    createdAt: request.createdAt,
-    content: request.content,
-  });
-  const bytes = JSON.stringify(envelope);
-  if (bytes.length > 64 * 1024 * 1024) throw Error('Design candidate exceeds 64 MiB');
-  await publishBytesAtomic(directory, file, bytes);
-  return candidateSummary(envelope);
-}
-
 /** Read one candidate, verifying that its content still hashes to its id. */
 export async function readDesignCandidate(
   dataRoot: string,
@@ -307,47 +246,6 @@ export async function readDesignCandidate(
   return { candidate: parsed, file };
 }
 
-/** Candidates newest-last, skipping anything that is not a candidate file. */
-export async function listDesignCandidates(
-  dataRoot: string,
-  artworkId: unknown
-): Promise<DesignCandidateSummary[]> {
-  const id = designId.parse(artworkId);
-  const directory = await candidatesDirectory(dataRoot, id);
-  const summaries: DesignCandidateSummary[] = [];
-  for (const name of await readdir(directory)) {
-    const match = candidateFileRe.exec(name);
-    if (!match) continue;
-    const parsed = await readCandidateFile(path.join(directory, name));
-    if (!parsed || parsed.candidateId !== match[1]) continue;
-    summaries.push(candidateSummary(parsed));
-  }
-  return summaries.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-}
-
-/**
- * The assets this document would leave stored, i.e. the ones it really uses.
- *
- * An incoming table is not the table a canvas holds. The intake builds its table
- * from every reference the semantic walk can see, and that walk includes places
- * a document does not carry: `theme.tableStyles` fills live in the manifest, so
- * a style no element selects still names an image the imported document never
- * mentions. `validateAssets` — the filter every write goes through — keeps only
- * what the document replays, which is why the two tables cannot be compared
- * directly.
- *
- * A table that cannot be filtered is compared as it stands. A predicate must not
- * throw, and equal raw tables are still sound evidence — filtering only ever
- * drops keys, so two equal tables describe the same document either way.
- */
-const storedAssets = (content: z.output<typeof designInput>): Record<string, string> => {
-  try {
-    return validateAssets(content);
-  } catch {
-    return content.assets;
-  }
-};
-
 /**
  * Whether the store could write this document and its assets.
  *
@@ -365,29 +263,6 @@ export function acceptsDesignContent(raw: unknown): boolean {
   } catch {
     return false;
   }
-}
-
-/** True when the canvas already *is* this candidate's document. */
-const sameDocument = (content: z.output<typeof designInput>, payload: DesignPayload): boolean =>
-  isDeepStrictEqual(content.doc, payload.doc) &&
-  isDeepStrictEqual(storedAssets(content), payload.assets);
-
-/**
- * Whether the live canvas already holds this document and its assets.
- *
- * It throws rather than answering when the canvas cannot be read or the document
- * cannot be parsed: "we could not tell" is not "no", and only the caller knows
- * which direction is safe for it.
- */
-export async function canvasHoldsContent(
-  dataRoot: string,
-  artworkId: unknown,
-  raw: unknown
-): Promise<boolean> {
-  const id = designId.parse(artworkId);
-  const content = designInput.parse(raw);
-  const current = await designOperation(dataRoot, { operation: 'read', sessionId: id });
-  return sameDocument(content, current);
 }
 
 function validateAssets(content: z.output<typeof designInput>) {
@@ -564,7 +439,7 @@ export async function designOperation(
     // The last thing before bytes become visible. Everything above decided what
     // to write while holding the lock; if that lock is no longer ours, another
     // writer may already be deciding against a canvas this write has not landed
-    // on, and the refusal costs a candidate instead of a lost revision (`./lock.ts`).
+    // on, and the refusal preserves the draft instead of losing a revision (`./lock.ts`).
     await assertHeld();
     await publishBytesAtomic(directory, current, bytes);
     return { ...saved, revisionId: digest(bytes) };
