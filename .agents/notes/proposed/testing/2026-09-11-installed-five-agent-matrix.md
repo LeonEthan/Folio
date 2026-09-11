@@ -728,3 +728,155 @@ The native outcomes and transport signal are retained in
 `native-cancel-transport.json`. This completes these ordinary-operation
 observations on `609b2fe2`; it does not provide Codex's missing design hook,
 design writes/CAS, image MCP acceptance or acceptance of a later package.
+
+### Normal design-worker repair regression
+
+The [worker shutdown repair](../../implemented/bug-fix/2026-09-12-design-worker-shutdown.md)
+was integrated as `dcc3c975160af592105dce12d4b4bc6a38bacabf`. Root's combined
+check, format and documentation checks passed (handle 65953; batch26 logs).
+The normal package round `folio-t28-dcc3c975-mwjh4vt6` built and privately
+installed successfully (handles 41917 and 14737), including DMG verification,
+read-only mounting/copying, detachment and ad-hoc signature verification. Its
+copied ASAR manifest identifies exactly that source. DMG SHA-256 is
+`7c14d7060abc086e3b3084731c449a194580b7fddbe113110dd4b801e42aa2aa`;
+ASAR SHA-256 is
+`553daf1d0ad4b33d34bade474e551e5e57f9adfbdd20cebb4c63f9f91e3f03ed`.
+Later main commit `8444ed1` changes only the preceding evidence record.
+
+The original Pi probe, SHA-256
+`15ecbe51cc42bd45b634746be3b03d0f4f738e6376b76d83ddbc75af4e0b3628`,
+ran once with cold cache and resubmission enabled, recovery disabled, and the
+normal installed runner. No diagnostic wrapper or instrumentation was used;
+the provider, assertions, bounds and cleanup remained unchanged.
+`pi-cold-native-design-worker-drain.log` (handle 8828) exited zero. Evidence is
+`folio-t06-desktop-zARFWg/evidence`:
+
+- The actual Pi round reported an unprepared empty ACP cache, received the
+  reference and skill, exercised nine native edits and six explicit draft
+  resubmissions, and reached formal revision
+  `ed27aaeeceefb91d13583f5f330309229ce09f017f859a6314c3351478769ff0`.
+- Provider requests drained. During quit, a late `design.attach` was rejected
+  by `DesignWorker.request` with `Design service is shutting down` at
+  16:50:04.449Z, directly exercising the installed admission gate.
+- Endpoint release was recorded at 16:50:04.535Z, directory removal started
+  at 16:50:04.536Z, and owned teardown finished at 16:50:04.578Z. The isolated
+  data root was absent afterward; this round had no `ENOTEMPTY`.
+
+This is a passing normal installed regression for the original cold/resubmit
+scenario. The source and deterministic tests establish queue/exit ordering;
+this non-instrumented round does not enumerate every historical writer or
+prove every shutdown path. Earlier failures remain recorded. It does not
+promote another Agent's old-package evidence or close the full T28 matrix.
+
+One additional no-model round covers the formerly skipped no-open-canvas branch.
+`zero-bento-native-worker-quit-1.log` (handle 58315) exited zero on the same
+normal package. Its external script SHA-256 is
+`4a0826b3c528d41c246605b8d955c89b6eb28e1ab38f538cb5461e6633a3c3ef`;
+evidence is `folio-zero-bento-worker-weAQBm/evidence/zero-bento.json` and
+`console.log`. The application stayed on the chat page without configuring or
+sending to an Agent. Missing read returned ENOENT; create and subsequent read
+returned the same revision. Worker PID 62098 had Electron PID 60626 as parent
+and the exact installed `design.js` entry. It remained alive after
+`design.close` with zero canonical views. The original harness then completed
+application quit and owned cleanup at 16:56:08.371Z; a signal-zero existence
+check returned ESRCH at 16:56:08.374Z. The fixture sent no termination signal.
+The worker was already present in the initial snapshot, so this does not claim
+the explicit missing read first spawned it. Full recovery replay was not repeated:
+the original recovery mode reloads an open design and uses the same final quit;
+it does not cover this separate zero-view branch.
+
+### Grok image-description configuration contrast
+
+The pinned Grok 1.0.13 user guide documents `models.image_description` as the
+model used to transcribe supplied images and documents custom model IDs with
+their own API endpoint. A separate probe added `image_description="probe"`
+to the existing private configuration, using the same localhost synthetic
+provider, and recorded image blocks from every actual request. It retained
+the original native `read_file` call, correlated result, exact-byte assertion,
+bounds and cleanup. Script SHA-256 is
+`a11b7a83308964b4a905207e5b128df715d0f4395e7611fe11c247c529a59e6e`.
+
+On the normal `dcc3c975` package, `grok-image-config-native-5.log` (handle 48915)
+exited one at the original 120-second initial-completion assertion. Evidence
+`folio-t28-grok-input-gQgTTW/evidence` retains ten actual request records: eight
+main requests, one title request and one other non-main request. All contain
+zero image blocks. `native-reference-read-4.json` and later correlated results
+still contain `Cannot read binary file` for the owned PNG. Repeated records
+follow the runtime's own retries after the provider's image assertion fails;
+the probe was not restarted. Owned teardown finished at 16:53:23.210Z.
+
+This documented configuration did not change the observed native file-read
+result. There was no request carrying an image to establish a vision helper;
+neither its absence here nor synthetic response text proves all Grok vision
+paths unsupported. Skill, permission and cancellation stages were not reached.
+Earlier failures remain intact, and these independent capabilities still need
+their own execution evidence. No upstream code, product model default or
+external service configuration was changed.
+
+### Independent Grok ordinary-operation checks
+
+Image failures do not establish failure of unrelated ordinary tools. Separate
+no-image probes retained the native skill read, actual read of a private marker
+before writing, ordinary permission mode, cancellation and explicit continuation
+checks. They use the normal `dcc3c975` package and do not claim image acceptance.
+
+`grok-ordinary-native-1.log` (handle 53917) exited one after successful native
+skill and marker reads. Its menu locator expected the proxy source's phrase
+`Request approval for protected actions`; the actual Folio menu used
+`Request approval before protected actions`, as defined by
+`grok-acp-selector-i18n.ts`. Evidence is
+`folio-t28-grok-ordinary-GUk7WW/evidence`; cleanup finished at 16:57:39.922Z.
+
+The second script changed only that description. It selected the actual
+`Ask Every Time` mode and the native `write` requested permission for
+`native_permission_NO`. The displayed choices were session-wide allow, `Yes`,
+and `No, and tell Grok what to do differently`. The fixture's exact `No`
+locator failed at its original 60-second bound before any choice was clicked.
+`grok-ordinary-native-2.log` (handle 72252) exited one; evidence is
+`folio-t28-grok-ordinary-hImvsv/evidence`, and cleanup finished at 17:00:35.767Z.
+This establishes a real installed permission request, not its successful
+resolution. The proxy's synthetic test labels did not establish native labels.
+Both failed fixtures remain intact; cancellation and continuation were not reached.
+
+The third script used the actual rejection label and accepted either a native
+refusal result in the same turn or that correlated result in the next explicit
+user turn. It required real refusal semantics and an unchanged marker, rather
+than requiring another model response after a cancelled turn. Script SHA-256:
+`4665157c88f4a0a603c6f7cccc6780b93e6e3dc9c86ec04f4a016a2e8d1d20a0`.
+`grok-ordinary-native-3.log` (handle 39517) retained evidence under
+`folio-t28-grok-ordinary-BCAW74/evidence`:
+
+- Native skill and baseline reads passed. Actual rejection produced the
+  correlated `native_permission_NO` refusal and preserved the marker. The
+  next actual `Yes` choice produced the correlated successful write result
+  and exactly 23 expected marker bytes; session-wide allow was not selected.
+- Stop removed the active-turn control. CLI evidence records sending ACP
+  cancel at 17:03:41.262Z and a cancelled application outcome at
+  17:03:41.317Z. These establish the application-level cancellation path.
+- The single held main HTTP request 12 did not close within the unchanged
+  60-second transport assertion. Only fixture cleanup then produced
+  `response-close`, explicitly labelled `fixture-cleanup`. The script exited
+  one, and its subsequent explicit-continuation stage was not executed.
+  Owned application cleanup finished at 17:04:41.626Z.
+
+The marker, native refusal and native successful-write records establish ordinary
+permission behavior despite the later failure. Application cancellation does
+not establish cancellation of the model connection. This transport gap remains
+open; no timeout extension, forced-close success claim or runtime patch was used.
+
+A separate continuation-only probe then avoided repeating the passed skill and
+permission stages or treating the known transport failure as a prerequisite for
+observing another capability. It used a fresh private Session, one held native
+main request, actual Stop and one explicit new user turn. It never closed the
+held response before fixture cleanup. Script SHA-256 is
+`61db2dae930fb013dadb435f601feb3f18d3a0737cfb9e5f161af14e637f1b42`.
+`grok-explicit-continue-native-1.log` (handle 38708) exited zero **for this
+continuation-only scope**, with evidence in
+`folio-t28-grok-continue-KdI2bZ/evidence`. Main request 6 followed the explicit
+new input and visibly completed. Old request 3 had no native close signal,
+`destroyed=false` and `writableEnded=false` before continuation, afterward and
+immediately before cleanup. Its only close signal was labelled fixture cleanup;
+owned teardown finished at 17:08:50.992Z. The result explicitly retains
+`knownCancellationFailure=true`. This proves explicit continuation is available
+while leaving the HTTP cancellation failure, image-input gap and design-hook
+requirements unresolved.

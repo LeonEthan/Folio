@@ -11,8 +11,8 @@ closed, during directory cleanup. The existing design service ended stdin only w
 an editor was open and did not wait for its queued work or child exit. Application
 quit now flushes editors first, seals worker admission, drains accepted requests and
 waits for the worker's exit. Missing artwork reads also stop creating directories.
-Normal installed regression remains necessary; this does not attribute every earlier
-cleanup failure to this worker.
+The original Pi cold/resubmit scenario subsequently passed in the normal installed
+package; this does not attribute every earlier cleanup failure to this worker.
 
 ## Evidence and decision
 
@@ -49,3 +49,24 @@ claim that a hung worker will exit on its own.
 
 Source validation passed: root `pnpm check` (including public boundaries) and
 `pnpm format`. Documentation validation was rerun after adding translation metadata.
+
+## Normal installed follow-up
+
+Root integrated the source as `dcc3c975160af592105dce12d4b4bc6a38bacabf` and
+verified the normal copied package's embedded source identity. The original Pi
+cold-cache/resubmission probe then exited zero with its functional assertions,
+provider drain and owned process/endpoint/directory cleanup intact. Its console
+also records the installed admission gate rejecting a late `design.attach`
+during quit. The installed matrix records exact package hashes, unchanged probe
+identity, evidence directory and cleanup times. No diagnostic instrumentation,
+cleanup retry or relaxed bound was included. This single native scenario adds
+normal-package regression evidence; it does not replace deterministic coverage
+of queue ordering or establish every quit/recovery path.
+
+A separate normal-package, no-model round additionally verified the no-open-view
+branch: an owned worker responded to read/create, remained alive after
+`design.close` with zero canonical Bento views, and was absent after the original
+application quit and cleanup completed. Its initial snapshot already contained
+that worker, so the round does not establish which earlier request spawned it.
+The installed matrix retains exact script, PID, response and teardown evidence.
+No fixture termination signal or full recovery replay was required.
