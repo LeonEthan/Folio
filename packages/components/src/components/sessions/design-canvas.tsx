@@ -7,7 +7,7 @@ import { getSessionRoomId, type SessionId } from '@lody/shared';
 import { activeWorkspaceRuntimeAtom } from '@/atoms/runtime';
 import { localProbeResultAtom } from '@/atoms/local-probe';
 import { userAtom, currentWorkspaceIdAtom } from '@/atoms';
-import { getIpcServices } from '@/lib/electron-ipc-client';
+import { getIpcServices, onIpcEvent } from '@/lib/electron-ipc-client';
 import { latestCommittedDesignRevision, syncOpenDesignCanvas } from '@/lib/design-canvas-sync';
 import { useSessionDoc } from '@/hooks/use-session-doc';
 import { Button } from '@/ui/button';
@@ -90,6 +90,7 @@ export function DesignCanvas({
   const [previewStatus, setPreviewStatus] = useState<'waiting' | 'ready' | 'refreshing'>('waiting');
   const [previewSource, setPreviewSource] = useState('');
   const [previewError, setPreviewError] = useState('');
+  const [automaticError, setAutomaticError] = useState('');
   const previewGeneration = useRef(0);
   const attachmentGeneration = useRef(0);
   const workspaceId = useAtomValue(currentWorkspaceIdAtom);
@@ -108,7 +109,8 @@ export function DesignCanvas({
       if (generation !== previewGeneration.current || result.status === 'superseded') return;
       setPreviewSource(result.source);
       setPreviewStatus(result.status);
-      if (result.status === 'waiting') setPreviewError(result.error);
+      if (result.status === 'waiting') setPreviewError(result.error ?? '');
+      setAutomaticError(result.automaticError ?? '');
       if (host.current && !document.querySelector('[role="dialog"]')) {
         const {x, y, width, height} = host.current.getBoundingClientRect();
         await service.attachPreview(hostId, {x, y, width, height});
@@ -133,6 +135,20 @@ export function DesignCanvas({
     void getIpcServices()?.design.closePreview(hostId);
   }, [hostId, sessionId]);
   const { doc } = useSessionDoc(sessionId as SessionId, { enabled: sessionId.length > 0 });
+  const finalized = doc.history?.filter(entry => entry.role === 'assistant' && (entry.finished || typeof entry.endedAt === 'number')).map(entry => `${entry.id}:${entry.endedAt}:${JSON.stringify(entry.designOutcome)}`).join('|');
+  useEffect(() => {
+    if (!preview || !active) return undefined;
+    const reconcile = () => { void refreshPreview(); };
+    const stop = onIpcEvent('design.preview', result => {
+      if (result.hostId !== hostId) return;
+      setPreviewSource(result.source); setPreviewStatus(result.status);
+      setPreviewError(result.error ?? ''); setAutomaticError(result.automaticError ?? '');
+    });
+    const reconnect = onIpcEvent('loro.status', connected => { if (connected) reconcile(); });
+    window.addEventListener('focus', reconcile);
+    return () => { stop(); reconnect(); window.removeEventListener('focus', reconcile); };
+  }, [preview, active, hostId, refreshPreview]);
+  useEffect(() => { if (preview && active && finalized) void refreshPreview(); }, [finalized, preview, active, refreshPreview]);
   const committedRevisionId = latestCommittedDesignRevision(doc.history, sessionId);
   useBlocker({
     enableBeforeUnload: false,
@@ -260,6 +276,7 @@ export function DesignCanvas({
         <p>{t('design.previewReadonly', 'Read-only authoring files · not submitted. Valid drafts may still be unfinished.')}</p>
         {previewSource && <p className="break-all">{previewSource}</p>}
         <p>{previewStatus === 'ready' ? t('design.previewReady', 'Showing the observed document and assets.') : previewStatus === 'refreshing' ? t('design.previewRefreshing', 'Reading files…') : t('design.previewWaiting', 'Waiting for valid files. The last valid preview, if any, is retained.')}</p>
+        {automaticError && <p>{t('design.previewAutomaticUnavailable', 'Automatic updates unavailable. Use Refresh preview.')} {automaticError}</p>}
         {previewError && <p>{previewError}</p>}
       </div>}
       {error && (

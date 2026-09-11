@@ -220,11 +220,18 @@ test.each([
     'design/source-path',
     { turnId }
   );
-  expect(await request(createHandler(meta, projectRoot, true), sessionId, 'design/source-path', {})).toMatchObject({
-    ok: true, result: { ok: false },
+  expect(
+    await request(createHandler(meta, projectRoot, true), sessionId, 'design/source-path', {})
+  ).toMatchObject({
+    ok: true,
+    result: { ok: false },
   });
   expect(missing).toMatchObject({ ok: true, result: { type: 'design/source-path', ok: false } });
   await rm(path.join(draftRoot, 'design.pptd'));
+  expect(await request(handler, sessionId, 'design/source-path', {})).toMatchObject({
+    ok: true,
+    result: { ok: true, path: path.join(workspace.artifactWorkdir, 'design.pptd') },
+  });
   expect(await request(handler, sessionId, 'design/source-path', { turnId })).toMatchObject({
     ok: true,
     result: { ok: false },

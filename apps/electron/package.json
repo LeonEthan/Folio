@@ -51,7 +51,8 @@
     "jotai": "catalog:",
     "posthog-node": "^5.38.8",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "@loro-dev/ignore": "workspace:*"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",

@@ -47,8 +47,9 @@ export function isAuthoringRelPath(rel: string): boolean {
 
 const posix = (p: string): string => p.split(sep).join("/");
 
-export function collectAuthoring(dir: string, options: { referencedOnly?: boolean } = {}): Map<string, Uint8Array> {
+export function collectAuthoring(dir: string, options: { referencedOnly?: boolean; onDependencies?: (paths: string[]) => void } = {}): Map<string, Uint8Array> {
   let totalBytes = 0;
+  options.onDependencies?.([ENTRY_PPTD]);
   let rootStat;
   try {
     rootStat = lstatSync(dir);
@@ -121,6 +122,7 @@ export function collectAuthoring(dir: string, options: { referencedOnly?: boolea
     for (const rel of manifest.pages) {
       if (typeof rel !== "string" || !rel.startsWith("pages/") || !isAuthoringRelPath(rel) || rel.includes("\\"))
         throw new AuthoringSnapshotError("invalid referenced page path");
+      options.onDependencies?.([ENTRY_PPTD, ...manifest.pages]);
       const parent = lstatSync(join(dir, "pages"));
       if (parent.isSymbolicLink() || !parent.isDirectory()) throw new AuthoringSnapshotError("pages directory is redirected");
       takeFile(rel, true);
@@ -132,6 +134,9 @@ export function collectAuthoring(dir: string, options: { referencedOnly?: boolea
     for (const { ref } of refs) {
       if (typeof ref !== "string" || !ref.startsWith("media/") || !isAuthoringRelPath(ref) || ref.includes("\\"))
         throw new AuthoringSnapshotError("invalid referenced asset path");
+    }
+    options.onDependencies?.([ENTRY_PPTD, ...manifest.pages, ...new Set(refs.map(({ ref }) => ref))]);
+    for (const { ref } of refs) {
       if (out.has(ref)) continue;
       const parent = lstatSync(join(dir, "media"));
       if (parent.isSymbolicLink() || !parent.isDirectory()) throw new AuthoringSnapshotError("media directory is redirected");

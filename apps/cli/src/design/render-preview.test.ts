@@ -330,12 +330,16 @@ describe('manual source snapshots', () => {
     writeFileSync(path.join(workdir, 'media', 'unreferenced.bin'), Buffer.alloc(17 * 1024 * 1024));
     const first = await buildPreviewPayload(workdir, {});
     expect(first.status).toBe('ok');
-    if (first.status !== 'ok') throw Error(first.error);
+    if (first.status !== 'ok') throw Error(JSON.stringify(first));
+    expect(first.dependencies).toEqual(['design.pptd', 'pages/main.page', 'media/pic.png']);
+    expect(
+      await buildPreviewPayload(workdir, { previousSourceIdentity: first.sourceIdentity })
+    ).toMatchObject({ status: 'unchanged', sourceIdentity: first.sourceIdentity });
     const firstAssets = { ...first.assets };
     writeFileSync(path.join(workdir, 'media', 'pic.png'), syntheticPng(64, 64, [0, 200, 0]));
     const second = await buildPreviewPayload(workdir, {});
     expect(second.status).toBe('ok');
-    if (second.status !== 'ok') throw Error(second.error);
+    if (second.status !== 'ok') throw Error(JSON.stringify(second));
     expect(second.sourceIdentity).not.toBe(first.sourceIdentity);
     expect(second.assets).not.toEqual(first.assets);
     expect(first.assets).toEqual(firstAssets);
@@ -358,6 +362,9 @@ describe('manual source snapshots', () => {
       'Intermediate'
     );
     writeFileSync(path.join(workdir, 'pages', 'main.page'), BROKEN_PAGE);
-    expect(await buildPreviewPayload(workdir, {})).toMatchObject({ status: 'refused' });
+    expect(await buildPreviewPayload(workdir, {})).toMatchObject({
+      status: 'refused',
+      dependencies: ['design.pptd', 'pages/main.page', 'media/missing.png'],
+    });
   });
 });

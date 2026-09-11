@@ -97,6 +97,15 @@ export type DesignPreviewPayloadResult =
     }
   | { status: 'refused'; error: string };
 
+export type ObservedPreviewResult = (
+  | DesignPreviewPayloadResult
+  | { status: 'unchanged'; sourceIdentity: string }
+) & { dependencies?: string[]; sourceIdentity?: string };
+type Observation = {
+  collect?: (root: string) => Map<string, Uint8Array>;
+  previousSourceIdentity?: string;
+};
+
 /**
  * Import the workdir's PPTD project into the payload the desktop renders.
  *
@@ -106,68 +115,92 @@ export type DesignPreviewPayloadResult =
  * exactly these staged bytes — the store's own content address convention — so
  * the payload is self-describing even though nothing here is ever saved.
  */
+export function buildPreviewPayload(workdir: string): Promise<DesignPreviewPayloadResult>;
+export function buildPreviewPayload(
+  workdir: string,
+  observation: Observation
+): Promise<ObservedPreviewResult>;
 export async function buildPreviewPayload(
   workdir: string,
-  observation?: { collect?: (root: string) => Map<string, Uint8Array> }
-): Promise<DesignPreviewPayloadResult> {
-  const root = path.resolve(workdir);
-  const entry = path.join(root, DESIGN_ARTIFACT_ENTRY);
-  try {
-    const stat = await lstat(entry);
-    if (stat.isSymbolicLink() || !stat.isFile()) {
-      return refused(`${DESIGN_ARTIFACT_ENTRY} is not a regular file`);
+  observation?: Observation
+): Promise<ObservedPreviewResult> {
+  let dependencies = [DESIGN_ARTIFACT_ENTRY];
+  let observedIdentity: string | undefined;
+  const result = await buildObserved();
+  return observation
+    ? { ...result, dependencies, ...(observedIdentity ? { sourceIdentity: observedIdentity } : {}) }
+    : result;
+  async function buildObserved(): Promise<ObservedPreviewResult> {
+    const root = path.resolve(workdir);
+    const entry = path.join(root, DESIGN_ARTIFACT_ENTRY);
+    try {
+      const stat = await lstat(entry);
+      if (stat.isSymbolicLink() || !stat.isFile()) {
+        return refused(`${DESIGN_ARTIFACT_ENTRY} is not a regular file`);
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return refused(
+          `this session workspace has no ${DESIGN_ARTIFACT_ENTRY} yet, so there is nothing to preview. Write the project first.`
+        );
+      }
+      return refused(errorMessage(error));
     }
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+
+    let snapshot: Map<string, Uint8Array>;
+    try {
+      const collect =
+        observation?.collect ??
+        ((directory: string) =>
+          collectAuthoring(directory, {
+            referencedOnly: true,
+            onDependencies: (paths) => {
+              dependencies = paths;
+            },
+          }));
+      snapshot = observation ? collect(root) : collectAuthoring(root);
+      if (observation && snapshotIdentity(snapshot) !== snapshotIdentity(collect(root)))
+        return refused(
+          'Files changed during observation; refresh when a valid draft is available.'
+        );
+    } catch (error) {
       return refused(
-        `this session workspace has no ${DESIGN_ARTIFACT_ENTRY} yet, so there is nothing to preview. Write the project first.`
+        `${error instanceof AuthoringSnapshotError ? 'the project was rejected' : 'collecting the project failed'}: ${errorMessage(error)}`
       );
     }
-    return refused(errorMessage(error));
-  }
 
-  let snapshot: Map<string, Uint8Array>;
-  try {
-    const collect =
-      observation?.collect ??
-      ((directory: string) => collectAuthoring(directory, { referencedOnly: true }));
-    snapshot = observation ? collect(root) : collectAuthoring(root);
-    if (observation && snapshotIdentity(snapshot) !== snapshotIdentity(collect(root)))
-      return refused('Files changed during observation; refresh when a valid draft is available.');
-  } catch (error) {
-    return refused(
-      `${error instanceof AuthoringSnapshotError ? 'the project was rejected' : 'collecting the project failed'}: ${errorMessage(error)}`
-    );
-  }
+    observedIdentity = snapshotIdentity(snapshot);
+    if (observation?.previousSourceIdentity === observedIdentity)
+      return { status: 'unchanged', sourceIdentity: observation.previousSourceIdentity };
+    const intake = intakeAuthoring(DESIGN_ARTIFACT_ENTRY, snapshot);
+    if (intake.status === 'invalid') {
+      return refused(
+        describeDiagnostics(intake.diagnostics.map(({ code, message }) => ({ code, message })))
+      );
+    }
+    if (intake.status === 'unsupported') {
+      return refused(
+        describeDiagnostics(intake.issues.map(({ code, message }) => ({ code, message })))
+      );
+    }
 
-  const intake = intakeAuthoring(DESIGN_ARTIFACT_ENTRY, snapshot);
-  if (intake.status === 'invalid') {
-    return refused(
-      describeDiagnostics(intake.diagnostics.map(({ code, message }) => ({ code, message })))
-    );
-  }
-  if (intake.status === 'unsupported') {
-    return refused(
-      describeDiagnostics(intake.issues.map(({ code, message }) => ({ code, message })))
-    );
-  }
-
-  try {
-    // The desktop re-parses `doc` with the design schema, so this cast asserts
-    // nothing: it only bridges the imported BentoDoc type to the payload shape
-    // the canvas is already served, exactly as the intake → store integration
-    // does when it commits the same document.
-    const { width, height } = intake.document.canvas;
-    return {
-      status: 'ok',
-      ...(observation ? { sourceIdentity: snapshotIdentity(snapshot) } : {}),
-      doc: intake.document as unknown as DesignPayload['doc'],
-      assets: buildAssetDataUris(intake.assets),
-      width,
-      height,
-    };
-  } catch (error) {
-    return refused(errorMessage(error));
+    try {
+      // The desktop re-parses `doc` with the design schema, so this cast asserts
+      // nothing: it only bridges the imported BentoDoc type to the payload shape
+      // the canvas is already served, exactly as the intake → store integration
+      // does when it commits the same document.
+      const { width, height } = intake.document.canvas;
+      return {
+        status: 'ok',
+        ...(observation ? { sourceIdentity: snapshotIdentity(snapshot) } : {}),
+        doc: intake.document as unknown as DesignPayload['doc'],
+        assets: buildAssetDataUris(intake.assets),
+        width,
+        height,
+      };
+    } catch (error) {
+      return refused(errorMessage(error));
+    }
   }
 }
 

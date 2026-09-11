@@ -6911,9 +6911,19 @@ export class MessageHandler {
             requireTurnManifest: request.params.turnId !== undefined,
           });
           const sourcePath = path.join(workspace.artifactWorkdir, 'design.pptd');
-          const stat = await fs.promises.lstat(sourcePath);
-          if (!stat.isFile() || stat.isSymbolicLink())
-            throw Error('Original design file is unavailable.');
+          try {
+            const stat = await fs.promises.lstat(sourcePath);
+            if (!stat.isFile() || stat.isSymbolicLink())
+              throw Error('Original design file is unavailable.');
+          } catch (error) {
+            // Current preview consumers must subscribe before the first file exists.
+            // Historical lookups still require the original file and frozen root.
+            if (
+              request.params.turnId !== undefined ||
+              (error as NodeJS.ErrnoException).code !== 'ENOENT'
+            )
+              throw error;
+          }
           return { type: 'design/source-path', ok: true, path: sourcePath };
         } catch (error) {
           return { type: 'design/source-path', ok: false, error: formatErrorMessage(error) };

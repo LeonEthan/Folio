@@ -1,4 +1,4 @@
-import { watch } from 'node:fs';
+import { watch, lstatSync } from 'node:fs';
 import { lstat } from 'node:fs/promises';
 import path from 'node:path';
 import {
@@ -72,6 +72,8 @@ export type WorkspaceWatchFileSystem = (
 
 export interface StartWorkspaceFileWatcherOptions extends WorkspaceFileWatcherInput {
   readonly workspaceRoot: string;
+  /** Explicit dependency consumers: no discovery or ignore-control semantics. */
+  readonly trackedOnly?: boolean;
   readonly debounceMs?: number;
   // Ceiling on how long the trailing debounce can stall under sustained
   // event traffic, measured from the first enqueue in a burst. Without it
@@ -168,6 +170,15 @@ export function startWorkspaceFileWatcher(
   const setTextFiles = (next: readonly WorkspaceWatchedTextFile[]): void => {
     textFiles = next;
     textFilesByPath = new Map(next.map((file) => [normalizePath(file.path), file] as const));
+    if (options.trackedOnly) {
+      const ids = new Set(next.map((file) => file.id));
+      for (const [id, timer] of timers)
+        if (!ids.has(id)) {
+          clearTimeout(timer);
+          timers.delete(id);
+          firstEnqueuedAt.delete(id);
+        }
+    }
   };
   setTextFiles(options.textFiles);
 
@@ -298,6 +309,23 @@ export function startWorkspaceFileWatcher(
       return;
     }
     const absolute = absoluteDirectoryPath(relativeDir);
+    if (options.trackedOnly) {
+      // Never follow redirected ancestors. Missing directories are covered by
+      // their nearest existing parent and retried after a matching rename.
+      try {
+        for (const ancestor of skeletonDirectories({
+          textFiles: [],
+          directorySeeds: [relativeDir],
+        })) {
+          const stat = lstatSync(absoluteDirectoryPath(ancestor));
+          if (!stat.isDirectory() || stat.isSymbolicLink())
+            throw Error('Watch directory is redirected');
+        }
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') emitError(error, absolute);
+        return;
+      }
+    }
     let watcher: WorkspaceFsWatcher;
     try {
       watcher = watchFileSystem(absolute, (eventType, filename) => {
@@ -415,6 +443,23 @@ export function startWorkspaceFileWatcher(
         : Buffer.isBuffer(filename)
           ? filename.toString()
           : filename;
+    if (options.trackedOnly) {
+      const child = relativeDir === '' ? basename : `${relativeDir}/${basename}`;
+      const affected = textFiles.filter(
+        (file) => !basename || file.path === child || file.path.startsWith(`${child}/`)
+      );
+      if (!affected.length) return;
+      notifyWorkspaceChanged(basename ? child : undefined);
+      if (eventType === 'rename' || !basename) {
+        // Directory replacement can leave fs.watch attached to the old inode.
+        for (const directory of [...directoryWatchers.keys()])
+          if (directory && (!basename || directory === child || directory.startsWith(`${child}/`)))
+            closeDirectoryWatch(directory);
+        seedDirectories({ textFiles });
+      }
+      for (const file of affected) enqueue(file);
+      return;
+    }
     if (basename.length === 0) {
       // The platform dropped the filename: we can't tell what changed, so
       // request a rescan, conservatively re-check every tracked file, and
@@ -487,10 +532,10 @@ export function startWorkspaceFileWatcher(
     // tracked files (e.g. empty dirs) so files later created there are still
     // detected.
     seedDirectories(options);
-    runFullDiscovery();
+    if (!options.trackedOnly) runFullDiscovery();
     mode = directoryWatchers.size > 0 ? 'directory-list' : 'none';
   }
-  reconcileIgnoreControlWatchers(options.ignoreControlFiles ?? []);
+  reconcileIgnoreControlWatchers(options.trackedOnly ? [] : (options.ignoreControlFiles ?? []));
 
   const watcher: WorkspaceFileWatcher = {
     get mode() {
@@ -513,7 +558,12 @@ export function startWorkspaceFileWatcher(
       // bounded and never re-walks the tree itself. Ignore-control files ARE
       // reconciled (add/drop) so a changed ignore strategy is reflected.
       seedDirectories(next);
-      reconcileIgnoreControlWatchers(next.ignoreControlFiles ?? []);
+      if (options.trackedOnly) {
+        const desired = new Set(skeletonDirectories(next));
+        for (const directory of directoryWatchers.keys())
+          if (!desired.has(directory)) closeDirectoryWatch(directory);
+      }
+      reconcileIgnoreControlWatchers(options.trackedOnly ? [] : (next.ignoreControlFiles ?? []));
     },
     close: () => {
       closed = true;

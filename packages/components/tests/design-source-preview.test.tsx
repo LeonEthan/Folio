@@ -3,6 +3,9 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 const state = vi.hoisted(() => ({
+  hostId: '',
+  events: new Map<string, (payload: unknown) => void>(),
+  history: [] as Array<{ role: 'assistant'; id: string; finished: boolean; endedAt: number }>,
   visible: false,
   previewVisible: false,
   refresh: async (): Promise<unknown> => ({ status: 'ready', source: '/synthetic/design.pptd' }),
@@ -14,11 +17,11 @@ vi.mock('../src/atoms/runtime', () => ({ activeWorkspaceRuntimeAtom: 'runtime' }
 vi.mock('../src/atoms/local-probe', () => ({ localProbeResultAtom: 'machine' }));
 vi.mock('@tanstack/react-router', () => ({ useNavigate: () => () => {}, useBlocker: () => {} }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (_key: string, fallback: string) => fallback }) }));
-vi.mock('../src/hooks/use-session-doc', () => ({ useSessionDoc: () => ({ doc: { history: [] } }) }));
-vi.mock('../src/lib/electron-ipc-client', () => ({ getIpcServices: () => ({ design: {
+vi.mock('../src/hooks/use-session-doc', () => ({ useSessionDoc: () => ({ doc: { history: state.history } }) }));
+vi.mock('../src/lib/electron-ipc-client', () => ({ onIpcEvent: (channel: string, listener: (payload: unknown) => void) => { state.events.set(channel, listener); return () => { state.events.delete(channel); }; }, getIpcServices: () => ({ design: {
   attach: async () => { await state.attach(); state.visible = true; },
   hide: async () => { state.visible = false; },
-  refreshPreview: () => state.refresh(),
+  refreshPreview: (_session: string, host: string) => { state.hostId = host; return state.refresh(); },
   attachPreview: async () => { state.previewVisible = true; },
   hidePreview: async () => { state.previewVisible = false; },
   closePreview: async () => { state.previewVisible = false; },
@@ -27,6 +30,7 @@ import { DesignCanvas } from '../src/components/sessions/design-canvas';
 let root: Root;
 let container: HTMLDivElement;
 beforeEach(async () => {
+  state.events.clear(); state.history = [];
   state.visible = false; state.previewVisible = false; state.attach = async () => {};
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, width: 400, height: 300, top: 0, bottom: 300, left: 0, right: 400, toJSON() { return this; } });
@@ -52,4 +56,24 @@ test('old attachment cleanup cannot hide the current artwork after a rapid switc
   await act(async () => finishAttach());
   expect(state.visible).toBe(true);
   expect(state.previewVisible).toBe(false);
+});
+
+test('push status, reconnect and finalized history reconcile only an open preview', async () => {
+  let path = '/synthetic/first/design.pptd';
+  state.refresh = async () => ({ status: 'ready', source: path });
+  await mount(); await click('Unsubmitted preview');
+  await act(async () => state.events.get('design.preview')?.({ hostId: state.hostId, source: path, status: 'waiting', error: 'Missing referenced file', automaticError: 'Native watch failed' }));
+  expect(container.textContent).toContain('Missing referenced file');
+  expect(container.textContent).toContain('Automatic updates unavailable');
+  path = '/synthetic/reconnected/design.pptd';
+  await act(async () => state.events.get('loro.status')?.(true));
+  expect(container.textContent).toContain(path);
+  expect(container.textContent).not.toContain('Native watch failed');
+  path = '/synthetic/finalized/design.pptd';
+  state.history = [{ role: 'assistant', id: 'turn', finished: true, endedAt: 1 }];
+  await mount();
+  expect(container.textContent).toContain(path);
+  await click('Current artwork');
+  expect(state.events.has('design.preview')).toBe(false);
+  expect(state.events.has('loro.status')).toBe(false);
 });

@@ -93,7 +93,8 @@ failure leave ownership intact. Keep this independent of preview rendering.
 
 ## Historical design files
 
-`design/source-path` resolves one history Session/turn through trusted workspace
-metadata and frozen input, including read-only archived Sessions. Return an error
-when the original project root cannot be established; never trust a manifest path
-as authority or start an Agent. Ordinary file preview transports the bytes.
+`design/source-path` uses trusted Session workspace metadata, including archived
+Sessions. An omitted turn resolves today's expected entry even before creation.
+Supplied turns require the frozen original root and an existing regular entry;
+never substitute today's draft, trust a manifest path as authority or start an
+Agent. Ordinary file preview transports bytes.

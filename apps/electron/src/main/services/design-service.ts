@@ -41,7 +41,7 @@ let queue: Promise<unknown> = Promise.resolve()
 export function designRequest<T = DesignPayload>(
   request:
     | DesignRequest
-    | { operation: 'source-preview'; workdir: string }
+    | { operation: 'source-preview'; workdir: string; previousSourceIdentity?: string }
     | { operation: 'pending' }
     | { operation: 'acknowledge'; sessionId: string }
     | ({ operation: 'candidate-file' } & DesignCandidateRequest)

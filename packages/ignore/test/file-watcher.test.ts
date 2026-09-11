@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   classifyWorkspaceFileWatchPathEvent,
   startWorkspaceFileWatcher,
@@ -104,11 +104,7 @@ function createFakeWatchFileSystem(): {
     return watcher;
   };
 
-  const emitPathEvent = (
-    absolutePath: string,
-    eventType = 'change',
-    filename?: string
-  ): void => {
+  const emitPathEvent = (absolutePath: string, eventType = 'change', filename?: string): void => {
     const watcher = getOpenWatcher(absolutePath);
     if (!watcher) throw new Error(`No open fake watcher for ${absolutePath}`);
     watcher.emit(eventType, filename ?? path.basename(absolutePath));
@@ -492,4 +488,80 @@ describe('startWorkspaceFileWatcher', () => {
       watcher.close();
     }
   });
+});
+
+describe('tracked-only design dependencies', () => {
+  it('never discovers unrelated directories, watches hidden missing ancestors, and releases removed dependencies', async () => {
+    vi.useFakeTimers();
+    const root = await makeWorkspace();
+    await mkdir(path.join(root, 'unrelated/deep'), { recursive: true });
+    const fake = createFakeWatchFileSystem();
+    const changed: string[] = [];
+    const watcher = startWorkspaceFileWatcher({
+      workspaceRoot: root,
+      trackedOnly: true,
+      textFiles: [{ id: 'asset', path: '.folio/media/image.png' }],
+      watchFileSystem: fake.watchFileSystem,
+      onTextFileChanged: (id) => changed.push(id),
+    });
+    try {
+      expect(fake.isWatchingWorkspaceDirectory(root, 'unrelated')).toBe(false);
+      await mkdir(path.join(root, '.folio/media'), { recursive: true });
+      fake.emitWorkspaceDirectoryEvent(root, '', 'rename', '.folio');
+      await vi.runAllTimersAsync();
+      expect(changed).toEqual(['asset']);
+      expect(fake.isWatchingWorkspaceDirectory(root, '.folio/media')).toBe(true);
+      fake.emitWorkspaceDirectoryEvent(root, '.folio/media', 'rename', 'image.png');
+      fake.emitWorkspaceDirectoryEvent(root, '.folio/media', 'change', 'image.png');
+      fake.emitWorkspaceDirectoryEvent(root, '.folio/media', 'change', 'unrelated.png');
+      await vi.runAllTimersAsync();
+      expect(changed).toEqual(['asset', 'asset']);
+      watcher.update({ textFiles: [{ id: 'entry', path: 'design.pptd' }] });
+      expect(fake.isWatchingWorkspaceDirectory(root, '.folio/media')).toBe(false);
+      expect(fake.isWatchingWorkspaceDirectory(root, '.folio')).toBe(false);
+      for (const applicationOutput of [
+        'design-current',
+        '.design-projection-staged',
+        'design.json',
+        'design-preview',
+      ])
+        fake.emitWorkspaceDirectoryEvent(root, '', 'rename', applicationOutput);
+      await vi.runAllTimersAsync();
+      expect(changed).toEqual(['asset', 'asset']);
+    } finally {
+      watcher.close();
+      vi.useRealTimers();
+    }
+    expect(fake.isWatchingWorkspaceDirectory(root, '')).toBe(false);
+  });
+});
+
+it('bounds trailing debounce under sustained tracked events and cancels queued removed files', async () => {
+  vi.useFakeTimers();
+  const root = await makeWorkspace();
+  const fake = createFakeWatchFileSystem();
+  const changed: string[] = [];
+  const watcher = startWorkspaceFileWatcher({
+    workspaceRoot: root,
+    trackedOnly: true,
+    debounceMs: 50,
+    maxWaitMs: 100,
+    textFiles: [{ id: 'entry', path: 'design.pptd' }],
+    watchFileSystem: fake.watchFileSystem,
+    onTextFileChanged: (id) => changed.push(id),
+  });
+  try {
+    for (let step = 0; step < 5; step++) {
+      fake.emitWorkspaceDirectoryEvent(root, '', 'change', 'design.pptd');
+      await vi.advanceTimersByTimeAsync(20);
+    }
+    expect(changed).toEqual(['entry']);
+    fake.emitWorkspaceDirectoryEvent(root, '', 'change', 'design.pptd');
+    watcher.update({ textFiles: [{ id: 'other', path: 'other.pptd' }] });
+    await vi.runAllTimersAsync();
+    expect(changed).toEqual(['entry']);
+  } finally {
+    watcher.close();
+    vi.useRealTimers();
+  }
 });

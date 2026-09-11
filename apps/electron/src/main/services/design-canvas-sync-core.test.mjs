@@ -245,3 +245,70 @@ void test('source preview generations reject old artwork, refresh and closed con
   assert.equal(requests.current(original), false)
   assert.equal(requests.current(reopened), true)
 })
+
+const { SourceObservation } = await import('./design-source-observation.ts')
+void test('source observation shares work and suppresses dirty and closed publications', async () => {
+  let finish
+  const inputs = []
+  const outputs = []
+  const observation = new SourceObservation(
+    (previous) => {
+      inputs.push(previous)
+      return new Promise((resolve) => {
+        finish = resolve
+      })
+    },
+    () => false
+  )
+  observation.consumers.set('one', async (result, current) => {
+    if (current()) outputs.push(['one', result.status])
+  })
+  observation.consumers.set('two', async (result, current) => {
+    if (current()) outputs.push(['two', result.status])
+  })
+  const pending = observation.refresh()
+  observation.invalidate()
+  finish({ status: 'refused', error: 'old' })
+  await Promise.resolve()
+  assert.deepEqual(outputs, [])
+  finish({ status: 'refused', error: 'new' })
+  await pending
+  assert.deepEqual(outputs, [
+    ['one', 'refused'],
+    ['two', 'refused']
+  ])
+  const closing = observation.refresh()
+  observation.close()
+  finish({ status: 'refused', error: 'closed' })
+  await closing
+  assert.deepEqual(outputs, [
+    ['one', 'refused'],
+    ['two', 'refused']
+  ])
+})
+
+void test('source observation reconciles new dependencies before publishing and retains content identity', async () => {
+  const results = []
+  let dependenciesChanged = true
+  const previousIdentities = []
+  const result = { status: 'ok', sourceIdentity: 'bytes', doc: {}, assets: {}, width: 1, height: 1 }
+  const observation = new SourceObservation(
+    async (previous) => {
+      previousIdentities.push(previous)
+      return previous ? { status: 'unchanged', sourceIdentity: previous } : result
+    },
+    () => {
+      const changed = dependenciesChanged
+      dependenciesChanged = false
+      return changed
+    }
+  )
+  observation.consumers.set('consumer', async (value) => {
+    results.push(value)
+  })
+  await observation.refresh()
+  await observation.refresh()
+  assert.deepEqual(results, [result, result])
+  assert.deepEqual(previousIdentities, [undefined, undefined, 'bytes'])
+  observation.close()
+})

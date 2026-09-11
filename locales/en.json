@@ -4011,6 +4011,7 @@
   "design.sourcePreview": "Unsubmitted preview",
   "design.refreshPreview": "Refresh preview",
   "design.previewReadonly": "Read-only authoring files · not submitted. Valid drafts may still be unfinished.",
+  "design.previewAutomaticUnavailable": "Automatic updates unavailable. Use Refresh preview.",
   "design.previewReady": "Showing the observed document and assets.",
   "design.previewRefreshing": "Reading files…",
   "design.previewWaiting": "Waiting for valid files. The last valid preview, if any, is retained."

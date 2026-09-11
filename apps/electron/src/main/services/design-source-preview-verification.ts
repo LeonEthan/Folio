@@ -1,6 +1,6 @@
 import { WebContentsView, nativeImage, type BrowserWindow } from 'electron'
 import { strict as assert } from 'node:assert'
-import { mkdir, writeFile, readFile } from 'node:fs/promises'
+import { mkdir, writeFile, readFile, rename } from 'node:fs/promises'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { attachDesign, designCanvasAccess, designRequest, hideDesign } from './design-service'
@@ -93,6 +93,65 @@ export async function verifySourcePreview(
   if (replacement.status !== 'ready' || first.status !== 'ready')
     throw Error('Preview was not ready')
   assert.notEqual(replacement.sourceIdentity, first.sourceIdentity)
+  // Subscribe to the real native publication signal before external file IO.
+  const send = owner.webContents.send.bind(owner.webContents)
+  let published:
+    | ((payload: { hostId: string; status: string; sourceIdentity?: string }) => void)
+    | undefined
+  owner.webContents.send = (channel, ...args) => {
+    send(channel, ...args)
+    if (channel === 'design.preview') published?.(args[0])
+  }
+  const automatic = async (
+    status: string,
+    change: () => Promise<unknown>,
+    previousIdentity?: string
+  ) => {
+    let timer: ReturnType<typeof setTimeout>
+    const result = new Promise<{ sourceIdentity?: string }>((resolve, reject) => {
+      timer = setTimeout(() => reject(Error(`No automatic ${status} publication`)), 30000)
+      published = (payload) => {
+        if (
+          payload.hostId === host &&
+          payload.status === status &&
+          (!previousIdentity || payload.sourceIdentity !== previousIdentity)
+        )
+          resolve(payload)
+      }
+    })
+    try {
+      await change()
+      return await result
+    } finally {
+      clearTimeout(timer!)
+      published = undefined
+    }
+  }
+  try {
+    const invalidSurface = getPreview()
+    await automatic('waiting', () =>
+      writeFile(join(root, 'pages/main.page'), page.replace('media/pic.png', 'media/new.png'))
+    )
+    assert.equal(getPreview(), invalidSurface)
+    const discovered = await automatic('ready', () =>
+      writeFile(
+        join(root, 'media/new.png'),
+        nativeImage.createFromBitmap(Buffer.from([40, 0, 0, 255]), { width: 1, height: 1 }).toPNG()
+      )
+    )
+    const beforeRename = getPreview()
+    await writeFile(join(root, 'pages/replacement.tmp'), page)
+    const renamed = await automatic(
+      'ready',
+      () => rename(join(root, 'pages/replacement.tmp'), join(root, 'pages/main.page')),
+      discovered.sourceIdentity
+    )
+    assert.notEqual(getPreview(), beforeRename)
+    const assetChanged = await automatic('ready', () => writeImage(88), renamed.sourceIdentity)
+    assert.notEqual(assetChanged.sourceIdentity, replacement.sourceIdentity)
+  } finally {
+    owner.webContents.send = send
+  }
   const image = await getPreview().webContents.executeJavaScript(
     "(async () => { const image = document.querySelector('.bento-slide img'); if (image && (!image.complete || !image.naturalWidth)) throw Error('Preview image not loaded'); return window.folio.snapshot(); })()"
   )
@@ -134,6 +193,9 @@ export async function verifySourcePreview(
       {
         status: 'passed',
         initialWaiting: true,
+        nativeAutomaticMissingDependency: true,
+        nativeAutomaticRename: true,
+        nativeAutomaticSamePathAsset: true,
         invalidRetainsSurface: true,
         samePathAssetChanges: true,
         lateResultDiscarded: true,

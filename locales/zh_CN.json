@@ -4011,6 +4011,7 @@
   "design.sourcePreview": "未提交预览",
   "design.refreshPreview": "刷新预览",
   "design.previewReadonly": "创作文件只读预览 · 尚未提交。有效草稿仍可能未完成。",
+  "design.previewAutomaticUnavailable": "自动更新不可用，请使用“刷新预览”。",
   "design.previewReady": "正在显示本次观测的文档和素材。",
   "design.previewRefreshing": "正在读取文件…",
   "design.previewWaiting": "等待有效文件；保留上一有效预览（如有）。"

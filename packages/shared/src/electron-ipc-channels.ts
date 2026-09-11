@@ -14,6 +14,13 @@ import type {
 } from './electron-ipc';
 
 export type IpcPushMap = {
+  'design.preview': {
+    hostId: string;
+    status: 'ready' | 'waiting';
+    source: string;
+    error?: string;
+    automaticError?: string;
+  };
   'terminal.event':
     | TerminalDataEvent
     | TerminalExitEvent
@@ -46,6 +53,7 @@ export type IpcSendMap = {
 };
 
 export const IPC_PUSH_CHANNELS = {
+  designPreview: 'design.preview',
   terminalEvent: 'terminal.event',
   loroEvent: 'loro.event',
   loroStatus: 'loro.status',

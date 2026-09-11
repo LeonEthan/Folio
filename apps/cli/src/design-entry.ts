@@ -25,8 +25,20 @@ for await (const line of createInterface({ input: process.stdin, crlfDelay: Infi
     const dataRoot = getLodyDataDir('local');
     let value: unknown;
     if (request?.operation === 'source-preview') {
-      const input = z.object({ operation: z.literal('source-preview'), workdir: z.string().min(1) }).strict().parse(request);
-      value = await buildPreviewPayload(input.workdir, {});
+      const input = z
+        .object({
+          operation: z.literal('source-preview'),
+          workdir: z.string().min(1),
+          previousSourceIdentity: z
+            .string()
+            .regex(/^[a-f0-9]{64}$/)
+            .optional(),
+        })
+        .strict()
+        .parse(request);
+      value = await buildPreviewPayload(input.workdir, {
+        previousSourceIdentity: input.previousSourceIdentity,
+      });
     } else if (request?.operation === 'pending') {
       z.object({ operation: z.literal('pending') })
         .strict()

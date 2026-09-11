@@ -10,6 +10,10 @@ Bind saves to Session/host; CLI owns bytes, Electron renders and shows dialogs.
 Retain hidden editors; explicit close saves before disposal.
 Source previews never register for save/flush; preserve
 canonical instances and reject late results after consumer/source changes.
+Source previews share exact dependency watches and serialized conversion only
+while consumers exist; release both with the last consumer. Re-observe new
+dependencies after installing watches. Reject old source/view generations;
+previews never commit or update Agent baselines.
 `design-canvas-access` gates actual human writes and flushes all artwork instances
 before dispatch. Execution state comes from the versioned daemon canvas-host
 snapshot; unknown is readonly. Keep ownership independent of view lifetime, and

@@ -76,13 +76,19 @@ attempt/resubmission semantics belong to the workflow-convergence slice.
 
 ## Read-only source snapshots
 
-The desktop's manual preview resolves the current trusted Session source through
-`design/source-path` without a turn ID; supplied turn IDs retain the historical
+The desktop's source preview resolves the current trusted Session source through
+`design/source-path` without a turn ID, including a not-yet-created entry; supplied turn IDs retain the historical
 frozen-manifest checks. The design worker calls `buildPreviewPayload(workdir, {})`
 for two bounded, reference-only collections followed by the existing intake.
 Names and exact content, including same-path image changes, identify the snapshot.
 This observes a stable input, not a completed author transaction; valid intermediate
 drafts may render. No preview operation writes canonical, baselines or turn state.
 
-The same snapshot entry point is available to subsequent consumer-scoped watching;
-this slice creates no watcher. Formal turn collection and exports remain independent.
+Actual open preview consumers share an Electron-owned native watch and serialized
+observation. The existing watcher runs in explicit tracked-only mode, with no
+workspace discovery. Validated dependencies include missing files; new targets are
+watched and re-observed before publication. Matching exact bytes skip conversion.
+Closing the last consumer releases watching and cached payloads; reopening, reconnect,
+manual refresh and observed turn finalization reconcile independently. Invalid drafts
+retain the last valid surface; watcher errors retain manual refresh. Formal turn
+collection and exports remain independent.
