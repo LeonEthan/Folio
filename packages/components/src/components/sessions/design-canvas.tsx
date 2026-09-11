@@ -92,6 +92,7 @@ export function DesignCanvas({
   const [preview, setPreview] = useState(false);
   const [previewStatus, setPreviewStatus] = useState<'waiting' | 'ready' | 'refreshing'>('waiting');
   const [previewSource, setPreviewSource] = useState('');
+  const [previewIdentity, setPreviewIdentity] = useState<string>();
   const [previewError, setPreviewError] = useState('');
   const [automaticError, setAutomaticError] = useState('');
   const previewGeneration = useRef(0);
@@ -111,6 +112,7 @@ export function DesignCanvas({
       });
       if (generation !== previewGeneration.current || result.status === 'superseded') return;
       setPreviewSource(result.source);
+      setPreviewIdentity(result.sourceIdentity);
       setPreviewStatus(result.status);
       if (result.status === 'waiting') setPreviewError(result.error ?? '');
       setAutomaticError(result.automaticError ?? '');
@@ -144,7 +146,8 @@ export function DesignCanvas({
     const reconcile = () => { void refreshPreview(); };
     const stop = onIpcEvent('design.preview', result => {
       if (result.hostId !== hostId) return;
-      setPreviewSource(result.source); setPreviewStatus(result.status);
+      setPreviewSource(result.source);
+      setPreviewIdentity(result.sourceIdentity); setPreviewStatus(result.status);
       setPreviewError(result.error ?? ''); setAutomaticError(result.automaticError ?? '');
     });
     const reconnect = onIpcEvent('loro.status', connected => { if (connected) reconcile(); });
@@ -256,6 +259,15 @@ export function DesignCanvas({
         </Button>
         {preview && <Button size="sm" variant="outline" disabled={previewStatus === 'refreshing'} onClick={() => void refreshPreview()}>
           {t('design.refreshPreview', 'Refresh preview')}
+        </Button>}
+        {preview && <Button size="sm" disabled={busy || !previewIdentity || previewStatus === 'refreshing'} onClick={() => run(async () => {
+          const service = getIpcServices()?.design;
+          if (!service || !previewIdentity) throw Error('Preview is not available');
+          const saved = await service.importPreview(sessionId, hostId, previewIdentity);
+          if (saved.reloadError) throw Error(t('design.importSavedReloadFailed', 'Imported and saved, but the canvas could not reload: ') + saved.reloadError);
+          switchPreview(false);
+        })}>
+          {t('design.importPreview', 'Import as current artwork')}
         </Button>}
         <Button size="sm" variant="outline" onClick={() => setFocused((value) => !value)}>
           {focused ? t('design.showChat', 'Show conversation') : t('design.focus', 'Focus canvas')}

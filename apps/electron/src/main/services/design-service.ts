@@ -48,13 +48,15 @@ export function designRequest<T = DesignPayload>(
     | { operation: 'source-preview'; workdir: string; previousSourceIdentity?: string }
     | { operation: 'pending' }
     | { operation: 'acknowledge'; sessionId: string }
-    | ({ operation: 'candidate-file' } & DesignCandidateRequest)
+    | ({ operation: 'candidate-file' } & DesignCandidateRequest),
+  beforeSend?: () => void
 ): Promise<T> {
   const result = queue
     .catch(() => {})
     .then(
       () =>
         new Promise<T>((resolve, reject) => {
+          beforeSend?.()
           if (!worker) {
             const child = spawn(process.execPath, [join(resources(), 'cli/design.js')], {
               env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
@@ -312,6 +314,38 @@ export async function getDesignSelection(id: string, hostId: string) {
   if (designCanvasAccess.isReadonly(id) || records.get(hostId) !== record || !hosts.has(hostId))
     throw Error('Artwork changed while selecting; select the current elements again')
   return reference
+}
+
+/** The preview owns these exact bytes and its retry baseline; never read authoring files here. */
+export async function importDesignSnapshot(
+  id: string,
+  snapshot: { content: Pick<DesignPayload, 'doc' | 'assets'>; baseRevisionId?: string }
+): Promise<{ revisionId: string; reloadError?: string }> {
+  await queryCanvasState?.()
+  let committed: DesignPayload | undefined
+  try {
+    return await designCanvasAccess.replaceAfterFlush(id, async (assertIdle) => {
+      const current = await designRequest({ operation: 'read', sessionId: id })
+      snapshot.baseRevisionId ??= current.revisionId
+      // Recheck after asynchronous flush/read and again at the worker queue boundary.
+      assertIdle()
+      const saved = await designRequest(
+        {
+          operation: 'save',
+          sessionId: id,
+          baseRevisionId: snapshot.baseRevisionId,
+          content: snapshot.content
+        },
+        assertIdle
+      )
+      committed = saved
+      await syncDesignCanvasFromStore(id)
+      return { revisionId: saved.revisionId }
+    })
+  } catch (error) {
+    if (committed) return { revisionId: committed.revisionId, reloadError: String(error) }
+    throw error
+  }
 }
 
 export async function saveDesignForDispatch(id: string) {

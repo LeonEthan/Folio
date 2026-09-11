@@ -4019,5 +4019,7 @@
   "design.selectedElements": "Selected elements ({{count}})",
   "design.finishComposition": "Finish composing text before adding an element reference",
   "design.selectionChanged": "Artwork view changed; select the current elements again",
-  "design.referenceConversationUnavailable": "Open this artwork’s conversation before referencing elements"
+  "design.referenceConversationUnavailable": "Open this artwork’s conversation before referencing elements",
+  "design.importPreview": "Import as current artwork",
+  "design.importSavedReloadFailed": "Imported and saved, but the canvas could not reload: "
 }

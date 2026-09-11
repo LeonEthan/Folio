@@ -118,3 +118,9 @@ Element-reference prompt markers are validated during `turn-input.ts` materializ
 and frozen-input recovery against the actual artwork revision and stable IDs.
 A stale marker blocks dispatch without changing its identity or selecting a replacement.
 The original prompt and ordinary attachments remain the frozen input.
+
+Explicit desktop import is separate from observation: Electron retains the displayed
+payload and submits it to the unchanged `designOperation` save after canvas flush.
+The store repeats structural/assets validation and atomic version checks, including
+same-content lost-reply idempotence. Import does not write authoring files or claim
+Agent read evidence.

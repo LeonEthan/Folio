@@ -312,3 +312,99 @@ void test('source observation reconciles new dependencies before publishing and 
   assert.deepEqual(previousIdentities, [undefined, undefined, 'bytes'])
   observation.close()
 })
+
+void test('explicit replacement flushes every editor and retains the lock until persistence settles', async () => {
+  const access = new DesignCanvasAccess()
+  const a = canvas(access, 'art', 'unsaved')
+  await access.register(a)
+  await access.update([])
+  const entered = deferred(),
+    finish = deferred()
+  const importing = access.replaceAfterFlush('art', async (assertIdle) => {
+    assertIdle()
+    assert.equal(a.state().saved, 'unsaved')
+    entered.resolve()
+    await finish.promise
+    return 'imported'
+  })
+  await entered.promise
+  a.edit('must not land')
+  assert.equal(a.state().draft, 'unsaved')
+  await assert.rejects(
+    access.replaceAfterFlush('art', async () => {}),
+    /already in progress/
+  )
+  await assert.rejects(
+    access.write('art', undefined, async () => {}),
+    /read-only/
+  )
+  finish.resolve()
+  assert.equal(await importing, 'imported')
+  assert.equal(a.state().readonly, false)
+})
+
+void test('replacement rejects unknown, execution, artifact processing and a claim during flush', async () => {
+  const access = new DesignCanvasAccess()
+  await assert.rejects(
+    access.replaceAfterFlush('art', async () => {}),
+    /unknown/
+  )
+  for (const preparing of [true, false]) {
+    await access.update([{ artworkId: 'art', turnId: 'turn', preparing }])
+    await assert.rejects(
+      access.replaceAfterFlush('art', async () => {}),
+      /active/
+    )
+  }
+  await access.update([])
+  const entered = deferred(),
+    finish = deferred()
+  await access.register({
+    artworkId: 'art',
+    async setReadonly() {},
+    async flush() {
+      entered.resolve()
+      await finish.promise
+    }
+  })
+  let committed = false
+  const importing = access.replaceAfterFlush('art', async () => {
+    committed = true
+  })
+  await entered.promise
+  const reports = await access.update([{ artworkId: 'art', turnId: 'racing', preparing: true }])
+  assert.equal(reports[0].ok, false, 'A racing dispatch cannot start before import finishes')
+  finish.resolve()
+  await assert.rejects(importing, /active/)
+  assert.equal(committed, false)
+})
+
+void test('flush or save failure retains draft and restores idle editing', async () => {
+  const access = new DesignCanvasAccess()
+  const a = canvas(access, 'art', 'keep this draft')
+  await access.register(a)
+  await access.update([])
+  const flush = a.flush
+  a.flush = async () => {
+    throw Error('flush failed')
+  }
+  await assert.rejects(
+    access.replaceAfterFlush('art', async () => {
+      throw Error('unexpected save')
+    }),
+    /flush failed/
+  )
+  assert.deepEqual(a.state(), { readonly: false, draft: 'keep this draft', saved: '' })
+  a.flush = flush
+  await assert.rejects(
+    access.replaceAfterFlush('art', async () => {
+      throw Error('save failed')
+    }),
+    /save failed/
+  )
+  assert.deepEqual(a.state(), {
+    readonly: false,
+    draft: 'keep this draft',
+    saved: 'keep this draft'
+  })
+})

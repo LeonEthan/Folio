@@ -108,3 +108,11 @@ the existing composer. It saves pending canvas edits first, retains the resultin
 revision through draft restoration, and restores input focus. Subsequent edits,
 deletions or artwork changes invalidate the mention explicitly at send; remove it
 and reselect. Unsubmitted previews cannot supply these references.
+
+An explicit **Import as current artwork** action saves the displayed document and
+fixed assets through the existing canonical save path. It flushes unsaved editor
+changes, refuses execution/processing and version conflicts, and retains the source
+on failure. Only successful save and canvas reload switch back to current artwork;
+a reload error explicitly reports that the import was already saved. A changed or
+closed preview identity must be viewed again; an already accepted import retains its
+clicked bytes even if automatic refresh advances while it is flushing.

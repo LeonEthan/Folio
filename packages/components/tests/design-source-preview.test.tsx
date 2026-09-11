@@ -10,6 +10,7 @@ const state = vi.hoisted(() => ({
   previewVisible: false,
   refresh: async (): Promise<unknown> => ({ status: 'ready', source: '/synthetic/design.pptd' }),
   attach: async () => {},
+  importPreview: async (_session: string, _host: string, _identity: string): Promise<{revisionId: string; reloadError?: string}> => ({revisionId: 'saved'}),
 }));
 vi.mock('jotai', async (original) => ({ ...await original<typeof import('jotai')>(), useAtomValue: (key: string) => key === 'machine' ? { machineId: 'machine' } : key === 'workspace' ? 'workspace' : null }));
 vi.mock('../src/atoms', () => ({ userAtom: 'user', currentWorkspaceIdAtom: 'workspace' }));
@@ -20,6 +21,7 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (_key: string, fal
 vi.mock('../src/hooks/use-session-doc', () => ({ useSessionDoc: () => ({ doc: { history: state.history } }) }));
 vi.mock('../src/lib/electron-ipc-client', () => ({ onIpcEvent: (channel: string, listener: (payload: unknown) => void) => { state.events.set(channel, listener); return () => { state.events.delete(channel); }; }, getIpcServices: () => ({ design: {
   attach: async () => { await state.attach(); state.visible = true; },
+  importPreview: (session: string, host: string, identity: string) => state.importPreview(session, host, identity),
   hide: async () => { state.visible = false; },
   refreshPreview: (_session: string, host: string) => { state.hostId = host; return state.refresh(); },
   attachPreview: async () => { state.previewVisible = true; },
@@ -76,4 +78,22 @@ test('push status, reconnect and finalized history reconcile only an open previe
   await click('Current artwork');
   expect(state.events.has('design.preview')).toBe(false);
   expect(state.events.has('loro.status')).toBe(false);
+});
+
+test('import names the displayed snapshot, retains preview on failure and opens canonical only after save', async () => {
+  state.refresh = async () => ({ status: 'ready', source: '/synthetic/design.pptd', sourceIdentity: 'shown' });
+  let requested: unknown;
+  state.importPreview = async (...args) => { requested = args; throw Error('DESIGN_CONFLICT'); };
+  await mount(); await click('Unsubmitted preview'); await click('Import as current artwork');
+  expect(requested).toEqual(['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', state.hostId, 'shown']);
+  expect(container.textContent).toContain('DESIGN_CONFLICT');
+  expect(state.previewVisible).toBe(true);
+  state.importPreview = async () => ({revisionId: 'saved', reloadError: 'dirty editor'});
+  await click('Import as current artwork');
+  expect(container.textContent).toContain('Imported and saved, but the canvas could not reload');
+  expect(state.previewVisible).toBe(true);
+  state.importPreview = async () => ({revisionId: 'saved'});
+  await click('Import as current artwork');
+  expect(state.previewVisible).toBe(false);
+  expect(state.visible).toBe(true);
 });

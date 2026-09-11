@@ -14,6 +14,10 @@ Source previews share exact dependency watches and serialized conversion only
 while consumers exist; release both with the last consumer. Re-observe new
 dependencies after installing watches. Reject old source/view generations;
 previews never commit or update Agent baselines.
+
+Explicit import retains the clicked document/assets snapshot, flushes under the
+artwork mutation gate, rechecks execution before save, and uses canonical CAS.
+Preserve retry baselines and distinguish committed saves from reload failures.
 `design-canvas-access` gates actual human writes and flushes all artwork instances
 before dispatch. Execution state comes from the versioned daemon canvas-host
 snapshot; unknown is readonly. Keep ownership independent of view lifetime, and

@@ -3,7 +3,7 @@ import { lstatSync } from 'node:fs'
 import { startWorkspaceFileWatcher, type WorkspaceFileWatcher } from '@loro-dev/ignore'
 import { SourceObservation } from './design-source-observation'
 import { dirname, relative, resolve } from 'node:path'
-import { designRequest, surface } from './design-service'
+import { designRequest, surface, importDesignSnapshot } from './design-service'
 import type { ObservedPreviewResult } from '../../../../cli/src/design/render-preview'
 import { PreviewRequests } from './design-source-preview-core'
 
@@ -56,10 +56,35 @@ const views = new Map<
     artworkId: string
     source: string
     sourceIdentity: string
+    snapshot: {
+      content: Pick<import('../../../../cli/src/design/store').DesignPayload, 'doc' | 'assets'>
+      baseRevisionId?: string
+    }
     view: WebContentsView
     dispose(): void
   }
 >()
+
+/** A click names the rendered identity, never the watcher's newest observation. */
+export async function importSourcePreview(
+  owner: BrowserWindow,
+  artworkId: string,
+  hostId: string,
+  sourceIdentity: string
+) {
+  const shown = views.get(hostId)
+  if (
+    !shown ||
+    shown.owner !== owner ||
+    shown.artworkId !== artworkId ||
+    shown.sourceIdentity !== sourceIdentity ||
+    !requests.visible(hostId) ||
+    !shown.view.getVisible() ||
+    shown.view.webContents.isDestroyed()
+  )
+    throw Error('Preview changed or closed; view the document again before importing')
+  return importDesignSnapshot(artworkId, shown.snapshot)
+}
 
 export function hideSourcePreview(hostId: string, cancel = true) {
   if (cancel) {
@@ -213,7 +238,8 @@ export async function refreshSourcePreview(
       status: 'waiting',
       source: views.get(hostId)?.source ?? '',
       error: String(error),
-      retained: views.has(hostId)
+      retained: views.has(hostId),
+      sourceIdentity: views.get(hostId)?.sourceIdentity
     }
     notify(hostId, result)
     return result
@@ -320,6 +346,7 @@ async function renderSourcePreview(
       artworkId,
       source,
       sourceIdentity: built.sourceIdentity,
+      snapshot: { content: { doc: built.doc, assets: built.assets } },
       view,
       dispose: resource.dispose
     })
@@ -330,7 +357,8 @@ async function renderSourcePreview(
       status: 'waiting' as const,
       source: views.get(hostId)?.source ?? source,
       error: String(error),
-      retained: views.has(hostId)
+      retained: views.has(hostId),
+      sourceIdentity: views.get(hostId)?.sourceIdentity
     }
   }
 }

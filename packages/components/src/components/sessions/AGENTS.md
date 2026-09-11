@@ -141,4 +141,4 @@ Read each heading's linked rules before editing.
   `SessionConversationPage.stories.tsx` hand-composes leaves and drifts — keep it
   minimal and verify UI changes in the real app.
 
-Design source previews never save or replace the retained editable view.
+Passive source previews never save or replace the retained editable view.

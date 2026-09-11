@@ -18,6 +18,7 @@ export type IpcPushMap = {
     hostId: string;
     status: 'ready' | 'waiting';
     source: string;
+    sourceIdentity?: string;
     error?: string;
     automaticError?: string;
   };

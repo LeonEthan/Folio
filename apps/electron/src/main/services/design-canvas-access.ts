@@ -101,6 +101,22 @@ export class DesignCanvasAccess {
     await this.flush(id)
   }
 
+  /** Explicit replacement keeps every editor frozen from flush through save/reload. */
+  async replaceAfterFlush<T>(
+    id: string,
+    action: (assertIdle: () => void) => Promise<T>
+  ): Promise<T> {
+    const assertIdle = () => {
+      if (!this.known || this.active.has(id))
+        throw Error('Canvas execution or artifact processing is active or unknown; import refused')
+    }
+    assertIdle()
+    return this.flush(id, async () => {
+      assertIdle()
+      return this.write(id, this.permits.get(id), () => action(assertIdle))
+    })
+  }
+
   private reason(): string {
     return this.known
       ? '处理中，画布只读 / Processing — read-only'
@@ -115,7 +131,7 @@ export class DesignCanvasAccess {
     )
   }
 
-  private async flush(id: string): Promise<void> {
+  private async flush<T = void>(id: string, action?: () => Promise<T>): Promise<T> {
     if (this.permits.has(id)) throw Error('Canvas save is already in progress')
     const permit = randomUUID()
     this.permits.set(id, permit)
@@ -125,6 +141,7 @@ export class DesignCanvasAccess {
       await Promise.all([...(this.writes.get(id) ?? [])])
       for (const instance of this.instances)
         if (instance.artworkId === id) await instance.flush(permit)
+      return action ? await action() : (undefined as T)
     } finally {
       this.permits.delete(id)
       await this.refresh()
