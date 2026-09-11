@@ -95,6 +95,13 @@ can read that receipt, current projection and unchanged draft. Ordinary changes 
 regeneration use the same intake/assets/atomic-save pipeline. P1 manual save-copy
 and read-only historical candidate JSON remain available.
 
+Codex hook integration remains blocked at the pinned CLI `0.153.4` / ACP `1.10.0`:
+native pre/post tool events do not supply the required awaited model-generation
+fence. Interactive `write_stdin` has no separate prehook, and Bash posthook text
+alone does not establish successful execution. See the
+[native audit and reproducible probe](../../../../.agents/notes/proposed/architecture/2026-09-11-codex-design-hook-boundary.md).
+This does not enable Codex shared-baseline or explicit-resubmission acceptance.
+
 ## Read-only source snapshots
 
 The desktop's source preview resolves the current trusted Session source through
