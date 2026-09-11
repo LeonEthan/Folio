@@ -60,9 +60,10 @@ validation (schema, kernel replay, asset integrity, version consistency) and
 classifies observable outcomes (no artifact / invalid / committed); it never
 re-runs semantic checks the agent could have run itself,
 never repairs agent output behind the agent's back, and never auto-retries paid
-model calls. Before changing design read/write hooks, canvas synchronization, or
-draft intake, read the [design Spec](specs/graphic-design-platform.zh.md); canvas
-editing remains independent of Agent execution.
+model calls. Before changing design hooks, canvas synchronization, live previews,
+or draft intake, read the [design Spec](specs/graphic-design-platform.zh.md).
+Canvas editing remains independent of Agent execution; file-driven previews are
+consumer-scoped and never commit the current drawing or finalize Agent output.
 
 ## Contributions and checks
 
