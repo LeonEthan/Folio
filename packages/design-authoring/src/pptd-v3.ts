@@ -339,11 +339,23 @@ export function exportPptd(
   });
   snapshot.set(
     'design.pptd',
-    new TextEncoder().encode(stringify(projected.manifest, { aliasDuplicateObjects: false }))
+    new TextEncoder().encode(
+      stringify(projected.manifest, {
+        aliasDuplicateObjects: false,
+        defaultStringType: 'QUOTE_DOUBLE',
+        lineWidth: 80,
+      })
+    )
   );
   snapshot.set(
     'pages/design.page',
-    new TextEncoder().encode(stringify(projected.pages[0], { aliasDuplicateObjects: false }))
+    new TextEncoder().encode(
+      stringify(projected.pages[0], {
+        aliasDuplicateObjects: false,
+        defaultStringType: 'QUOTE_DOUBLE',
+        lineWidth: 80,
+      })
+    )
   );
   return snapshot;
 }

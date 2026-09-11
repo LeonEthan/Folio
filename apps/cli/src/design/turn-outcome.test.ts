@@ -1094,3 +1094,23 @@ describe('recordDesignTurnTerminalOutcome', () => {
     expect(harness.history[0]?.designOutcome).toBeUndefined();
   });
 });
+
+it('refuses Pi output without live content-bound read/write facts even with a valid manifest', async () => {
+  const harness = createHarness();
+  const meta = await harness.sessionDoc.getMetaState();
+  if (!meta) throw Error('Synthetic meta missing');
+  meta.agentType = 'pi-acp';
+  const created = await createDesign(harness);
+  await writeArtifact(harness, PAGE);
+  await writeManifest(harness, created.revisionId);
+  const outcome = await collectDesignTurnOutcome(contextFor(harness));
+  expect(outcome).toMatchObject({
+    status: 'recorded',
+    outcome: { status: 'invalid', diagnostics: [{ code: 'design_read_baseline_missing' }] },
+  });
+  expect(
+    (await designOperation(harness.root, { operation: 'read', sessionId: harness.sessionId }))
+      .revisionId
+  ).toBe(created.revisionId);
+  expect((await readDesignArtifact(harness.workdir)).status).toBe('present');
+});

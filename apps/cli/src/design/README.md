@@ -28,8 +28,8 @@ Electron design service.
 MCP generation writes to this same draft's media directory. Image edits resolve
 relative paths there and may read explicitly named attachments from the trusted
 Session cwd. Render replies include the absolute preview path because their
-output directory can differ from Agent cwd. Hooks and file watching are separate
-work; they should reuse `resolveDesignContext` instead of constructing paths.
+output directory can differ from Agent cwd. Hooks reuse `resolveDesignContext`; file watching should use the same resolver
+instead of constructing paths.
 
 Historical design readback uses the same context with the persisted Session's
 project/worktree metadata when no runtime Session is loaded. Read-only source and
@@ -49,3 +49,27 @@ ordinary image-reading tools; rendering alone does not prove model image input.
 Turn collection writes verdicts/receipts only, with no thumbnail generation,
 reference amendment, or dedicated readback. Legacy optional outcome fields and
 existing image files remain stored; the current read view ignores retired fields.
+
+Pi design sessions use the registry ACP adapter `pi-acp@0.0.33` and explicitly
+loaded native Pi extension. The verified runtime is Pi `0.85.1`; other versions
+return an actionable design-hook error. The launcher resolves the existing
+`PI_ACP_PI_COMMAND` (or PATH), preserves user configuration, and uses a temporary
+executable shim because this adapter does not forward extension arguments. It
+never installs Pi globally or selects a product default Agent/model.
+
+`sync-service.ts` owns projection publication and `sync-baseline.ts` owns delivery
+facts. Successful native Read ranges covering the entry and every exported page bind
+artwork, draft path, current revision and exact text content. Partial subsets, failed and unmatched results cannot establish that baseline;
+exact offset continuations accumulate only within the same projection revision. Eligibility is
+captured at the native assistant `message_start`, before tools execute, so a
+same-message Read cannot authorize already-generated Write/Edit arguments.
+Every saved canvas, including the initial blank canvas, requires this read;
+absence of an old PPTD or elements does not bypass it. Ordinary files are outside
+the path guard. Shell/custom/MCP mutations are not sandboxed by this extension.
+
+Successful controlled writes bind the collected artifact digest to the attempt.
+Natural completion independently validates the artifact and assets and performs
+canonical compare-and-swap using the live daemon baseline. Missing facts after
+restart or changed bytes fail closed and preserve the draft. Re-reading never
+rebases an established attempt or rewrites a frozen manifest; explicit new
+attempt/resubmission semantics belong to the workflow-convergence slice.

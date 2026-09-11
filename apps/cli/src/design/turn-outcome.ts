@@ -118,6 +118,8 @@ export interface DesignTurnOutcomeSession {
 }
 
 export interface DesignTurnOutcomeContext {
+  /** Live daemon evidence; never read from Agent-writable input files. */
+  designReadBaseline?: import('./sync-baseline').DesignReadBaseline;
   sessionId: string;
   sessionDoc: DesignTurnOutcomeSession;
   /**
@@ -260,6 +262,7 @@ async function recordTurnOutcome(
     workdir: string;
     dataRoot: string;
     manifestFile: ManifestPresent;
+    requiresReadBaseline: boolean;
   }) => Promise<{ outcome: DesignTurnOutcome }>
 ): Promise<DesignTurnAttempt> {
   const dataRoot = ctx.dataRoot ?? getLodyDataDir();
@@ -297,7 +300,13 @@ async function recordTurnOutcome(
   }
 
   let manifestFile = await readTurnManifest(workdir, ctx.turnId);
-  if (manifestFile.kind === 'missing') return { status: 'skipped', reason: 'no_manifest' };
+  if (manifestFile.kind === 'missing') {
+    if (meta.agentType !== 'pi-acp') return { status: 'skipped', reason: 'no_manifest' };
+    manifestFile = {
+      kind: 'unreadable',
+      message: 'Pi design turn input is missing; draft preserved',
+    };
+  }
 
   let artifactWorkdir = workdir;
   if (ctx.workspaceRoot !== undefined && manifestFile.kind === 'ok') {
@@ -326,6 +335,7 @@ async function recordTurnOutcome(
     workdir: artifactWorkdir,
     dataRoot,
     manifestFile,
+    requiresReadBaseline: meta.agentType === 'pi-acp',
   });
 
   try {
@@ -362,131 +372,155 @@ type DesignTurnContent = { doc: Record<string, unknown>; assets: Record<string, 
 export async function collectDesignTurnOutcome(
   ctx: DesignTurnOutcomeContext
 ): Promise<DesignTurnAttempt> {
-  return await recordTurnOutcome(ctx, async ({ artworkId, workdir, dataRoot, manifestFile }) => {
-    const base = outcomeBase(ctx, artworkId);
-    const invalid = (
-      entries: readonly DesignTurnOutcomeDiagnostic[]
-    ): { outcome: DesignTurnOutcome } => {
-      const bounded = diagnostics(entries);
-      return {
-        outcome: {
-          ...base,
-          status: 'invalid',
-          ...(bounded === undefined ? {} : { diagnostics: bounded }),
-        },
+  return await recordTurnOutcome(
+    ctx,
+    async ({ artworkId, workdir, dataRoot, manifestFile, requiresReadBaseline }) => {
+      const base = outcomeBase(ctx, artworkId);
+      const invalid = (
+        entries: readonly DesignTurnOutcomeDiagnostic[]
+      ): { outcome: DesignTurnOutcome } => {
+        const bounded = diagnostics(entries);
+        return {
+          outcome: {
+            ...base,
+            status: 'invalid',
+            ...(bounded === undefined ? {} : { diagnostics: bounded }),
+          },
+        };
       };
-    };
-    if (manifestFile.kind === 'unreadable') {
-      return invalid([{ code: 'design_manifest_unreadable', message: manifestFile.message }]);
-    }
-    if (manifestFile.manifest.turnId !== ctx.turnId) {
-      return invalid([
-        {
-          code: 'design_manifest_mismatch',
-          message: `manifest turnId ${JSON.stringify(manifestFile.manifest.turnId)} does not match this turn`,
-        },
-      ]);
-    }
-
-    // Missing entry artifact: the agent finished without producing an editable
-    // design. The current canvas is left exactly as it was.
-    const artifact = await readDesignArtifact(workdir);
-    if (artifact.status === 'absent') return { outcome: { ...base, status: 'no_artifact' } };
-    if (artifact.status === 'rejected') {
-      // Symlink/hardlink/escape/non-regular entry: the artifact exists but is
-      // not a snapshot we are willing to import. Never repaired, never retried.
-      return invalid([
-        {
-          code:
-            artifact.rejectedBy === 'snapshot'
-              ? 'design_collect_rejected'
-              : 'design_collect_failed',
-          message: artifact.message,
-        },
-      ]);
-    }
-
-    // Only a matching dispatch digest proves that this turn produced nothing.
-    // Do not import or offer an earlier project's contents just because the
-    // current canvas differs. Legacy manifests without this evidence continue
-    // through the existing validation and atomic version check below.
-    const unchangedSinceSend =
-      manifestFile.manifest.artifactAtSend?.status === 'present' &&
-      manifestFile.manifest.artifactAtSend.digest === artifact.digest;
-    if (unchangedSinceSend) return { outcome: { ...base, status: 'no_artifact' } };
-
-    /**
-     * Keep a validated document beside the canvas for an explicit adopt or
-     * discard. Never a commit: this turn's evidence that the canvas is its to
-     * write has not held up.
-     */
-    const keepCandidate = async (
-      content: DesignTurnContent
-    ): Promise<{ outcome: DesignTurnOutcome }> => {
-      try {
-        const candidate = await saveDesignCandidate(dataRoot, {
-          artworkId,
-          turnId: ctx.turnId,
-          baselineRevisionId: manifestFile.manifest.baselineRevisionId,
-          createdAt: base.timestamp,
-          content,
-        });
-        return { outcome: { ...base, status: 'candidate', candidateId: candidate.candidateId } };
-      } catch (error) {
-        return invalid([{ code: 'design_candidate_failed', message: errorMessage(error) }]);
+      if (manifestFile.kind === 'unreadable') {
+        return invalid([{ code: 'design_manifest_unreadable', message: manifestFile.message }]);
       }
-    };
+      if (manifestFile.manifest.turnId !== ctx.turnId) {
+        return invalid([
+          {
+            code: 'design_manifest_mismatch',
+            message: `manifest turnId ${JSON.stringify(manifestFile.manifest.turnId)} does not match this turn`,
+          },
+        ]);
+      }
 
-    const snapshot = artifact.snapshot;
-    const intake = intakeAuthoring(DESIGN_ARTIFACT_ENTRY, snapshot);
-    if (intake.status === 'invalid') {
-      return invalid(intake.diagnostics.map(({ code, message }) => ({ code, message })));
-    }
-    if (intake.status === 'unsupported') {
-      return invalid(intake.issues.map(({ code, message }) => ({ code, message })));
-    }
+      // Missing entry artifact: the agent finished without producing an editable
+      // design. The current canvas is left exactly as it was.
+      const artifact = await readDesignArtifact(workdir);
+      if (artifact.status === 'absent') return { outcome: { ...base, status: 'no_artifact' } };
+      if (artifact.status === 'rejected') {
+        // Symlink/hardlink/escape/non-regular entry: the artifact exists but is
+        // not a snapshot we are willing to import. Never repaired, never retried.
+        return invalid([
+          {
+            code:
+              artifact.rejectedBy === 'snapshot'
+                ? 'design_collect_rejected'
+                : 'design_collect_failed',
+            message: artifact.message,
+          },
+        ]);
+      }
 
-    // The store re-parses `doc` with its own schema, so this cast asserts
-    // nothing: it only bridges the imported BentoDoc type to the request input
-    // type, exactly as the intake → store integration test does.
-    let content: DesignTurnContent;
-    try {
-      content = {
-        doc: intake.document as unknown as Record<string, unknown>,
-        assets: buildAssetDataUris(intake.assets),
+      // Only a matching dispatch digest proves that this turn produced nothing.
+      // Do not import or offer an earlier project's contents just because the
+      // current canvas differs. Legacy manifests without this evidence continue
+      // through the existing validation and atomic version check below.
+      const unchangedSinceSend =
+        manifestFile.manifest.artifactAtSend?.status === 'present' &&
+        manifestFile.manifest.artifactAtSend.digest === artifact.digest;
+      if (unchangedSinceSend) return { outcome: { ...base, status: 'no_artifact' } };
+
+      /**
+       * Keep a validated document beside the canvas for an explicit adopt or
+       * discard. Never a commit: this turn's evidence that the canvas is its to
+       * write has not held up.
+       */
+      const keepCandidate = async (
+        content: DesignTurnContent
+      ): Promise<{ outcome: DesignTurnOutcome }> => {
+        try {
+          const candidate = await saveDesignCandidate(dataRoot, {
+            artworkId,
+            turnId: ctx.turnId,
+            baselineRevisionId: manifestFile.manifest.baselineRevisionId,
+            createdAt: base.timestamp,
+            content,
+          });
+          return { outcome: { ...base, status: 'candidate', candidateId: candidate.candidateId } };
+        } catch (error) {
+          return invalid([{ code: 'design_candidate_failed', message: errorMessage(error) }]);
+        }
       };
-    } catch (error) {
-      return invalid([{ code: 'design_asset_failed', message: errorMessage(error) }]);
-    }
 
-    try {
-      const saved = await designOperation(
-        dataRoot,
-        {
-          operation: 'save',
-          sessionId: artworkId,
-          baseRevisionId: manifestFile.manifest.baselineRevisionId,
-          content,
-        },
-        { lock: ctx.lock }
-      );
-      return { outcome: { ...base, status: 'committed', revisionId: saved.revisionId } };
-    } catch (error) {
+      const baseline = ctx.designReadBaseline;
       if (
-        !(error instanceof Error) ||
-        (error.message !== 'DESIGN_CONFLICT' && error.message !== DESIGN_BUSY)
+        requiresReadBaseline &&
+        (!baseline ||
+          baseline.artworkId !== artworkId ||
+          baseline.draftId !== workdir ||
+          baseline.artifactDigest !== artifact.digest)
       ) {
-        // Observable, never a silent success: the canvas was not written.
-        return invalid([{ code: 'design_store_failed', message: errorMessage(error) }]);
+        return invalid([
+          {
+            code: 'design_read_baseline_missing',
+            message:
+              'No verified current-design read and controlled draft-write attempt; draft preserved',
+          },
+        ]);
       }
-    }
+      const baselineRevisionId =
+        requiresReadBaseline && baseline
+          ? baseline.revisionId
+          : manifestFile.manifest.baselineRevisionId;
 
-    // The user saved while the agent worked — or another writer held the
-    // artwork's lock past its deadline, which means the canvas may be moving
-    // under us right now. Either way their canvas stays current; the validated
-    // document waits beside it for an explicit adopt or discard.
-    return await keepCandidate(content);
-  });
+      const snapshot = artifact.snapshot;
+      const intake = intakeAuthoring(DESIGN_ARTIFACT_ENTRY, snapshot);
+      if (intake.status === 'invalid') {
+        return invalid(intake.diagnostics.map(({ code, message }) => ({ code, message })));
+      }
+      if (intake.status === 'unsupported') {
+        return invalid(intake.issues.map(({ code, message }) => ({ code, message })));
+      }
+
+      // The store re-parses `doc` with its own schema, so this cast asserts
+      // nothing: it only bridges the imported BentoDoc type to the request input
+      // type, exactly as the intake → store integration test does.
+      let content: DesignTurnContent;
+      try {
+        content = {
+          doc: intake.document as unknown as Record<string, unknown>,
+          assets: buildAssetDataUris(intake.assets),
+        };
+      } catch (error) {
+        return invalid([{ code: 'design_asset_failed', message: errorMessage(error) }]);
+      }
+
+      try {
+        const saved = await designOperation(
+          dataRoot,
+          {
+            operation: 'save',
+            sessionId: artworkId,
+            baseRevisionId: baselineRevisionId,
+            content,
+          },
+          { lock: ctx.lock }
+        );
+        return { outcome: { ...base, status: 'committed', revisionId: saved.revisionId } };
+      } catch (error) {
+        if (
+          !(error instanceof Error) ||
+          (error.message !== 'DESIGN_CONFLICT' && error.message !== DESIGN_BUSY)
+        ) {
+          // Observable, never a silent success: the canvas was not written.
+          return invalid([{ code: 'design_store_failed', message: errorMessage(error) }]);
+        }
+      }
+
+      // The user saved while the agent worked — or another writer held the
+      // artwork's lock past its deadline, which means the canvas may be moving
+      // under us right now. Either way their canvas stays current; the validated
+      // document waits beside it for an explicit adopt or discard.
+      return await keepCandidate(content);
+    }
+  );
 }
 
 /**

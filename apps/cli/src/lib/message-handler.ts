@@ -309,6 +309,7 @@ import {
 import { DesignTurnInputError, materializeDesignTurnInput } from '@/design/turn-input';
 import { DesignRenderHost } from '@/design/render-host';
 import { DesignCanvasHost } from '@/design/canvas-host';
+import { DesignSyncService } from '@/design/sync-service';
 import { renderDesignPreview } from '@/design/render-preview';
 import {
   SessionExecutionService,
@@ -904,6 +905,10 @@ export class MessageHandler {
    */
   private readonly designRenderHost = new DesignRenderHost();
   private readonly designCanvasHost = new DesignCanvasHost();
+  private readonly designSyncServices = new Map<
+    string,
+    { turnId: string; canvasTurnId: string; service: DesignSyncService }
+  >();
 
   private static readonly ACP_INITIAL_UPDATE_BATCH_WINDOW_MS = 10;
   private static readonly ACP_SUBSEQUENT_UPDATE_BATCH_WINDOW_MS = 100;
@@ -3373,7 +3378,15 @@ export class MessageHandler {
         await this.designCanvasHost.prepare(sessionId, meta.design.artworkId, turnId, signal);
         return true;
       },
-      releaseDesignCanvas: (sessionId, turnId) => this.designCanvasHost.release(sessionId, turnId),
+      designReadBaseline: (sessionId, turnId) => {
+        const entry = this.designSyncServices.get(sessionId);
+        return entry?.turnId === turnId ? entry.service.getAttempt() : undefined;
+      },
+      releaseDesignCanvas: (sessionId, turnId) => {
+        this.designCanvasHost.release(sessionId, turnId);
+        if (this.designSyncServices.get(sessionId)?.canvasTurnId === turnId)
+          this.designSyncServices.delete(sessionId);
+      },
       machineId: this.machineId,
       userId: this.userId,
       workspaceId: this.workspaceId,
@@ -6986,6 +6999,67 @@ export class MessageHandler {
       // it does for images. The daemon never calls out, so a machine with no
       // desktop polling simply has no render capability — which
       // `design/render-host-status` answers honestly instead of the call stalling.
+      case 'design/tool-hook': {
+        const sessionId = request.ownerSessionId as SessionId | undefined;
+        const design = await this.readDesignSession(sessionId);
+        if (!sessionId || !design)
+          return {
+            type: 'design/tool-hook' as const,
+            version: 1 as const,
+            supported: false,
+            ok: true,
+          };
+        try {
+          const invocation = this.executionService.getActiveInvocationContext(sessionId);
+          const turnId = invocation?.sourceTurnId;
+          const canvasTurnId = this.executionService.getActiveDesignCanvasTurnId(sessionId);
+          if (!turnId || !canvasTurnId) throw Error('No prepared active design invocation');
+          const assertActive = () => {
+            if (
+              this.executionService.getActiveInvocationContext(sessionId)?.sourceTurnId !== turnId
+            )
+              throw Error('Design invocation has ended or changed');
+            const canvas = this.designCanvasHost
+              .exchange([])
+              .find(
+                (entry) => entry.artworkId === design.artworkId && entry.turnId === canvasTurnId
+              );
+            if (!canvas || canvas.preparing)
+              throw Error('Current canvas save and execution ownership are not confirmed');
+          };
+          assertActive();
+          let entry = this.designSyncServices.get(sessionId);
+          if (!entry || entry.turnId !== turnId) {
+            const workspace = await this.resolveActiveDesignContext(sessionId, design.artworkId);
+            entry = {
+              turnId,
+              canvasTurnId,
+              service: new DesignSyncService({
+                artworkId: design.artworkId,
+                workspace,
+                dataRoot: getLodyDataDir(),
+                assertActive,
+              }),
+            };
+            this.designSyncServices.set(sessionId, entry);
+          }
+          await entry.service.handle(request.params.event);
+          return {
+            type: 'design/tool-hook' as const,
+            version: 1 as const,
+            supported: true,
+            ok: true,
+          };
+        } catch (error) {
+          return {
+            type: 'design/tool-hook' as const,
+            version: 1 as const,
+            supported: true,
+            ok: false,
+            error: formatErrorMessage(error).slice(0, 1000),
+          };
+        }
+      }
       case 'design/canvas-host': {
         return {
           type: 'design/canvas-host' as const,

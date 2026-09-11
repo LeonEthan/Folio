@@ -818,3 +818,15 @@ it.each([1, 2, 3])(
     expect(legacy).toEqual(before);
   }
 );
+
+it('folds long unbroken text scalars for native bounded reads without changing text', () => {
+  const document = doc();
+  const longText = 'A'.repeat(60_000);
+  document.elements = [
+    { ...base('long'), kind: 'text', text: { paragraphs: [{ runs: [{ text: longText }] }] } },
+  ];
+  const files = exportPptd(document, assets);
+  const page = new TextDecoder().decode(files.get('pages/design.page'));
+  expect(Math.max(...page.split('\n').map((line) => Buffer.byteLength(line)))).toBeLessThan(1024);
+  roundtrip(document);
+});

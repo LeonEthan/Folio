@@ -275,7 +275,51 @@ export const DesignSourcePathResultSchema = z.discriminatedUnion('ok', [
     .strict(),
 ]);
 
+export const DesignToolHookEventSchema = z.discriminatedUnion('phase', [
+  z
+    .object({
+      phase: z.literal('generation'),
+      generation: z.string().min(1).max(200),
+      runtimeVersion: z.string().min(1).max(100),
+    })
+    .strict(),
+  z
+    .object({
+      phase: z.literal('call'),
+      generation: z.string().min(1).max(200),
+      callId: z.string().min(1).max(200),
+      tool: z.enum(['read', 'write', 'edit']),
+      path: z.string().min(1).max(4096),
+      offset: z.number().optional(),
+      limit: z.number().optional(),
+      partial: z.boolean().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      phase: z.literal('result'),
+      callId: z.string().min(1).max(200),
+      isError: z.boolean(),
+      text: z.string().max(100_000).optional(),
+      partial: z.boolean().optional(),
+    })
+    .strict(),
+]);
+export const DesignToolHookResultSchema = z
+  .object({
+    type: z.literal('design/tool-hook'),
+    version: z.literal(1),
+    supported: z.boolean(),
+    ok: z.boolean(),
+    error: z.string().max(1000).optional(),
+  })
+  .strict();
+
 export const LocalMachineRpcRequestSchema = z.discriminatedUnion('method', [
+  BaseLocalMachineRpcRequestSchema.extend({
+    method: z.literal('design/tool-hook'),
+    params: z.object({ version: z.literal(1), event: DesignToolHookEventSchema }).strict(),
+  }).strict(),
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('design/source-path'),
     ownerSessionId: SessionIdSchema,
@@ -491,6 +535,7 @@ export const LocalMachineRpcResultSchema = z.union([
   ImageConnectionRpcResultSchema,
   DesignRenderRpcResultSchema,
   DesignCanvasHostResultSchema,
+  DesignToolHookResultSchema,
   SessionActiveInvocationContextResultSchema,
   CodeCollabV2FileIndexSnapshotSchema,
   CodeCollabV2OpenTextOkSchema,

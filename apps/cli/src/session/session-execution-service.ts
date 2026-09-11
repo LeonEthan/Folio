@@ -471,6 +471,10 @@ export type SessionExecutionServiceDeps = {
     signal: AbortSignal
   ) => Promise<boolean | void>;
   releaseDesignCanvas?: (sessionId: SessionId, turnId: string) => void;
+  designReadBaseline?: (
+    sessionId: SessionId,
+    turnId: string
+  ) => import('@/design/sync-baseline').DesignReadBaseline | undefined;
   machineId: MachineId;
   userId: string;
   workspaceId: WorkspaceId;
@@ -2538,6 +2542,7 @@ export class SessionExecutionService {
         const context = {
           sessionId,
           sessionDoc,
+          designReadBaseline: this.deps.designReadBaseline?.(sessionId, userTurnId),
           turnId: userTurnId,
           workdir: getDefaultSessionWorkdir(sessionId),
           workspaceRoot:
@@ -3325,6 +3330,12 @@ export class SessionExecutionService {
   /** The `userTurnId` owned by the session's active turn runtime, if any. */
   getActiveUserTurnId(sessionId: SessionId): string | undefined {
     return this.turnRuntimeBySession.get(sessionId)?.userTurnId;
+  }
+
+  /** Internal prepared canvas owner; distinct from causal input identity. */
+  getActiveDesignCanvasTurnId(sessionId: SessionId): string | undefined {
+    const runtime = this.turnRuntimeBySession.get(sessionId);
+    return runtime?.canvasPrepared ? runtime.canvasTurnId : undefined;
   }
 
   getActiveInvocationContext(sessionId: SessionId):

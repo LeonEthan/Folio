@@ -187,6 +187,7 @@ describe('MessageHandler machine registration', () => {
       localFileResources: 1,
       localSessionAttachments: 1,
       designCanvasSerialEditing: 1,
+      designToolHooks: 1,
       providerSetup: 1,
       acpProtocolAuthentication: 2,
     });

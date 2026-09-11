@@ -313,6 +313,7 @@ describe('SessionExecutionService', () => {
       })
     ).resolves.toMatchObject({ applied: true, disposition: 'applied' });
     expect(runtime.canvasTurnId).toBe('assistant:user-1');
+    expect(service.getActiveDesignCanvasTurnId(sessionId)).toBe('assistant:user-1');
     expect(runtime.providerPromptSettlement).toBe(providerTail);
     expect(onTurnSettled).toHaveBeenCalledOnce();
     expect(onTurnSettled).toHaveBeenCalledWith('handled');

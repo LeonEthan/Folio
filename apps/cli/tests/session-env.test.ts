@@ -257,3 +257,18 @@ describe('Session buildShellEnv', () => {
     );
   });
 });
+
+it('preserves an ordinary Pi custom executable without requiring design extension resources', async () => {
+  let observed: NodeJS.ProcessEnv | undefined;
+  const stop = new Error('observed ordinary Pi launch');
+  const sandbox: SessionSandbox = {
+    enabled: false, description: 'test', applyLimits: async () => {},
+    readResourceAccounting: async () => ({ kind: 'unavailable', reason: 'test' }),
+    spawn: async (_command, _args, options) => { observed = options.env; throw stop; },
+    terminate: async () => {}, cleanup: async () => {},
+  };
+  const session = new Session(createConfig({ agentCliType: 'registry', agentType: 'pi-acp', env: { PI_ACP_PI_COMMAND: '/synthetic/old-custom-pi' } }), createSilentLogger(), process.cwd(), sandbox);
+  await expect(session.createAgent({ cliType: 'registry', agentType: 'pi-acp', command: 'synthetic-pi-acp' } as CreateAgentConfig)).rejects.toBe(stop);
+  expect(observed?.PI_ACP_PI_COMMAND).toBe('/synthetic/old-custom-pi');
+  expect(observed?.FOLIO_DESIGN_EXTENSION).toBeUndefined();
+});

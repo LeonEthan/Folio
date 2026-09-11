@@ -14,6 +14,7 @@ export const MACHINE_PROTOCOL_CAPABILITIES = {
   localFileResources: 'localFileResources',
   localSessionAttachments: 'localSessionAttachments',
   designCanvasSerialEditing: 'designCanvasSerialEditing',
+  designToolHooks: 'designToolHooks',
   acpProtocolAuthentication: 'acpProtocolAuthentication',
 } as const;
 
@@ -23,6 +24,7 @@ export const PROVIDER_SETUP_PROTOCOL_VERSION = 1;
 export const LOCAL_FILE_RESOURCES_PROTOCOL_VERSION = 1;
 export const LOCAL_SESSION_ATTACHMENTS_PROTOCOL_VERSION = 1;
 export const DESIGN_CANVAS_SERIAL_EDITING_PROTOCOL_VERSION = 1;
+export const DESIGN_TOOL_HOOKS_PROTOCOL_VERSION = 1;
 export const ACP_PROTOCOL_AUTHENTICATION_VERSION = 2;
 
 type MachineProtocolCapabilityCarrier = {
@@ -53,6 +55,7 @@ export function machineSupportsProtocolCapability(
  * in the "supported" direction and there is no version fallback to catch it.
  */
 export const CURRENT_MACHINE_PROTOCOL_CAPABILITIES: MachineProtocolCapabilities = {
+  [MACHINE_PROTOCOL_CAPABILITIES.designToolHooks]: DESIGN_TOOL_HOOKS_PROTOCOL_VERSION,
   [MACHINE_PROTOCOL_CAPABILITIES.acpAuthenticationInteractions]:
     ACP_AUTHENTICATION_INTERACTIONS_PROTOCOL_VERSION,
   [MACHINE_PROTOCOL_CAPABILITIES.localProjectRemoval]: LOCAL_PROJECT_REMOVAL_PROTOCOL_VERSION,

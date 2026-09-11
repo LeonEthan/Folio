@@ -15,6 +15,7 @@ import { ndJsonStream } from '@agentclientprotocol/sdk';
 import * as fs from 'fs';
 import type { AcpStartupTimeoutOptions, AgentClient } from '@/agent/agent-client';
 import { createAcpClient } from '@/agent/acp-runner';
+import { preparePiDesignLaunch } from '@/design/pi-launch';
 import { withAcpSessionStartSlot } from '@/agent/acp-session-start-gate';
 import {
   AcpStartupProcessError,
@@ -481,10 +482,18 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
     this.acpCapabilitySourceVersion = callbacks.capabilitySourceVersion ?? null;
     const loginShellEnv = await getLoginShellEnv();
     callbacks.abortSignal?.throwIfAborted();
-    const env = withLodyNpmCacheForNpx(
+    let env = withLodyNpmCacheForNpx(
       callbacks.command,
       this.buildShellEnv(callbacks.env, loginShellEnv)
     );
+    const piLaunch =
+      callbacks.agentType === 'pi-acp' && callbacks.designHooks === true
+        ? await preparePiDesignLaunch(env, {
+            machineId: this.config.machineId,
+            workspaceId: this.config.workspaceId,
+          })
+        : undefined;
+    if (piLaunch) env = piLaunch.env;
     const launcher: AcpLauncher = resolveAcpLauncher(callbacks.command);
     const spawnAnalyticsProps = {
       cliType: callbacks.cliType,
@@ -679,6 +688,9 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
       this.logger.debug(
         `[${this.sessionId}] createAcpClient returned (acpSessionId=${acpSessionId})`
       );
+      agentProcess.once('exit', () => {
+        void piLaunch?.cleanup();
+      });
       this.acpSessionId = acpSessionId;
       this.agentClient = client;
       this.acpCapabilities = acpCapabilities;
@@ -707,6 +719,7 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
       );
     } catch (error) {
       await cleanupFailedAttempt();
+      await piLaunch?.cleanup();
       throw error;
     }
   }

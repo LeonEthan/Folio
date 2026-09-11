@@ -354,6 +354,8 @@ export type SessionMonitorRuntimeInfo = {
 };
 
 export interface CreateAgentConfig {
+  /** Set only after reading trusted durable design Session metadata. */
+  designHooks?: boolean;
   cliType: AgentConfigCliType;
   agentType: string;
   command: string;
@@ -1151,6 +1153,15 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
     agentStart?: AgentStartConfig
   ): Promise<ISession> {
     const sessionId = incomingConfig.sessionId!;
+    if (incomingConfig.agentType === 'pi-acp') {
+      const doc = await this.workspaceDocument.getOrCreateSessionDoc(sessionId);
+      if ((await doc.getMetaState())?.design) {
+        // Speculation predates durable design identity; recreate through the
+        // ordinary startup gate instead of claiming an uninstrumented process.
+        await prepared.dispose();
+        return await this.createSessionInnerWithAgent(incomingConfig, agentStart);
+      }
+    }
     await prepared.adopt();
     const preparedWorktree = await prepared.workspaceReady;
     const config = prepared.config;
@@ -1224,6 +1235,7 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
       dispatchEvent?: (event: () => void) => void;
       allowInteractiveRequest?: () => boolean;
       onStartupStage?: (event: AcpStartupStageEvent) => void;
+      designHooks?: boolean;
     }
   ): CreateAgentConfig {
     const sessionId = config.sessionId!;
@@ -1231,6 +1243,7 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
     return {
       cliType: config.agentCliType,
       agentType: config.agentType,
+      designHooks: options?.designHooks,
       command: launch.command,
       args: launch.args,
       env: launch.env,
@@ -1407,6 +1420,8 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
       acpSessionId = await withSlowOperationWarning(
         session.createAgent(
           this.buildCreateAgentConfig(session, config, launch, {
+            designHooks:
+              config.agentType === 'pi-acp' && Boolean((await sessionDoc.getMetaState())?.design),
             resumeSessionId: requestedResumeSessionId,
             forkSessionId: requestedForkSessionId,
             forkSessionTurnId: requestedForkSessionTurnId,
