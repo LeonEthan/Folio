@@ -1,6 +1,11 @@
 # Folio design acceptance
 
-This is the T29 review procedure, not a passing acceptance report. Use the final
+This is the T29 review procedure, not human approval. The current installed
+rounds, all nine measurements and original eight-criterion audit are recorded in
+the [owning evidence note](../.agents/notes/proposed/testing/2026-09-11-complete-design-acceptance.md).
+Three synthetic native journeys and copied-profile mechanical verification pass;
+human visual/editing judgments and the explicitly recorded remaining scope are pending.
+Use the final
 combined installed macOS application. The earlier T27 package, development
 Electron, unit tests and screenshots do not establish this journey or a human
 visual verdict. Keep failed and repaired rounds separate under the existing
@@ -59,7 +64,7 @@ specific newly discovered gap instead of creating another test engine or registr
 | Multipart writes, replaced/renamed media, missing dependencies, continuous writes, missed notifications | `apps/electron/src/main/services/design-source-preview-verification.ts`; `design-canvas-sync-core.test.mjs` | Observe actual macOS file events and explicit refresh reconciliation; no partial/old snapshot advertised as current |
 | Multiple consumers, release, background with no consumers | Same source-preview verification and canvas-sync core | Close one consumer while another remains, then close all during a background turn; no extra commit or retained preview producer |
 | Exact viewed source import, no sync/commit loops | Source-preview verification; `packages/components/tests/design-source-preview.test.tsx` | Change source after displaying preview; import must save the displayed snapshot or reject, never silently switch |
-| No CLI, image configuration error | Existing onboarding journey; `apps/cli/src/design/image-connection.test.ts` | Inspect visible recovery wording; manual editing remains usable; image call fails explicitly without default model or paid retry |
+| No CLI, image configuration error | Existing onboarding journey; `apps/cli/src/design/image-connection.test.ts` | Without a configured external Agent, manual editing/save/export remain available. Separately inspect visible recovery wording and protected artwork while Folio's bundled daemon is stopped, then editable recovery; image calls fail explicitly without a default model or paid retry |
 | Disk write failure, cancel, quit/reopen | `apps/cli/src/design/turn-outcome.test.ts`; canvas-sync core; installed P1 `design-verification.ts` | Use isolated data only; preserve edits/draft, show failure, reopen last confirmed data; do not count schema rejection as disk failure |
 | Old files/receipts, actual image read, no result cards or thumbnail production | `apps/cli/src/design/candidate-file.test.ts`; `turn-outcome.test.ts`; render tool tests | Open synthetic legacy content, render and read exported pixels; compare files before/after a background turn, with no dedicated thumbnail producer |
 
@@ -87,8 +92,8 @@ and trace in a fresh acceptance directory. `measured` is not human approval.
 Measure elapsed monotonic time from each action to its observable completion:
 attach to ready editor, edit to changed editor snapshot, save to persisted revision,
 PNG/JPEG export to decoded file, and reopen to matching saved content. Do not time
-builds, model/network latency or a fixed sleep as editor performance. Capture cold
-load separately from warm repetitions. Keep every sample, dimensions, element and
+builds, model/network latency or a fixed sleep as editor performance. The current `coldAttach` field measures a new canvas view in an already running
+application; application cold startup is not measured. Keep every sample, dimensions, element and
 asset counts, byte sizes, and success/error status, rather than only averages.
 
 Capture memory after bootstrap, loaded scene, edits, saves, each export, and closed
@@ -101,8 +106,8 @@ lane; a handful of acceptance samples cannot prove absence of leaks.
 
 Choose acceptable ranges from the target machine's measured distributions and
 reviewer's interaction tolerance. No universal latency or memory limit has been
-established. Until actual measurements and a human assessment exist, report
-**unmeasured / acceptance pending**, not zero, a guessed budget, or “fast”. Retain
+established. The current round is **measured / human acceptance pending**; do not report zero,
+a guessed budget or “fast”. Retain
 slow and failed samples. A scope recommendation must state hardware, scene sizes,
 sample count, worst observed values and remaining limits. Export quality and edit
 usability require human review even when every timing fits the selected range.
@@ -130,3 +135,17 @@ as final teardown pass. It uses the original executable/source target and a fres
 reserved endpoint. The subsequent `close()` removes the isolated directories.
 A teardown error aborts restart; closing and reopening a Session inside one running
 application is separate evidence.
+
+
+## Local human review handoff
+
+The prepared local directory `e2e/artifacts/acceptance/t29-b86-human-review`
+contains `开始验收.md`, `Open Folio Review.command`, three actual editable Session
+sources and matching PNG/JPEG exports, package identity, measurements and the
+copied-profile verification. Its launcher uses the independent short profile
+`/Users/macmini/FolioReview-b86-20260911`, a fresh endpoint and the original b86
+installed executable. All three Sessions were mechanically reopened, compared,
+saved and source-previewed from that new root after the original temporary data
+was removed. This does not sign the human fields above. Keep the app and profile
+paths stable; no external provider credentials are supplied. A human configures
+an authorized Agent connection to perform their own complete creative journey.

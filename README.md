@@ -58,15 +58,20 @@ resolved before treating your latest edits as saved or quitting.
 
 ## Release status and support limits
 
-Release acceptance is pending. The final installed macOS journey and measured
-load/edit/save/export/memory limits are not yet established for this development
-revision. There is no verified maximum canvas size or universal performance
-budget. Windows and Linux resource packaging is not native execution evidence.
-See the [acceptance procedure](e2e/DESIGN-ACCEPTANCE.md) for the evidence required
-before release.
+Release acceptance is pending. The installed macOS package has completed scripted
+poster, infographic and long-image journeys with a native Claude runtime and a
+synthetic provider. Human visual and editing judgments are still pending. Nine
+controlled canvas-operation samples were recorded on an Apple M4 Mac with 16 GiB
+RAM; these do not establish a maximum canvas size, universal performance budget,
+application cold-start time or physical input latency. Windows and Linux resource
+packaging is not native execution evidence. See the
+[acceptance evidence](.agents/notes/proposed/testing/2026-09-11-complete-design-acceptance.md)
+and [review procedure](e2e/DESIGN-ACCEPTANCE.md).
 
-Pi and Claude have design synchronization implementations; final installed
-switching and recovery acceptance remains pending. Codex, Kimi and Grok remain
+Pi and Claude have design synchronization implementations. The
+[installed Agent matrix](.agents/notes/proposed/testing/2026-09-11-installed-five-agent-matrix.md)
+records passed behavior separately from remaining runtime and cleanup gaps.
+Codex, Kimi and Grok remain
 blocked on the complete native design-hook contract. This does not remove their
 ordinary execution or image-reading capabilities: Codex has earlier native
 reference-image and actual image-read evidence. An Agent appearing in Settings does

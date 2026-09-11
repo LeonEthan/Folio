@@ -5,100 +5,163 @@ Translation: pending
 
 ## Abstract
 
-A package that starts and exports a small sample does not establish Folio's full
-design journey, native Agent behavior or visual quality. T29 reuses the existing
-acceptance lane, Electron harness and resource probe with synthetic poster,
-infographic and long-image inputs, keeping installed execution, deterministic
-boundary checks and human judgment distinct. The scene fixtures pass existing
-intake and editable projection roundtrip checks; the final combined package,
-full journeys, performance measurements and human verdict remain pending. No
-release-readiness or universal performance claim follows from these preparations.
+T29 now has installed macOS evidence for three synthetic design journeys, copied
+editable review Sessions and nine operation/memory samples. Native Claude executes
+real tools against a local synthetic provider; this proves protocol and persistence
+behavior, not model quality or human editing experience. Existing deterministic
+coverage and native package probes supply complementary boundary evidence. Human
+visual/editing verdicts, the target machine's acceptable limits and the remaining
+explicitly identified coverage are pending; neither T29 nor release is approved.
 
-## Decision and evidence
+## Identity and evidence boundaries
 
-The [acceptance procedure](../../../../e2e/DESIGN-ACCEPTANCE.md) maps every T29
-criterion to existing verification seams and the remaining installed observation.
-It extends the scope of the earlier
-[package verification](../../implemented/testing/2026-09-11-packaged-design-verification.md)
-without rewriting that historical T27 result as final-combination evidence.
-The current generic acceptance runner has no design subject; its existing
-lifecycle subject must not be reported as a completed design journey.
+The product is the copied arm64 application built from
+`b86a1c92aa529511c4390dc057649bbb00a53f50`, including the attachment-history repair.
+DMG SHA-256 is `22fb673c62f4277386f15c5f47689a53fcc59e486d87ef3935884b9274a16a20`;
+ASAR SHA-256 is `eef1beb7a270afb515db8c1d04e09da3f2c4c8c00f8250a766a0b3a10144d5bb`.
+The package round is the local temporary directory
+`folio-t28-b86a1c92-24v1tix4`, with `package-identity.json` and copied
+`installed/Folio.app`. Its executable supplies its own entry and resources, with
+no development entry injection. Each round verifies embedded source identity and
+owns separate Electron/CLI profiles and an endpoint. Logs/transcripts stay outside
+Git. The earlier T27 and 9ef packages are historical evidence, not this result.
 
-Three synthetic scenes use 800×1100, 1200×900 and 800×3200 canvases, respectively
-10, 10 and 16 editable elements, and the existing minimal-example PNG. Existing
-`collectAuthoring`, `intakeAuthoring` and `exportPptd` validated each scene, moved
-the title seven pixels, then proved exact canonical and asset equality through
-projection and intake. This is structural evidence, not rendering or visual
-acceptance. No duplicate fixed-file regression suite was introduced.
+The [procedure](../../../../e2e/DESIGN-ACCEPTANCE.md) remains the human workflow;
+the [installed matrix](2026-09-11-installed-five-agent-matrix.md) owns the five-Agent
+verdict. Pi/Claude hook implementation does not erase Pi cleanup failures or imply
+Pi image MCP access: its adapter does not forward the catalog. Codex/Kimi/Grok
+full-hook blockers do not negate separately demonstrated ordinary execution or
+image-reading capabilities. No paid provider, normal user profile, public release,
+Developer ID identity, notarization or update system was used.
 
-A separate universal performance gate or test engine was rejected because the
-repository already supplies runtime snapshots, Scout and immutable acceptance
-rounds. Measurements must use actual completion signals and report the target
-machine, every sample and failures. Shell renderer heap does not measure Bento's
-separate view; process-tree evidence is required. Run measurements serially after
-other native probes and builds/checks finish, to avoid artificial contention.
-Thresholds and supported scene sizes remain unestablished until actual
-measurements and human editing judgment.
+Local evidence names below resolve under macOS's task temporary directory
+`/var/folders/dn/56hdvtt50g19brtctz0c9c7w0000gn/T/`, unless a repository artifact
+path is stated. These are local review artifacts, not portable CI attachments.
 
-Native support restrictions remain as recorded in the linked
-[Codex](../architecture/2026-09-11-codex-design-hook-boundary.md),
-[Kimi](../architecture/2026-09-11-kimi-design-hook-boundary.md) and
-[Grok](../architecture/2026-09-11-grok-design-hook-runtime-gap.md) findings. Pi's
-actual adapter does not forward the MCP catalog. These limits cannot be removed
-by a synthetic provider response or by an Agent appearing in Settings.
+## Original Issue 31 criteria audit
 
-## Remaining verification
+| Criterion | Evidence and exact scope | Remaining boundary |
+| --- | --- | --- |
+| 1. Three complete scene journeys and separate human verdicts | `folio-t29-poster-tmUzEb`, `folio-t29-infographic-W8bEBY`, `folio-t29-long-image-OPseXd`, each `evidence/result.json`, exit 0 with clean teardown. Native Claude receives the attached bytes, reads/writes drafts, renders and actually reads the PNG; DOM edits are flushed before continuation, observed preview matches the new background/manual text, formal save/reopen and decoded PNG/JPEG succeed. | These are synthetic-provider and programmatic UI runs. The procedure's richer physical edits, creative quality, reference use and separate visual/editing judgments remain human work. |
+| 2. Roundtrip, isolation, flush, whole-lifecycle multi-instance readonly, version conflict/resubmit/continue | Existing authoring roundtrip, CLI sync/turn-outcome and canvas-access tests; three native journeys assert actual continuation Read tool-result contains MANUAL text and both canonical hosts reject execution-time mutation. `folio-root-processing-poster-j0P1Ss` proves both canonical hosts reject mutation during actual finalization. T28's installed native Pi/Claude probes cover their recorded conflict/resubmit/recovery cases. | T28 Pi rounds retain teardown failures; do not label those whole rounds passed. Hook completeness remains blocked for three other Agents. The controlled finalization contention is explicitly disclosed below. |
+| 3. File lifecycle, consumers, exact-source import and no loops | Native scenes exercise multipart writes, missing dependency retaining the last valid frame, page rename, continuous writes and close/reopen/Refresh. Long-image commits a background turn with no Bento consumers. Installed b86 P1 validates native source changes and exact clicked-source import against refresh/version changes. `design-canvas-sync-core.test.mjs` tests shared consumers, dirty/closed publication suppression and dependency reconciliation; `design-source-preview.test.tsx` tests reconnection/finished-history refresh without a new design-preview event and subscription release. Source previews leave canonical content unchanged before formal commit. | Reconnection/turn-end compensation is deterministic evidence, not injected OS-event loss. Native scenes are not a separate proof of closing one of two simultaneous source-preview consumers; that boundary uses the existing deterministic test. No new watcher fault engine is warranted. |
+| 4. No CLI, image configuration failure, disk failure, cancel/quit/reopen, old content, render/read and retired thumbnails | Poster terminates its actual daemon, observes stopped/readonly state and preserved canonical content, then restarts successfully. All scenes exercise real EACCES preserving unsaved edits, then successful save. Infographic cancels, quits the full app and restarts the same durable profile with a new PID/endpoint before explicit native continuation. T13 image-connection tests and b86 image probe own explicit configuration failures. Native Read consumes a legacy PNG, and render output is actually read; file inventories remain unchanged with no dedicated thumbnail producer, including background work. | Daemon unavailable is not physical absence of a bundled executable. Legacy PNG is proven Agent-readable; an actual final-package UI open of legacy content is not yet recorded. Absence of a result card does not itself prove every historical receipt UI path. |
+| 5. Existing deterministic facilities and separate native/human evidence | Reuses the Electron harness, resource probe, authoring intake/projection and P0/P1 verification. External synthetic probes identify new cross-behavior failures without a second regression registry, scheduler or product test protocol. Raw traces/scripts/requests are retained per round. | Native macOS evidence does not establish Windows/Linux or human behavior. Prior deterministic coverage is retained at its actual scope, not postponed wholesale or promoted to a native verdict. |
+| 6. Measurements, acceptable range, user/release guidance | Nine installed samples and process trees in `e2e/artifacts/acceptance/design-measurement-lbmkAx`; all samples and export-write failures retained. README and procedure distinguish operation timings, hardware and Agent limits. | Three samples per scene cannot establish p95, leaks, maximum scale or universal acceptable thresholds. The target user's latency/memory tolerance and visual/editing assessment remain pending. |
+| 7. Preparation only, no implicit publication or human approval | The local package is ad-hoc signed; no public release, notarization, Developer ID authorization or update system. Human fields remain pending. | Release decision is pending. |
+| 8. Documentation, decision record and proportionate checks | This note, README pair and existing acceptance procedure record current evidence, failures and limits. Harness restart/profile-export tooling passed full checks and development build plus 3-scenario/18-step smoke when committed. | Supplemental documentation checks are reported with the final patch; passing checks do not approve the Spec or close Issue 31. |
 
-The final package must contain the sealed Agent switching/recovery work and use
-T28's installed executable harness. The complete three-scene journey, native
-watcher edge cases, real disk-failure behavior, actual render/read, performance
-samples and human visual/editing verdict are not yet completed by this note.
-No paid provider call, captured transcript, public release or signing authority
-was used. This proposal does not approve the draft design Spec.
+## Native rounds and retained failures
 
-The prepared measurement script seeds only the controlled canvas fixture through
-the existing store, then uses installed IPC, Bento controls and real export/decode
-paths. It records three iterations, source identity and display/hardware metadata,
-child-inclusive memory snapshots, per-export hashes and errors. A selected
-nonexistent export parent exercises real filesystem write failure after timing;
-it does not substitute for canonical-store failure or physical dialog interaction.
-At this preparation point the script is syntax-checked but not yet executed against
-the final package. The full repository check passed before adding this isolated
-acceptance entrypoint; scoped E2E and final documentation checks follow.
+The three input fixtures contain 10/10/16 editable elements. Actual saved exports
+contain 11/11/17 after the post-Agent edit. Their revisions are respectively
+`ca79adb93934afed44acd387418e123d855467359f2aacee94798774339b838d`,
+`a964b5b6c25854bf187a42496328a32cf92b7c858a5a3ef93ddc11adc607dcd7`, and
+`cf4a8d28faec9e2c00e64c5610d5097cb17769c5f83c9fd34d9907cd83e5c641`.
+The infographic's later restart/continue and long-image's later background commit
+have separate recorded revisions; the human exports correspond to the revisions
+above. Each round retains the original script, package identity, native tool
+requests, screenshots, exports, CLI logs and result, not just a screenshot verdict.
 
-The installed measurement metadata uses Electron Node’s existing
-`process.getBuiltinModule` API because Playwright main-process evaluation does not
-supply a dynamic-import callback. The existing harness now has a restart operation
-for cancel→quit→launch recovery: it pins the original launch target, preserves only
-its own durable directories after successful process/endpoint teardown, reserves
-a new endpoint, and does not force onboarding on the resumed profile. Final close
-retains the original directory cleanup and failure behavior. This is acceptance
-tooling; it neither changes application shutdown nor waives observed cleanup errors.
-Installed execution of this additional recovery path is still pending.
+Poster rounds 1–5 remain failed evidence: duplicate button selection; an extra
+fixture asset correctly rejected by the read baseline; a hidden title clone;
+incorrect fixture copy nesting; and the finalization observer described below.
+Infographic round 1 misclassified native startup traffic as design traffic. No
+product success was inferred from these failures; corrected rounds use new
+artifacts. The local logs are `/tmp/folio-t29-poster-{1..6}.log`,
+`/tmp/folio-t29-infographic-{1..2}.log` and `/tmp/folio-t29-long-image-1.log`.
 
-Restart tooling verification passed the full repository check, formatting, docs
-check, E2E contracts/types/tests, development build and the three-scenario,
-18-step smoke suite. The first development build failed because this worktree
-had not initialized the pinned public Bento submodule; it was initialized without
-changing its revision. The repaired build and repeated full checks used pnpm
-10.20.0 for nested commands as well as the top-level invocation. These checks do
-not establish the installed restart journey or remove native-round cleanup failures.
+Finalization observation initially watched the logs directory. The failed
+`folio-root-processing-poster-P7lHoK` records no watch events even though the exact
+CLI trace entered `designTurnOutcome` 22 ms after provider release and remained
+blocked on the existing design lock. macOS directory watching did not report that
+existing-file append. The corrected external observer watches the actual prepared
+trace file; it keeps the same five-second bound, ten-second lock wait and all
+assertions. In `folio-root-processing-poster-j0P1Ss`, provider release is
+14:30:54.977Z, stage entry 14:30:55.004Z, and assertion/release 14:30:55.032Z.
+Both canonical hosts report `{readonly: true, unchanged: true}`; canonical storage
+stays unchanged while locked, followed by normal formal commit and cleanup.
+This is controlled contention on an isolated artwork, not a fabricated runtime
+stage. The immutable result's old static `NOT PASSED` label is stale;
+`actualResultProcessingReadonly` and the exact trace establish the later pass.
+The original poster5 and directory-observer failures are not edited or erased.
 
-## Review-profile export tooling
+## Measurements
 
-The same harness can export an owned profile only after a verified launch and
-successful existing process/endpoint teardown. The destination must be new and
-outside the source; copy failure retains the original data and reports the error.
-Successful copying is followed by normal temporary-directory cleanup. No product
-runtime, storage protocol or running Loro document is modified for this operation.
+The installed measurement round ran serially with other native probes/builds/checks
+idle on Apple M4, 10 logical CPUs, 16 GiB RAM, macOS 26.6.2 / Darwin 25.6.0,
+Electron 39.5.1, 1920×1080 display at scale 2. Historical acceptance applications
+were part of the recorded background environment; no process was killed by name.
+These are seeded/no-Agent/no-human measurements. The reference image is tiny and
+the canvases are intentionally modest; neither realistic asset load nor maximum
+scene scale follows from them.
 
-A preparation round created three native Sessions using existing pending-design
-recovery, displayed each supplied source, and used the actual direct-import button.
-Their canonical documents matched the three exported native-journey revisions,
-then shutdown/export/cleanup succeeded. Launching the exported data under a long
-artifact path hit the existing Unix-socket path-length guard; the review profile
-was moved to a new short directory without editing its storage. Its launcher
-subsequently started successfully. Mac screen lock prevented physical UI inspection.
-A complete copied-profile session/save/source-preview recheck remains pending;
-the copy is not yet evidence of human usability. The owned launcher was stopped,
-all recorded children exited and its endpoint was released, retaining the profile.
+Every sample below is milliseconds; rounding here does not replace raw JSON.
+Attach means a new Bento view in an already running app, **not application cold
+start**. Edit means a programmatic shape click through snapshot observation,
+**not physical input-to-screen latency**. Save/export include IPC and result
+validation; export files are real and decoded. R1/R2 reopen the saved scene.
+
+| Scene / iteration | Attach or reopen | Edit | Save | PNG | JPEG |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Poster 0 | 293.16 | 4.30 | 26.67 | 362.08 | 332.59 |
+| Poster 1 | 269.57 | 4.39 | 22.58 | 334.72 | 333.82 |
+| Poster 2 | 264.48 | 3.91 | 20.85 | 345.35 | 300.46 |
+| Infographic 0 | 270.55 | 4.52 | 20.31 | 365.47 | 331.77 |
+| Infographic 1 | 267.43 | 3.99 | 24.42 | 339.82 | 329.76 |
+| Infographic 2 | 264.36 | 4.10 | 23.01 | 370.95 | 332.56 |
+| Long-image 0 | 273.05 | 4.19 | 21.95 | 366.31 | 355.61 |
+| Long-image 1 | 288.92 | 4.10 | 23.67 | 376.99 | 358.77 |
+| Long-image 2 | 268.25 | 4.18 | 23.80 | 407.84 | 352.11 |
+
+Each scene's final iteration also encounters actual export `ENOENT` with the
+saved design unchanged. This is separate from native-journey canonical EACCES.
+Ambient snapshots retain main, shell renderer and all child processes at each
+checkpoint. Maximum sampled values in MiB are:
+
+| Scene | Main RSS | Shell JS heap | Bento renderer RSS | Sum of owned process RSS |
+| --- | ---: | ---: | ---: | ---: |
+| Poster | 334.80 | 79.98 | 186.73 | 1974.31 |
+| Infographic | 370.91 | 56.99 | 186.75 | 1962.47 |
+| Long-image | 428.69 | 57.08 | 186.80 | 2048.42 |
+
+Bento is identified as the new renderer process absent from bootstrap's renderer
+set, not conflated with the shell's heap. RSS sums may count shared pages more
+than once; they are not exclusive physical memory. These ambient maxima are not
+post-GC retained-memory measurements or a leak verdict. No p95, universal budget
+or supported maximum is declared; human tolerance remains part of acceptance.
+
+## Persistent human review package
+
+The ignored artifact directory
+`e2e/artifacts/acceptance/t29-b86-human-review` contains the Chinese entry
+`开始验收.md`, `Open Folio Review.command`, identity/hashes, three exact editable
+PPTD projections, saved canonical documents, actual PNG/JPEG exports, all nine
+measurement samples and three imported Session identities. The launcher uses
+`/Users/macmini/FolioReview-b86-20260911` and a fresh isolated endpoint without
+external provider credentials. A reviewer must configure an authorized connection
+for their own Agent journey. The supplied provider-wire results are not a claim
+of creative quality.
+
+The existing harness exports a verified owned profile only after successful
+process/endpoint teardown, to a new external destination. Copy failure retains
+the original evidence; successful export performs normal source cleanup. A new
+storage migration/protocol was rejected: source paths naturally resolve from the
+new data root. The initially long destination hit the existing Unix socket path
+guard, so the closed profile was moved to the short path without editing Loro.
+
+`copied-profile-verification-3/result.json` proves a fresh b86 process opens each
+imported Session, matches both canonical and Bento snapshots, is editable, saves,
+and refreshes the actual source preview from the new short root. It records owner
+and view URLs/bounds and passes owned-process and port cleanup, preserving review
+data. The earlier copied-profile rounds retain two fixture failures: selecting a
+previous Session's retained view and reading a new view before its interface was
+ready. The corrected probe selects the actual `ws` Session parameter and awaits
+interface readiness; no equivalence assertion or timeout was weakened. Screen
+lock prevented physical inspection, which is still pending.
+
+Tooling commits `8300769` and `d37ebf8` were checked with repository check/format,
+docs and E2E contracts; the profile-export build and smoke logs are
+`/tmp/folio-t29-profile-build.log` and `/tmp/folio-t29-profile-smoke.log`, both exit 0
+(3 scenarios, 18 steps). This documentation does not change product bytes or
+require rebuilding the b86 package. Final human and release fields stay pending.
