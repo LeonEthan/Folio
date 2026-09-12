@@ -1,6 +1,6 @@
 # apps/cli/src/session
 
-`CLAUDE.md` is a symlink to this file. Edit `AGENTS.md` only.
+Edit `AGENTS.md`; `CLAUDE.md` symlinks here.
 
 [Ownership](README.md), [worktree rules](worktree/AGENTS.md),
 [design rules](../design/AGENTS.md). Architecture: context/message-flow.md;
@@ -13,11 +13,10 @@ contract: specs/session-orchestration.md.
   [../mcp/AGENTS.md](../mcp/AGENTS.md).
 - Never send an untrusted requester through workspace Machine RPC: it authenticates no member
   identity.
-- Live status is a target-daemon Machine RPC read; durable metadata is not a live-presence
-  substitute.
+- Read live status from target-daemon Machine RPC, never durable metadata.
 - Derive the human identity from the active dispatch/execution runtime and fail closed when none
   exists; retries and recovery never reread mutable history.
-- Machine and Provider credentials stay execution-host scoped; attribution, authorization,
+- Machine/Provider credentials stay execution-host scoped; attribution, authorization,
   GitHub, and Git identity use the frozen identity, never the Session owner.
 - Commit identity MUST resolve through `CloudPort.access.resolveWorkspaceUser` before host git
   config; a missing-email placeholder is never one, and every minting path resolves it.
@@ -47,7 +46,7 @@ contract: specs/session-orchestration.md.
 - Gate turn-scoped history LIST writes on user-entry sync (`turn-history-gate.ts`, 20s);
   never gate status or meta writes.
 - An `active` session goal must not suppress turn completion or its notification.
-- Never mint a second visible turn while a `TurnRuntimeState` is registered; derive assistant
+- No second visible turn while `TurnRuntimeState` is registered; derive assistant
   entry ids from `userTurnId`. `invocation` atomically owns source Turn, requester, and input
   config; steer replaces it before tool execution.
 - Publish `latestUserMsgId` in the SAME write as the history append (`appendUserTurn`). Only
@@ -55,22 +54,26 @@ contract: specs/session-orchestration.md.
   tombstone; CLI dispatch producers keep their own marker policy.
 - Ordinary turn execution writes only `processingUserMsgId` and `lastHandledUserMsgId`; no start
   or terminal path may read-await-rewrite the other slots.
-- INVARIANT: a steer the agent never accepted must not stay parked in `pending_apply`. Requeue it
-  through the pointer, not the entry status, only for pre-submission rejections or
+- Unaccepted steer must leave `pending_apply`. Requeue through the pointer, never entry status,
+  only for pre-submission rejections or
   `AgentSteerNotDeliveredError`; skip active or already-handled entries.
-- Resume must REOPEN the in-progress assistant entry, clearing
-  `finished`/`endedAt`/`permissionWaitMs` there only; never write `finished=false` from teardown.
+- Resume reopens only the in-progress assistant entry: clear `finished`/`endedAt`/`permissionWaitMs`;
+  teardown never writes `finished=false`.
 - Keep JSON-RPC/transport matching in `acp-error-classification.ts`: disposed/stale `-32603` is
   `agent_disconnected`, Harness compression mismatch is `acp_session_storage_incompatible`.
 - Continue-session recovery may restore the ACP session and retry the same prompt once, only
   while that turn has no ACP output.
-- INVARIANT: a resolved prompt is not proof of success. A turn that emitted no ACP update takes
+- Resolved prompts do not prove success. Turns with no ACP update take
   `recordSilentTurnFailure`, not `setDispatchHandled` (read `turnProducedVisibleOutput` before
-  `finalizeTurn` clears it); it still finalizes, still ADVANCES the pointer, and fails open.
+  `finalizeTurn` clears it); finalize, advance the pointer, and fail open.
 - Diff content comes only from the CLI-local ACP evidence store; GitHub `diffStats` use PR compare
   semantics, and `session-diff-stats-target.ts` skips rather than overwrites a good total.
 
 ## Lifecycle
+
+- Grok Stop requires native `closed`/`notResident`. Keep drafts/canvas locked through closure and
+  artifacts. Explicit input retries the original provider close, releases its owner, then
+  loads; never replay the stopped prompt.
 
 - `Session.createAgent` acquires the shared ACP start gate before spawn. ACP terminal creation
   passes the protocol's executable and argv straight to `SessionSandbox.spawn`, never a rebuilt
@@ -111,7 +114,7 @@ contract: specs/session-orchestration.md.
 
 ## Access
 
-- Never write per-session `sessionLaunchConfig`: the first `session/create` payload is transient,
+- Never persist `sessionLaunchConfig`: the first `session/create` payload is transient,
   resume and dispatch resolve from agent config/project, and the legacy row is fallback only.
 - Dispatch access is local policy first, optional-cloud three-state second: owner-cached policy
   may allow offline, `remote_missing` and a definitive `denied` fail the turn, `indeterminate`

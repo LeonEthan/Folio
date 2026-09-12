@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { MachineId, SessionId, WorkspaceId } from '@lody/shared';
+import type { ACPSessionId, MachineId, SessionId, WorkspaceId } from '@lody/shared';
 import type { Logger } from '@/utils/logger';
 
 const connectionMocks = vi.hoisted(() => ({
   extMethod: vi.fn(),
+  prompt: vi.fn(),
   initialize: vi.fn(),
   newSession: vi.fn(),
   loadSession: vi.fn(),
@@ -18,6 +19,7 @@ vi.mock('@agentclientprotocol/sdk', () => ({
   PROTOCOL_VERSION: 1,
   ClientSideConnection: class {
     readonly extMethod = connectionMocks.extMethod;
+    readonly prompt = connectionMocks.prompt;
     readonly initialize = connectionMocks.initialize;
     readonly newSession = connectionMocks.newSession;
     readonly loadSession = connectionMocks.loadSession;
@@ -654,5 +656,129 @@ describe('Grok design reminder session startup', () => {
     );
     release.resolve();
     expect((await started).sessionId).toBe('grok-native');
+  });
+});
+
+describe('Grok explicit Stop residency', () => {
+  async function createGrok() {
+    connectionMocks.initialize.mockResolvedValue({
+      agentCapabilities: { loadSession: true, sessionCapabilities: { close: {} } },
+    });
+    connectionMocks.newSession.mockResolvedValue({ sessionId: 'grok-resident' });
+    const client = new AgentClient({
+      logger: createLogger(),
+      sessionId: 'grok-task' as SessionId,
+      agentConfig: { cliType: 'builtin', agentType: 'grok' },
+      terminalManager: {} as never,
+      onUpdateMessage: vi.fn(),
+      onRequestPermission: vi.fn(),
+    });
+    await client.startSession({} as never, '/synthetic-project');
+    return client;
+  }
+  beforeEach(() => {
+    vi.clearAllMocks();
+    connectionMocks.prompt.mockResolvedValue({ stopReason: 'end_turn' });
+  });
+
+  it('waits for actual closure, refuses stopped prompts, then loads only for explicit continuation', async () => {
+    const events: string[] = [];
+    const closed = deferred<{ _meta: { 'x.ai/closeOutcome': string } }>();
+    connectionMocks.closeSession.mockImplementation(async () => {
+      events.push('close');
+      return closed.promise;
+    });
+    connectionMocks.loadSession.mockImplementation(async (request) => {
+      events.push('load:' + request.sessionId);
+      return {};
+    });
+    connectionMocks.prompt.mockImplementation(async () => {
+      events.push('prompt');
+      return { stopReason: 'end_turn' };
+    });
+    const client = await createGrok();
+    const sessionId = 'grok-resident' as ACPSessionId;
+    const stopped = client.closeAfterStop(sessionId)!;
+    expect(client.closeAfterStop(sessionId)).toBe(stopped);
+    await expect(client.prompt(sessionId, [])).rejects.toThrow('resident session is stopped');
+    closed.resolve({ _meta: { 'x.ai/closeOutcome': 'closed' } });
+    await stopped;
+    expect(events).toEqual(['close']);
+    await expect(client.prompt(sessionId, [])).rejects.toThrow('resident session is stopped');
+    await client.resumeAfterStop(sessionId);
+    await client.prompt(sessionId, [{ type: 'text', text: 'new explicit input' }]);
+    expect(events).toEqual(['close', 'load:grok-resident', 'prompt']);
+  });
+
+  it.each([undefined, 'superseded', 'unknown'])(
+    'rejects unconfirmed native close outcome %s without loading or prompting',
+    async (outcome) => {
+      connectionMocks.closeSession.mockResolvedValue({ _meta: { 'x.ai/closeOutcome': outcome } });
+      const client = await createGrok();
+      const sessionId = 'grok-resident' as ACPSessionId;
+      await expect(client.closeAfterStop(sessionId)).rejects.toThrow('could not confirm closure');
+      await expect(client.resumeAfterStop(sessionId)).rejects.toThrow('could not confirm closure');
+      await expect(client.prompt(sessionId, [])).rejects.toThrow('resident session is stopped');
+    }
+  );
+
+  it('requires an explicit retry after a failed close and can then resume', async () => {
+    connectionMocks.closeSession
+      .mockRejectedValueOnce(Error('transport failed'))
+      .mockResolvedValue({ _meta: { 'x.ai/closeOutcome': 'notResident' } });
+    connectionMocks.loadSession.mockResolvedValue({});
+    const client = await createGrok();
+    const sessionId = 'grok-resident' as ACPSessionId;
+    await expect(client.closeAfterStop(sessionId)).rejects.toThrow('could not confirm closure');
+    await expect(client.resumeAfterStop(sessionId)).rejects.toThrow('could not confirm closure');
+    await client.retryCloseAfterStop(sessionId);
+    await client.resumeAfterStop(sessionId);
+    await expect(
+      client.prompt(sessionId, [{ type: 'text', text: 'explicit new input' }])
+    ).resolves.toEqual({ stopReason: 'end_turn' });
+  });
+
+  it('does not treat a close timeout as a terminal resident state', async () => {
+    const client = await createGrok();
+    connectionMocks.closeSession.mockImplementation(() => new Promise(() => {}));
+    vi.useFakeTimers();
+    try {
+      const stopped = client.closeAfterStop('grok-resident' as ACPSessionId);
+      const rejected = expect(stopped).rejects.toThrow('could not confirm closure');
+      await vi.advanceTimersByTimeAsync(10000);
+      await rejected;
+      await expect(client.prompt('grok-resident' as ACPSessionId, [])).rejects.toThrow(
+        'resident session is stopped'
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('closes a restore cancelled while native load is still pending', async () => {
+    const events: string[] = [];
+    const loading = deferred<void>(),
+      loaded = deferred<Record<string, never>>();
+    connectionMocks.closeSession.mockImplementation(async () => {
+      events.push('closed');
+      return { _meta: { 'x.ai/closeOutcome': 'closed' } };
+    });
+    connectionMocks.loadSession.mockImplementation(async () => {
+      events.push('loading');
+      loading.resolve();
+      return loaded.promise;
+    });
+    const client = await createGrok();
+    const sessionId = 'grok-resident' as ACPSessionId;
+    await client.closeAfterStop(sessionId);
+    const restore = client.resumeAfterStop(sessionId);
+    await loading.promise;
+    const stopped = client.closeAfterStop(sessionId);
+    expect(events).toEqual(['closed', 'loading']);
+    loaded.resolve({});
+    await restore;
+    await stopped;
+    expect(events).toEqual(['closed', 'loading', 'closed']);
+    await expect(client.prompt(sessionId, [])).rejects.toThrow('resident session is stopped');
   });
 });

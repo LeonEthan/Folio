@@ -227,3 +227,53 @@ checks canonical temporary configuration paths, an explicit synthetic API key,
 only a loopback model URL, and native model/authentication identity before any
 prompt, rejecting cached authentication. No further native probe was run after
 that review pause. The original failed transport observation remains unchanged.
+
+## 2026-09-12 implemented Stop policy
+
+The user explicitly selected complete Grok session closure on Stop, including
+termination of its background tasks/subagents; a subsequent explicit user message
+restores the session. This implements that narrow policy, not the retired read
+proof proposal. The original transport failure and the limited A2/B native
+observations above remain unchanged.
+
+AgentClient now distinguishes the resident's active, closing, closed, failed and
+restoring states. Only built-in Grok takes this path. `closeAfterStop` uses public
+`session/close` with a bounded request and accepts only native `closed` or
+`notResident` (the requested resident is already absent). Missing capability,
+missing/unknown outcomes, `superseded`, transport failures and timeouts do not
+prove closure. Ordinary ACP cancel remains available separately. No runtime
+patch, OS kill or process replacement is introduced.
+
+The existing visible-turn owner retains the original close promise and captured
+ACP prompt settlement, and is released only after those and artifact processing
+finish. A failed close surfaces an error, retains drafts and the original canvas
+owner, and remembers only that provider's retry action. A new explicit user
+message first retries this exact close; confirmation and the original provider
+settlement release the old owner before normal canvas preparation. Failed retries
+leave the lock in place. There is no background retry, silent owner transfer or
+replay of the stopped prompt.
+
+On successful Stop the ACP transport process remains available. The next explicit
+dispatch loads the same native session with its workdir, current MCP catalog and
+existing session metadata, reloads Folio's precise reminder plugin, then uses the
+ordinary turn configuration and prompt path. Loading does not send a prompt by
+itself. A Stop arriving during restoration waits for that load to settle and
+closes the resulting resident before canvas release. Direct prompts against a
+closing, closed or failed resident are refused. Load failures cannot silently
+reuse the resident; an explicit restoration attempt closes uncertain residency
+before trying to load again.
+
+Deterministic tests cover delayed close, rejected/missing/unknown close outcomes,
+timeout, stopped prompt refusal, explicit retry followed by load/new input, Stop
+during load, and the actual visible-turn canvas order through failed closure and
+explicit recovery. They also retain existing non-Grok cancellation behavior. The
+implementation has not run a new native Grok/model request or UI session. A2/B
+establish the previously recorded public close/load capability only; integrated
+native acceptance remains pending a separately reviewed isolation fixture. The
+strengthened gate above remains unexecuted.
+
+Implementation validation: root `corepack pnpm check` passed, including types,
+lint, full tests and public/platform boundaries. The two focused suites contain
+114 passing tests. Root format, docs check and diff check passed. Test children
+excluded inherited `ANTHROPIC_*` and `CLAUDE_CODE_USE_*` flags. These checks do not
+replace the pending integrated native acceptance.

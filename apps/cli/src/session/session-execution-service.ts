@@ -231,6 +231,8 @@ type TurnRuntimeState = {
   canvasPrepared?: boolean;
   canvasFinalization?: Promise<void>;
   providerPromptSettlement?: Promise<void>;
+  stopClosure?: Promise<void>;
+  retryStopClosure?: () => Promise<void>;
   sessionId: SessionId;
   /** Logical chain tail exposed to Web, cancel, and optimistic steer validation. */
   turnId: string;
@@ -734,6 +736,11 @@ export class SessionExecutionService {
   private readonly canceledTurnBySession = new Map<SessionId, string>();
   private readonly currentTurnBySession = new Map<SessionId, string>();
   private readonly turnRuntimeBySession = new Map<SessionId, TurnRuntimeState>();
+  /** Failed closure retains the original provider and canvas owner until an explicit retry. */
+  private readonly pendingStopRecovery = new Map<
+    SessionId,
+    { close: () => Promise<void>; canvasTurnId?: string }
+  >();
   private readonly rewriteBarrierSessions = new Set<SessionId>();
   private readonly rewriteConflictLeaseSessions = new Set<SessionId>();
   private readonly turnReleaseWaiters = new Map<SessionId, Map<string, Set<() => void>>>();
@@ -1805,6 +1812,21 @@ export class SessionExecutionService {
       return;
     }
 
+    if (!runtime.stopClosure) {
+      const client = runtimeSession.agentClient;
+      const acpSessionId = runtimeSession.acpSessionId;
+      runtime.stopClosure = client.closeAfterStop?.(acpSessionId);
+      if (runtime.stopClosure) {
+        const providerSettlement = runtime.providerPromptSettlement;
+        runtime.retryStopClosure = async () => {
+          await client.retryCloseAfterStop(acpSessionId);
+          await providerSettlement;
+        };
+      }
+      // The owning finalizer observes the failure; prevent an unhandled rejection meanwhile.
+      void runtime.stopClosure?.catch(() => {});
+    }
+    if (stage === 'preparing' || (stage === 'finalizing' && !runtime.autoPromptInFlight)) return;
     void runtimeSession.agentClient
       .cancel(runtimeSession.acpSessionId)
       .then(() => {
@@ -2885,7 +2907,6 @@ export class SessionExecutionService {
               reportTurnError: self.shouldReportCancelledTurnError(turnRuntime),
             });
           }
-          self.releaseTurnRuntime(sessionId, turnRuntime.turnId);
         })
       ).pipe(
         Effect.flatMap(() =>
@@ -3130,6 +3151,17 @@ export class SessionExecutionService {
                 return undefined;
               });
 
+            const stoppedOwner = self.pendingStopRecovery.get(sessionId);
+            if (stoppedOwner) {
+              if (!options.userTurnId)
+                yield* Effect.fail(
+                  new Error('Grok closure requires an explicit user message to retry')
+                );
+              yield* self.tryPromise(() => stoppedOwner.close());
+              if (stoppedOwner.canvasTurnId)
+                self.deps.releaseDesignCanvas?.(sessionId, stoppedOwner.canvasTurnId);
+              self.pendingStopRecovery.delete(sessionId);
+            }
             const prepareCanvas = self.deps.prepareDesignCanvas;
             if (prepareCanvas) {
               runtime.canvasPrepared =
@@ -3216,9 +3248,23 @@ export class SessionExecutionService {
         this.deps.clearConversationTurn(sessionId, runtime.turnId);
       }
       await runtime.canvasFinalization?.catch(() => {});
-      await runtime.providerPromptSettlement;
-      this.deps.releaseDesignCanvas?.(sessionId, runtime.canvasTurnId ?? turnId);
-      span.end({ outcome, turnId });
+      try {
+        await runtime.stopClosure;
+        await runtime.providerPromptSettlement;
+        this.deps.releaseDesignCanvas?.(sessionId, runtime.canvasTurnId ?? turnId);
+      } catch (error) {
+        if (runtime.retryStopClosure)
+          this.pendingStopRecovery.set(sessionId, {
+            close: runtime.retryStopClosure,
+            canvasTurnId: runtime.canvasPrepared ? (runtime.canvasTurnId ?? turnId) : undefined,
+          });
+        await this.handleTurnError(sessionId, sessionDoc, error);
+        outcome = 'stop-close-failed';
+        settlement = 'cancelled';
+      } finally {
+        this.releaseTurnRuntime(sessionId, runtime.turnId);
+        span.end({ outcome, turnId });
+      }
     }
     if (settlement) {
       await this.settleVisibleTurn(runtime, settlement);
@@ -4589,6 +4635,12 @@ export class SessionExecutionService {
             });
           }
 
+          yield* acpReplaySuppression.acquire;
+          yield* self.tryPromise(async () => {
+            await resolvedSession.agentClient?.resumeAfterStop?.(resolvedSession.acpSessionId!);
+          });
+          yield* acpReplaySuppression.release;
+          yield* ctx.abortIfCancelled();
           yield* runReadySessionTurn(resolvedSession, ctx);
         }),
     };
@@ -5172,9 +5224,7 @@ export class SessionExecutionService {
           `[${sessionId}] Stop request received while turn ${turnId} is finalizing; interrupting owner turn`
         );
         this.requestTurnInterrupt(runtime);
-        if (runtime.autoPromptInFlight) {
-          this.requestAgentCancelInBackground(runtime, 'finalizing');
-        }
+        this.requestAgentCancelInBackground(runtime, 'finalizing');
         return { success: true };
       }
       const runtimeSession = runtime.session ?? this.deps.sessionManager.getSession(sessionId);
@@ -5194,6 +5244,7 @@ export class SessionExecutionService {
       this.deps.logger.debug(
         `[${sessionId}] Stop request recorded for turn ${turnId}; interrupting owner turn`
       );
+      this.requestAgentCancelInBackground(runtime, 'preparing');
       this.requestTurnInterrupt(runtime);
       return { success: true };
     }
@@ -5243,8 +5294,11 @@ export class SessionExecutionService {
       return { success: true };
     }
 
+    const stoppedClient = session.agentClient;
+    const stoppedAcpSessionId = session.acpSessionId;
+    const closing = stoppedClient.closeAfterStop?.(stoppedAcpSessionId);
     try {
-      await session.agentClient.cancel(session.acpSessionId);
+      await Promise.all([stoppedClient.cancel(stoppedAcpSessionId), closing]);
       this.deps.logger.debug(`[${sessionId}] Cancel signal sent to agent for turn ${turnId}`);
       this.deps.clearSessionActivePresence(sessionId);
       await this.finalizeCancelledTurn({
@@ -5259,6 +5313,10 @@ export class SessionExecutionService {
     } catch (error) {
       const errorMessage = formatErrorMessage(error);
       this.deps.logger.error(`[${sessionId}] Failed to stop session: ${errorMessage}`);
+      if (closing)
+        this.pendingStopRecovery.set(sessionId, {
+          close: () => stoppedClient.retryCloseAfterStop(stoppedAcpSessionId),
+        });
       return {
         success: false,
         error: errorMessage,

@@ -191,3 +191,19 @@ of a locally aborted prompt, and follows outer failure processing. The bridge is
 transient; no whole-turn disk lock is held. A connected desktop with no open canvas
 acknowledges an empty flush; a missing desktop fails explicitly after 30 seconds.
 See the [decision and evidence](../../../../.agents/notes/implemented/architecture/2026-09-11-canvas-serial-execution.zh.md).
+
+
+### Grok Stop and explicit restoration
+
+Builtin Grok Stop closes the native resident session, including its background tasks and
+subagents. AgentClient accepts only the native `closed` or `notResident` outcome. The visible
+turn keeps its canvas owner through actual close, the captured ACP prompt response and
+artifact processing. An unconfirmed close is surfaced as an error and retains drafts and the
+lock. A later explicit user message retries that original provider's close before releasing
+the old owner and preparing the new turn; there is no automatic retry or prompt replay.
+
+Successful closure keeps the ACP process connection available. The next explicit dispatch
+loads the same native session with the existing workdir, current MCP catalog, session metadata
+and Folio reminder reload, then reapplies the normal turn configuration. Stop during that load
+waits for restoration to settle and closes it before releasing the canvas. No file rollback,
+runtime patch or OS kill is added. See the [Grok cancellation record](../../../../.agents/notes/proposed/architecture/2026-09-11-grok-design-hook-runtime-gap.md).

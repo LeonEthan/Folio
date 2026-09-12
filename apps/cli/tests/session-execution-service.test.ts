@@ -6605,11 +6605,12 @@ describe('SessionExecutionService', () => {
 });
 
 describe('design canvas execution ownership', () => {
-  it.each(['complete', 'save-failed', 'start-failed', 'cancelled'] as const)(
+  it.each(['complete', 'save-failed', 'start-failed', 'cancelled', 'grok-close', 'grok-close-failed'] as const)(
     'holds the canvas through real visible-turn preparation and finalization: %s', async (scenario) => {
       const preparing = createDeferred(), saved = createDeferred(), promptStarted = createDeferred();
       const promptEnded = createDeferred(), finalizing = createDeferred(), collected = createDeferred();
-      const providerEnded = createDeferred();
+      const providerEnded = createDeferred(), nativeClosed = createDeferred(), closeStarted = createDeferred();
+      let retrying = false;
       const events: string[] = [];
       let history = [{ id: 'human-input', role: 'user', status: 'pending', read: false }];
       const sessionDoc = {
@@ -6625,6 +6626,13 @@ describe('design canvas execution ownership', () => {
           isCreated: () => true,
           prompt: async () => { events.push('prompt'); promptStarted.resolve(); await promptEnded.promise; },
           cancel: async () => {}, currentModel: undefined,
+          closeAfterStop: () => {
+            if (!scenario.startsWith('grok-')) return undefined;
+            closeStarted.resolve();
+            return nativeClosed.promise;
+          },
+          retryCloseAfterStop: async () => { events.push('retry-close-confirmed'); retrying = true; },
+          resumeAfterStop: async () => { if (retrying) events.push('explicit-load'); },
           getProviderPromptSettlement: async () => { await providerEnded.promise; },
         },
         terminalManager: {}, getWorkdir: () => '/tmp', getHostWorkdir: () => '/tmp',
@@ -6661,11 +6669,11 @@ describe('design canvas execution ownership', () => {
       await preparing.promise;
       expect(events).toEqual(['freeze']);
       saved.resolve();
-      if (scenario === 'complete' || scenario === 'cancelled') {
+      if (scenario === 'complete' || scenario === 'cancelled' || scenario.startsWith('grok-')) {
         await promptStarted.promise;
         expect(events).toEqual(['freeze', 'saved', 'baseline', 'prompt']);
         activeSession.agentClient.getProviderPromptSettlement = async () => { throw Error('Later client state must not replace the owned provider promise'); };
-        if (scenario === 'cancelled') await service.cancelSession({ type: 'session/cancel', sessionId: 'design-session' as SessionId, turnId: 'turn-1', machineId: 'machine-1', workspaceId: 'workspace-1' as WorkspaceId });
+        if (scenario === 'cancelled' || scenario.startsWith('grok-')) await service.cancelSession({ type: 'session/cancel', sessionId: 'design-session' as SessionId, turnId: 'turn-1', machineId: 'machine-1', workspaceId: 'workspace-1' as WorkspaceId });
         promptEnded.resolve();
         await finalizing.promise;
         expect(events).not.toContain('release');
@@ -6675,8 +6683,25 @@ describe('design canvas execution ownership', () => {
         collected.resolve();
       }
       providerEnded.resolve();
+      if (scenario.startsWith('grok-')) {
+        await closeStarted.promise;
+        expect(events).not.toContain('release');
+        if (scenario === 'grok-close-failed') nativeClosed.reject(Error('Grok close was not confirmed'));
+        else nativeClosed.resolve();
+      }
       await run;
-      expect(events.at(-1)).toBe('release');
+      if (scenario === 'grok-close-failed') {
+        expect(events).not.toContain('release');
+        const retryOffset = events.length;
+        activeSession.agentClient.getProviderPromptSettlement = async () => {};
+        await service.continueSession({
+          type: 'session/chat', sessionId: 'design-session' as SessionId, machineId: 'machine-1',
+          workspaceId: 'workspace-1' as WorkspaceId, project: undefined,
+          acpSessionConfig: { prompt: 'new explicit recovery input', cliType: 'builtin', agentType: 'grok' },
+          userTurnId: 'explicit-retry', userId: 'user-1', userName: 'User', userEmail: 'user@example.com',
+        });
+        expect(events.slice(retryOffset)).toEqual(['retry-close-confirmed', 'release', 'freeze', 'saved', 'explicit-load', 'baseline', 'prompt', 'collect', 'release']);
+      } else expect(events.at(-1)).toBe('release');
       expect(history.some((entry) => entry.id === 'human-input')).toBe(true);
       if (scenario === 'save-failed' || scenario === 'start-failed') expect(events).not.toContain('prompt');
     }

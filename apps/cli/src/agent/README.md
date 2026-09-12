@@ -218,3 +218,10 @@ new ACP session's current model; list order does not imply a cheaper model or th
 same endpoint. Permission and reasoning defaults remain independent. Existing saved
 overrides are retained because their provenance cannot be inferred; users can still
 explicitly select another title model in the existing settings field.
+
+
+Grok's explicit Stop uses public `session/close` and requires the native `closed` or
+`notResident` result; the generic `closeSession` boolean is not a shutdown proof. Stopped or
+failed residents reject prompts until the explicit restoration path loads them. This is owned
+by the [Session lifecycle](../session/README.md#grok-stop-and-explicit-restoration), including
+failed-close recovery and canvas release; ordinary ACP cancel remains a separate operation.

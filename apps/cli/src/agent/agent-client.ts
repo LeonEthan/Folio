@@ -650,8 +650,103 @@ export class AgentClient implements acp.Client {
   private steerApplicationBarrier: Promise<void> | null = null;
   private activePromptCompletion: ActivePromptCompletion | null = null;
   private providerPromptCompletion: ActivePromptCompletion | null = null;
+  private grokStopState: 'active' | 'closing' | 'closed' | 'failed' | 'restoring' = 'active';
+  private grokStopCompletion?: Promise<void>;
+  private grokRestoreCompletion?: Promise<void>;
 
-  /** Actual provider response/transport settlement, independent of the local abort race.
+  /** Explicit Stop closes the resident Grok session; ordinary ACP cancel stays unchanged. */
+  closeAfterStop(sessionId: ACPSessionId): Promise<void> | undefined {
+    if (
+      this.options.agentConfig?.cliType !== 'builtin' ||
+      this.options.agentConfig.agentType !== 'grok'
+    )
+      return undefined;
+    this.ensureSessionMatch(sessionId);
+    if (this.grokStopCompletion) return this.grokStopCompletion;
+    const restoring = this.grokRestoreCompletion;
+    this.grokStopState = 'closing';
+    this.grokStopCompletion = (async () => {
+      try {
+        // A cancelled explicit restore must settle before closing its new residency.
+        await restoring?.catch(() => {});
+        if (!this.supportsClose || !this.connection?.closeSession)
+          throw new Error('Grok did not advertise session.close');
+        const response = await withTimeout(
+          this.connection.closeSession({ sessionId }),
+          this.logger,
+          'grok.stop.close',
+          this.options.sessionId,
+          10000
+        );
+        const outcome = response._meta?.['x.ai/closeOutcome'];
+        if (outcome !== 'closed' && outcome !== 'notResident')
+          throw new Error('Grok did not confirm that the resident session closed');
+        this.grokStopState = 'closed';
+      } catch (error) {
+        this.grokStopState = 'failed';
+        throw new Error(
+          'Grok Stop could not confirm closure. Drafts are retained and the canvas stays locked.',
+          { cause: error }
+        );
+      }
+    })();
+    return this.grokStopCompletion;
+  }
+
+  /** A new explicit user action may retry a failed close, never a background timer. */
+  retryCloseAfterStop(sessionId: ACPSessionId): Promise<void> {
+    this.ensureSessionMatch(sessionId);
+    if (this.grokStopState === 'failed') this.grokStopCompletion = undefined;
+    return this.closeAfterStop(sessionId) ?? Promise.resolve();
+  }
+
+  /** Called only by the next explicit user dispatch, never by Stop or prompt retry. */
+  async resumeAfterStop(sessionId: ACPSessionId): Promise<void> {
+    if (this.grokStopState === 'active') return;
+    this.ensureSessionMatch(sessionId);
+    if (this.grokRestoreCompletion) return this.grokRestoreCompletion;
+    if (this.grokStopState === 'failed' && !this.grokStopCompletion)
+      await this.retryCloseAfterStop(sessionId);
+    await this.grokStopCompletion;
+    if (this.grokStopState !== 'closed' || !this.connection || !this.sessionWorkdir)
+      throw new Error('Grok stopped session is not ready to restore');
+    const connection = this.connection;
+    const workdir = this.sessionWorkdir;
+    this.grokStopCompletion = undefined;
+    this.grokStopState = 'restoring';
+    const restoring = (async () => {
+      const mcpServers = await this.buildMcpServers(
+        workdir,
+        this.options.loadExternalMcpServers?.()
+      );
+      const response = await withTimeout(
+        connection.loadSession({
+          sessionId,
+          cwd: workdir,
+          mcpServers,
+          ...this.getSessionStartMeta(),
+        }),
+        this.logger,
+        'grok.stop.load',
+        this.options.sessionId,
+        120000
+      );
+      await this.loadGrokDesignReminder(connection, sessionId);
+      this.applySessionResponseState({ ...response, sessionId });
+      if (this.grokStopState === 'restoring') this.grokStopState = 'active';
+    })();
+    this.grokRestoreCompletion = restoring;
+    try {
+      await restoring;
+    } catch (error) {
+      if (this.grokStopState === 'restoring') this.grokStopState = 'failed';
+      throw error;
+    } finally {
+      this.grokRestoreCompletion = undefined;
+    }
+  }
+
+  /** Actual ACP prompt response settlement, independent of the local abort race.
    * The returned promise is a snapshot of this invocation, so later prompts cannot replace it.
    */
   getProviderPromptSettlement(sessionId: ACPSessionId): Promise<void> {
@@ -2449,6 +2544,10 @@ export class AgentClient implements acp.Client {
     );
     try {
       this.ensureSessionMatch(sessionId);
+      if (this.grokStopState !== 'active')
+        throw new Error(
+          'Grok resident session is stopped; explicit session restoration is required'
+        );
       const abortSignal = options?.signal;
       if (abortSignal?.aborted) {
         throw new Error('Agent prompt aborted');
