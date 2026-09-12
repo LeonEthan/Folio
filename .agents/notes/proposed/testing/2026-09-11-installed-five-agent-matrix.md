@@ -61,8 +61,12 @@ do not turn those receipts into successes. No credentials are stored in this rec
 This summary uses the scoped installed rounds recorded below, each with its own
 package source and runtime identity. It does not imply that every behavior was
 repeated on one latest package, or replace a failed historical result. Full T28
-remains incomplete; current-contract verification is progressing. The preparation
-and replacement-package tables below are history.
+remains incomplete for the expanded live-image requirement: the selected-image
+real MCP replacement/commit follow-up is prepared but unexecuted. The scoped
+current-contract native combinations are recorded below; the menu pointer gap
+was subsequently closed on `70c9932`. Personal Kimi plugin registration is opt-in
+user setup, not a reason to repeat the already-passed isolated-home installed
+combination. The preparation and replacement-package tables below are history.
 
 | Original criterion                                    | Established evidence                                                                                                                                                                                                                                                                                                                                                                             | Remaining limit                                                                                                                                                                                                                                                                                                                          |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2175,7 +2179,7 @@ Earlier attempts remain failed at their recorded boundaries:
 | --- | --- |
 | `folio-installed-grok-current-ydOGf4` | The shared fixture gate rejected incompatible synthetic identifiers before Electron/native/model launch. The runner exited one before its result writer; the empty temporary directory was retained and its process exited. |
 | `folio-installed-grok-stop-v2-uRQAXp` | The script waited for a canvas before clicking Current artwork; no attach or model request occurred. A stale worktree source was initially mistaken for the packaged ready API, then corrected from source 567741b and the retained UI evidence. |
-| `folio-installed-grok-stop-v2-liCnIW` | Canvas open, strict ready and human save passed. Pointer selection in the Agent submenu was intercepted; the cause was not established as a product or fixture defect. Later keyboard selection does not certify that pointer path. |
+| `folio-installed-grok-stop-v2-liCnIW` | Canvas open, strict ready and human save passed; Agent submenu pointer selection failed. Subsequent event analysis identified the shared submenu pointer-transition defect. The fix in `70c9932` passed the ordinary-pointer installed READY2 run `folio-installed-grok-stop-v2-pointer-QQ08zh`, including persisted same-machine config selection and clean teardown with no Agent turn. See the [correction and installed evidence](../../implemented/bug-fix/2026-09-12-dropdown-submenu-pointer-transition.md). The original failure and later keyboard-only round remain separate evidence. |
 | `folio-installed-grok-stop-v2-UaU3SX` | Real configuration/native startup passed; the fixture did not recognize the native wrapped user query and rejected the model requests before tools. The next classifier used those exact retained bodies. |
 | `folio-installed-grok-stop-v2-b1fL1F` | The fixture gate dropped inherited Electron Node mode, so the registered hook tried to launch GUI mode. Root and T20 traced intact product environment propagation; only new fixture gate/wrapper copies were corrected. |
 

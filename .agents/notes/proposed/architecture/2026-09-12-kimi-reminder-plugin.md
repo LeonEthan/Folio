@@ -117,9 +117,15 @@ reminders are not commit evidence failures under the revised contract.
 Probe scripts/logs are `/tmp/folio-t19-audit/probe-plugin-design.mjs` and
 `probe-plugin-ordinary.mjs` with adjacent `.log` files. The tests use existing
 headless ACP and loopback-provider facilities; no live user transcripts are committed.
-Real-user registration, packaged launch, process-restart resume, cancellation and
-Windows execution are not claimed. T19 remains awaiting the user installation
-decision and subsequent scoped launch verification.
+Those initial headless probes did not establish packaged launch, real-user
+registration, process-restart resume, cancellation or Windows execution. The later
+normal-package `folio-t28-kimi-current-IovONp` round establishes scoped plugin
+loading, current-file reads, permissioned writes and formal commit; see the
+[later installed evidence](2026-09-12-kimi-read-reminder-loading.md#later-installed-evidence-and-user-setup).
+Personal registration remains unexecuted and requires separate opt-in. It is not
+a technical acceptance requirement to modify the user's global configuration;
+the supported combination requires an explicitly registered plugin. The native
+TUI installation command itself has not been verified.
 
 ## Repository verification
 

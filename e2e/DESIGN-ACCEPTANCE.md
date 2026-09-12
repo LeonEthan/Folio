@@ -52,6 +52,17 @@ fidelity, text selection/editing, undo/redo, zoom/scroll and long-canvas navigat
 Record attachment transport, render-preview success and actual image-tool read as
 three separate observations. A model's “I reviewed it” sentence is insufficient.
 
+## Shared workbench human check
+
+Once across the three journeys, also complete T22's human acceptance in a wide
+and a narrow window. Check Focus canvas and Properties hide/show, readable
+conversation/canvas balance, toolbar density, light/dark appearance, normal Chinese
+candidate selection, Shift+Enter and dialog/Tab focus. Physically paste and drag a
+reference image through the OS clipboard/Finder and confirm its attachment is
+usable. Existing synthetic paste/drop handlers and native IME checks establish
+technical behavior but do not substitute for these human observations. Record one
+shared verdict and concrete problems; do not repeat these checks for every scene.
+
 ## Cross-behavior evidence
 
 Existing deterministic coverage is the starting point below; it does not replace
@@ -108,8 +119,11 @@ lane; a handful of acceptance samples cannot prove absence of leaks.
 
 Choose acceptable ranges from the target machine's measured distributions and
 reviewer's interaction tolerance. No universal latency or memory limit has been
-established. The current round is **measured / human acceptance pending**; do not report zero,
-a guessed budget or “fast”. Retain
+established. The original nine-sample round remains measured evidence. The later real-image
+workload has six accepted human checks and a bounded recommendation in the
+[owning note](../.agents/notes/proposed/testing/2026-09-11-complete-design-acceptance.md#workload-recommendation-after-human-review);
+three-scene and shared workbench human judgments remain pending. Do not report
+zero, a guessed budget or “fast”. Retain
 slow and failed samples. A scope recommendation must state hardware, scene sizes,
 sample count, worst observed values and remaining limits. Export quality and edit
 usability require human review even when every timing fits the selected range.

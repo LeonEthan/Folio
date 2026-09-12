@@ -74,8 +74,11 @@ and [review procedure](e2e/DESIGN-ACCEPTANCE.md).
 
 The current approach combines automatic PPTD saves with public read-first reminders,
 without patching Agent runtimes or requiring generation-by-generation read proofs.
-Pi, Claude, Codex and Grok reminders have scoped native evidence; Kimi's public
-plugin is prepared but its user-level installation remains pending. Pi now exposes
+Pi, Claude, Codex and Grok reminders have scoped native evidence. Kimi's public
+plugin also passed in a normal installed package with explicit registration in an
+isolated Kimi home. Enabling that reminder in a user's own home requires their
+opt-in plugin setup; Folio does not install it silently or claim it works before
+registration. Pi now exposes
 Folio image and rendering tools through its public extension, with installed
 generation/editing and native image-reading evidence. The
 [installed Agent matrix](.agents/notes/proposed/testing/2026-09-11-installed-five-agent-matrix.md)

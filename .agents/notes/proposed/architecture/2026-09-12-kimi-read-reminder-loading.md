@@ -9,9 +9,28 @@ Kimi's pinned managed runtime can deliver a read-before-edit reminder through it
 public UserPromptSubmit hook. The earlier missing generation boundary is no longer
 a blocker under the approved reminder-only design. However, the actual ACP command
 loads hooks from the Kimi home configuration or globally installed plugins and
-exposes no verified session-scoped overlay. T19 remains incomplete because Folio
-cannot currently inject that hook while preserving user configuration, login and
-session storage; this audit adds no runtime patch or static-skill substitute.
+exposes no verified session-scoped overlay. That finding still rules out silent
+hook injection. Later normal-package evidence establishes the public-plugin
+combination with an explicitly registered plugin in an isolated Kimi home, as
+recorded below; no runtime patch or static-skill substitute is introduced.
+
+## Later installed evidence and user setup
+
+The normal-package `folio-t28-kimi-current-IovONp` round subsequently passed
+actual in-session Agent selection, native public-plugin reminder delivery,
+current-PPTD reads, permissioned draft writes and collector commit. The
+[installed matrix](../testing/2026-09-11-installed-five-agent-matrix.md)
+records its package/runtime identity and limits. The plugin was registered only
+in the isolated test home; user credentials and global configuration were not
+copied or changed.
+
+This proves the conditional installed combination, not an automatic hook overlay
+or an installation in the user's own home. Personal plugin installation is a
+separate opt-in setup decision, not a requirement to mutate global configuration
+to close T19/T28's technical verification. Original Issue 21 and the Spec explicitly
+preserve that configuration. The native TUI installer command remains unverified,
+and Folio does not claim that the reminder works before the plugin is registered.
+The initial outcome below records the earlier gap, before this installed evidence.
 
 ## Revised responsibility
 
@@ -86,7 +105,7 @@ Local synthetic scripts/logs remain under `/tmp/folio-t19-audit/`, including
 `probe-reminder.mjs`, `probe-reminder-project.mjs` and their logs. They are not
 committed transcripts or production integration code.
 
-## Outcome and alternatives
+## Initial outcome and alternatives
 
 The Kimi reminder integration in T19 /
 [Issue #21](https://github.com/LeonEthan/Folio/issues/21) remains incomplete under
