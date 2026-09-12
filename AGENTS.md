@@ -5,16 +5,14 @@ Entry points: [README](README.md#repository).
 
 ## Working with the user
 
-Finish authorized work using context and reasonable assumptions. Ask about material
-gaps while continuing independent work; reuse prior authorization.
-Planning/review requests do not authorize runtime implementation or publication.
-Image calls needed for an explicit task are preauthorized up to five total
-generate/edit calls. Count them together across runs; obtain approval before
-exceeding five unless the user already authorized a larger budget.
-User instructions override skill guidelines. If a skill blocks work, link, quote and
-explain its exact instruction. Preserve unrelated changes. Report outcomes,
-evidence and limits plainly. Complete required checks; broaden verification only
-for new changes, failures or unresolved concerns.
+Finish authorized work; clarify material gaps while continuing independent work.
+Reuse prior authorization.
+Planning/review does not authorize runtime implementation or publication.
+Explicit tasks allow five image generate/edit calls total across runs; ask before
+exceeding five unless a larger budget is already authorized.
+User instructions override skills. If blocked by a skill, link, quote and explain
+its instruction. Preserve unrelated changes. Report outcomes, evidence and limits. Complete required checks; expand verification
+only for new changes, failures or unresolved concerns.
 
 ## Design principles and migration scope
 
@@ -73,7 +71,8 @@ repositories. No parallel snapshot store; retain current saves, CAS and drafts.
   mechanical/local edits without changed decisions are exempt. Link distinct
   decisions; proposals stay `proposed`. Report deferred notes on read-only tasks.
 - Update affected docs/READMEs. Run `pnpm run docs status` at start and
-  `pnpm run docs check` at finish; review SHA-protected changes. Checks/translations
+  `pnpm run docs check` at finish; keep `run` (bare `docs` opens package websites).
+  Review SHA-protected changes. Checks/translations
   prove neither correctness nor approval. Translation may follow; see [maintenance](.agents/README.md).
 - Binding rules belong in the nearest `AGENTS.md` (<8 KiB); new scopes need a
   `CLAUDE.md` symlink. Keep rationale in owning docs/notes.

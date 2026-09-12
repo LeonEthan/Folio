@@ -48,6 +48,10 @@ does not replace a normal installed run with an actual Agent writing PPTD files;
 that acceptance remains separate.
 
 Root verification passed the five source-preview and six receipt regressions,
-followed by `pnpm check`, `pnpm format`, `pnpm docs check` and `git diff --check`.
-These checks establish component and repository correctness at the tested scope;
+followed by `pnpm check`, `pnpm format` and `git diff --check`.
+Correction: the initial document command omitted `run` and opened a package website
+instead of checking documents. Its zero exit was not validation. The correct
+`pnpm run docs check` found two oversized AGENTS.md files. After shortening them without dropping their constraints, the actual check
+passed with no errors; pending translations and size warnings remain visible.
+The completed checks establish correctness only at their tested scope;
 installed intermediate-file rendering remains to be verified separately.

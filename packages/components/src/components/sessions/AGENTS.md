@@ -1,12 +1,12 @@
 # components/sessions
 
-`CLAUDE.md` links here; edit `AGENTS.md` only.
+Edit `AGENTS.md`; `CLAUDE.md` links here.
 
 Files: [README.md](README.md). Data: `context/message-flow.md`. Package:
 [../../../AGENTS.md](../../../AGENTS.md). Scopes:
 [components/](components/AGENTS.md), [message-queue/](message-queue/AGENTS.md).
 
-Read each heading's linked rules before editing.
+Read linked rules before editing.
 
 ## [Tabs and `?tab` routing](../../../../../.agents/docs/sessions-tabs-routing.md)
 
@@ -31,11 +31,10 @@ Read each heading's linked rules before editing.
 - Human forks share the workspace; no Git probe/new-worktree menu. Keep recovery
   for previously accepted worktree forks.
 - Keep Current artwork wired in the visible toolbar.
-- When a design Agent turn starts with Current artwork selected, show the existing
-  readonly authoring preview automatically; respect later explicit source choices.
+- Agent start on Current artwork opens its readonly source preview; respect later
+  explicit source choices.
 - A Side Chat is a durable child Session (`childSessionPlacement: 'side-panel'`):
-  no top tab/sidebar row; it rolls up into its parent. Mount lazily; only its tab
-  `X` deletes it.
+  no top tab/sidebar row; rolls up into its parent. Mount lazily; only tab `X` deletes it.
 - `SessionMeta.openedBySessionId` is presentation-only provenance: never
   `parentSessionId`, never rolled into the opener, never filtered out of the
   list. Navigation carries root + exact tab ids.
@@ -59,7 +58,7 @@ Read each heading's linked rules before editing.
 ## [Conversation surface](../../../../../.agents/docs/sessions-surface.md)
 
 - Read receipts are gated on VISIBILITY, not on being mounted: keep the
-  explicit per-surface `isVisible` prop.
+  per-surface `isVisible` prop.
 - "Copy as Markdown" uses `buildConversationMarkdown`, never
   `buildReplayPromptFromHistory`; message text is never trimmed and what was
   trimmed must reach the toast.
@@ -121,9 +120,9 @@ Read each heading's linked rules before editing.
 - Never subscribe page-level `activeSession` or message rows to Code Collab
   file-index Flock state or full `sessionMetaAtomFamily`; select what a row uses.
 - Session-switch reset stays in the render-phase branch of `session-detail.tsx`;
-  no second `useEffect([sessionId])`.
-- A RESTORED side-panel state must not animate: bump `sidebarRestoreSeq` in the
-  same commit as any non-user `isSidebarOpen` write.
+  no second sessionId effect.
+- Restored panels must not animate: bump `sidebarRestoreSeq` with every non-user
+  `isSidebarOpen` write.
 - "Current branch" copy uses `SessionMeta.branchName` only.
 
 ## [File surfaces](../../../../../.agents/docs/sessions-file-surfaces.md)
@@ -140,8 +139,7 @@ Read each heading's linked rules before editing.
 
 ## [Stories](../../../../../.agents/docs/sessions-stories.md)
 
-- Stories mirror production and never own UI: a story may only mock data and
-  render the real component; appearance lives in the component.
+- Stories mock data and render real components; appearance belongs in production.
   `SessionConversationPage.stories.tsx` hand-composes leaves and drifts — keep it
   minimal and verify UI changes in the real app.
 
