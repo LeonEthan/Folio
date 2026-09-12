@@ -15,6 +15,8 @@ The earlier bare-command zero exits were not document validation.
 
 The installed pnpm 10.20.0 dispatcher forwards `docs` to npm. npm's `Docs`
 command opens the requested package's homepage; here the argument was `check`.
+The read-only `corepack pnpm view check homepage` returned the exact reported
+`http://github.com/msiebuhr/node-check/` URL without opening a browser.
 This was a temporary verification-command error, not a Folio browser action or
 an error in the repository's documentation checker. No package or runtime patch
 is needed.

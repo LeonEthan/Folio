@@ -60,12 +60,14 @@ resolved before treating your latest edits as saved or quitting.
 
 ## Release status and support limits
 
-Release acceptance is pending. The installed macOS package has completed scripted
+The agreed local design acceptance scope is complete; public release is separate. The installed macOS package has completed scripted
 poster, infographic and long-image journeys with a native Claude runtime and a
 synthetic provider. The user has accepted six visual/editing checks on a later
 real-asset poster and 12-image review copy, and subsequently passed all three human
-Agent journeys. The reported missing intermediate canvas preview is being corrected
-separately; supplemental real image MCP coverage remains open. Nine
+Agent journeys. The reported missing intermediate canvas preview has been corrected
+and observed in an installed package. Supplemental real image MCP outputs, selected
+replacement, commit, export and reopen have scoped evidence, with failed harness
+rounds retained separately. Nine
 controlled canvas-operation samples were recorded on an Apple M4 Mac with 16 GiB
 RAM; these do not establish a maximum canvas size, universal performance budget,
 application cold-start time or physical input latency. Windows and Linux resource
@@ -86,10 +88,10 @@ generation/editing and native image-reading evidence. The
 records each combination and its limits; Settings availability alone does not
 establish a complete design workflow.
 
-Real image generation/editing has produced four test assets, with original failed
-receipts retained separately from successful later image reads. Complete real-image
-design acceptance remains incomplete; the two review artworks now have scoped
-human approval. Grok's full-close Stop and explicit session restoration passed
+Recorded real image generation/editing has produced seven test outputs, with original
+failed receipts retained separately from successful calls and free file recovery.
+The real-image TODO is complete at its recorded scope; the review artworks, original
+edit target and three scene journeys have explicit human acceptance. Grok's full-close Stop and explicit session restoration passed
 an installed raw-evidence audit, with the harness's later auxiliary-request
 failure retained. Pi's image-request cancellation
 passes an installed regression against a synthetic provider; this does not establish
