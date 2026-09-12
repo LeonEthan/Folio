@@ -61,32 +61,32 @@ do not turn those receipts into successes. No credentials are stored in this rec
 This summary uses the scoped installed rounds recorded below, each with its own
 package source and runtime identity. It does not imply that every behavior was
 repeated on one latest package, or replace a failed historical result. Full T28
-remains blocked; the preparation and replacement-package tables below are history.
+remains incomplete; current-contract verification is progressing. The preparation
+and replacement-package tables below are history.
 
 | Original criterion                                    | Established evidence                                                                                                                                                                                                                                                                                                                                                                             | Remaining limit                                                                                                                                                                                                                                                                                                                          |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1. Runtime, ACP, launch, tools and platform           | Five-Agent identities and actual installed launch records are retained per round.                                                                                                                                                                                                                                                                                                                | These records do not establish another platform or commercial authentication.                                                                                                                                                                                                                                                            |
-| 2. Per-Agent workflow                                 | Discovery, reference reading, skills and permissions have scoped evidence for all five. Revised save/reminder success, failure and cancellation paths have native Pi/Claude evidence. Codex/Grok public reminders have native delivery evidence; Kimi's plugin has isolated-home evidence.                                                                                                       | Full revised installed combinations remain incomplete. Codex, Kimi and Grok still need installed-Electron reminder/save/commit combinations. Kimi real-user registration is a separate unexecuted setup action; isolated acceptance cannot be claimed as actual-user installation. Grok Stop/full-close remains separately owned by T20. |
+| 2. Per-Agent workflow                                 | Discovery, reference reading, skills and permissions have scoped evidence for all five. Revised save/reminder success, failure and cancellation paths have native Pi/Claude evidence. Codex/Grok public reminders have native delivery evidence; Kimi's plugin has isolated-home evidence.                                                                                                       | Codex, Kimi and Grok revised installed reminder/current-PPTD/collector seams passed at their recorded scope. Grok's last direct canonical/Bento assertions were skipped after an auxiliary fixture failure; its independent collector and UI receipt are retained. Kimi real-user registration remains an unexecuted setup action; isolated acceptance is not actual-user installation. T20's Grok Stop/full-close/explicit-load contract passed a separate raw-evidence audit, retaining its post-contract harness failure. |
 | 3. Read/write facts, negatives and final protection   | Historical strict read-proof and stale-write tests remain below. Current implementation uses independent automatic PPTD saves, public reminders, native guards and final source/draft/version checks; generation-proof ledgers have been removed.                                                                                                                                                | Final CAS does not prove reminder delivery or model behavior. Verify each current combination without treating retired strict-hook requirements as runtime-patch work.                                                                                                                                                                   |
-| 4. Configured image service and actual image reading  | All five have scoped synthetic Folio generate/edit and native reading evidence, including installed Pi's public extension. Real AruHub calls and Kimi reading are recorded in the live TODO. Normal 5d03ea7 Kimi/Pi calls held responses beyond the former 60-second client deadline, and corrected 47c0808 Pi cancellation closed its held synthetic image HTTP request before fixture cleanup. | Real multi-image design and human verdicts remain pending. The two real failed receipts remain failed; the corrected synthetic cancellation does not reclassify either receipt or prove paid-service cancellation. No automatic paid retries.                                                                                            |
+| 4. Configured image service and actual image reading  | All five have scoped synthetic Folio generate/edit and native reading evidence, including installed Pi's public extension. Real AruHub calls and Kimi reading are recorded in the live TODO. Normal 5d03ea7 Kimi/Pi calls held responses beyond the former 60-second client deadline, and corrected 47c0808 Pi cancellation closed its held synthetic image HTTP request before fixture cleanup. | The real four-asset poster and 12-image artwork passed save, version, export and independent reopen on 567741b; human verdicts remain pending. The two real failed receipts remain failed; the corrected synthetic cancellation does not reclassify either receipt or prove paid-service cancellation. No automatic paid retries.                                                                                            |
 | 5. Installed versus development evidence              | Normal package identities, isolated installed launches and scoped outcomes are distinguished from development and diagnostic runs.                                                                                                                                                                                                                                                               | Only each recorded combination is supported by that evidence; the user chooses the Agent.                                                                                                                                                                                                                                                |
 | 6. Existing facilities and private synthetic evidence | Existing harness and provider fixtures are reused; captured conversations remain outside Git.                                                                                                                                                                                                                                                                                                    | No new test engine or public transcript artifact is introduced.                                                                                                                                                                                                                                                                          |
 | 7. Documentation and checks                           | This owning matrix and affected instructions retain outcomes, failures and check records.                                                                                                                                                                                                                                                                                                        | Documentation and green checks do not close the runtime or human acceptance gaps.                                                                                                                                                                                                                                                        |
 
-### Current-contract installed combinations still open
+### Current-contract installed combinations
 
 The current target is the editor-owned PPTD save plus public reminder contract,
 not the retired per-generation read-proof design. Existing installed results for
 reference input, native reads, permissions, image tools, rendering, cancellation,
 continuation and final CAS remain usable within their recorded package and fixture
-scope; they need not be repeated merely to fill a newer package row. The smallest
-remaining combinations are:
+scope; they need not be repeated merely to fill a newer package row. The current scoped results are:
 
-| Agent | Reusable evidence                                                                                                                                                                                                                                                   | Missing installed combination                                                                                                                                                                                                                                                                                                                                                                                              |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Codex | Installed native input/skill, permission/cancel/continue, synthetic generate/edit/read, render/watcher/final-CAS and clean-exit rounds; the public UserPromptSubmit reminder separately passed the managed native ACP production-bundle probe.                      | A normal installed Electron design round on the revised implementation must observe the exact public reminder in the actual Codex model input, consume an independently human-saved current PPTD, and complete or preserve one draft through the current source/draft/version collector. This is a narrow integration seam, not a revival of generation/read ledgers or universal tool interception.                       |
-| Kimi  | Installed native input/skill, permission/cancel/continue, synthetic generate/edit/read and render/watcher/final-CAS rounds; the prepared public plugin delivered initial and continuation reminders and excluded an ordinary session in isolated native Kimi homes. | An acceptance harness may seed the reviewed plugin only in the normal installed Electron round's isolated Kimi home, then verify exact design reminder delivery, coexistence with fixture configuration and the same current-PPTD/collector seam. This does not add product-owned home shadowing or install the plugin for the actual user. Real-user registration remains unexecuted and requires explicit authorization. |
-| Grok  | Installed native input/skill, permission, reference and independent image reads, synthetic generate/edit/read, render/watcher/final-CAS and explicit-continuation rounds; the app-owned public reminder passed the managed native ACP production-bundle probe.      | A normal installed Electron design round must observe the app-owned reminder at Grok's actual post-tool delivery point and exercise the current-PPTD/collector seam. Its complete Stop/session-close/resume acceptance remains T20's separate dependency and must not be duplicated here. The old generation-boundary blocker is historical.                                                                               |
+| Agent | Reusable evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Current result and remaining limits                                                                                                                                                                                                                                                                                                                                                                        |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Codex | Installed native input/skill, permission/cancel/continue, synthetic generate/edit/read, render/watcher/final-CAS and clean-exit rounds; the public UserPromptSubmit reminder separately passed the managed native ACP production-bundle probe.                                                                                                                                                                                                                                         | The bb7a424c round completed actual public reminder delivery, current-PPTD native read, draft write and a committed UI receipt. Independent raw-evidence audit passed; the full harness retains its later auxiliary-request failure. Only the 12-character pre-turn revision prefix survived cleanup; this is not full baseline-byte or general conflict proof. No additional native repetition is needed for this narrow seam. |
+| Kimi  | Installed native input/skill, permission/cancel/continue, synthetic generate/edit/read and render/watcher/final-CAS rounds; the normal installed current-contract round selected an isolated Kimi config through the real in-session menu, delivered the public reminder, consumed a human-saved current PPTD and committed a new collector revision. The prepared public plugin also delivered continuation reminders and excluded an ordinary session in isolated native Kimi homes. | No additional installed repetition is needed for this narrow reminder/current-PPTD/collector seam. The accepted harness seeded the reviewed plugin only in its isolated Kimi home; this does not add product-owned home shadowing or install the plugin for the actual user. Real-user registration remains unexecuted and requires explicit authorization.                                          |
+| Grok  | Installed native input/skill, permission, reference and independent image reads, synthetic generate/edit/read, render/watcher/final-CAS and explicit-continuation rounds; the app-owned public reminder passed the managed native ACP production-bundle probe.                                                                                                                                                                                                                         | READY8 on 567741b delivered the exact public reminder after native tools, read the human-saved current PPTD, wrote the complete draft and obtained a committed collector/UI receipt. Its full harness failed on a dashboard auxiliary request; subsequent direct canonical/Bento assertions were not reached. The keyboard config path passed; the earlier pointer path remains unverified. No repeat is needed for the narrow protocol seam. T20's separate Stop/session-close/explicit-load/read contract has passed raw-evidence audit and need not be duplicated here. The old generation-boundary blocker is historical.                                                         |
 
 These are macOS arm64 installed combinations. Windows/Linux execution, commercial
 language-model authentication and human visual judgment remain separate gaps; none
@@ -152,6 +152,23 @@ DOM, screenshot and trace are present, the isolated harness root is absent, and
 all ten recorded owned processes are absent. Evidence is under
 `/tmp/folio-t28-codex-current-0PoBzi/evidence`.
 
+READY4 corrected that first title form, but the next installed attempt,
+`folio-t28-codex-current-H3RkpQ`, exposed a second native title wrapper. Request 1
+was classified as a title. Request 2 used the separate `lody-title-agent-*`
+workspace and asked for a short conversation title, but quoted the design marker
+inside the source message; the remaining `includes(marker)` classification bound
+that title thread as main. Actual design request 3 then failed the one-design-thread
+assertion before any SSE tool item was emitted. The two disconnected requests
+retried to the same bounded limit, and the UI completion assertion expired.
+
+The corrected menu, exact Codex config/machine/environment/runtime binding and
+human save passed again. Retained request 3 independently contains the public
+reminder and saved-current/frozen-input paths, but the failed fixture did not
+evaluate them or execute native tools. The retained result is failed at
+`codex-reminder-read-draft-collector-turn` with `cleanupErrors=[]`; all failure
+captures are present, the isolated data root and all ten owned processes are
+absent. Evidence is under `/tmp/folio-t28-codex-current-H3RkpQ/evidence`.
+
 The same corrected package was exercised for Kimi by
 `folio-t28-kimi-current-08DFOW` with frozen READY3 script SHA256
 `7d25e588d983ff68b936e5e5b5ad7a3856773234d67b61dbdef72ebb9e099084`.
@@ -159,22 +176,50 @@ The real in-session menu selected the exact isolated Kimi config and machine fro
 the machine flock, including its isolated `HOME` / `KIMI_CODE_HOME` and pinned
 runtime override. The human save completed. Actual design request 2 contains the
 public plugin reminder and saved-current/frozen-input paths; native Kimi then read
-the current PPTD and page and successfully wrote the draft `design.pptd` after a
-single-use Manual approval. Request 5 carries that first Write result and the
-synthetic provider's next `write_page` call.
+the current PPTD and page. The first Write permission existed at
+`10:19:02.658Z`, but the passive locator handler did not run during the completion
+poll. Only when the 120-second wait expired and failure capture started did it
+record and approve that permission, at `10:20:59.793Z`. The failure ARIA at
+`.877Z` therefore shows the first approval click in progress with disabled
+controls and `Waiting for your permission`, rather than a timely successful
+permission stage. Request 5 arrived at `.904Z`; it carries that first draft
+`design.pptd` Write result and the synthetic provider's next `write_page` call.
 
-The fixture's permission handler then finished the first approval by clearing the
-shared pending action after request 5 had already replaced it with `write_page`.
-The retained failure DOM and ARIA show the second Write permission card stuck with
-disabled controls and `Waiting for your permission`. The result is failed at
+The result is failed at
 `kimi-reminder-read-draft-collector-turn` with `cleanupErrors=[]`; the second page
 write and collector were not reached. Failure ARIA, DOM, screenshot and trace are
 present, the isolated harness root is absent, and all ten recorded owned processes
-are absent. This is a harness permission-automation race, while menu selection,
-human save, exact reminder delivery, both native current reads and the first draft
-write are independently established. Evidence is under
+are absent. This is a harness permission-waiting failure. Menu selection, human
+save, exact reminder delivery and both native current reads are independently
+established; the first draft write occurred only during failure capture and does
+not turn the round into a passed permission path. Evidence is under
 `/tmp/folio-t28-kimi-current-08DFOW/evidence`. Real-user plugin registration
 remains unexecuted and requires explicit authorization.
+
+The corrected sequential permission waiter then passed on the same normal
+`bb7a424c` package as `folio-t28-kimi-current-IovONp`, using frozen READY6 script
+SHA256 `9c769deebb597fe16a5b9ef2cb575d86f9d563f371870fff555acb935ac7f4b4`.
+The real in-session menu selected Kimi config
+`3ec8183b-3f05-4e02-aee9-352a8f219b38` on the exact Session machine, and the
+machine-flock row proved its isolated `HOME` / `KIMI_CODE_HOME` plus pinned Kimi
+0.39.1 runtime override. The public plugin reminder reached actual design request 2. Native Kimi read the independently human-saved current PPTD and page before
+requesting two writes to the authoring draft.
+
+The harness waited for each new permission card to be visible and enabled, then
+approved the exact current action once. The first request was
+`d51bb313-67b3-4134-bb6a-8cfad0bc72f4` for `0:write_pptd` at
+`10:44:37.143Z`; the second was
+`c02643a3-30a8-4c63-9081-bcaa5757376a` for `0:write_page` at
+`10:44:37.608Z`. Both native tool results reached the provider, and the collector
+committed revision
+`a1d8c9f9731a5cc2458746811548eb4b4b2fa29d91699e1b4a3d8bcd98de5d0b`
+at `10:44:38.849Z`, distinct from the saved-current baseline. The result is
+passed with `functionalError=null` and `cleanupErrors=[]`; the isolated Folio data
+root and Electron profile are absent and all eleven recorded owned processes are
+absent. Evidence is under `/tmp/folio-t28-kimi-current-IovONp/evidence`. The
+isolated Kimi home remains with the evidence; the actual user's plugin registry
+was not read or changed. Real-user registration remains unexecuted and requires
+explicit authorization.
 
 ### Revised installed image deadline and cancellation evidence
 
@@ -1970,3 +2015,172 @@ then serializes. A Node 22 preflight against the third attempt's returned object
 shape preserves the underscore-containing keys, parses the output and confirms
 the synthetic secret is absent. That replacement has not had a native run, so
 the full installed Grok Stop/resume cell remains open.
+
+A fourth attempt used the same normal `bb7a424c` package, handle 89816 and
+evidence root `folio-installed-grok-stop-v2-JC71SO/evidence`. The structured
+redactor preserved a parseable `selected-agent-state.json`, including the exact
+Session/configuration identity, `builtin` / `grok`, isolated environment and
+guarded runtime override, while removing the synthetic key. The real provider
+and unique model were selected in the Session menu. The main wrapper then passed
+its gate, initialized the configured model, created the native Session, confirmed
+the read reminder hook and forwarded the prompt only after Session-level model
+proof. Its projection record matched the saved revision, `pages/design.page` and
+both file hashes.
+
+This attempt stopped before the held response because of two fixture assumptions.
+The native `session/new` wire kept the `/tmp` spelling while the expected path was
+resolved to `/private/tmp`, even though the wrapper's realpath gate had already
+accepted their identity. The provider also used a handwritten YAML-line pattern
+which did not recognize the valid exported page. It disconnected the synthetic
+response, after which native Grok retried that same loopback completion four times.
+Stop, public close, HTTP close, explicit load and read did not run. Cleanup had no
+failure and left no owned process. Native startup again attempted its model-catalog
+prefetch with `has_auth: false`; the isolated account cache was absent and no paid
+completion was used.
+
+The prepared sixth script was not run. Static review of the retained native
+`read_file` evidence showed that Grok renders line anchors before model delivery:
+line one and each tenth line begin with `LINE_NUMBER→`, while the raw output keeps
+the original bytes. Its raw multiline substring assertion would therefore have
+failed despite a correct read. The seventh script replaced that assertion with
+exact equality on the correlated `tool_call_id`, including the documented anchors,
+line order and terminal newline, while retaining the independent raw file hashes.
+
+The fifth native attempt used the same normal `bb7a424c` package, handle 27170 and
+evidence root `folio-installed-grok-stop-v2-hdG3hB/evidence`. The selected real
+Grok configuration and unique model passed the same storage, wrapper, gate,
+initialize, hook and pre-prompt projection checks. The initial synthetic model
+response remained open until the user clicked Stop. The application sent public
+`session/close` for native Session `01a09542-ab88-7ca0-b9cb-f61e7ca5957b` on
+launch `9051a277-67fe-4579-af9b-3f01d4904613`; native removed the Session and
+returned `x.ai/closeOutcome: closed`. The held HTTP response closed from the
+native transport before fixture cleanup.
+
+Only after an explicit second user message, the same native process received
+`session/load` for that Session. Its restored event retained model
+`folio-stop-ed77d07648e2`. Native `read_file` then returned the current
+`design.pptd` and `pages/design.page`; their raw-output SHA-256 values match the
+saved projection's manifest and page hashes, and the correlated line-anchored
+model content matches each whole file exactly. Native emitted
+`GROK_EXPLICIT_ARTWORK_CONTINUATION_FINISHED`, followed by
+`_x.ai/session/prompt_complete` with `end_turn`. The retained native chat history shows
+the two explicit user messages, both correlated tool results and the final
+assistant message.
+
+The runner nevertheless exited one in `artwork-read-finished`. After the native
+main prompt had completed, two concurrent auxiliary provider requests arrived.
+The fixture still routed one through the completed main-read state and rejected
+the other no-tool request, producing `3 !== 2` and `Unreviewed auxiliary provider
+request`; the racing handlers left the former as the final diagnostic. This is a
+post-contract fixture failure: it occurs after public close, actual HTTP
+closure, explicit same-process load, both exact reads, final assistant output and
+native `end_turn`. It does not identify a missing Stop/resume lifecycle event.
+Cleanup reports no failure; all fourteen distinct process IDs found across the
+runtime snapshot and both wrapper `native-spawn` records are independently absent.
+
+Both native processes in the fifth attempt used the isolated home and synthetic
+key. Their startup logs retain the known external model-catalog prefetch behavior
+and record `has_auth: false`; no isolated `auth.json` exists. All completion
+requests went to the synthetic loopback provider, so the run used no real
+credential or paid completion. This evidence completes the installed Grok
+public-close, transport-close and next-explicit-message load/read contract. A
+clean exit would require only classifying or draining post-completion auxiliary
+fixture requests; repeating the Stop chain is not needed to establish product
+behavior.
+
+The read-only verifier `/tmp/folio-t20-v7-evidence-verify.mjs` replays these
+assertions from the retained evidence without launching the application, native
+Grok or a model. Its output `/tmp/folio-t20-v7-evidence-summary.json` records
+`mainChain: pass`, `fixtureVerdict: failed-after-contract` and `cleanup: pass`
+separately. Each check identifies its source `events.json` array index and ordinal
+or its `native-wire.jsonl` / native chat-history line. It independently re-exports
+the poster fixture because normal cleanup removed the run's `design-current`
+directory, matches those bytes to both native raw-output hashes, verifies exact
+line-anchored correlated tool results and checks all fourteen distinct recorded
+process IDs are absent. The owner and root independently ran this verifier with exit zero; the original
+runner's exit-one evidence remains unchanged.
+
+## Codex current-contract retained-evidence audit
+
+`2026-09-12` installed Codex READY5 retained-evidence audit:
+`/tmp/folio-t28-codex-current-yWb7IH/evidence` records requests 3/5/7 as the only exact
+`FOLIO_T28_CODEX_CURRENT` main requests on native thread
+`01a0953c-4228-7902-be01-7fb720a79c1d`, session `5538e513-0082-44db-b2e2-367751dc44b7`,
+turn `b14d2d0f-5fff-4a87-ac69-680a7d24e2f4`. Each retained main request contains the
+exact public reminder and the same current/draft/frozen paths. Guardian requests 4/6
+exactly approve the correlated `read_current` and `write_draft` actions for those
+isolated paths. Request 5 retains the successful native current output
+(`sha256:14a19d5f0d66fa95884e0bc071ac5484159e5642f5acb21f4d4a4c8fa92c205b`) with the
+complete expected human-saved page, element `sha-mty9iy83-1`, the `v3` manifest prefix,
+and ordinary native context; request 7 retains that same read result and the successful
+draft write (`updated-design.page` sha256
+`6eddd60bfb661c06e399e6f275e90910e66fadca5efe8b124b93e40ceaf5041a`). CLI and DOM
+evidence correlate committed revision
+`ac395f846922d208507e7ca48c92d32cc8ece24c956f8b72130d9673741bf4a1`, final assistant
+marker, and “Saved to the current artwork.” The installed bb7a package identity and
+`cleanupErrors: []` are retained. Therefore the narrow installed Codex
+reminder/current-read/draft-write/collector seam passed even though the overall fixture
+later failed on an auxiliary request. Limitation: cleanup retained only the 12-character
+pre-turn baseline prefix `d5ddf8101411`, with no `receipt.json` or full pre-turn
+revision; this evidence does not claim a full manifest byte-hash proof.
+
+Root independently reviewed and ran
+`/private/tmp/folio-t28-codex-yWb7IH-evidence-audit.mjs` with exit zero; its
+summary is `/tmp/folio-t28-codex-yWb7IH-root-audit.json`. The original failed
+result is unchanged. READY6 was prepared but not run because this narrow seam
+already has the required native evidence.
+
+## Grok current-contract retained-evidence audit
+
+Installed Grok current-PPTD seam (`567741b`, synthetic/isolated, 2026-09-12): READY8
+root `folio-installed-grok-stop-v2-40nZj3` saved the imported Bento artwork from
+revision `094c19…` to human revision
+`a223640a0f0c7697b8ee694112a23134b71db427408210d75f1327602b67288a` without a model
+request. It then selected the persisted same-machine `builtin/grok` config and its exact
+isolated environment/runtime override through the keyboard menu path. The real native
+session read the exact current manifest and complete 151-line page (including the
+human-created element and referenced media hash), with all three trusted Folio
+`PreToolUse` hook executions succeeding and exact public-reminder copies progressing `0
+→ 1 → 2 → 3`. One exact native command approved through the existing permission UI
+copied the manifest, changed page and referenced media into the isolated draft and
+completed with exit `0`; the frozen handler's post-write media/hash/intake checks
+completed before its final response. The CLI independently collected the draft and
+logged committed revision
+`1081ef68292a6e96165d87feeaa4af0bc6b22e70797f4c20936e710863b04356`; the retained DOM
+contains both the final Agent marker and the full “Saved to the current artwork”
+receipt. The overall harness remains `failed` because a later dashboard-summary
+auxiliary request was strictly rejected at `11:45:31.757`, before collector completion
+at `11:45:31.833`; therefore the harness's subsequent direct canonical/Bento readiness
+assertions were not reached and are not inferred. Cleanup completed with `cleanupErrors:
+[]`, capture errors `[]`, and no owned process remained. The earlier `b1fL1F` reminder
+failure was caused by frozen synthetic gate v2 stripping the installed CLI's inherited
+`ELECTRON_RUN_AS_NODE=1`; READY8 gate v3 preserves only that exact incoming marker,
+while the product command/runtime sources remained unchanged.
+
+Read-only verifier: `/private/tmp/folio-t28-grok-40nZj3-evidence-audit.mjs`
+(`ce53ec9a63f71f651dcd5f1f6385e541be97d838c4734384c9377ef9f22585d0`) →
+`/private/tmp/folio-t28-grok-40nZj3-evidence-audit.json`
+(`e5352cb7156aab6762ac642f7e7731ef7dbfefce1bbdcfdfcb7c4d6c18c14415`), exit `0`.
+
+Root independently reviewed and reran the verifier with exit zero, retained
+`/tmp/folio-t28-grok-40nZj3-root-audit.json`, and separately checked both complete
+line-anchored tool results in the actual next model inputs. The original failed
+harness result is unchanged. These reads, reminder delivery, draft write and
+subsequent collector receipt establish the narrow current-contract seam; they
+do not establish the final direct canvas assertions skipped by that harness.
+
+Earlier attempts remain failed at their recorded boundaries:
+
+| Evidence root suffix | Observed failure and limit |
+| --- | --- |
+| `folio-installed-grok-current-ydOGf4` | The shared fixture gate rejected incompatible synthetic identifiers before Electron/native/model launch. The runner exited one before its result writer; the empty temporary directory was retained and its process exited. |
+| `folio-installed-grok-stop-v2-uRQAXp` | The script waited for a canvas before clicking Current artwork; no attach or model request occurred. A stale worktree source was initially mistaken for the packaged ready API, then corrected from source 567741b and the retained UI evidence. |
+| `folio-installed-grok-stop-v2-liCnIW` | Canvas open, strict ready and human save passed. Pointer selection in the Agent submenu was intercepted; the cause was not established as a product or fixture defect. Later keyboard selection does not certify that pointer path. |
+| `folio-installed-grok-stop-v2-UaU3SX` | Real configuration/native startup passed; the fixture did not recognize the native wrapped user query and rejected the model requests before tools. The next classifier used those exact retained bodies. |
+| `folio-installed-grok-stop-v2-b1fL1F` | The fixture gate dropped inherited Electron Node mode, so the registered hook tried to launch GUI mode. Root and T20 traced intact product environment propagation; only new fixture gate/wrapper copies were corrected. |
+
+The latter four rounds retained failure/capture evidence and clean teardown. All
+completion providers were isolated synthetic endpoints; no paid image calls,
+user credential changes or runtime patches were added. T20 Stop evidence remains
+separate: its old gate can establish Stop/read behavior, but registration alone
+does not establish reminder delivery through that defective test environment.

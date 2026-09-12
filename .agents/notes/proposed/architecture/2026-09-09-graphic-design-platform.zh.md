@@ -311,7 +311,7 @@ P2-A3 本地参考附件适配保持独立：复用 Lody 已有附件 UI、sende
 - P6.5 验证安装包文件监听与实时预览：分步写入、素材同路径替换、原子 rename、依赖增删/暂缺、持续写入与资源预算、监听遗漏/恢复、多消费者及断开释放、旧结果迟到、无消费者后台回合。验证外部编辑与直接显式导入、预览切换不解除当前稿只读、结束后恢复编辑、异常未保存内容不丢失、源变化不偷换导入对象、hook 投影不会进入循环；使用现有确定性设施，平台监听另留实机证据。
 
 - P6.6 新增 Git 历史安装包验收：自动保存不逐次建版本；人工存 V1/V2 后查看 V1 不改变当前稿；从 V1 编辑并存新版本后 V2 仍可打开；恢复前保护、图片/字体留存、重开、磁盘/Git 失败、跨窗口竞争、运行期间禁止恢复、撤销/选区重绑定及外部项目隔离均有证据。确认历史仅在 Git 中保存，不把多文件捕获或当前稿 CAS 正确性归因于 git commit；本项不以旧 T27–T29 验收替代。
-- P6.7 必做真实图像 MCP 与多图设计验收，见[TODO 与用户测试连接](../testing/2026-09-12-live-image-mcp-acceptance.zh.md)。通过实际 Folio MCP 调用 AruHub image2 的 generate/edit，验证真实图片读取、PPTD/Bento 素材引用、选中图片编辑替换、多图自动保存/重开及 PNG/JPEG 导出，记录真实负载性能和人工视觉结论。用户提供的 model 仅用于测试，密钥经既有机密配置使用；模拟供应商不能替代此项，不自动重试付费请求。已有三次真实生成与一次真实编辑，失败回执及后续读图分别留证；多图设计和人工验收仍待完成，基础生图/编辑不依赖 Git 历史上线。
+- P6.7 必做真实图像 MCP 与多图设计验收，见[TODO 与用户测试连接](../testing/2026-09-12-live-image-mcp-acceptance.zh.md)。通过实际 Folio MCP 调用 AruHub image2 的 generate/edit，验证真实图片读取、PPTD/Bento 素材引用、选中图片编辑替换、多图自动保存/重开及 PNG/JPEG 导出，记录真实负载性能和人工视觉结论。用户提供的 model 仅用于测试，密钥经既有机密配置使用；模拟供应商不能替代此项，不自动重试付费请求。已有三次真实生成与一次真实编辑，失败回执及后续读图分别留证；正常包 567741b 的四图海报、12 图长图及独立重开已通过，人工验收仍待完成；基础生图/编辑不依赖 Git 历史上线。
 
 **验收**：安装包内走完完整旅程，自动检查与人工视觉/编辑体验分别记录；每个宣称支持的平台、Agent 和 hook 路径均有对应证据。首发不要求应用自动安装外部 Agent，也不新增自动更新系统。打包通过不等于签名/发布完成，实际发布单独执行。
 
@@ -381,12 +381,12 @@ P2-A3 已列为 T10，在参考图完整旅程前完成。非 PNG 分析副本�
 
 | 范围 | 当前实施和证据 | 仍待完成 |
 | --- | --- | --- |
-| P3.1b/P3.3 自动回写与采集收敛 | `603bf9d`：保存/重开发布和校验当前 PPTD，移除读取台账与逐次生成证明，五家重提交复用 launch/source、确切草稿摘要与 CAS；[实施记录](../../implemented/simplification/2026-09-12-editor-owned-pptd-save.md) | 组合 `c683038` 的 Pi/Claude 原生成功、失败、取消六路径均通过；外部语言模型为合成响应，正常安装包矩阵仍待验收 |
-| T18 Codex 提醒 | `7df62fa`：公开 UserPromptSubmit 在模型请求前及恢复时送达，保留用户配置/信任；[原生证据](../../implemented/architecture/2026-09-12-codex-read-reminder.md) | 不代表强制先读顺序或安装包完整设计验收 |
-| T19 Kimi 提醒 | `4ca6795`：[原生事件可用，但缺会话级加载入口](2026-09-12-kimi-read-reminder-loading.md) | [最小公开插件已准备并隔离验证](2026-09-12-kimi-reminder-plugin.md)，实际用户登记待确认；未改用户配置或 runtime |
-| T20 Grok 提醒与停止 | 主线 `e86a92a`：公开 session plugin + 原生 reload，实际首轮/恢复送达；[证据](../../implemented/architecture/2026-09-12-grok-read-reminder.md)，组合完整检查已通过 | 提醒到达当前工具之后的下一模型请求，不能保证已生成的写入先等 Read。用户已确认 Stop 完整关闭会话执行、后台及子任务，下一条显式消息恢复；公开关闭和恢复接线待实施/验证，原取消失败保留 |
-| T28 Pi 图像 MCP | `eccd540`：公开 Pi extension 复用现有三项图像/渲染工具，真实 HTTP/stdio 合成主机的目录、调用、取消与清理通过；[记录](2026-09-12-pi-folio-mcp-extension.md) | 实际安装包的 Folio stdio 服务、真实 generate/edit 与实际读图，不能用合成 provider 代替 |
-| P4.6 Git 版本 / P6.6 验收 | `c683038` 实现[独立 Git 历史](../feature/2026-09-12-design-version-history.zh.md)，五项 Git 测试通过；`50ddd41` 正常安装包的版本 UI、自动 PPTD、多实例门禁和受控外部写 CAS 补验通过 | 真实多图素材恢复、人工完整视觉验收；此新增功能不计入旧 29 票完成数 |
+| P3.1b/P3.3 自动回写与采集收敛 | `603bf9d`：保存/重开发布和校验当前 PPTD，移除读取台账与逐次生成证明，五家重提交复用 launch/source、确切草稿摘要与 CAS；[实施记录](../../implemented/simplification/2026-09-12-editor-owned-pptd-save.md) | 组合 `c683038` 的 Pi/Claude 原生成功、失败、取消六路径均通过；外部语言模型为合成响应，正常安装包的当前稿读写/提醒/采集组合已补证，详见[矩阵](../testing/2026-09-11-installed-five-agent-matrix.md)；不表示所有历史边界都在同一包重跑 |
+| T18 Codex 提醒 | `7df62fa`：公开 UserPromptSubmit 在模型请求前及恢复时送达，保留用户配置/信任；[原生证据](../../implemented/architecture/2026-09-12-codex-read-reminder.md) | bb7a424c 安装包的公开提醒、人工当前稿读取、草稿写入与提交回执通过独立证据核对；整轮辅助请求失败及仅保留基线前缀的限制仍保留，不代表强制先读顺序 |
+| T19 Kimi 提醒 | `4ca6795`：[原生事件可用，但缺会话级加载入口](2026-09-12-kimi-read-reminder-loading.md) | [最小公开插件已准备并隔离验证](2026-09-12-kimi-reminder-plugin.md)，bb7a424c 安装包的隔离插件/当前稿读写/提交组合已通过；实际用户登记仍待确认，未改用户配置或 runtime |
+| T20 Grok 提醒与停止 | 主线 `e86a92a`：公开 session plugin + 原生 reload，实际首轮/恢复送达；[证据](../../implemented/architecture/2026-09-12-grok-read-reminder.md)，组合完整检查已通过 | 提醒到达当前工具之后的下一模型请求，不能保证已生成的写入先等 Read。用户已确认 Stop 完整关闭会话执行、后台及子任务，下一条显式消息恢复；bb7a424c 的公开关闭、HTTP 关闭、显式恢复/读取已补证；567741b 的提醒及当前稿读写/提交通过独立核对。原失败、辅助请求造成的整轮脚本失败及未执行的最终画布检查仍保留，详见安装包矩阵 |
+| T28 Pi 图像 MCP | `eccd540`：公开 Pi extension 复用现有三项图像/渲染工具，真实 HTTP/stdio 合成主机的目录、调用、取消与清理通过；[记录](2026-09-12-pi-folio-mcp-extension.md) | Pi 安装包的目录、调用、读图和取消回归已补证；真实 AruHub 调用及 Kimi 读图属于独立组合，不宣称五家逐一执行付费测试 |
+| P4.6 Git 版本 / P6.6 验收 | `c683038` 实现[独立 Git 历史](../feature/2026-09-12-design-version-history.zh.md)，五项 Git 测试通过；`50ddd41` 正常安装包的版本 UI、自动 PPTD、多实例门禁和受控外部写 CAS 补验通过 | 567741b 的真实四素材海报、12 图长图保存/版本/导出及同 profile 重启、复制 profile 独立重开已通过；人工完整视觉与编辑验收待完成，此新增功能不计入旧 29 票完成数 |
 
 `c683038` 组合完整检查通过（CLI 2671、组件 3288 项测试），格式、文档和边界检查通过。
 独立 Git/UI/自动回写轮为 `/tmp/folio-history-ui-3hA6WO/result.json`，没有模型调用；
@@ -396,8 +396,9 @@ Pi/Claude 六路径为 `/tmp/folio-t05-new-contract-NSbuQU/result.json`，记录
 指定 AruHub 已实际调用三次 generate 和一次 edit，无重试，最终四图原生读取通过；
 第二、三张的原回合工具回执未完成，恢复图片及后续读图不能抹掉失败。
 `69780aa` 修复 Pi/Kimi 图像客户端期限短于服务期限的问题，源码完整检查通过，
-新安装包回归及真实多图设计继续按 [P6.7 TODO](../testing/2026-09-12-live-image-mcp-acceptance.zh.md)
-执行。Spec 保持 draft，不关闭最终验收任务；安装包仅用于私有验收，没有发布。
+后续安装包已完成图像期限/取消回归和真实多图保存、版本、导出、重开；
+[P6.7 TODO](../testing/2026-09-12-live-image-mcp-acceptance.zh.md)仍保留原失败及人工结论。
+[完整旅程记录](../testing/2026-09-11-complete-design-acceptance.md)给出 567741b 的确切包身份和人工检查副本。Spec 保持 draft，不关闭最终验收任务；安装包仅用于私有验收，没有发布。
 
 #### 本地集成进度（2026-09-11）
 

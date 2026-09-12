@@ -72,8 +72,8 @@ from outside this process, so old-code red versus new-code green on that exact
 sub-window rests on the retained 06:21 evidence plus structural coverage: the
 drain spans the whole load, which strictly contains the misread window. A load
 that never settles would stall leave the way it already stalls attach; every
-observed load settles. Full installed acceptance of the corrected build
-remains pending with the release run.
+observed load settles. At that stage, full installed acceptance of the
+corrected build remained pending with the release run.
 
 ## Follow-up readiness correction
 
@@ -101,3 +101,21 @@ when the renderer is stuck; it never marks the canvas ready. Failed readiness
 destroys the half-open instance through the existing attach cleanup, and the
 later leave path continues to protect any dirty/composing/saving state rather
 than treating it as discardable.
+
+The normal installed package built from
+`567741bde4b0459e33711687ab438aaae70caafb` then passed the retained full
+journey at `/tmp/folio-t29-real-images-nPfTcw/evidence/result.json`. The actual
+hard-reload transition hit the original overlap: the prior poster attach ran
+from 10:53:00.007Z through 10:53:00.664Z while the exact second-session row was
+clicked, and leave completed at 10:53:00.666Z with no native unsaved-canvas
+dialog. The route reached the requested Session and the journey continued
+through its 12-image canvas and same-profile restart. This installed run is a
+bounded regression of the observed failure, while the focused ready-before,
+ready-after and main-process-deadline tests provide the deterministic contract
+coverage.
+
+A separate process opened the copied profile and found both canvases ready and
+editable with their exact snapshots, saves and version histories intact. It
+also passed owned-process and endpoint cleanup; evidence is
+`/Users/macmini/copied-profile-verification-akD0AA/result.json`. These automated
+results do not supply the pending human editing verdict.

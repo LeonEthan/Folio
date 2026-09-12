@@ -5,7 +5,7 @@ Translation: pending
 
 ## 摘要
 
-用户要求真实测试包含图像生成与编辑，并提供 AruHub image2 的测试连接。正常安装包已通过 Folio MCP 发起三次真实生成和一次真实编辑，得到四张图片，最终四图均被原生 Kimi 读取；其中两次生成原回合的工具回执未完成，不能算完整成功。真实图像测试还发现了 MCP 客户端默认超时短于服务超时的问题，修复及原失败分别留证。多图保存导出和人工视觉验收仍待完成；海报 PNG/JPEG 导出在修正构建上有逐格式通过证据（见末节），信息图/长图负载与人工评定仍待完成；模拟测试继续验证确定性协议和错误路径。
+用户要求真实测试包含图像生成与编辑，并提供 AruHub image2 的测试连接。正常安装包已通过 Folio MCP 发起三次真实生成和一次真实编辑，得到四张图片，最终四图均被原生 Kimi 读取；其中两次生成原回合的工具回执未完成，不能算完整成功。真实图像测试还发现了 MCP 客户端默认超时短于服务超时的问题，修复及原失败分别留证。后续正常包已用上述四张真实素材完成四图海报、12 图长图的保存、PPTD、版本、PNG/JPEG 导出、同 profile 重启及复制 profile 新进程重开。人工视觉/编辑评定与目标机器可接受范围仍待用户判断；模拟测试继续验证确定性协议和错误路径。
 
 ## 测试连接
 
@@ -154,4 +154,30 @@ attach/leave 竞态修复见 [离开等待加载](../../implemented/bug-fix/2026
 
 人工视觉/编辑体验与目标机器容忍度仍待用户评定；以上“读图正确”仅为代理观察，
 不代替人工结论。本轮无新增真实 generate/edit，累计仍为 3 generate + 1 edit。
-信息图/长图负载与 Save version 链路仍待覆盖，本 TODO 不整体勾选。
+本段当时的信息图/长图与新进程重开缺口由下节补证；人工结论仍未完成，
+本 TODO 不整体勾选。
+
+## 多图与独立重开补证（2026-09-12，正常包 567741b）
+
+正常安装包源为 `567741bde4b0459e33711687ab438aaae70caafb`（DMG SHA256
+`d46c66a26c99d45857ed8238205698ea5e5d1558b9c7c77fdc828ecb68efd7aa`、asar
+SHA256 `033586c1079167f3f752bdfb6c0fc0046b80e03c00e6d1405c53ff9a2ef5ebdd`）。
+本轮只复用已留存的三张 generate 和一张 edit 图片，没有新增模型或付费请求。
+完整结果在 `/tmp/folio-t29-real-images-nPfTcw/evidence/result.json`：
+
+- 四图海报完成裁切、缩放、替换、撤销/重做、九次自动保存与 PPTD 往返、四个版本，
+  PNG/JPEG 均为 1200×1800；12 图长图完成保存、PPTD 往返、版本，PNG/JPEG 均为
+  1200×2400。两个作品在同 profile 应用重启后都与最终 BentoDoc 完全一致。
+- hard reload 后切换第二个 Session 的实际轮次命中了旧作品 attach 在途条件；精确
+  `data-sidebar-session-id` 行到达目标 URL，attach 完成后 leave 正常返回，未出现原来的
+  native 未保存对话框。该边界和确定性测试见
+  [离开等待加载](../../implemented/bug-fix/2026-09-12-leave-attach-loading-race.md)。
+- 首轮 owned process、端点和临时 profile 清理通过，并导出新的保留副本
+  `/Users/macmini/FolioReview-567741b-20260912`。独立新进程随后从该复制 profile 打开
+  两个作品，核对 source identity、ready/editable 状态、最终快照、保存回读、PPTD
+  素材和版本历史，严格清理自身进程与端点；证据
+  `/Users/macmini/copied-profile-verification-akD0AA/result.json`。
+
+运行时保留了旧用户应用与历史 Electron 实例，因此耗时只作为当次观察，不是隔离性能
+基准，也没有得到目标机器可接受阈值。Agent 的图片检查不能代替用户对生图可用性、
+编辑目标、版式质量和真实编辑体验的判断；这些字段继续保持 pending，整个 TODO 仍未完成。

@@ -126,8 +126,29 @@ run. The follow-up diagnostic at
 `did-finish-load`, before the new canvas product API was ready. Leave then
 opened the native unsaved-canvas dialog. The linked
 [readiness correction](2026-09-12-leave-attach-loading-race.md#follow-up-readiness-correction)
-now makes that attach boundary explicit. The wider journey still needs to be
-resumed on an installed build containing that correction.
+now makes that attach boundary explicit. At that point, the wider journey
+still needed to be resumed on an installed build containing that correction.
+
+That resumed journey passed on the normal installed package built from
+`567741bde4b0459e33711687ab438aaae70caafb`; evidence is
+`/tmp/folio-t29-real-images-nPfTcw/evidence/result.json`. The four-real-asset
+poster retained four image elements through nine automatic save/PPTD
+roundtrips, four versions and a same-profile restart, then exported 1200×1800
+PNG and JPEG. The long artwork retained 12 image elements through its
+save/PPTD roundtrip, version and same-profile restart, then exported 1200×2400
+PNG and JPEG. The actual hard-reload transition also hit the previously
+observed attach/leave overlap and completed without an unsaved-canvas dialog.
+Cleanup passed with no diagnostic errors; recorded elapsed times are
+observations with existing applications present, not an isolated performance
+benchmark.
+
+The copied review profile was then opened by a separate packaged process. Both
+canvases reported ready and editable, and their exact snapshots, saves, PPTD
+sources, assets and version histories matched the first run. Owned-process and
+port cleanup passed; its independent result is
+`/Users/macmini/copied-profile-verification-akD0AA/result.json`. The source
+journey deliberately retains its `humanVisual` and `humanEditing` fields as
+pending.
 
 These bounded results establish the export regression and cleanup behavior for
 this installed build; they do not establish a universal CDP contract or human
