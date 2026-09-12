@@ -5,7 +5,7 @@ Translation: pending
 
 ## 摘要
 
-Folio 将成熟的 Lody coding-agent 工作台与 PPTD + Bento 结合，形成 Agent 自主使用的设计环境。保留会话、工具、权限、恢复和 UI，应用仅补充必要的转换、保存与版本保护；同一作品的人与 Agent 串行编辑。最新范围已确认：补齐既有 Bento 语义的 PPTD 往返，冲突由 Agent 通过文件工具处理，删除结果卡、专用缩略图及候选审批，外部文件直接显式导入。内置图像 MCP 提供 generate/edit，model 由用户必填；独立素材库和应用合并引擎不迁入；2026-09-12 新增 Git 作为唯一设计历史后端，不建设平行文件快照库。后续实施已集成并单项验收 23/29 项，安装包交叉验证正在进行；Codex/Kimi/Grok 的设计 hook 与人工完整旅程仍未完成，不能据已有实现宣称整体验收通过。
+Folio 将成熟的 Lody coding-agent 工作台与 PPTD + Bento 结合，形成 Agent 自主使用的设计环境。保留会话、工具、权限、恢复和 UI，应用仅补充必要的转换、保存与版本保护；同一作品的人与 Agent 串行编辑。最新范围已确认：补齐既有 Bento 语义的 PPTD 往返，冲突由 Agent 通过文件工具处理，删除结果卡、专用缩略图及候选审批，外部文件直接显式导入。内置图像 MCP 提供 generate/edit，model 由用户必填；独立素材库和应用合并引擎不迁入；2026-09-12 新增 Git 作为唯一设计历史后端，不建设平行文件快照库。修订前已集成并单项验收 23/29 项；新保存/提醒合同的替换进展见下方“目标修订后的实施”。历史完成数不代表新合同及安装包、人工完整旅程均已验收。
 
 ## 调研范围与依据
 
@@ -373,6 +373,28 @@ P2-A3 已列为 T10，在参考图完整旅程前完成。非 PNG 分析副本�
 - 提交前按仓库执行 `pnpm check`/`pnpm format`，包边界变更执行 `check:public-boundary`，资源变更做打包探针；记录跳过项，本轮不执行产品测试。
 - 原子保存、真实回执、失败不丢稿、跨作品隔离和不自动模型调用贯穿各切片。回退不允许旧版本强写新格式，不双写两份权威稿。
 - 各切片更新 owning note、Spec 与受影响模块规则/README；实现证据未完成前保持 proposed/draft，检查及翻译不代表审批或产品验收。
+
+#### 目标修订后的实施（2026-09-12）
+
+以下是自动回写与公开提醒合同的新增证据，取代旧 generation/read-proof 目标的待办解释；
+下节及旧票据中的完成/阻塞记录保留为原合同历史，不据此要求补 runtime 或宣称新合同已通过。
+
+| 范围 | 当前实施和证据 | 仍待完成 |
+| --- | --- | --- |
+| P3.1b/P3.3 自动回写与采集收敛 | `603bf9d`：保存/重开发布和校验当前 PPTD，移除读取台账与逐次生成证明，五家重提交复用 launch/source、确切草稿摘要与 CAS；[实施记录](../../implemented/simplification/2026-09-12-editor-owned-pptd-save.md) | 组合 `c683038` 的 Pi/Claude 原生成功、失败、取消六路径均通过；外部语言模型为合成响应，正常安装包矩阵仍待验收 |
+| T18 Codex 提醒 | `7df62fa`：公开 UserPromptSubmit 在模型请求前及恢复时送达，保留用户配置/信任；[原生证据](../../implemented/architecture/2026-09-12-codex-read-reminder.md) | 不代表强制先读顺序或安装包完整设计验收 |
+| T19 Kimi 提醒 | `4ca6795`：[原生事件可用，但缺会话级加载入口](2026-09-12-kimi-read-reminder-loading.md) | [最小公开插件已准备并隔离验证](2026-09-12-kimi-reminder-plugin.md)，实际用户登记待确认；未改用户配置或 runtime |
+| T20 Grok 提醒 | 主线 `e86a92a`：公开 session plugin + 原生 reload，实际首轮/恢复送达；[证据](../../implemented/architecture/2026-09-12-grok-read-reminder.md)，组合完整检查已通过 | 提醒到达当前工具之后的下一模型请求，不能保证已生成的写入先等 Read；安装包验收另行执行 |
+| T28 Pi 图像 MCP | `eccd540`：公开 Pi extension 复用现有三项图像/渲染工具，真实 HTTP/stdio 合成主机的目录、调用、取消与清理通过；[记录](2026-09-12-pi-folio-mcp-extension.md) | 实际安装包的 Folio stdio 服务、真实 generate/edit 与实际读图，不能用合成 provider 代替 |
+| P4.6 Git 版本 / P6.6 验收 | `c683038`：[独立 Git 历史](../feature/2026-09-12-design-version-history.zh.md)，五项 Git 测试及 built OSS 真实版本 UI、恢复和自动 PPTD 组合轮通过 | 多实例异常交互、正常安装包和人工完整视觉验收；此新增功能不计入旧 29 票完成数 |
+
+`c683038` 组合完整检查通过（CLI 2671、组件 3288 项测试），格式、文档和边界检查通过。
+独立 Git/UI/自动回写轮为 `/tmp/folio-history-ui-3hA6WO/result.json`，没有模型调用；
+Pi/Claude 六路径为 `/tmp/folio-t05-new-contract-NSbuQU/result.json`，记录确切主进程和 CLI 哈希，
+验证人工保存先于模型请求落盘、所属原生画布只读、提醒实际送达、成功提交及失败/取消保稿；
+外部语言模型使用合成响应，不宣称真实模型创作或视觉质量。
+指定 AruHub 的真实图像生成/编辑尚未执行，仍按 [P6.7 TODO](../testing/2026-09-12-live-image-mcp-acceptance.zh.md)
+保留必验要求。Spec 保持 draft，不关闭最终验收任务，也未发布安装包。
 
 #### 本地集成进度（2026-09-11）
 

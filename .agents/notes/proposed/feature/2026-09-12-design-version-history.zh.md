@@ -113,3 +113,10 @@ Git 已选定为唯一历史后端，与“当前作品存储旁保存快照”�
 `/tmp/folio-editor-save-history-fullcheck.log`。测试证明恢复操作确实更新相同版本 PPTD，
 不能代替组合后的安装包验证。多实例实际交互、正常安装包、完整视觉与图像生成验收
 仍待完成；不得宣称 P4.6/P6.6 完成，本记录保持 proposed。
+
+后续确切组合 `c683038` 重新构建通过，并完成 `/tmp/folio-history-ui-3hA6WO/result.json`
+（handle 2549 exit 0）：每次人工编辑保存后，直接读取磁盘当前稿、PPTD marker 和页面
+核对版本/元素，没有先调用可能修复投影的 read IPC；历史原生编辑按钮无法改变内容，
+恢复后当前 PPTD 同版本，V1/V2/切换前/V4 与重启回读全部通过。所属 Electron/CLI 与
+端点由 harness 正常清理；未调用模型。这补齐 built OSS 的自动回写组合证据，仍不
+替代正常安装包、真实图像供应商及人工完整旅程验收。
