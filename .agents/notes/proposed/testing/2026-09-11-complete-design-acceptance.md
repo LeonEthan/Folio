@@ -74,8 +74,9 @@ test of ordinary conversation-history persistence. The review instructions shoul
 have made this fixture boundary explicit.
 
 The verdict covers the inspected local package and workload, not Windows/Linux,
-all three original scene journeys, a separately scored edit-target comparison,
-numeric memory/latency thresholds, or release authorization. Remaining coverage
+all three original scene journeys, numeric memory/latency thresholds, or release
+authorization. The user subsequently also accepted the original-versus-edited
+image target comparison recorded in the live-image TODO. Remaining coverage
 continues to follow the installed matrix and live-image TODO.
 
 ### Workload recommendation after human review
