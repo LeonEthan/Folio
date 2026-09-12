@@ -17,6 +17,8 @@ Pinned Kimi exposes `KIMI_MCP_TOOL_TIMEOUT_MS` and `[mcp].tool_timeout_ms`; its 
 
 ## Verification
 
+The Kimi setting is the native global MCP default for the design session, so it also affects non-image tools without a per-server override. Only Pi limits this correction to generation/edit and retains the render default. This broader Kimi scope avoids introducing another transport adapter or patching the runtime.
+
 Deterministic SDK transport tests advance an injected fake clock through 180 seconds and accept actual generation/edit results; cancellation continues through the original AbortSignal. No real image requests are part of these tests. Normal installed Pi image verification remains pending. Nine configuration tests cover missing, explicit, relocated, invalid and unreadable settings; five actual Session spawn-boundary tests verify the constructed environment and non-design/provider isolation. No runtime patches, paid retries, or publication are included.
 
 The combined 19 focused tests, CLI type check, full repository check (including public boundary), formatting and documentation checks passed. The full check used child-only filtering of inherited Claude routing/auth environment, without changing global settings. No installed-package timeout regression is claimed by these source checks.
