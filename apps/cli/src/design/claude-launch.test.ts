@@ -10,8 +10,9 @@ it('keeps explicit Claude model routing when adding session hooks', () => {
   );
   expect(settings.modelOverrides).toEqual(modelOverrides);
   expect(settings.availableModels).toEqual(availableModels);
-  expect(settings.hooks.PostToolBatch).toEqual([
+  expect(settings.hooks.UserPromptSubmit).toEqual([
     { hooks: [{ type: 'command', command: 'native-hook', timeout: 35 }] },
   ]);
+  expect(Object.keys(settings.hooks)).toEqual(['UserPromptSubmit']);
   expect(() => claudeDesignSettings('native-hook', '[]')).toThrow();
 });

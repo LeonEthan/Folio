@@ -300,7 +300,7 @@ export type PreparedSessionLaunchConfigSnapshot = {
 export interface ISession {
   getAgentConfigId?(): AgentConfigId | undefined;
   getDesignHookLaunchId?(): string | undefined;
-  getDesignHookRuntime?(): 'pi' | 'claude' | undefined;
+  getDesignHookRuntime?(): 'pi' | 'claude' | 'codex' | 'kimi' | 'grok' | undefined;
   agentClient: AgentClient | null;
   acpSessionId: ACPSessionId | null;
   sessionId: SessionId;
@@ -1157,17 +1157,12 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
     agentStart?: AgentStartConfig
   ): Promise<ISession> {
     const sessionId = incomingConfig.sessionId!;
-    if (
-      incomingConfig.agentType === 'pi-acp' ||
-      (incomingConfig.agentCliType === 'builtin' && incomingConfig.agentType === 'codex')
-    ) {
-      const doc = await this.workspaceDocument.getOrCreateSessionDoc(sessionId);
-      if ((await doc.getMetaState())?.design) {
-        // Speculation predates durable design identity; recreate through the
-        // ordinary startup gate instead of claiming an uninstrumented process.
-        await prepared.dispose();
-        return await this.createSessionInnerWithAgent(incomingConfig, agentStart);
-      }
+    const doc = await this.workspaceDocument.getOrCreateSessionDoc(sessionId);
+    if ((await doc.getMetaState())?.design) {
+      // Speculation predates durable design identity. Recreate through ordinary
+      // startup so every design runtime receives the current launch/source context.
+      await prepared.dispose();
+      return await this.createSessionInnerWithAgent(incomingConfig, agentStart);
     }
     await prepared.adopt();
     const preparedWorktree = await prepared.workspaceReady;
@@ -1434,11 +1429,7 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
       acpSessionId = await withSlowOperationWarning(
         session.createAgent(
           this.buildCreateAgentConfig(session, config, launch, {
-            designHooks:
-              (config.agentType === 'pi-acp' ||
-                (config.agentCliType === 'builtin' &&
-                  (config.agentType === 'claude' || config.agentType === 'codex'))) &&
-              Boolean((await sessionDoc.getMetaState())?.design),
+            designHooks: Boolean((await sessionDoc.getMetaState())?.design),
             resumeSessionId: requestedResumeSessionId,
             forkSessionId: requestedForkSessionId,
             forkSessionTurnId: requestedForkSessionTurnId,

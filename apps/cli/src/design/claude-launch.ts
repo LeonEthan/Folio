@@ -60,9 +60,10 @@ export function claudeDesignSettings(command: string, modelConfig?: string) {
   return {
     ...modelSettings,
     hooks: Object.fromEntries(
-      ['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'PostToolBatch'].map(
-        (event) => [event, [{ hooks: [{ type: 'command', command, timeout: 35 }] }]]
-      )
+      ['UserPromptSubmit'].map((event) => [
+        event,
+        [{ hooks: [{ type: 'command', command, timeout: 35 }] }],
+      ])
     ),
   };
 }

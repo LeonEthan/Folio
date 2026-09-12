@@ -50,56 +50,66 @@ function manager(design: boolean) {
 }
 
 describe('Codex design reminder activation', () => {
-  it.each([true, false])(
-    'takes reminder activation from durable design identity (%s)',
-    async (design) => {
-      const owner = manager(design);
-      let received: CreateAgentConfig | undefined;
-      const signal = Error('synthetic spawn boundary');
-      const session = {
-        getWorkdir: () => '/synthetic',
-        updateGitIdentity() {},
-        async terminate() {},
-        async createAgent(value: CreateAgentConfig) {
-          received = value;
-          throw signal;
-        },
-      } as unknown as ISession;
-      const internal = owner as unknown as {
-        createSessionInner(value: SessionConfig): Promise<ISession>;
-        createSessionInnerWithAgent(value: SessionConfig): Promise<ISession>;
-      };
-      vi.spyOn(internal, 'createSessionInner').mockResolvedValue(session);
-      await expect(internal.createSessionInnerWithAgent({ ...config })).rejects.toBe(signal);
-      expect(received?.agentType).toBe('codex');
-      expect(received?.designHooks).toBe(design);
+  it.each(['codex', 'kimi', 'grok', 'claude'])(
+    'takes %s registration from durable design identity',
+    async (agentType) => {
+      for (const design of [true, false]) {
+        const owner = manager(design);
+        let received: CreateAgentConfig | undefined;
+        const signal = Error('synthetic spawn boundary');
+        const session = {
+          getWorkdir: () => '/synthetic',
+          updateGitIdentity() {},
+          async terminate() {},
+          async createAgent(value: CreateAgentConfig) {
+            received = value;
+            throw signal;
+          },
+        } as unknown as ISession;
+        const internal = owner as unknown as {
+          createSessionInner(value: SessionConfig): Promise<ISession>;
+          createSessionInnerWithAgent(value: SessionConfig): Promise<ISession>;
+        };
+        vi.spyOn(internal, 'createSessionInner').mockResolvedValue(session);
+        await expect(
+          internal.createSessionInnerWithAgent({ ...config, agentType } as SessionConfig)
+        ).rejects.toBe(signal);
+        expect(received?.agentType).toBe(agentType);
+        expect(received?.designHooks).toBe(design);
+      }
     }
   );
 
-  it('disposes speculation before cold-starting a newly identified design session', async () => {
-    const owner = manager(true);
-    const events: string[] = [];
-    const replacement = { sessionId: config.sessionId } as ISession;
-    const internal = owner as unknown as {
-      createSessionInnerWithAgent(value: SessionConfig): Promise<ISession>;
-      finishPreparedSession(
-        value: SessionConfig,
-        prepared: { dispose(): Promise<void>; adopt(): Promise<void> }
-      ): Promise<ISession>;
-    };
-    vi.spyOn(internal, 'createSessionInnerWithAgent').mockImplementation(async () => {
-      events.push('cold-start');
-      return replacement;
-    });
-    const result = await internal.finishPreparedSession(config, {
-      async dispose() {
-        events.push('dispose');
-      },
-      async adopt() {
-        throw Error('an unhooked speculative runtime must not be adopted');
-      },
-    });
-    expect(result).toBe(replacement);
-    expect(events).toEqual(['dispose', 'cold-start']);
-  });
+  it.each(['codex', 'kimi', 'grok', 'claude', 'pi-acp'])(
+    'disposes speculation before cold-starting a newly identified %s design session',
+    async (agentType) => {
+      const owner = manager(true);
+      const events: string[] = [];
+      const replacement = { sessionId: config.sessionId } as ISession;
+      const internal = owner as unknown as {
+        createSessionInnerWithAgent(value: SessionConfig): Promise<ISession>;
+        finishPreparedSession(
+          value: SessionConfig,
+          prepared: { dispose(): Promise<void>; adopt(): Promise<void> }
+        ): Promise<ISession>;
+      };
+      vi.spyOn(internal, 'createSessionInnerWithAgent').mockImplementation(async () => {
+        events.push('cold-start');
+        return replacement;
+      });
+      const result = await internal.finishPreparedSession(
+        { ...config, agentType } as SessionConfig,
+        {
+          async dispose() {
+            events.push('dispose');
+          },
+          async adopt() {
+            throw Error('an unhooked speculative runtime must not be adopted');
+          },
+        }
+      );
+      expect(result).toBe(replacement);
+      expect(events).toEqual(['dispose', 'cold-start']);
+    }
+  );
 });

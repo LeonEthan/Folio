@@ -288,79 +288,28 @@ export const DesignSourcePathResultSchema = z.discriminatedUnion('ok', [
     .strict(),
 ]);
 
-export const ClaudeDesignHookSchema = z
+export const DesignResubmitInputSchema = z
   .object({
-    phase: z.literal('claude'),
-    event: z.enum([
-      'UserPromptSubmit',
-      'PreToolUse',
-      'PostToolUse',
-      'PostToolUseFailure',
-      'PostToolBatch',
-    ]),
-    runtimeVersion: z.string().min(1).max(100),
-    agentId: z.string().max(200).optional(),
-    callId: z.string().max(200).optional(),
-    tool: z.string().max(200).optional(),
-    path: z.string().max(4096).optional(),
-    offset: z.number().optional(),
-    limit: z.number().optional(),
-    calls: z
-      .array(
-        z
-          .object({ id: z.string().min(1).max(200), response: z.string().max(100_000).optional() })
-          .strict()
-      )
-      .max(100)
-      .optional(),
+    expectedRevisionId: z.string().regex(/^[a-f0-9]{64}$/),
+    artifactDigest: z.string().regex(/^[a-f0-9]{64}$/),
   })
   .strict();
-
 export const DesignToolHookEventSchema = z.discriminatedUnion('phase', [
-  ClaudeDesignHookSchema,
-  z.object({ phase: z.literal('terminal'), generation: z.string().min(1).max(200), status: z.enum(['end_turn', 'failed', 'cancelled']) }).strict(),
+  z.object({ phase: z.literal('start'), runId: z.string().uuid() }).strict(),
+  z
+    .object({
+      phase: z.literal('terminal'),
+      runId: z.string().uuid(),
+      status: z.enum(['end_turn', 'failed', 'cancelled']),
+    })
+    .strict(),
   z.object({ phase: z.literal('resubmit-capability') }).strict(),
-  z.object({ phase: z.literal('claude-resubmit') }).strict(),
-  z
-    .object({
-      phase: z.literal('resubmit'),
-      generation: z.string().min(1).max(200),
-      callId: z.string().min(1).max(200),
-    })
-    .strict(),
-  z
-    .object({
-      phase: z.literal('generation'),
-      generation: z.string().min(1).max(200),
-      runtimeVersion: z.string().min(1).max(100),
-    })
-    .strict(),
-  z
-    .object({
-      phase: z.literal('call'),
-      generation: z.string().min(1).max(200),
-      callId: z.string().min(1).max(200),
-      tool: z.enum(['read', 'write', 'edit']),
-      path: z.string().min(1).max(4096),
-      offset: z.number().optional(),
-      limit: z.number().optional(),
-      partial: z.boolean().optional(),
-    })
-    .strict(),
-  z
-    .object({
-      phase: z.literal('result'),
-      callId: z.string().min(1).max(200),
-      isError: z.boolean(),
-      text: z.string().max(100_000).optional(),
-      partial: z.boolean().optional(),
-    })
-    .strict(),
+  DesignResubmitInputSchema.extend({ phase: z.literal('resubmit') }).strict(),
 ]);
 export const DesignToolHookResultSchema = z
   .object({
     type: z.literal('design/tool-hook'),
-    version: z.literal(1),
+    version: z.literal(2),
     supported: z.boolean(),
     ok: z.boolean(),
     error: z.string().max(1000).optional(),
@@ -370,7 +319,13 @@ export const DesignToolHookResultSchema = z
 export const LocalMachineRpcRequestSchema = z.discriminatedUnion('method', [
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('design/tool-hook'),
-    params: z.object({ version: z.literal(1), launchId: z.string().uuid().optional(), event: DesignToolHookEventSchema }).strict(),
+    params: z
+      .object({
+        version: z.literal(2),
+        launchId: z.string().uuid().optional(),
+        event: DesignToolHookEventSchema,
+      })
+      .strict(),
   }).strict(),
   BaseLocalMachineRpcRequestSchema.extend({
     method: z.literal('design/source-path'),

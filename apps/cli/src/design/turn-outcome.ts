@@ -119,7 +119,7 @@ export interface DesignTurnOutcomeSession {
 
 export interface DesignTurnOutcomeContext {
   /** Live daemon evidence; never read from Agent-writable input files. */
-  designReadBaseline?: import('./sync-baseline').DesignReadBaseline;
+  designSubmission?: import('./sync-service').DesignSubmission;
   designNativeTerminal?: 'end_turn' | 'failed' | 'cancelled';
   sessionId: string;
   sessionDoc: DesignTurnOutcomeSession;
@@ -263,7 +263,6 @@ async function recordTurnOutcome(
     workdir: string;
     dataRoot: string;
     manifestFile: ManifestPresent;
-    requiresReadBaseline: boolean;
     requiresNativeTerminal: boolean;
   }) => Promise<{ outcome: DesignTurnOutcome }>
 ): Promise<DesignTurnAttempt> {
@@ -339,8 +338,6 @@ async function recordTurnOutcome(
     dataRoot,
     manifestFile,
     requiresNativeTerminal: meta.agentType === 'pi-acp',
-    requiresReadBaseline:
-      meta.agentType === 'pi-acp' || (meta.cliType === 'builtin' && meta.agentType === 'claude'),
   });
 
   try {
@@ -379,14 +376,7 @@ export async function collectDesignTurnOutcome(
 ): Promise<DesignTurnAttempt> {
   return await recordTurnOutcome(
     ctx,
-    async ({
-      artworkId,
-      workdir,
-      dataRoot,
-      manifestFile,
-      requiresReadBaseline,
-      requiresNativeTerminal,
-    }) => {
+    async ({ artworkId, workdir, dataRoot, manifestFile, requiresNativeTerminal }) => {
       const base = outcomeBase(ctx, artworkId);
       const invalid = (
         entries: readonly DesignTurnOutcomeDiagnostic[]
@@ -458,22 +448,14 @@ export async function collectDesignTurnOutcome(
       const unchangedSinceSend =
         manifestFile.manifest.artifactAtSend?.status === 'present' &&
         manifestFile.manifest.artifactAtSend.digest === artifact.digest;
-      const baseline = ctx.designReadBaseline;
+      const baseline = ctx.designSubmission;
       const verifiedAttempt =
         baseline?.artworkId === artworkId &&
         baseline.draftId === workdir &&
         baseline.artifactDigest === artifact.digest;
-      if (unchangedSinceSend && !(verifiedAttempt && baseline.explicitResubmission))
+      if (unchangedSinceSend && !verifiedAttempt)
         return { outcome: { ...base, status: 'no_artifact' } };
 
-      if (requiresReadBaseline && !verifiedAttempt) {
-        return invalid([
-          {
-            code: 'design_read_baseline_missing',
-            message: `No verified current-design read and exact draft attempt. Draft preserved at ${workdir}; read the current projection and explicitly continue.`,
-          },
-        ]);
-      }
       const baselineRevisionId =
         verifiedAttempt && baseline
           ? baseline.revisionId
@@ -530,7 +512,7 @@ export async function collectDesignTurnOutcome(
                 },
                 {
                   code: 'design_continue_required',
-                  message: `Final collection found this conflict after the Agent ended. On explicit continuation, read ${path.join(workdir, 'design-current', 'design.pptd')} and its pages, compare the draft, and explicitly resubmit or adjust it. No automatic Agent restart.`,
+                  message: `Final collection found this conflict after the Agent ended. On explicit continuation, read ${path.join(dataRoot, 'chats', artworkId, 'design-current', 'design.pptd')} and its pages, compare the draft, and explicitly resubmit or adjust it. No automatic Agent restart.`,
                 },
               ]
             : []),

@@ -117,7 +117,7 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
   private readonly sandbox: SessionSandbox;
   private gitIdentity: { id: string; name: string; email: string };
   public agentClient: AgentClient | null = null;
-  private designHookRuntime: 'pi' | 'claude' | undefined;
+  private designHookRuntime: 'pi' | 'claude' | 'codex' | 'kimi' | 'grok' | undefined;
   private designHookLaunchId: string | undefined;
   getAgentConfigId() {
     return this.config.agentConfigId;
@@ -521,7 +521,19 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
           })
         : undefined;
     if (claudeLaunch) env = claudeLaunch.env;
-    this.designHookRuntime = claudeLaunch ? 'claude' : piLaunch ? 'pi' : undefined;
+    // Trusted design launch identity also serves exact submission; it does not
+    // assert that this runtime implements native tool or terminal hooks.
+    this.designHookRuntime = claudeLaunch
+      ? 'claude'
+      : piLaunch
+        ? 'pi'
+        : callbacks.designHooks &&
+            callbacks.cliType === 'builtin' &&
+            (callbacks.agentType === 'codex' ||
+              callbacks.agentType === 'kimi' ||
+              callbacks.agentType === 'grok')
+          ? callbacks.agentType
+          : undefined;
     const launcher: AcpLauncher = resolveAcpLauncher(callbacks.command);
     const spawnAnalyticsProps = {
       cliType: callbacks.cliType,

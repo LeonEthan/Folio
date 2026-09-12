@@ -290,7 +290,11 @@ export async function materializeDesignTurnInput(
       validateDesignElementReferences(
         references,
         opts.artworkId,
-        await designOperation(dataRoot, { operation: 'read', sessionId: opts.artworkId })
+        await designOperation(
+          dataRoot,
+          { operation: 'read', sessionId: opts.artworkId },
+          { projection: 'verify' }
+        )
       );
     return frozen;
   }
@@ -300,7 +304,11 @@ export async function materializeDesignTurnInput(
   // an unreadable baseline.
   let baseline: Awaited<ReturnType<typeof designOperation>>;
   try {
-    baseline = await designOperation(dataRoot, { operation: 'read', sessionId: opts.artworkId });
+    baseline = await designOperation(
+      dataRoot,
+      { operation: 'read', sessionId: opts.artworkId },
+      { projection: 'verify' }
+    );
   } catch (error) {
     throw new DesignTurnInputError(
       `design baseline unreadable for artwork ${opts.artworkId}: ${error instanceof Error ? error.message : String(error)}`,

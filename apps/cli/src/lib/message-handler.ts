@@ -1,5 +1,3 @@
-import { ClaudeDesignHooks } from '@/design/claude-hooks';
-import claudeRuntimeManifest from '@/agent/claude-runtime-manifest.json';
 import {
   resolveDesignContext,
   ensureDesignDirectory,
@@ -312,6 +310,7 @@ import { DesignTurnInputError, materializeDesignTurnInput } from '@/design/turn-
 import { DesignRenderHost } from '@/design/render-host';
 import { DesignCanvasHost } from '@/design/canvas-host';
 import { DesignSyncService } from '@/design/sync-service';
+import { designOperation } from '@/design/store';
 import { renderDesignPreview } from '@/design/render-preview';
 import {
   SessionExecutionService,
@@ -916,9 +915,8 @@ export class MessageHandler {
       canvasTurnId: string;
       client: NonNullable<ISession['agentClient']>;
       launchId: string;
-      runtime: 'pi' | 'claude';
+      runtime: 'pi' | 'claude' | 'codex' | 'kimi' | 'grok';
       service: DesignSyncService;
-      claude?: ClaudeDesignHooks;
     }
   >();
 
@@ -3388,6 +3386,12 @@ export class MessageHandler {
         signal.throwIfAborted();
         if (!meta?.design) return false;
         await this.designCanvasHost.prepare(sessionId, meta.design.artworkId, turnId, signal);
+        await designOperation(
+          getLodyDataDir(),
+          { operation: 'read', sessionId: meta.design.artworkId },
+          { projection: 'verify' }
+        );
+        signal.throwIfAborted();
         return true;
       },
       designNativeTerminal: (sessionId, turnId) => {
@@ -3399,14 +3403,14 @@ export class MessageHandler {
           ? entry.service.getTerminalOutcome()
           : undefined;
       },
-      designReadBaseline: (sessionId, turnId) => {
+      designSubmission: (sessionId, turnId) => {
         const entry = this.designSyncServices.get(sessionId);
         const session = this.sessionManager.getSession(sessionId);
         return entry?.turnId === turnId &&
           entry.client === session?.agentClient &&
           entry.launchId === session?.getDesignHookLaunchId?.() &&
           entry.runtime === session?.getDesignHookRuntime?.()
-          ? entry.service.getAttempt()
+          ? entry.service.getSubmission()
           : undefined;
       },
       releaseDesignCanvas: (sessionId, turnId) => {
@@ -7042,7 +7046,7 @@ export class MessageHandler {
         if (!sessionId || !design)
           return {
             type: 'design/tool-hook' as const,
-            version: 1 as const,
+            version: 2 as const,
             supported: false,
             ok: true,
           };
@@ -7056,16 +7060,13 @@ export class MessageHandler {
           if (request.params.event.phase === 'resubmit-capability')
             return {
               type: 'design/tool-hook' as const,
-              version: 1 as const,
-              supported: hookRuntime === 'claude',
+              version: 2 as const,
+              supported: hookRuntime !== undefined,
               ok: true,
             };
-          if (
-            !hookRuntime ||
-            ['claude', 'claude-resubmit'].includes(request.params.event.phase) !==
-              (hookRuntime === 'claude')
-          )
-            throw Error('Design hook does not match the launched runtime');
+          if (!hookRuntime) throw Error('Design runtime is unavailable');
+          if (request.params.event.phase !== 'resubmit' && hookRuntime !== 'pi')
+            throw Error('Native terminal events require the launched Pi runtime');
           if (!client) throw Error('Design Agent runtime is unavailable');
           const invocation = this.executionService.getActiveInvocationContext(sessionId);
           const turnId = invocation?.sourceTurnId;
@@ -7114,30 +7115,21 @@ export class MessageHandler {
                 workspace,
                 dataRoot: getLodyDataDir(),
                 assertActive,
-                runtimeVersion:
-                  hookRuntime === 'claude' ? claudeRuntimeManifest.version : undefined,
               }),
             };
-            if (hookRuntime === 'claude') entry.claude = new ClaudeDesignHooks(entry.service);
             this.designSyncServices.set(sessionId, entry);
           }
-          if (request.params.event.phase === 'claude-resubmit') {
-            if (!entry.claude) throw Error('Claude hook adapter missing');
-            await entry.claude.resubmit();
-          } else if (request.params.event.phase === 'claude') {
-            if (!entry.claude) throw Error('Claude hook adapter missing');
-            await entry.claude.handle(request.params.event);
-          } else await entry.service.handle(request.params.event);
+          await entry.service.handle(request.params.event);
           return {
             type: 'design/tool-hook' as const,
-            version: 1 as const,
+            version: 2 as const,
             supported: true,
             ok: true,
           };
         } catch (error) {
           return {
             type: 'design/tool-hook' as const,
-            version: 1 as const,
+            version: 2 as const,
             supported: true,
             ok: false,
             error: formatErrorMessage(error).slice(0, 1000),

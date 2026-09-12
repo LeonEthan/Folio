@@ -4157,15 +4157,20 @@ export function buildLodyMcpServer(
       {
         title: 'Explicitly resubmit preserved design draft',
         description:
-          'After reading the complete current projection and comparing your preserved draft, explicitly start a new attempt with its exact existing bytes. This does not commit or finish the turn. Later edits must be generated after this call; natural completion validates and atomically saves. Useful for retaining identical bytes after a conflict.',
-        inputSchema: z.object({}).strict(),
+          'After inspecting the saved current canvas and retained draft, explicitly submit exact draft bytes against the supplied expected canvas revision. Neither commits nor finishes the turn. Natural completion independently validates matching bytes, assets and versions. Useful for retaining identical bytes after a conflict.',
+        inputSchema: z
+          .object({
+            expectedRevisionId: z.string().regex(/^[a-f0-9]{64}$/),
+            artifactDigest: z.string().regex(/^[a-f0-9]{64}$/),
+          })
+          .strict(),
       },
-      async () => {
+      async (input) => {
         try {
-          if (!(await requestDesignResubmit(getSessionContext())))
+          if (!(await requestDesignResubmit(getSessionContext(), input)))
             throw Error('Design resubmission unavailable');
           return textResult(
-            'Exact preserved draft and delivered current baseline bound to a new attempt. Nothing committed; continue editing or finish naturally.'
+            'Exact preserved draft bound to the supplied expected canvas version. Nothing committed; continue editing or finish naturally.'
           );
         } catch (error) {
           return mcpErrorResult(error);

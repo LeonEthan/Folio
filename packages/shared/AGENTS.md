@@ -101,10 +101,12 @@ Agent. Ordinary file preview transports bytes.
 
 ## Native design hooks
 
-`design/tool-hook` runtime policy comes from the live Session launch, never caller
-provider names. Native adapters translate verified generation/delivery events into
-one shared baseline service. Resubmission capability is independent of image and
-rendering gates; its MCP call must consume an already observed native tool call.
+`design/tool-hook` version 2 binds native settlement and explicit submission to the
+live Session launch/client/source, never caller provider names. Reject retired
+version 1 generation/read events. Exact resubmission checks supplied revision and
+draft digest for all supported design Agents, independently of hook/image/render
+support; it grants no commit authority. Pi native settlement remains separate.
+Public reminder hooks do not establish read proofs or authorize writes.
 
 Design continuation freezes `ACPSessionConfig.agentConfigId`; normalization and
 dispatch preserve it. `SessionMeta.acpSessionAgentConfigId` identifies the provider

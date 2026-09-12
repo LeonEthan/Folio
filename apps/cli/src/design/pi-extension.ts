@@ -1,40 +1,32 @@
 import { randomUUID } from 'node:crypto';
 import { Effect } from 'effect';
 import { makeLocalControlClientAuto, getLocalControlSocketPath } from '@lody/shared/node/local-ipc';
-import { DesignToolHookResultSchema } from '@lody/shared/local-machine-rpc';
+import {
+  DesignToolHookResultSchema,
+  DesignResubmitInputSchema,
+} from '@lody/shared/local-machine-rpc';
+import { DESIGN_READ_BEFORE_EDIT_REMINDER } from './read-before-edit-reminder';
 import type { DesignToolEvent } from './sync-service';
 
-/** Structural adapter for Pi 0.85.1's documented extension events. No Pi SDK copy. */
 interface PiEvent {
+  systemPrompt?: string;
   message?: { role?: string; stopReason?: string };
-  toolName?: string;
-  toolCallId?: string;
-  input?: { path?: string; offset?: number; limit?: number };
-  content?: { type: string; text?: string }[];
-  isError?: boolean;
-  details?: { truncation?: { truncated?: boolean; firstLineExceedsLimit?: boolean } };
 }
 interface PiExtensionApi {
+  on(event: string, handler: (event: PiEvent) => Promise<unknown>): void;
   registerTool(tool: {
     name: string;
     label: string;
     description: string;
-    parameters: { type: 'object'; properties: Record<string, never>; additionalProperties: false };
-    execute(
-      callId: string
-    ): Promise<{ content: { type: 'text'; text: string }[]; details: Record<string, never> }>;
+    parameters: unknown;
+    execute(callId: string, params: unknown): Promise<unknown>;
   }): void;
-  on(event: string, handler: (event: PiEvent) => Promise<unknown>): void;
 }
-
 export default function folioDesignExtension(pi: PiExtensionApi): void {
-  let generation = '';
+  let runId: string | undefined;
   let terminal: 'end_turn' | 'failed' | 'cancelled' | undefined;
-  let generationError: string | undefined;
-  let supported = true;
-  const resubmissions = new Map<string, { generation: string; error?: string }>();
-  const request = async (event: DesignToolEvent): Promise<boolean> => {
-    const result = await Effect.runPromise(
+  const request = async (event: DesignToolEvent) => {
+    const response = await Effect.runPromise(
       makeLocalControlClientAuto({
         socketPath: process.env.FOLIO_DESIGN_CONTROL_SOCKET ?? getLocalControlSocketPath(),
       }).machineRpc(
@@ -43,66 +35,27 @@ export default function folioDesignExtension(pi: PiExtensionApi): void {
           machineId: process.env.FOLIO_DESIGN_MACHINE_ID ?? '',
           workspaceId: process.env.FOLIO_DESIGN_WORKSPACE_ID ?? '',
           ownerSessionId: process.env.LODY_SESSION_ID,
-          params: { version: 1, launchId: process.env.FOLIO_DESIGN_LAUNCH_ID, event },
+          params: { version: 2, launchId: process.env.FOLIO_DESIGN_LAUNCH_ID, event },
         },
         { timeoutMs: 30_000 }
       )
     );
-    if (!result.ok) throw Error(result.error);
-    const answer = DesignToolHookResultSchema.parse(result.result);
-    supported = answer.supported;
-    if (!answer.ok) throw Error(answer.error ?? 'Design hook refused');
-    return answer.supported;
+    if (!response.ok) throw Error(response.error);
+    const answer = DesignToolHookResultSchema.parse(response.result);
+    if (!answer.ok || !answer.supported)
+      throw Error(answer.error ?? 'Design execution context unavailable');
   };
-  // pi-acp 0.0.33 does not forward its MCP catalog. Keep this native adapter
-  // thin; the generation-fenced operation belongs to the shared design service.
-  pi.registerTool({
-    name: 'folio_resubmit_draft',
-    label: 'Resubmit preserved design draft',
-    description:
-      'Explicitly start a new authoring attempt with the exact existing PPTD draft observed before this response. First read the complete current projection and compare the preserved draft. Use this when retaining identical draft bytes or resolving a stale attempt. This records your intent only: it does not commit, finish the turn, or judge the design. Natural completion still validates and atomically saves. Generate later edits in a subsequent response.',
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
-    async execute(callId) {
-      const captured = resubmissions.get(callId);
-      resubmissions.delete(callId);
-      if (!captured) throw Error('Missing native resubmission call event');
-      if (captured.error) throw Error(captured.error);
-      if (!supported) throw Error('Design resubmission is unavailable for this session');
-      const available = await request({
-        phase: 'resubmit',
-        generation: captured.generation,
-        callId,
-      });
-      if (!available) throw Error('Design resubmission is unavailable for this session');
-      return {
-        content: [
-          {
-            type: 'text',
-            text: 'Explicit attempt recorded for the exact preserved draft and delivered current baseline. Nothing committed yet; continue editing or finish naturally.',
-          },
-        ],
-        details: {},
-      };
-    },
-  });
-  pi.on('message_start', async (event) => {
-    if (event.message?.role !== 'assistant') return undefined;
+  pi.on('before_agent_start', async (event) => {
+    // Only native settlement interpretation is pinned; no tool/read interception.
+    if (process.env.FOLIO_DESIGN_PI_VERSION !== '0.85.1')
+      throw Error('Native Pi completion verification requires Pi 0.85.1');
+    runId = randomUUID();
     terminal = undefined;
-    generation = randomUUID();
-    generationError = undefined;
-    try {
-      supported = await request({
-        phase: 'generation',
-        generation,
-        runtimeVersion: process.env.FOLIO_DESIGN_PI_VERSION ?? 'unknown',
-      });
-    } catch (error) {
-      generationError = error instanceof Error ? error.message : String(error);
-    }
-    return undefined;
+    await request({ phase: 'start', runId });
+    return { systemPrompt: `${event.systemPrompt ?? ''}\n\n${DESIGN_READ_BEFORE_EDIT_REMINDER}` };
   });
   pi.on('message_end', async (event) => {
-    if (event.message?.role === 'assistant') {
+    if (event.message?.role === 'assistant')
       terminal =
         event.message.stopReason === 'error'
           ? 'failed'
@@ -111,80 +64,37 @@ export default function folioDesignExtension(pi: PiExtensionApi): void {
             : event.message.stopReason === 'stop'
               ? 'end_turn'
               : undefined;
-    }
   });
-  // pi-acp 0.0.33 reports end_turn even for native provider errors. Pi awaits
-  // this event after retries/compaction settle; never infer success from ACP alone.
+  // ACP 0.0.33 loses native provider errors. Await actual settled status, not a
+  // guessed success, and bind it to this native execution rather than a model batch.
   pi.on('agent_settled', async () => {
-    if (terminal) await request({ phase: 'terminal', generation, status: terminal });
+    if (runId && terminal) await request({ phase: 'terminal', runId, status: terminal });
   });
-  pi.on('tool_call', async (event) => {
-    if (event.toolName === 'folio_resubmit_draft' && event.toolCallId) {
-      if (resubmissions.size >= 10000)
-        return { block: true, reason: 'Design operation limit reached' };
-      resubmissions.set(event.toolCallId, { generation, error: generationError });
-      return undefined;
-    }
-    if (
-      !['read', 'write', 'edit'].includes(event.toolName ?? '') ||
-      !event.input?.path ||
-      !event.toolCallId
-    )
-      return undefined;
-    // A failed handshake cannot pretend ordinary file writes are covered.
-    if (generationError && supported) return { block: true, reason: generationError };
-    if (!supported) return undefined;
-    try {
-      await request({
-        phase: 'call',
-        generation,
-        callId: event.toolCallId,
-        tool: event.toolName as 'read' | 'write' | 'edit',
-        path: event.input.path,
-        offset: event.input.offset,
-        limit: event.input.limit,
-      });
-    } catch (error) {
-      return { block: true, reason: error instanceof Error ? error.message : String(error) };
-    }
-    return undefined;
-  });
-  pi.on('tool_result', async (event) => {
-    if (
-      !supported ||
-      !['read', 'write', 'edit'].includes(event.toolName ?? '') ||
-      !event.toolCallId
-    )
-      return undefined;
-    let text =
-      event.content?.length === 1 && event.content[0]?.type === 'text'
-        ? event.content[0].text
-        : undefined;
-    if (
-      text !== undefined &&
-      (event.details?.truncation?.truncated || event.input?.limit !== undefined)
-    ) {
-      // Remove only native continuation framing. Shared service independently
-      // checks every delivered line against the captured projection and offset.
-      text = text.replace(
-        /\n\n\[(?:Showing lines \d+-\d+ of \d+(?: \(50\.0KB limit\))?|\d+ more lines in file)\. Use offset=\d+ to continue\.\]$/,
-        ''
-      );
-    }
-    try {
-      await request({
-        phase: 'result',
-        callId: event.toolCallId,
-        isError: event.isError === true,
-        text,
-        partial: event.details?.truncation?.firstLineExceedsLimit === true,
-      });
-    } catch (error) {
+  pi.registerTool({
+    name: 'folio_resubmit_draft',
+    label: 'Resubmit preserved design draft',
+    description:
+      'Explicitly retain the exact existing draft against the expected current-canvas revision. Supply the artifact digest and revision from the saved files/turn facts after inspecting and comparing them. This neither commits nor ends the turn; natural completion independently validates the unchanged submitted bytes and versions.',
+    parameters: {
+      type: 'object',
+      properties: {
+        expectedRevisionId: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+        artifactDigest: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+      },
+      required: ['expectedRevisionId', 'artifactDigest'],
+      additionalProperties: false,
+    },
+    async execute(_callId, params) {
+      await request({ phase: 'resubmit', ...DesignResubmitInputSchema.parse(params) });
       return {
-        isError: true,
-        content: [{ type: 'text', text: error instanceof Error ? error.message : String(error) }],
+        content: [
+          {
+            type: 'text',
+            text: 'Exact draft submission recorded against the expected canvas version. Nothing committed; finish naturally when ready. Changed bytes require another explicit submission or a new turn.',
+          },
+        ],
+        details: {},
       };
-    }
-    return undefined;
+    },
   });
 }

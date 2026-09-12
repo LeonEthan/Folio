@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, cpSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
@@ -41,7 +41,7 @@ const sessionMeta = (sessionId: SessionId, design: boolean): Partial<SessionMeta
 
 let client = {};
 let launchId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-let runtime: 'pi' | 'claude' = 'pi';
+let runtime: 'pi' | 'claude' | 'codex' | 'kimi' | 'grok' = 'pi';
 const live = {
   get agentClient() {
     return client;
@@ -109,9 +109,9 @@ import type { DesignToolEvent } from '../src/design/sync-service';
 import type { SessionExecutionService } from '../src/session/session-execution-service';
 import { DesignCanvasHost } from '../src/design/canvas-host';
 import { designOperation } from '../src/design/store';
+import { readDesignArtifact } from '../src/design/artifact';
 let dataRoot: string;
 let handler: MessageHandler;
-let draft: string;
 beforeEach(async () => {
   dataRoot = mkdtempSync(path.join(tmpdir(), 'folio-t21-rpc-'));
   vi.stubEnv('LODY_DATA_DIR', dataRoot);
@@ -148,7 +148,6 @@ beforeEach(async () => {
       createdAt: '2026-09-11T00:00:00Z',
     },
   });
-  draft = path.join(dataRoot, 'chats', DESIGN_SESSION_ID);
 });
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -159,95 +158,45 @@ async function hook(event: DesignToolEvent, producer = launchId) {
   return send(handler, {
     method: 'design/tool-hook',
     ownerSessionId: DESIGN_SESSION_ID,
-    params: { version: 1, launchId: producer, event },
+    params: { version: 2, launchId: producer, event },
   });
 }
-async function readCurrent() {
-  expect(
-    await hook({ phase: 'generation', generation: 'g1', runtimeVersion: '0.85.1' })
-  ).toMatchObject({ ok: true });
-  for (const [i, file] of ['design.pptd', 'pages/design.page'].entries()) {
-    const target = path.join(draft, 'design-current', file);
-    expect(
-      await hook({ phase: 'call', generation: 'g1', callId: `r${i}`, tool: 'read', path: target })
-    ).toMatchObject({ ok: true });
-    expect(
-      await hook({
-        phase: 'result',
-        callId: `r${i}`,
-        isError: false,
-        text: readFileSync(target, 'utf8'),
-      })
-    ).toMatchObject({ ok: true });
-  }
-}
-it('replacement cannot borrow earlier reads or accept a late producer result', async () => {
-  await readCurrent();
+const firstRun = '11111111-1111-4111-8111-111111111111';
+const secondRun = '22222222-2222-4222-8222-222222222222';
+it('replacement rejects late native settlement and explicit submission from the old launch', async () => {
+  expect(await hook({ phase: 'start', runId: firstRun })).toMatchObject({ ok: true });
   const oldLaunch = launchId;
   client = {};
   launchId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
   expect(
-    await hook({ phase: 'result', callId: 'r0', isError: false, text: 'late' }, oldLaunch)
-  ).toMatchObject({ ok: false, error: expect.stringContaining('launch has ended or changed') });
-  expect(
-    await hook({ phase: 'generation', generation: 'g2', runtimeVersion: '0.85.1' })
-  ).toMatchObject({ ok: true });
-  expect(await hook({ phase: 'terminal', generation: 'g1', status: 'end_turn' }, oldLaunch)).toMatchObject({ ok: false });
-  expect(await send(handler, { method: 'design/tool-hook', ownerSessionId: DESIGN_SESSION_ID, params: { version: 1, launchId: oldLaunch, event: { phase: 'claude-resubmit' } } })).toMatchObject({ ok: false });
-  expect(
-    await hook({
-      phase: 'call',
-      generation: 'g2',
-      callId: 'w',
-      tool: 'write',
-      path: path.join(draft, 'design.pptd'),
-    })
-  ).toMatchObject({ ok: false, error: expect.stringContaining('DESIGN_READ_REQUIRED') });
-  await readCurrent();
-  expect(
-    await hook({ phase: 'generation', generation: 'g3', runtimeVersion: '0.85.1' })
-  ).toMatchObject({ ok: true });
-  expect(
-    await hook({
-      phase: 'call',
-      generation: 'g3',
-      callId: 'w2',
-      tool: 'write',
-      path: path.join(draft, 'design.pptd'),
-    })
-  ).toMatchObject({ ok: true });
-});
-it('a supported runtime switch rejects old Pi events and starts Claude without borrowed reads', async () => {
-  await readCurrent();
-  const oldLaunch = launchId;
-  client = {};
-  launchId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
-  runtime = 'claude';
-  expect(
-    await hook({ phase: 'generation', generation: 'late', runtimeVersion: '0.85.1' }, oldLaunch)
+    await hook({ phase: 'terminal', runId: firstRun, status: 'end_turn' }, oldLaunch)
   ).toMatchObject({ ok: false });
-  const claude = async (event: Record<string, unknown>) =>
-    send(handler, {
+  expect(
+    await hook(
+      { phase: 'resubmit', expectedRevisionId: 'a'.repeat(64), artifactDigest: 'b'.repeat(64) },
+      oldLaunch
+    )
+  ).toMatchObject({ ok: false });
+  expect(await hook({ phase: 'start', runId: secondRun })).toMatchObject({ ok: true });
+  expect(await hook({ phase: 'terminal', runId: firstRun, status: 'end_turn' })).toMatchObject({
+    ok: false,
+  });
+  expect(await hook({ phase: 'terminal', runId: secondRun, status: 'failed' })).toMatchObject({
+    ok: true,
+  });
+});
+it('Claude reminders cannot attest a Pi native terminal result', async () => {
+  runtime = 'claude';
+  expect(await hook({ phase: 'start', runId: firstRun })).toMatchObject({ ok: false });
+  expect(
+    await send(handler, {
       method: 'design/tool-hook',
       ownerSessionId: DESIGN_SESSION_ID,
-      params: {
-        version: 1,
-        launchId,
-        event: { phase: 'claude', runtimeVersion: '2.1.258', ...event },
-      },
-    });
-  expect(await claude({ event: 'UserPromptSubmit' })).toMatchObject({ ok: true });
-  expect(
-    await claude({
-      event: 'PreToolUse',
-      callId: 'write',
-      tool: 'Write',
-      path: path.join(draft, 'design.pptd'),
+      params: { version: 2, launchId, event: { phase: 'resubmit-capability' } },
     })
-  ).toMatchObject({ ok: false, error: expect.stringContaining('DESIGN_READ_REQUIRED') });
+  ).toMatchObject({ supported: true });
 });
-
-it('an in-flight old launch cannot replace the fresh service after resolving its workspace', async () => {
+it('an in-flight old launch cannot replace the fresh service after workspace resolution', async () => {
   const internal = handler as unknown as {
     resolveActiveDesignContext: (...args: unknown[]) => Promise<unknown>;
   };
@@ -259,13 +208,46 @@ it('an in-flight old launch cannot replace the fresh service after resolving its
     await release.promise;
     return original(...args);
   });
-  const old = hook({ phase: 'generation', generation: 'old', runtimeVersion: '0.85.1' });
+  const old = hook({ phase: 'start', runId: firstRun });
   await entered.promise;
   client = {};
   launchId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
-  await readCurrent();
+  expect(await hook({ phase: 'start', runId: secondRun })).toMatchObject({ ok: true });
   release.resolve();
-  expect(await old).toMatchObject({ ok: false, error: expect.stringContaining('runtime has ended or changed') });
-  expect(await hook({ phase: 'generation', generation: 'latest', runtimeVersion: '0.85.1' })).toMatchObject({ ok: true });
-  expect(await hook({ phase: 'call', generation: 'latest', callId: 'fresh-write', tool: 'write', path: path.join(draft, 'design.pptd') })).toMatchObject({ ok: true });
+  expect(await old).toMatchObject({ ok: false });
+  expect(await hook({ phase: 'terminal', runId: secondRun, status: 'end_turn' })).toMatchObject({
+    ok: true,
+  });
 });
+
+it.each(['claude', 'codex', 'kimi', 'grok'] as const)(
+  '%s accepts exact submission through existing launch ownership without Pi hooks',
+  async (agent) => {
+    runtime = agent;
+    const directory = path.join(dataRoot, 'chats', DESIGN_SESSION_ID);
+    for (const item of ['design.pptd', 'pages'])
+      cpSync(path.join(directory, 'design-current', item), path.join(directory, item), {
+        recursive: true,
+      });
+    const canonical = await designOperation(dataRoot, {
+      operation: 'read',
+      sessionId: DESIGN_SESSION_ID,
+    });
+    const artifact = await readDesignArtifact(directory);
+    if (artifact.status !== 'present') throw Error('Synthetic draft unavailable');
+    const event = {
+      phase: 'resubmit' as const,
+      expectedRevisionId: canonical.revisionId,
+      artifactDigest: artifact.digest,
+    };
+    expect(await hook(event, 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee')).toMatchObject({ ok: false });
+    expect(await hook({ phase: 'terminal', runId: firstRun, status: 'end_turn' })).toMatchObject({
+      ok: false,
+    });
+    expect(await hook(event)).toMatchObject({ ok: true });
+    expect(
+      (await designOperation(dataRoot, { operation: 'read', sessionId: DESIGN_SESSION_ID }))
+        .revisionId
+    ).toBe(canonical.revisionId);
+  }
+);

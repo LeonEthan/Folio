@@ -7,9 +7,14 @@ IDs; Agent cwd remains Lody's resolved cwd. New project drafts live at
 `<dataRoot>/chats/<sessionId>/`. No Git operation is needed.
 
 Only the draft directory's `design.pptd`, `pages/` and `media/` are collectible
-Agent output. `design-current/` reserves the fixed application projection path, separate from
-the draft. It is not populated by dispatch; synchronization belongs to the
-subsequent read-hook slice. Preparation never seeds or overwrites a draft.
+Agent output. The saved current projection lives at
+`<dataRoot>/chats/<artworkId>/design-current/`, next to canonical storage and
+separate from every session draft. Create and save publish it without any Agent.
+Healthy reads verify its revision marker and every exported file's bytes; reopen
+repairs missing or replaced files from canonical under the artwork lock. Dispatch
+checks readiness after flushing editors and never uses an older projection as current.
+Preparation never seeds or overwrites a draft. Legacy workspace projections remain
+untouched; current trusted resolution points to the canonical-adjacent directory.
 
 The existing chat `design-input/<turnId>/` remains the immutable manifest,
 reference-byte and receipt location. New manifests record `artifactWorkdir` and
@@ -57,74 +62,51 @@ return an actionable design-hook error. The launcher resolves the existing
 executable shim because this adapter does not forward extension arguments. It
 never installs Pi globally or selects a product default Agent/model.
 
-`sync-service.ts` owns projection publication and `sync-baseline.ts` owns delivery
-facts. Successful native Read ranges covering the entry and every exported page bind
-artwork, draft path, current revision and exact text content. Partial subsets, failed and unmatched results cannot establish that baseline;
-exact offset continuations accumulate only within the same projection revision. Eligibility is
-captured at the native assistant `message_start`, before tools execute, so a
-same-message Read cannot authorize already-generated Write/Edit arguments.
-Every saved canvas, including the initial blank canvas, requires this read;
-absence of an old PPTD or elements does not bypass it. Ordinary files are outside
-the path guard. Shell/custom/MCP mutations are not sandboxed by this extension.
+`current-projection.ts` exports the self-contained canonical payload under the
+store's existing mutation lock. Fsynced staging replaces the fixed directory;
+temporary directories are publication recovery, not history. Canonical publication
+and projection publication are separate filesystem operations. A projection failure
+reports that the canvas revision was saved but current files are not ready; an exact
+save retry or reopen repairs it. Verification checks file hashes, not just a marker.
+No projection publication touches draft files or frozen turn manifests.
 
-Successful controlled writes bind the collected artifact digest to the attempt.
-Natural completion independently validates the artifact and assets and performs
-canonical compare-and-swap using the live daemon baseline. Missing facts after
-restart or changed bytes fail closed and preserve the draft. Re-reading never
-rebases an established attempt or rewrites a frozen manifest.
+Pi and Claude use public read-before-edit reminders and their native tools. There
+are no Folio generation ledgers, successful-read coverage proofs or Write/Edit
+interceptors. Shell and custom tools retain their actual native behavior. The
+optional `folio_resubmit_draft` accepts explicit `expectedRevisionId` and
+`artifactDigest`, checks both against the current canvas and exact draft, and
+records only those facts. It neither commits nor ends a turn. Unchanged inherited
+bytes without explicit submission remain `no_artifact`; ordinary changed output
+uses the frozen turn version. No reread, mtime change or save automatically rebases
+an old draft.
 
-`folio_resubmit_draft` is an optional explicit operation for retaining an existing
-draft, including unchanged bytes after a conflict. It binds the complete read
-baseline and exact draft digest captured before its assistant generation, then
-checks both against current state. It never commits or finishes a turn. The new
-attempt invalidates earlier generated writes, duplicate resubmissions and delayed
-write results; subsequent generations may edit through the ordinary path.
-Same-byte writes and rereading alone still leave inherited output `no_artifact`.
+Natural completion independently validates structure, kernel replay, assets,
+artifact source and canonical compare-and-swap. A matching explicit submission
+may choose its checked revision; otherwise the immutable turn baseline applies.
+Conflicts retain drafts and durable diagnostics. No candidate, automatic restart,
+paid retry, semantic merge or mandatory finalize tool is introduced.
 
-The operation uses the shared service and existing tool-hook RPC. Pi's thin native
-registration is necessary because pinned `pi-acp@0.0.33` stores but never forwards
-its MCP servers. Future adapters can expose the same operation through their real
-hook/MCP facilities only after verifying generation fencing; there is no new MCP
-transport or runtime framework here.
+Claude Code's existing native `UserPromptSubmit` configuration appends the common
+reminder while preserving user/project settings. Pi uses public `before_agent_start`.
+`sync-service.ts` now owns only exact explicit submission facts and native Pi
+settlement, transported through protocol version 2. Old proof events are rejected.
+Historical implementation evidence remains in the
+[Pi note](../../../../.agents/notes/implemented/architecture/2026-09-11-pi-design-hooks.md)
+and [Claude note](../../../../.agents/notes/implemented/architecture/2026-09-11-claude-design-hooks.md);
+the [replacement decision](../../../../.agents/notes/implemented/simplification/2026-09-12-editor-owned-pptd-save.md)
+describes current responsibilities.
 
-A final CAS conflict is recorded as `invalid` with durable reason, retained draft
-path and explicit-continuation instructions in the existing receipt/history.
-The Agent has already ended at that point: no automatic restart, paid retry,
-semantic merge or mandatory finalize tool is introduced. The next user continuation
-can read that receipt, current projection and unchanged draft. Ordinary changes and
-regeneration use the same intake/assets/atomic-save pipeline. P1 manual save-copy
-and read-only historical candidate JSON remain available.
-
-Claude Code uses the existing bundled ACP `0.70.0`, SDK `0.3.258` and verified
-native `2.1.258`. The selected executable is checked at launch. Session command
-hooks are appended through ACP settings, preserving native user/project/local
-configuration. `UserPromptSubmit` and awaited `PostToolBatch` fence generations;
-complete final numbered Read results require a successful native post-tool event.
-Native Edit/Write use the shared guard; Bash and arbitrary MCP tools do not
-establish read coverage. The optional `folio_resubmit_draft` MCP tool consumes the
-original native call's generation and exact draft snapshot, with final collection
-independently checking evidence and canonical versions. No upstream adapter patch,
-new runtime, global settings edit or mandatory completion tool is introduced.
-See the [Claude decision and evidence](../../../../.agents/notes/implemented/architecture/2026-09-11-claude-design-hooks.md).
-
-Continuation reuses the ordinary Session dispatch and persistent workspace paths.
-Each actual Agent spawn registers a fresh design launch ID, carried by native
-hooks and the existing MCP HTTP/stdio context. The daemon checks that producer ID
-before accepting an event, then binds ephemeral read/attempt state to the current
-client and source/canvas turn. Replaced clients cannot borrow earlier evidence,
-and delayed native or MCP requests cannot attach to the replacement. This is a
-lifecycle fence, not a secret or a sandbox. The original frozen input, drafts,
-assets and receipts remain unchanged; a new explicit turn reads the current
-projection through its selected runtime's supported hooks.
-
-Pinned Pi ACP reports `end_turn` even after native provider errors. Pi's awaited
-`agent_settled` extension event therefore supplies the native last-assistant
-terminal status. The service resets this proof before each assistant generation;
-only that latest generation can finish it. Native error or missing proof follows
-Lody's existing failure path, and collection independently requires explicit native
-success before committing a Pi draft. A cancelled/error/missing terminal fact
-preserves the current canvas, draft and diagnostic receipt. File writes, previews
-and an ACP success response are not native success evidence.
+Each actual design Agent spawn registers a fresh launch ID. Pi, Claude, Codex,
+Kimi and Grok use that same trusted identity for explicit exact resubmission; this
+does not claim native hook support on every runtime. Speculative processes created
+before durable design identity are recreated through the ordinary startup gate. The daemon binds requests to
+the current client, source turn and canvas owner; delayed native or MCP producers
+cannot update a replacement service. This is a lifecycle fence, not a sandbox.
+Pi ACP can report success after native provider failure, so the native settled
+status remains independently required. Error, cancellation or missing settlement
+preserves canonical, draft and diagnostics. Files, previews and an ACP success
+response do not establish native success. Settlement uses a native execution ID,
+not an assistant-generation read ledger.
 
 Idle desktop design sessions expose supported Pi/Claude choices in Lody’s existing
 run configuration menu. Selection only records the next provider. The explicit
@@ -176,8 +158,8 @@ The original prompt and ordinary attachments remain the frozen input.
 Explicit desktop import is separate from observation: Electron retains the displayed
 payload and submits it to the unchanged `designOperation` save after canvas flush.
 The store repeats structural/assets validation and atomic version checks, including
-same-content lost-reply idempotence. Import does not write authoring files or claim
-Agent read evidence.
+same-content lost-reply idempotence. Import saves also refresh the application current projection; they never overwrite
+Agent draft authoring files.
 
 Missing canonical reads reject without creating a session directory. The Electron
 owner drains accepted design-worker operations and awaits child exit on application

@@ -475,10 +475,10 @@ export type SessionExecutionServiceDeps = {
     sessionId: SessionId,
     turnId: string
   ) => 'end_turn' | 'failed' | 'cancelled' | undefined;
-  designReadBaseline?: (
+  designSubmission?: (
     sessionId: SessionId,
     turnId: string
-  ) => import('@/design/sync-baseline').DesignReadBaseline | undefined;
+  ) => import('@/design/sync-service').DesignSubmission | undefined;
   machineId: MachineId;
   userId: string;
   workspaceId: WorkspaceId;
@@ -2546,7 +2546,7 @@ export class SessionExecutionService {
         const context = {
           sessionId,
           sessionDoc,
-          designReadBaseline: this.deps.designReadBaseline?.(sessionId, userTurnId),
+          designSubmission: this.deps.designSubmission?.(sessionId, userTurnId),
           designNativeTerminal: this.deps.designNativeTerminal?.(sessionId, userTurnId),
           turnId: userTurnId,
           workdir: getDefaultSessionWorkdir(sessionId),

@@ -19,9 +19,9 @@
  * callers that read the same revision cannot both land, and a caller that cannot
  * get the lock in time is told `DESIGN_BUSY` rather than waiting forever.
  *
- * Reads take no lock: bytes become visible whole (`publishBytesAtomic`), so a
- * reader sees one complete revision or none, and the value it reads back is the
- * baseline its own save will be checked against.
+ * Healthy reads take no lock: bytes become visible whole (`publishBytesAtomic`).
+ * Projection repair alone acquires the lock and re-reads latest canonical; the
+ * returned complete revision is the baseline checked by the next save.
  *
  * `design.json` holds embedded base64 assets so a confirmed save has no
  * partially committed asset table; the per-file digest of exactly those bytes
@@ -48,6 +48,7 @@ import { mkdir, open, rename, unlink, lstat, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import { withDesignLock, type DesignLockTiming } from './lock';
+import { ensureCurrentProjection } from './current-projection';
 
 export const designId = z.string().uuid();
 export const designSize = z.number().int().min(1).max(4096);
@@ -338,6 +339,8 @@ function validateAssets(content: z.output<typeof designInput>) {
 export interface DesignOperationOptions {
   /** Timing seams for the write lock; see `./lock.ts`. */
   lock?: DesignLockTiming;
+  /** Dispatch only verifies; save/reopen recover the current representation. */
+  projection?: 'verify';
 }
 
 /**
@@ -373,7 +376,20 @@ export async function designOperation(
       await file.close();
     }
   };
-  if (request.operation === 'read') return read();
+  if (request.operation === 'read') {
+    const payload = await read();
+    try {
+      await ensureCurrentProjection(directory, payload, async () => {}, true);
+      return payload;
+    } catch (error) {
+      if (options?.projection === 'verify') throw error;
+    }
+    return withDesignLock(directory, options?.lock ?? {}, async (assertHeld) => {
+      const latest = await read();
+      await ensureCurrentProjection(directory, latest, assertHeld);
+      return latest;
+    });
+  }
 
   // Everything from here writes, and the baseline this write is checked against
   // is read inside the lock: a caller cannot compare a revision it read before
@@ -388,6 +404,7 @@ export async function designOperation(
     if (request.operation === 'create' && previous) {
       if (JSON.stringify(previous.association) !== JSON.stringify(request.association))
         throw Error('Design already exists');
+      await ensureCurrentProjection(directory, previous, assertHeld);
       return previous;
     }
     const content =
@@ -415,7 +432,10 @@ export async function designOperation(
     if (bytes.length > 64 * 1024 * 1024) throw Error('Design exceeds 64 MiB');
     if (request.operation === 'save' && previous?.revisionId !== request.baseRevisionId) {
       // Lost acknowledgement is safely retryable when the requested bytes already landed.
-      if (previous?.revisionId === digest(bytes)) return previous;
+      if (previous?.revisionId === digest(bytes)) {
+        await ensureCurrentProjection(directory, previous, assertHeld);
+        return previous;
+      }
       throw Error('DESIGN_CONFLICT');
     }
     if (request.operation === 'create') {
@@ -442,7 +462,9 @@ export async function designOperation(
     // on, and the refusal preserves the draft instead of losing a revision (`./lock.ts`).
     await assertHeld();
     await publishBytesAtomic(directory, current, bytes);
-    return { ...saved, revisionId: digest(bytes) };
+    const payload = { ...saved, revisionId: digest(bytes) };
+    await ensureCurrentProjection(directory, payload, assertHeld);
+    return payload;
   });
 }
 

@@ -297,7 +297,10 @@ async function callDesignRpc(
   }
 }
 
-export async function requestDesignResubmit(context: DesignGateContext, capability = false) {
+export async function requestDesignResubmit(
+  context: DesignGateContext,
+  input?: { expectedRevisionId: string; artifactDigest: string }
+) {
   const response = await Effect.runPromise(
     makeLocalControlClientAuto({ socketPath: context.localControlSocketPath }).machineRpc(
       {
@@ -306,9 +309,9 @@ export async function requestDesignResubmit(context: DesignGateContext, capabili
         workspaceId: context.workspaceId,
         ownerSessionId: context.sessionId,
         params: {
-          version: 1,
+          version: 2,
           launchId: context.designHookLaunchId,
-          event: { phase: capability ? 'resubmit-capability' : 'claude-resubmit' },
+          event: input ? { phase: 'resubmit', ...input } : { phase: 'resubmit-capability' },
         },
       },
       { timeoutMs: DESIGN_GATE_TIMEOUT_MS }
@@ -321,5 +324,5 @@ export async function requestDesignResubmit(context: DesignGateContext, capabili
 }
 
 export async function resolveDesignResubmit(context: DesignGateContext) {
-  return requestDesignResubmit(context, true).catch(() => false);
+  return requestDesignResubmit(context).catch(() => false);
 }

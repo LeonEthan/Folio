@@ -1135,7 +1135,7 @@ describe('recordDesignTurnTerminalOutcome', () => {
 });
 
 it.each(['pi-acp', 'claude'])(
-  'refuses %s output without live content-bound facts even with a valid manifest',
+  'accepts valid %s output without a read ledger after native success and independent checks',
   async (agentType) => {
     const harness = createHarness();
     const meta = await harness.sessionDoc.getMetaState();
@@ -1148,12 +1148,12 @@ it.each(['pi-acp', 'claude'])(
     const outcome = await collectDesignTurnOutcome(contextFor(harness));
     expect(outcome).toMatchObject({
       status: 'recorded',
-      outcome: { status: 'invalid', diagnostics: [{ code: 'design_read_baseline_missing' }] },
+      outcome: { status: 'committed' },
     });
     expect(
       (await designOperation(harness.root, { operation: 'read', sessionId: harness.sessionId }))
         .revisionId
-    ).toBe(created.revisionId);
+    ).not.toBe(created.revisionId);
     expect((await readDesignArtifact(harness.workdir)).status).toBe('present');
   }
 );
@@ -1175,14 +1175,14 @@ it.each([false, true])(
     );
     const outcome = await collectDesignTurnOutcome({
       ...contextFor(harness),
-      designReadBaseline: {
-        artworkId: harness.sessionId,
-        draftId: harness.workdir,
-        revisionId: created.revisionId,
-        contentHash: 'a'.repeat(64),
-        artifactDigest: artifact.digest,
-        explicitResubmission: explicit,
-      },
+      designSubmission: explicit
+        ? {
+            artworkId: harness.sessionId,
+            draftId: harness.workdir,
+            revisionId: created.revisionId,
+            artifactDigest: artifact.digest,
+          }
+        : undefined,
     });
     expect(outcome).toMatchObject({
       status: 'recorded',
@@ -1214,13 +1214,11 @@ it.each(['pi-acp', 'claude'])(
     writeFileSync(file, JSON.stringify({ pid: 1, token: 'external-writer' }));
     const outcome = await collectDesignTurnOutcome({
       ...contextFor(harness),
-      designReadBaseline: {
+      designSubmission: {
         artworkId: harness.sessionId,
         draftId: harness.workdir,
         revisionId: created.revisionId,
-        contentHash: 'a'.repeat(64),
         artifactDigest: before.digest,
-        explicitResubmission: true,
       },
       lock: {
         now: () => 0,
@@ -1265,11 +1263,10 @@ it.each(['failed', 'cancelled', undefined] as const)(
     const outcome = await collectDesignTurnOutcome({
       ...contextFor(harness),
       designNativeTerminal: terminal,
-      designReadBaseline: {
+      designSubmission: {
         artworkId: harness.sessionId,
         draftId: harness.workdir,
         revisionId: created.revisionId,
-        contentHash: 'a'.repeat(64),
         artifactDigest: artifact.digest,
       },
     });
