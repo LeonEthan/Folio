@@ -5,17 +5,17 @@ Translation: pending
 
 ## 摘要
 
-用户要求真实测试包含图像生成与编辑，并提供 AruHub image2 的测试连接。正常安装包已通过 Folio MCP 发起三次真实生成和一次真实编辑，得到四张图片，最终四图均被原生 Kimi 读取；其中两次生成原回合的工具回执未完成，不能算完整成功。真实图像测试还发现了 MCP 客户端默认超时短于服务超时的问题，修复及原失败分别留证。多图保存导出和人工视觉验收仍待完成；模拟测试继续验证确定性协议和错误路径。
+用户要求真实测试包含图像生成与编辑，并提供 AruHub image2 的测试连接。正常安装包已通过 Folio MCP 发起三次真实生成和一次真实编辑，得到四张图片，最终四图均被原生 Kimi 读取；其中两次生成原回合的工具回执未完成，不能算完整成功。真实图像测试还发现了 MCP 客户端默认超时短于服务超时的问题，修复及原失败分别留证。多图保存导出和人工视觉验收仍待完成；海报 PNG/JPEG 导出在修正构建上有逐格式通过证据（见末节），信息图/长图负载与人工评定仍待完成；模拟测试继续验证确定性协议和错误路径。
 
 ## 测试连接
 
-| 字段 | 本次测试配置 |
-| --- | --- |
-| 供应商名称 | AruHub image2 |
-| API base URL | `https://direct.aruhub.com:8443/v1` |
-| model | `gpt-image-2.5-sunburst` |
-| API key | 用户已提供；执行测试时通过现有图像连接的机密配置使用，不写入仓库 |
-| 官网 | 未提供，不从 API 地址推定 |
+| 字段         | 本次测试配置                                                     |
+| ------------ | ---------------------------------------------------------------- |
+| 供应商名称   | AruHub image2                                                    |
+| API base URL | `https://direct.aruhub.com:8443/v1`                              |
+| model        | `gpt-image-2.5-sunburst`                                         |
+| API key      | 用户已提供；执行测试时通过现有图像连接的机密配置使用，不写入仓库 |
+| 官网         | 未提供，不从 API 地址推定                                        |
 
 这是用户提供的测试连接，不是 Folio 产品默认供应商或模型；URL、Key、model 仍由用户配置。协议与支持参数按真实响应核验，不因模型名推断特性。请求必须通过 Folio 内置 image MCP 和已有连接/素材保存链路；直接 HTTP 调通只能作为诊断，不能替代 MCP 验收。
 
@@ -112,3 +112,38 @@ Folio 图像 HTTP 原有上限为 180 秒，Kimi 和 Pi MCP SDK 默认仅等 60 
 累计真实请求为 **3 generate + 1 edit，无重试**。HTTP 状态、服务用量和费用没有独立捕获，
 仍标未知。四张素材交给完整设计验收复用，不为填补历史回执再付费生成。
 多图原生编辑、自动保存、PPTD、导出、Git 素材恢复以及用户视觉评价未完成，以上 TODO 不整体勾选。
+
+## 修正轮导出验证（2026-09-12，新构建 47c0808）
+
+50ddd 包的逐格式真相：诊断 12327 对同一海报画稿交替导出 PNG/JPEG 各三次，
+导出 0、1、4（角像素 `[242,246,247]`）正确，导出 2、3、5（角像素 `[44,28,16]`）
+为启动画面错帧；同期 DOM 六次全部正确（单个 `.bento-slide`、正确作品文本、无
+`#bento-splash`），故障在 `capturePage` 拿到过期合成帧，不在元素选择或编码。
+根因与最小修复见 [导出捕获验证](../../implemented/bug-fix/2026-09-12-export-capture-frame-verification.md)；
+attach/leave 竞态修复见 [离开等待加载](../../implemented/bug-fix/2026-09-12-leave-attach-loading-race.md)。
+两个修复与 T28 取消修复（`89d9b07` → `16a5940`）同入新构建
+`47c0808d354ce2227e4fed288a748f4fec9e2435`（DMG SHA256
+`f50900870ca1442feee70f6f391e633e6ef330420935ec8a1875a09e11300a62`、asar SHA256
+`6925f94faae19bfc002973a50cf5c527b05a42363a990e7a7d2ebe6a5781ce0a`，身份文件见
+`folio-current-47c0808d-6nzcp7xj/package-identity.json`）。
+
+新包安装态验收（串行，复用上述四图字节，无新增付费调用）：
+
+- 双格式导出：同一海报新会话导入 → 快照一致 → 保存 → 回读一致 → 交替 PNG/JPEG
+  六次，角像素六次全部正确；两种格式各抽一文件读图，均为完整正确海报
+  （标题、四张真实图、日期），且同格式重复导出字节一致。证据
+  `/tmp/folio-export-repro-oowgDi/evidence`（含 `result.json` 与六个导出文件）。
+  旧包逐格式失败保留为历史，不覆盖。
+- 可编辑重开：同上流程覆盖新会话导入 → 快照 → 保存 → 回读一致，即可编辑副本重开验证。
+- 合成 Pi 取消：`native-image-cancel-passed`，被 hold 的合成图像 HTTP 在真实 UI
+  Stop 后、fixture 清理前关闭（旧包失败为清理时才关闭）。证据
+  `/tmp/folio-t28-kimi-input-EeOUGj/evidence`。无付费调用。
+- leave 回归：新会话 attach 周期内 `design.leave` 三次全部 true 且零未保存对话框。
+  证据 `/tmp/folio-leave-repro-nByRB0/evidence`。
+- Grok Stop/显式恢复安装态探针未能执行：发送后 30 秒无 provider 请求、无 runtime
+  拉起；旧 50ddd 包复现完全相同，排除本次变更回归，属预先存在的 Grok 分发链路
+  或夹具问题，待另行诊断。探针脚本保持 UNEXECUTED 原样，不改判。
+
+人工视觉/编辑体验与目标机器容忍度仍待用户评定；以上“读图正确”仅为代理观察，
+不代替人工结论。本轮无新增真实 generate/edit，累计仍为 3 generate + 1 edit。
+信息图/长图负载与 Save version 链路仍待覆盖，本 TODO 不整体勾选。
