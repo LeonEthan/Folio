@@ -175,3 +175,64 @@ one actual current canvas instance, ordinary chat source paths and native Pi/Cla
 execution; multi-instance locking, project/worktree isolation, other Agents,
 explicit resubmission and injected publication faults retain their separate test
 and owner evidence. No user or model transcript is committed.
+
+## Installed multi-instance and Git supplement
+
+The bounded supplement passed on the normal installed package for source
+`50ddd41bfb3e88537c0dcbec40c0ce86ca40b8e4`, whose identity is recorded at
+`/var/folders/dn/56hdvtt50g19brtctz0c9c7w0000gn/T/folio-current-50ddd41b-78c0b9vz/package-identity.json`.
+The immutable round is `/tmp/folio-t05-multi-history-kE3grc/`, containing
+`probe.mjs`, `result.json`, `running-checkpoint.json`, native screenshots and CLI
+logs; `/tmp/folio-t05-multi-history-run-final.log` records exit zero. It reused the
+existing Electron harness, actual Pi 0.85.1 / pi-acp 0.0.33, and a local scripted
+provider. No product code, package resources, runtime state or timers were patched.
+
+The earlier T02 and T29 evidence already covered generic serial execution and
+multiple native editors. This supplement tested only their interaction with
+editor-owned PPTD publication and Git history. Two native instances represented
+artwork A and a third represented B, all attached through the existing desktop
+API. A native edit was observed dirty in A1 while A2 was clean. Ordinary composer
+dispatch then froze the version containing that edit, and direct disk inspection
+verified the complete current projection. This proves the pre-dispatch persistence
+result; normal autosave may participate, so it does not attribute that save solely
+to the explicit flush call.
+
+During the held real Pi request, both A instances rejected native mutation and
+save. The clean instance still displayed its older revision while read-only; it
+did not overwrite the newer human save. Actual `design.saveVersion` and
+`design.restoreVersion` calls rejected while execution was active. B remained
+editable and its native save published its own PPTD. Pi's natural completion
+committed revision
+`70408fce58307e5bd6886f045aead58db60a2119789cdba37900d664c4908642`;
+both A instances were recreated, displayed the committed background and became
+editable. A subsequent native human edit saved successfully.
+
+The Git CAS check deliberately used controlled external file replacement, not a
+second product save. With the existing canonical lock held by the probe, an actual
+desktop restore captured the current document and published its protective Git
+entry. Read-only Git log/show inspection observed that entry and verified its
+content before an atomic fixture replacement of isolated canonical bytes. After
+lock release, the real restore rejected with `DESIGN_CONFLICT`, preserving the
+external revision
+`0f33e4717ffbe8fe64ab45d7982ff120ce3051e21e8ccf52006eb1b549c1edd3`
+and exact Agent draft bytes. A subsequent normal desktop restore succeeded at
+`821f0b4b117a4657b21b8fdfabab9601f52f7177a597c386fd5e3f3308d252ce`,
+with matching current projection and unchanged draft. This establishes defensive
+CAS behavior for an abnormal external writer; it does not claim concurrent normal
+UI saves can bypass the artwork lock.
+
+The first round `/tmp/folio-t05-multi-history-wlWDwy/` remains failed evidence:
+its Pi commit and active-state checks passed, but the probe used an obsolete
+WebContents ID after the product recreated native editors. The correction observes
+two loaded instances by their artwork query identity and waits for their actual
+committed content. It does not retain a fabricated old editor. The final screenshot
+helper selected the first live native canvas, which after reload is B; that image
+is not evidence of A's restored version. A's version assertions come from exact
+canonical/projection bytes and the explicitly selected native instances. Harness
+logs confirm completed owned-process and endpoint teardown; the UI slot was
+released. No six-path replay, paid model call, or additional product protocol was
+introduced.
+
+This evidence-only supplement passed full `corepack pnpm check`
+(`/tmp/folio-t05-multi-history-check.log`), formatting, docs check and diff check.
+The original isolated source checkout remains unchanged apart from this note.
