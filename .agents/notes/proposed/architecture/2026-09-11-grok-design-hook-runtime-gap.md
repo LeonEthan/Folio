@@ -158,3 +158,72 @@ keys without printing values. The docs check required initializing the unchanged
 pinned Kimi submodule to resolve an existing documentation link; it remains outside
 root pnpm. Existing rule-file size warnings remain. No Spec approval is claimed;
 translation remains pending.
+
+## 2026-09-12 cancellation follow-up: late response and public close
+
+This supplement concerns cancellation under the revised reminder scope, not the
+retired generation-proof acceptance above. The [installed matrix's original
+cancel transport failure](../testing/2026-09-11-installed-five-agent-matrix.md#grok-cancellation-direct-native-transport-boundary)
+remains failed: native `cancelled` and idle did not close the held model HTTP
+response before fixture cleanup. The public reminder does not fix that failure.
+
+Two subsequent direct native ACP cases used the same checksummed Grok 1.0.13
+binary, separate synthetic configuration/workspaces and a loopback provider. ACP
+responses, notifications and HTTP close events were recorded independently.
+Captured records remain outside the repository; no product/runtime change is
+part of this supplement.
+
+- **A2, late Write:** after the original prompt returned `cancelled`, the fixture
+  released that held response with a `write` call targeting a unique absent file.
+  The HTTP close was classified as **fixture response release**, not native
+  cancellation success. Through the next explicit user turn's completed native
+  Read, no matching late tool event appeared and the target remained absent. The
+  continued Read delivered the existing synthetic state's actual bytes. This is
+  bounded evidence for this late-response case, not proof about already-running
+  tools, background commands or all cancellation interleavings.
+- **B, close while held:** native cancel acknowledged at 04:53:51.492Z while HTTP
+  remained open. The fixture called public `session/close` without releasing the
+  provider response. HTTP closed independently at .516Z; the close response at
+  .518Z reported `_meta["x.ai/closeOutcome"] = "closed"`. Explicit `session/load`
+  responded at .553Z, then an explicit prompt successfully read the saved state.
+  No OS kill was needed. This establishes native close as a smaller available
+  resource-release operation for this scenario; it does not implement a new
+  Folio Stop policy.
+
+A2 evidence is
+`/var/folders/dn/56hdvtt50g19brtctz0c9c7w0000gn/T/folio-native-grok-stop-A-n8EErq`;
+B evidence is
+`/var/folders/dn/56hdvtt50g19brtctz0c9c7w0000gn/T/folio-native-grok-stop-B-BqJ8U6`.
+Both contain `events.json`, `acp.jsonl` and synthetic provider requests. Each
+native process subsequently exited zero after stdin EOF, and independent process
+inspection confirmed it absent. The fixture script is retained privately, not
+committed with captured records.
+
+### Close does not promise background preservation
+
+The official source at `37949780c144e37df692e3d669051a21fec24f20` implements
+[close_active_session and hard_stop_resident](https://github.com/xai-org/grok-build/blob/37949780c144e37df692e3d669051a21fec24f20/crates/codegen/xai-grok-shell/src/agent/mvp_agent/session_lifecycle.rs#L61-L108)
+by sending cancellation with `cancel_subagents: true` and
+`kill_background_tasks: true`, followed by `Shutdown(CancelRunningTurn)`.
+The [cancellation implementation](https://github.com/xai-org/grok-build/blob/37949780c144e37df692e3d669051a21fec24f20/crates/codegen/xai-grok-shell/src/session/acp_session_impl/cancel.rs#L479-L495)
+kills background tasks by session owner for a subagent and all backend background
+tasks for a main session. This source corroborates intended teardown semantics;
+it is not claimed to reproduce the binary's embedded revision. B did not create
+background tasks, so their exact native termination behavior remains untested.
+Close must not be described as preserving the running background environment.
+
+Folio already exposes `AgentClient.closeSession` and explicit session restoration.
+A possible future correction can await native close before releasing the canvas
+and restore only on the next explicit user turn, without a runtime patch or a new
+scheduler. It must account for the closed resident session and the loss of its
+background execution, rather than reuse it as though Stop merely interrupted a
+prompt. The current wrapper returns a boolean after the close RPC and does not
+inspect Grok's `closeOutcome`; a completed RPC alone must not be elevated to proof
+of `closed`. No product implementation or blanket safe-to-unlock claim follows
+from these two fixtures.
+
+A strengthened isolation gate was prepared for review but **not executed**. It
+checks canonical temporary configuration paths, an explicit synthetic API key,
+only a loopback model URL, and native model/authentication identity before any
+prompt, rejecting cached authentication. No further native probe was run after
+that review pause. The original failed transport observation remains unchanged.
