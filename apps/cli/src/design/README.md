@@ -135,12 +135,19 @@ paired with its actual provider in SessionMeta, so a cold reopen never resumes
 another provider’s native session. The canvas association and retained files stay
 in place, and ordinary conversations retain their existing Agent selection rules.
 
-Codex hook integration remains blocked at the pinned CLI `0.153.4` / ACP `1.10.0`:
-native pre/post tool events do not supply the required awaited model-generation
-fence. Interactive `write_stdin` has no separate prehook, and Bash posthook text
-alone does not establish successful execution. See the
-[native audit and reproducible probe](../../../../.agents/notes/proposed/architecture/2026-09-11-codex-design-hook-boundary.md).
-This does not enable Codex shared-baseline or explicit-resubmission acceptance.
+Codex design sessions load the bundled read-before-edit reminder through native
+`UserPromptSubmit` hooks in the existing ACP `CODEX_CONFIG` session overlay.
+The managed CLI `0.153.4` and ACP `1.10.0` deliver it before the model request,
+including a fresh reminder after session resume. Existing hooks and trust remain;
+only Folio's fixed command receives its own session-scoped native trust hash.
+
+The rule requires current-file reads, complete reads before full replacement,
+rereads after conflicts, and the latest current-design files when continuing. New
+files are exempt from reading nonexistent targets. This is a reminder, not a read
+ledger, synchronization trigger, tool denial, or commit authorization. Existing
+native tool checks remain unchanged. Explicit native hook disabling is respected;
+unsupported dotted `CODEX_CONFIG` hook overrides fail with a diagnostic instead of
+being silently replaced. See the [implementation and native proof](../../../../.agents/notes/implemented/architecture/2026-09-12-codex-read-reminder.md).
 
 ## Read-only source snapshots
 

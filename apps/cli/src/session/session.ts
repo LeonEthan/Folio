@@ -1,3 +1,4 @@
+import { withCodexDesignReminder } from '@/design/codex-reminder';
 import { prepareClaudeDesignLaunch } from '@/design/claude-launch';
 import { randomUUID } from 'node:crypto';
 import EventEmitter from 'eventemitter3';
@@ -499,6 +500,8 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
       callbacks.command,
       this.buildShellEnv(callbacks.env, loginShellEnv)
     );
+    if (callbacks.cliType === 'builtin' && callbacks.agentType === 'codex' && callbacks.designHooks)
+      env = withCodexDesignReminder(env);
     const piLaunch =
       callbacks.agentType === 'pi-acp' && callbacks.designHooks === true
         ? await preparePiDesignLaunch(env, {

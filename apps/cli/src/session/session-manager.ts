@@ -1157,7 +1157,10 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
     agentStart?: AgentStartConfig
   ): Promise<ISession> {
     const sessionId = incomingConfig.sessionId!;
-    if (incomingConfig.agentType === 'pi-acp') {
+    if (
+      incomingConfig.agentType === 'pi-acp' ||
+      (incomingConfig.agentCliType === 'builtin' && incomingConfig.agentType === 'codex')
+    ) {
       const doc = await this.workspaceDocument.getOrCreateSessionDoc(sessionId);
       if ((await doc.getMetaState())?.design) {
         // Speculation predates durable design identity; recreate through the
@@ -1433,7 +1436,8 @@ export class SessionManager extends EventEmitter<SessionManagerEvents> {
           this.buildCreateAgentConfig(session, config, launch, {
             designHooks:
               (config.agentType === 'pi-acp' ||
-                (config.agentCliType === 'builtin' && config.agentType === 'claude')) &&
+                (config.agentCliType === 'builtin' &&
+                  (config.agentType === 'claude' || config.agentType === 'codex'))) &&
               Boolean((await sessionDoc.getMetaState())?.design),
             resumeSessionId: requestedResumeSessionId,
             forkSessionId: requestedForkSessionId,

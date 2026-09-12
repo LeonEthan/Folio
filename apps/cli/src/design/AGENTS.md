@@ -62,3 +62,7 @@ proof for collection, and route error/missing proof through existing turn failur
 
 Reading a missing canonical artwork must not create its directory. Keep directory
 creation in mutation operations and preserve their independent validation and CAS.
+
+Codex's public UserPromptSubmit reminder supplies context only. Preserve native
+user hook declarations/trust; trust only Folio's exact bundled command in the
+per-session overlay. Never treat reminder delivery as read or commit evidence.
