@@ -48,6 +48,17 @@ observes the selected row's `aria-checked` state. Before the repair it timed out
 passes in about two seconds. The existing dropdown primitive unit suite remains the
 coverage for immediate sibling hover and keyboard focus.
 
-This browser regression establishes the shared pointer transition and selection.
-It does not replace the historical installed failure, the later keyboard-only
-selection evidence, or a normal installed-package validation of the repaired build.
+The normal installed `70c9932` package then passed the pointer-only READY2 run at
+`folio-installed-grok-stop-v2-pointer-QQ08zh`. With the current artwork open at
+900×670, the submenu opened left, its ordinary browser hit test landed inside the
+option, pointer selection completed, and reopening showed the persisted checked
+state. Session metadata and the same-machine configuration row agreed on the
+selected `builtin/grok` ID; no Agent Session, model completion, or image request
+started, and cleanup completed without errors.
+
+The earlier READY1 attempt at `folio-installed-grok-stop-v2-pointer-Gp4foE` remains
+as a fixture-precondition failure: a shortened synthetic provider name fit in the
+312 px available on the right, so the submenu correctly opened right and the probe
+stopped before clicking. READY2 restored the exact longer label shape from the
+historical failure. These results retain the original installed pointer failure and
+the later keyboard-only selection evidence rather than replacing either history.
