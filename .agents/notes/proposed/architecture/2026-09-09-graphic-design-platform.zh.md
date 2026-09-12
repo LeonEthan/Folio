@@ -384,7 +384,7 @@ P2-A3 已列为 T10，在参考图完整旅程前完成。非 PNG 分析副本�
 | P3.1b/P3.3 自动回写与采集收敛 | `603bf9d`：保存/重开发布和校验当前 PPTD，移除读取台账与逐次生成证明，五家重提交复用 launch/source、确切草稿摘要与 CAS；[实施记录](../../implemented/simplification/2026-09-12-editor-owned-pptd-save.md) | 组合 `c683038` 的 Pi/Claude 原生成功、失败、取消六路径均通过；外部语言模型为合成响应，正常安装包矩阵仍待验收 |
 | T18 Codex 提醒 | `7df62fa`：公开 UserPromptSubmit 在模型请求前及恢复时送达，保留用户配置/信任；[原生证据](../../implemented/architecture/2026-09-12-codex-read-reminder.md) | 不代表强制先读顺序或安装包完整设计验收 |
 | T19 Kimi 提醒 | `4ca6795`：[原生事件可用，但缺会话级加载入口](2026-09-12-kimi-read-reminder-loading.md) | [最小公开插件已准备并隔离验证](2026-09-12-kimi-reminder-plugin.md)，实际用户登记待确认；未改用户配置或 runtime |
-| T20 Grok 提醒 | 主线 `e86a92a`：公开 session plugin + 原生 reload，实际首轮/恢复送达；[证据](../../implemented/architecture/2026-09-12-grok-read-reminder.md)，组合完整检查已通过 | 提醒到达当前工具之后的下一模型请求，不能保证已生成的写入先等 Read；安装包验收另行执行 |
+| T20 Grok 提醒与停止 | 主线 `e86a92a`：公开 session plugin + 原生 reload，实际首轮/恢复送达；[证据](../../implemented/architecture/2026-09-12-grok-read-reminder.md)，组合完整检查已通过 | 提醒到达当前工具之后的下一模型请求，不能保证已生成的写入先等 Read。用户已确认 Stop 完整关闭会话执行、后台及子任务，下一条显式消息恢复；公开关闭和恢复接线待实施/验证，原取消失败保留 |
 | T28 Pi 图像 MCP | `eccd540`：公开 Pi extension 复用现有三项图像/渲染工具，真实 HTTP/stdio 合成主机的目录、调用、取消与清理通过；[记录](2026-09-12-pi-folio-mcp-extension.md) | 实际安装包的 Folio stdio 服务、真实 generate/edit 与实际读图，不能用合成 provider 代替 |
 | P4.6 Git 版本 / P6.6 验收 | `c683038` 实现[独立 Git 历史](../feature/2026-09-12-design-version-history.zh.md)，五项 Git 测试通过；`50ddd41` 正常安装包的版本 UI、自动 PPTD、多实例门禁和受控外部写 CAS 补验通过 | 真实多图素材恢复、人工完整视觉验收；此新增功能不计入旧 29 票完成数 |
 
