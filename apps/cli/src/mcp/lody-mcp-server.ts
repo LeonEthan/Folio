@@ -4075,8 +4075,12 @@ export function buildLodyMcpServer(
   // complete, enabled image connection — the same pattern the Task family uses,
   // so a disabled tool is genuinely absent from `tools/list` and uncallable, not
   // merely advertised and then refused.
-  const runImageTool = async (args: GenerateImageToolInput | EditImageToolInput) => {
+  const runImageTool = async (
+    args: GenerateImageToolInput | EditImageToolInput,
+    { signal }: { signal: AbortSignal }
+  ) => {
     try {
+      signal.throwIfAborted();
       // Re-resolve before every paid call: the tool is registered from a
       // snapshot, and a connection the user disabled or cleared since would
       // otherwise turn into a call made on stale consent.
@@ -4084,6 +4088,7 @@ export function buildLodyMcpServer(
         ? await config.resolveGate()
         : (config.designGate ?? EMPTY_DESIGN_GATE);
       const connection = gate.imageConnection;
+      signal.throwIfAborted();
       if (connection === null) {
         return textResult(
           'Image generation is unavailable: this is not a design session, or the image connection is not configured, is disabled, or is missing its URL, API key or explicit model. Tell the user to enable it in Folio settings; do not retry.',
@@ -4099,6 +4104,7 @@ export function buildLodyMcpServer(
         ...(args.size === undefined ? {} : { size: args.size }),
         workdir: gate.artworkWorkdir,
         transport: config.imageTransport ?? fetchImageHttpTransport,
+        signal,
       };
       const asset = await ('images' in args
         ? editImageAsset({

@@ -228,6 +228,8 @@ export type ImageHttpRequest = {
     files: Array<{ field: string; filename: string; mimeType: string; bytes: Uint8Array }>;
   };
   timeoutMs: number;
+  /** Caller cancellation, combined with `timeoutMs` by the production transport. */
+  signal?: AbortSignal;
   /** Hard cap on the response body; exceeding it is an error, never a truncation. */
   maxBytes: number;
 };

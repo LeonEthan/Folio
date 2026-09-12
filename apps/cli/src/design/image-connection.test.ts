@@ -275,6 +275,86 @@ describe('fetchImageHttpTransport', () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it('keeps caller cancellation distinct from the request deadline', async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    let fetchStarted = (_signal: AbortSignal) => {};
+    let markFetchAborted = () => {};
+    let rejectFetch = (_reason: unknown) => {};
+    const started = new Promise<AbortSignal>((resolve) => {
+      fetchStarted = resolve;
+    });
+    const fetchAborted = new Promise<void>((resolve) => {
+      markFetchAborted = resolve;
+    });
+    vi.stubGlobal(
+      'fetch',
+      (_url: string | URL | Request, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          const signal = init?.signal;
+          if (!(signal instanceof AbortSignal)) throw new Error('missing fetch signal');
+          fetchStarted(signal);
+          rejectFetch = reject;
+          signal.addEventListener('abort', markFetchAborted, { once: true });
+        })
+    );
+    try {
+      const request = fetchImageHttpTransport({
+        url: 'https://images.example.com/v1/models',
+        method: 'GET',
+        headers: {},
+        timeoutMs: 1_000,
+        signal: controller.signal,
+        maxBytes: 8,
+      });
+      const combined = await started;
+      const cancelled = expect(request).rejects.toThrow('synthetic native cancellation');
+      controller.abort(new Error('synthetic native cancellation'));
+      await fetchAborted;
+      await vi.advanceTimersByTimeAsync(1_000);
+      rejectFetch(combined.reason);
+      await cancelled;
+      expect(combined.aborted).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
+  });
+
+  it('still reports the deadline when its timer cancels fetch', async () => {
+    vi.useFakeTimers();
+    let fetchStarted = (_signal: AbortSignal) => {};
+    const started = new Promise<AbortSignal>((resolve) => {
+      fetchStarted = resolve;
+    });
+    vi.stubGlobal(
+      'fetch',
+      (_url: string | URL | Request, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          const signal = init?.signal;
+          if (!(signal instanceof AbortSignal)) throw new Error('missing fetch signal');
+          fetchStarted(signal);
+          signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+        })
+    );
+    try {
+      const request = fetchImageHttpTransport({
+        url: 'https://images.example.com/v1/models',
+        method: 'GET',
+        headers: {},
+        timeoutMs: 1_000,
+        maxBytes: 8,
+      });
+      await started;
+      const timedOut = expect(request).rejects.toThrow('request timed out after 1000ms');
+      await vi.advanceTimersByTimeAsync(1_000);
+      await timedOut;
+    } finally {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
+  });
 });
 
 it('encodes edit files as real multipart form data without exposing the key in the body', async () => {

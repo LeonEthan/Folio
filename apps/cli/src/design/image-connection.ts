@@ -174,8 +174,18 @@ function countModels(bytes: Uint8Array): number {
  * message a user can act on, never a partial success.
  */
 export const fetchImageHttpTransport: ImageHttpTransport = async (request) => {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), request.timeoutMs);
+  request.signal?.throwIfAborted();
+  const deadline = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    deadline.abort();
+  }, request.timeoutMs);
+  const cancelDeadline = () => clearTimeout(timer);
+  request.signal?.addEventListener('abort', cancelDeadline, { once: true });
+  const signal = request.signal
+    ? AbortSignal.any([request.signal, deadline.signal])
+    : deadline.signal;
   try {
     const multipart = request.multipart;
     const form = multipart ? new FormData() : undefined;
@@ -194,7 +204,7 @@ export const fetchImageHttpTransport: ImageHttpTransport = async (request) => {
       method: request.method,
       headers: request.headers,
       ...(body === undefined ? {} : { body }),
-      signal: controller.signal,
+      signal,
       redirect: 'error',
     });
     const bytes = await readBoundedBody(response, request.maxBytes);
@@ -202,12 +212,14 @@ export const fetchImageHttpTransport: ImageHttpTransport = async (request) => {
   } catch (error) {
     // `cause` keeps the transport failure for diagnostics without letting it
     // rewrite the message: only the bounded text below reaches the user.
-    if (controller.signal.aborted) {
+    if (timedOut) {
       throw new Error(`request timed out after ${request.timeoutMs}ms`, { cause: error });
     }
+    request.signal?.throwIfAborted();
     throw new Error(errorText(error), { cause: error });
   } finally {
     clearTimeout(timer);
+    request.signal?.removeEventListener('abort', cancelDeadline);
   }
 };
 

@@ -1,6 +1,11 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import type {
+  Transport,
+  TransportSendOptions,
+} from '@modelcontextprotocol/sdk/shared/transport.js';
+import type { JSONRPCMessage, MessageExtraInfo } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 
 const configSchema = z.union([
@@ -18,6 +23,7 @@ const configSchema = z.union([
 ]);
 // Image HTTP work has a 180s production deadline; allow 30s for MCP delivery.
 const IMAGE_TOOL_TIMEOUT_MS = 210_000;
+const CANCELLATION_DELIVERY_TIMEOUT_MS = 30_000;
 const callOptions = (name: string, signal?: AbortSignal) => ({
   signal,
   ...(['folio_generate_image', 'folio_edit_image'].includes(name)
@@ -25,6 +31,64 @@ const callOptions = (name: string, signal?: AbortSignal) => ({
     : {}),
 });
 const names = new Set(['folio_generate_image', 'folio_edit_image', 'folio_render_preview']);
+
+/** Give SDK cancellation delivery its existing allowance before per-call transport cleanup. */
+export class CancellationDeliveryTransport implements Transport {
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+  onmessage?: <T extends JSONRPCMessage>(message: T, extra?: MessageExtraInfo) => void;
+  private cancellationDelivery: Promise<'delivered' | 'failed'> | undefined;
+
+  constructor(private readonly inner: Transport) {}
+
+  get sessionId(): string | undefined {
+    return this.inner.sessionId;
+  }
+
+  setProtocolVersion(version: string): void {
+    this.inner.setProtocolVersion?.(version);
+  }
+
+  async start(): Promise<void> {
+    this.inner.onclose = () => this.onclose?.();
+    this.inner.onerror = (error) => this.onerror?.(error);
+    this.inner.onmessage = (message, extra) => this.onmessage?.(message, extra);
+    await this.inner.start();
+  }
+
+  send(message: JSONRPCMessage, options?: TransportSendOptions): Promise<void> {
+    const delivery = this.inner.send(message, options);
+    if ('method' in message && message.method === 'notifications/cancelled') {
+      this.cancellationDelivery = delivery.then(
+        () => 'delivered',
+        () => 'failed'
+      );
+    }
+    return delivery;
+  }
+
+  async waitForCancellationDelivery(): Promise<
+    'not-requested' | 'delivered' | 'failed' | 'timed-out'
+  > {
+    const delivery = this.cancellationDelivery;
+    if (!delivery) return 'not-requested';
+    let deadline: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        delivery,
+        new Promise<'timed-out'>((resolve) => {
+          deadline = setTimeout(() => resolve('timed-out'), CANCELLATION_DELIVERY_TIMEOUT_MS);
+        }),
+      ]);
+    } finally {
+      if (deadline) clearTimeout(deadline);
+    }
+  }
+
+  async close(): Promise<void> {
+    await this.inner.close();
+  }
+}
 
 interface PiMcpApi {
   registerTool(tool: {
@@ -143,20 +207,25 @@ export default async function folioPiMcpExtension(pi: PiMcpApi): Promise<void> {
       await registerPiMcpTools(pi, client, async (args, signal) => {
         signal?.throwIfAborted();
         const callClient = new Client({ name: 'folio-pi-tool-call', version: '1.0.0' });
+        const callTransport = new CancellationDeliveryTransport(transport());
         activeCalls.add(callClient);
         let closing: Promise<void> | undefined;
-        const abort = () => {
+        const abortConnect = () => {
           closing ??= callClient.close();
           void closing.catch(() => undefined);
         };
-        signal?.addEventListener('abort', abort, { once: true });
+        signal?.addEventListener('abort', abortConnect, { once: true });
         try {
-          await callClient.connect(transport());
+          try {
+            await callClient.connect(callTransport);
+          } finally {
+            signal?.removeEventListener('abort', abortConnect);
+          }
           signal?.throwIfAborted();
           return await callClient.callTool(args, undefined, callOptions(args.name, signal));
         } finally {
-          signal?.removeEventListener('abort', abort);
           try {
+            await callTransport.waitForCancellationDelivery();
             await (closing ?? callClient.close());
           } finally {
             activeCalls.delete(callClient);

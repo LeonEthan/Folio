@@ -3,7 +3,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { describe, expect, it, vi } from 'vitest';
-import { registerPiMcpTools } from './pi-mcp-extension';
+import { CancellationDeliveryTransport, registerPiMcpTools } from './pi-mcp-extension';
 
 type Pi = Parameters<typeof registerPiMcpTools>[0];
 type Tool = Parameters<Pi['registerTool']>[0];
@@ -165,6 +165,128 @@ describe('Pi existing Folio MCP tools', () => {
     } finally {
       release();
       await f.close();
+    }
+  });
+
+  it('delivers SDK cancellation before closing an isolated call transport', async () => {
+    const client = new Client({ name: 'tracked-cancel-client', version: '1' });
+    const server = new Server(
+      { name: 'tracked-cancel-server', version: '1' },
+      { capabilities: { tools: {} } }
+    );
+    let markEntered = () => {};
+    let markServerCancelled = () => {};
+    let markCancellationQueued = () => {};
+    let releaseCancellation = () => {};
+    const entered = new Promise<void>((resolve) => {
+      markEntered = resolve;
+    });
+    const serverCancelled = new Promise<void>((resolve) => {
+      markServerCancelled = resolve;
+    });
+    const cancellationQueued = new Promise<void>((resolve) => {
+      markCancellationQueued = resolve;
+    });
+    const cancellationHeld = new Promise<void>((resolve) => {
+      releaseCancellation = resolve;
+    });
+    server.setRequestHandler(CallToolRequestSchema, async (_request, extra) => {
+      markEntered();
+      await new Promise<never>((_resolve, reject) => {
+        const abort = () => {
+          markServerCancelled();
+          reject(extra.signal.reason);
+        };
+        extra.signal.addEventListener('abort', abort, { once: true });
+      });
+    });
+    const [innerClientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const originalSend = innerClientTransport.send.bind(innerClientTransport);
+    innerClientTransport.send = async (message, options) => {
+      if ('method' in message && message.method === 'notifications/cancelled') {
+        markCancellationQueued();
+        await cancellationHeld;
+      }
+      await originalSend(message, options);
+    };
+    const trackedTransport = new CancellationDeliveryTransport(innerClientTransport);
+    await server.connect(serverTransport);
+    await client.connect(trackedTransport);
+    try {
+      const controller = new AbortController();
+      const result = client.callTool(
+        { name: 'folio_generate_image', arguments: { prompt: 'synthetic' } },
+        undefined,
+        { signal: controller.signal }
+      );
+      const checked = expect(result).rejects.toBeInstanceOf(Error);
+      await entered;
+      controller.abort(new Error('synthetic native cancellation'));
+      await cancellationQueued;
+      let deliverySettled = false;
+      const delivery = trackedTransport.waitForCancellationDelivery().then((outcome) => {
+        deliverySettled = true;
+        return outcome;
+      });
+      await Promise.resolve();
+      expect(deliverySettled).toBe(false);
+      releaseCancellation();
+      expect(await delivery).toBe('delivered');
+      await serverCancelled;
+      await checked;
+    } finally {
+      releaseCancellation();
+      await Promise.all([client.close(), server.close()]);
+    }
+  });
+
+  it('bounds a stalled SDK cancellation delivery before transport cleanup', async () => {
+    vi.useFakeTimers();
+    let markCancellationQueued = () => {};
+    let markClosed = () => {};
+    const cancellationQueued = new Promise<void>((resolve) => {
+      markCancellationQueued = resolve;
+    });
+    const closed = new Promise<void>((resolve) => {
+      markClosed = resolve;
+    });
+    const innerTransport: ConstructorParameters<typeof CancellationDeliveryTransport>[0] = {
+      start: async () => undefined,
+      send: async (message) => {
+        if ('method' in message && message.method === 'notifications/cancelled') {
+          markCancellationQueued();
+          await new Promise<never>(() => undefined);
+        }
+      },
+      close: async () => markClosed(),
+    };
+    const trackedTransport = new CancellationDeliveryTransport(innerTransport);
+    try {
+      void trackedTransport.send({
+        jsonrpc: '2.0',
+        method: 'notifications/cancelled',
+        params: { requestId: 1 },
+      });
+      await cancellationQueued;
+      let settled = false;
+      const cleanup = trackedTransport
+        .waitForCancellationDelivery()
+        .then(async (outcome) => {
+          await trackedTransport.close();
+          return outcome;
+        })
+        .then((outcome) => {
+          settled = true;
+          return outcome;
+        });
+      await vi.advanceTimersByTimeAsync(29_999);
+      expect(settled).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(await cleanup).toBe('timed-out');
+      await closed;
+      expect(settled).toBe(true);
+    } finally {
+      vi.useRealTimers();
     }
   });
 

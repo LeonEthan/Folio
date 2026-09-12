@@ -47,7 +47,11 @@ Pi image/render tools use the existing Lody MCP catalog and session context thro
 the public extension API. Never implement providers there or expose unlisted tools;
 retain native tool policy, cancellation signals and session-scoped client cleanup.
 Image MCP client deadlines must cover the existing image-service deadline plus delivery;
-Pi render keeps its default. Kimi design launches default the public global MCP timeout
+Pi render keeps its default. Give SDK cancellation delivery its 30-second allowance before
+isolated Pi call-client cleanup; a stalled delivery then yields to transport close. Server
+cancellation must reach image upload/download and guard the final asset write while remaining
+distinct from that deadline. Kimi design
+launches default the public global MCP timeout
 only when environment and readable TOML omit it; never log config parse errors.
 Do not retry paid requests automatically.
 

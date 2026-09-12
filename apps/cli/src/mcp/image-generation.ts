@@ -73,6 +73,8 @@ export interface GenerateImageOptions {
   /** Absolute session workdir; the asset lands under `<workdir>/media/`. */
   workdir: string;
   transport: ImageHttpTransport;
+  /** Native MCP request cancellation. */
+  signal?: AbortSignal;
 }
 
 export interface GeneratedImageAsset {
@@ -95,19 +97,23 @@ export interface GeneratedImageAsset {
 export async function generateImageAsset(
   options: GenerateImageOptions
 ): Promise<GeneratedImageAsset> {
+  options.signal?.throwIfAborted();
   const bytes = await requestImageBytes(options);
-  return await writeGeneratedImageAsset(options.workdir, bytes);
+  options.signal?.throwIfAborted();
+  return await writeGeneratedImageAsset(options.workdir, bytes, options.signal);
 }
 
 async function requestImageBytes(
   options: GenerateImageOptions,
   request?: ImageHttpRequest
 ): Promise<Uint8Array> {
+  options.signal?.throwIfAborted();
   const response = await callUpstream(
     options.transport,
     request ?? buildImageGenerationRequest(options),
     options.settings.apiKey
   );
+  options.signal?.throwIfAborted();
   if (response.status < 200 || response.status >= 300) {
     throw new ImageGenerationError(
       `image generation failed: HTTP ${response.status}${describeBody(
@@ -136,6 +142,7 @@ async function callUpstream(
   try {
     return await transport(request);
   } catch (error) {
+    request.signal?.throwIfAborted();
     throw new ImageGenerationError(
       `image generation failed: ${redactCredential(error instanceof Error ? error.message : String(error), credential)}`
     );
@@ -146,6 +153,7 @@ async function downloadGeneratedImage(
   options: GenerateImageOptions,
   url: string
 ): Promise<Uint8Array> {
+  options.signal?.throwIfAborted();
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(url);
@@ -171,6 +179,7 @@ async function downloadGeneratedImage(
       method: 'GET',
       headers: { accept: 'image/*' },
       timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
+      ...(options.signal === undefined ? {} : { signal: options.signal }),
       maxBytes: IMAGE_GENERATION_MAX_IMAGE_BYTES,
     },
     options.settings.apiKey
@@ -194,7 +203,7 @@ async function downloadGeneratedImage(
  * of what it was called with.
  */
 export function buildImageGenerationRequest(
-  options: Pick<GenerateImageOptions, 'settings' | 'prompt' | 'size'>
+  options: Pick<GenerateImageOptions, 'settings' | 'prompt' | 'size' | 'signal'>
 ): ImageHttpRequest {
   if (!isImageConnectionReady(options.settings)) {
     throw new ImageGenerationError(
@@ -225,6 +234,7 @@ export function buildImageGenerationRequest(
     },
     body: JSON.stringify(body),
     timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
+    ...(options.signal === undefined ? {} : { signal: options.signal }),
     maxBytes: IMAGE_GENERATION_MAX_RESPONSE_BYTES,
   };
 }
@@ -241,12 +251,15 @@ export const IMAGE_EDIT_MAX_INPUTS = 16;
 export const IMAGE_EDIT_MAX_TOTAL_BYTES = 64 * 1024 * 1024;
 
 export async function editImageAsset(options: EditImageOptions): Promise<GeneratedImageAsset> {
+  options.signal?.throwIfAborted();
   const request = await buildImageEditRequest(options);
   const bytes = await requestImageBytes(options, request);
-  return await writeGeneratedImageAsset(options.workdir, bytes);
+  options.signal?.throwIfAborted();
+  return await writeGeneratedImageAsset(options.workdir, bytes, options.signal);
 }
 
 export async function buildImageEditRequest(options: EditImageOptions): Promise<ImageHttpRequest> {
+  options.signal?.throwIfAborted();
   // Share configuration/prompt/size validation, without sending a generation request.
   const generation = buildImageGenerationRequest(options);
   if (options.images.length < 1 || options.images.length > IMAGE_EDIT_MAX_INPUTS) {
@@ -259,11 +272,14 @@ export async function buildImageEditRequest(options: EditImageOptions): Promise<
   const allowedRoots = await Promise.all(
     [root, sourceRoot].map(async (lexical) => ({ lexical, resolved: await realpath(lexical) }))
   );
+  options.signal?.throwIfAborted();
   const files: NonNullable<ImageHttpRequest['multipart']>['files'] = [];
   let total = 0;
   const appendFile = async (input: string, field: string, index: number) => {
+    options.signal?.throwIfAborted();
     const candidate = path.resolve(root, input);
     const resolved = await realpath(candidate);
+    options.signal?.throwIfAborted();
     if (
       !allowedRoots.some(
         (allowed) =>
@@ -276,6 +292,7 @@ export async function buildImageEditRequest(options: EditImageOptions): Promise<
     const handle = await open(candidate, constants.O_RDONLY | constants.O_NOFOLLOW);
     try {
       const stat = await handle.stat();
+      options.signal?.throwIfAborted();
       if (!stat.isFile() || stat.size === 0 || stat.size > IMAGE_GENERATION_MAX_IMAGE_BYTES) {
         throw new ImageGenerationError(
           `image input must be a nonempty regular file no larger than ${IMAGE_GENERATION_MAX_IMAGE_BYTES} bytes`
@@ -289,6 +306,7 @@ export async function buildImageEditRequest(options: EditImageOptions): Promise<
       let length = 0;
       while (length < bytes.length) {
         const read = await handle.read(bytes, length, bytes.length - length, length);
+        options.signal?.throwIfAborted();
         if (read.bytesRead === 0) break;
         length += read.bytesRead;
       }
@@ -345,6 +363,7 @@ export async function buildImageEditRequest(options: EditImageOptions): Promise<
     headers: { authorization: generation.headers.authorization ?? '', accept: 'application/json' },
     multipart: { fields, files },
     timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
+    ...(options.signal === undefined ? {} : { signal: options.signal }),
     maxBytes: IMAGE_GENERATION_MAX_RESPONSE_BYTES,
   };
 }
@@ -425,8 +444,10 @@ const EXTENSION_BY_MIME: Record<StaticV1ImageMimeType, string> = {
  */
 export async function writeGeneratedImageAsset(
   workdir: string,
-  bytes: Uint8Array
+  bytes: Uint8Array,
+  signal?: AbortSignal
 ): Promise<GeneratedImageAsset> {
+  signal?.throwIfAborted();
   const mimeType = sniffStaticV1ImageMime(bytes);
   if (mimeType === null) {
     throw new ImageGenerationError(
@@ -442,19 +463,23 @@ export async function writeGeneratedImageAsset(
   }
 
   const existing = await statOrNull(absolutePath);
+  signal?.throwIfAborted();
   if (existing !== null) {
     if (existing.isSymbolicLink() || !existing.isFile()) {
       throw new ImageGenerationError(`refusing to write over a non-regular file: ${relative}`);
     }
     const current = await readFile(absolutePath);
+    signal?.throwIfAborted();
     if (!current.equals(Buffer.from(bytes))) {
       throw new ImageGenerationError(
         `refusing to overwrite an unrelated file at the content-addressed path ${relative}`
       );
     }
   } else {
+    signal?.throwIfAborted();
     await mkdir(path.dirname(absolutePath), { recursive: true });
-    await writeFileAtomically(absolutePath, bytes);
+    signal?.throwIfAborted();
+    await writeFileAtomically(absolutePath, bytes, signal);
   }
 
   const dimensions = readImageDimensions(bytes, mimeType);
@@ -469,16 +494,24 @@ export async function writeGeneratedImageAsset(
   };
 }
 
-async function writeFileAtomically(target: string, bytes: Uint8Array): Promise<void> {
+async function writeFileAtomically(
+  target: string,
+  bytes: Uint8Array,
+  signal?: AbortSignal
+): Promise<void> {
   const temporary = `${target}.${randomUUID()}.tmp`;
   try {
+    signal?.throwIfAborted();
     const file = await open(temporary, 'wx', 0o600);
     try {
       await file.writeFile(bytes);
+      signal?.throwIfAborted();
       await file.sync();
+      signal?.throwIfAborted();
     } finally {
       await file.close();
     }
+    signal?.throwIfAborted();
     await rename(temporary, target);
   } finally {
     await unlink(temporary).catch(() => undefined);

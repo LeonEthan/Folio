@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
@@ -212,6 +212,43 @@ describe('generateImageAsset', () => {
     expect(calls.map((request) => request.method)).toEqual(['POST', 'GET']);
     expect(calls[1]!.url).toBe('https://images.example.com/v1/files/abc');
     expect(asset.sha256).toBe(sha256Of(png));
+  });
+
+  it('does not publish a returned-url asset after cancellation', async () => {
+    const workdir = await makeWorkdir();
+    const png = pngFixture(2, 2);
+    const controller = new AbortController();
+    let markDownloadStarted = () => {};
+    let releaseDownload = () => {};
+    const downloadStarted = new Promise<void>((resolve) => {
+      markDownloadStarted = resolve;
+    });
+    const heldDownload = new Promise<void>((resolve) => {
+      releaseDownload = resolve;
+    });
+    const transport: ImageHttpTransport = async (request) => {
+      expect(request.signal).toBe(controller.signal);
+      if (request.method === 'POST') {
+        return jsonResponse(200, { data: [{ url: 'https://images.example.com/v1/files/held' }] });
+      }
+      markDownloadStarted();
+      await heldDownload;
+      return bytesResponse(200, new Uint8Array(png));
+    };
+
+    const generated = generateImageAsset({
+      settings,
+      prompt: 'p',
+      workdir,
+      transport,
+      signal: controller.signal,
+    });
+    await downloadStarted;
+    controller.abort(new Error('synthetic native cancellation'));
+    releaseDownload();
+
+    await expect(generated).rejects.toThrow('synthetic native cancellation');
+    await expect(readdir(path.join(workdir, 'media'))).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
   it('reuses the same content-addressed path for identical bytes', async () => {

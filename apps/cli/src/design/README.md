@@ -170,14 +170,20 @@ quit, after the existing cancellable editor flush. See the
 
 Pi generation/edit MCP calls allow 210 seconds to cover the existing 180-second image
 service deadline and delivery. Pi render keeps its default; cancellation remains active
-and paid calls are never retried automatically. Builtin Kimi design launches use the
+and paid calls are never retried automatically. Pi gives the SDK cancellation notification the
+same 30-second MCP delivery allowance before closing the isolated call client; a stalled send
+therefore cannot block Stop indefinitely. The MCP server propagates that native request signal
+through edit uploads and returned-image downloads, combines it with the HTTP deadline, and checks
+it before publishing the content-addressed asset. Builtin Kimi
+design launches use the
 public `KIMI_MCP_TOOL_TIMEOUT_MS` default only when neither the inherited/provider
 environment nor the native `config.toml` sets it. `KIMI_CODE_HOME` and the child
 HOME locate that file; unreadable or malformed configuration is left to Kimi.
 This Kimi setting is a global MCP default for the design session, including other
 tools without a per-server override; native per-server timeout settings still win.
 The managed executable exposes no separate config-file CLI option in this launch. See the
-[deadline correction](../../../../.agents/notes/implemented/bug-fix/2026-09-12-image-mcp-client-deadline.md).
+[deadline correction](../../../../.agents/notes/implemented/bug-fix/2026-09-12-image-mcp-client-deadline.md)
+and [server cancellation correction](../../../../.agents/notes/implemented/bug-fix/2026-09-12-image-mcp-request-cancellation.md).
 
 The separate `pi-mcp-extension` uses Pi's public tool API and the existing Lody
 MCP HTTP host. It exposes only listed `folio_generate_image`, `folio_edit_image`

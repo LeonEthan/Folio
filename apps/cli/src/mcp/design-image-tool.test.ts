@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -410,6 +410,57 @@ describe('folio_generate_image call', () => {
     expect(result!.isError).toBe(true);
     expect(textOf(result!)).toMatch(/unavailable/i);
     expect(calls).toEqual([]);
+  });
+
+  it.each([
+    { name: 'folio_generate_image', args: { prompt: 'synthetic generation' } },
+    {
+      name: 'folio_edit_image',
+      args: { prompt: 'synthetic edit', images: ['source.png'] },
+    },
+  ])('propagates SDK cancellation into a pending $name request', async ({ name, args }) => {
+    const workdir = await mkdtemp(path.join(os.tmpdir(), 'folio-image-cancel-'));
+    const png = pngFixture(4, 4);
+    await writeFile(path.join(workdir, 'source.png'), png);
+    let markStarted = () => {};
+    let markCancelled = () => {};
+    let release = () => {};
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
+    const cancelled = new Promise<void>((resolve) => {
+      markCancelled = resolve;
+    });
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const transport: ImageHttpTransport = async (request) => {
+      if (!request.signal) throw new Error('missing MCP cancellation signal');
+      request.signal.addEventListener('abort', markCancelled, { once: true });
+      markStarted();
+      await held;
+      return jsonResponse(200, { data: [{ b64_json: png.toString('base64') }] });
+    };
+    try {
+      await withServer(
+        { designGate: readyGate, imageTransport: transport, workdir },
+        async (client) => {
+          const controller = new AbortController();
+          const call = client.callTool({ name, arguments: args }, undefined, {
+            signal: controller.signal,
+          });
+          await started;
+          controller.abort(new Error('synthetic native cancellation'));
+          await expect(call).rejects.toBeInstanceOf(Error);
+          await cancelled;
+          release();
+        }
+      );
+      await expect(readdir(path.join(workdir, 'media'))).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      release();
+      await rm(workdir, { recursive: true, force: true });
+    }
   });
 
   it('refuses an empty prompt and unknown arguments', async () => {
