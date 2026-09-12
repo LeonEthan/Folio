@@ -28,8 +28,8 @@ remain failures even though a later native round read the recovered bytes. The
 same TODO now records a real four-image poster and 12-image long-artwork journey
 through save, PPTD roundtrip, versioning, PNG/JPEG export, same-profile restart
 and a copied-profile fresh-process reopen. The six requested human checks for
-these two artworks now pass; see the human review supplement below. Broader
-coverage and numeric performance limits remain unapproved.
+these two artworks now pass; see the human review supplement and bounded
+workload recommendation below. Broader journey coverage remains incomplete.
 
 The original three synthetic journeys use the copied arm64 application built from
 `b86a1c92aa529511c4390dc057649bbb00a53f50`, including the attachment-history repair.
@@ -77,6 +77,32 @@ The verdict covers the inspected local package and workload, not Windows/Linux,
 all three original scene journeys, a separately scored edit-target comparison,
 numeric memory/latency thresholds, or release authorization. Remaining coverage
 continues to follow the installed matrix and live-image TODO.
+
+### Workload recommendation after human review
+
+The recorded measurements and accepted interaction experience support local use
+on this Apple M4 / 16 GiB machine at the tested workloads: a 1200 × 1800 poster
+with four image nodes and a 1200 × 2400 artwork with twelve nodes reusing four
+distinct real assets. This is a workload recommendation, not a supported maximum
+or a requirement for another user-approved numeric threshold.
+
+The 567741b real-asset result above contains one journey per workload. Its
+observed load-and-import times were 1.66 s and 1.68 s; PNG exports were 1.52 s
+and 2.34 s; JPEG exports were 1.39 s and 1.94 s, respectively. The poster's
+10.79 s crop/scale/replace/undo/redo/autosave sequence includes multiple actions
+and is not input latency. Nine poster disk/PPTD readback checks took 29–44 ms;
+the long artwork's single check took 40 ms. These readback timings do not measure
+the whole automatic-save interval. Maximum sampled main RSS was 505 MiB and
+458 MiB; maximum sampled sums of owned-process RSS were 2202 MiB and 1933 MiB.
+The sums can count shared pages more than once and are not exclusive footprint.
+
+Existing applications remained open; these are observed operation timings, not
+an isolated benchmark. The earlier synthetic table below retains three samples
+per scene on smaller assets. Neither set establishes p95, leak/soak behavior,
+application cold startup, a universal latency budget or a maximum image count.
+The human verdict accepts the named interactions and visuals, not each memory
+measurement. These limits satisfy a bounded scope recommendation without
+inventing an additional numeric-approval gate.
 
 The [procedure](../../../../e2e/DESIGN-ACCEPTANCE.md) remains the human workflow;
 the [installed matrix](2026-09-11-installed-five-agent-matrix.md) owns the five-Agent

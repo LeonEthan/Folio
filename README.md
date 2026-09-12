@@ -62,7 +62,9 @@ resolved before treating your latest edits as saved or quitting.
 
 Release acceptance is pending. The installed macOS package has completed scripted
 poster, infographic and long-image journeys with a native Claude runtime and a
-synthetic provider. Human visual and editing judgments are still pending. Nine
+synthetic provider. The user has accepted six visual/editing checks on a later
+real-asset poster and 12-image review copy; the original three-scene human Agent
+journey remains incomplete. Nine
 controlled canvas-operation samples were recorded on an Apple M4 Mac with 16 GiB
 RAM; these do not establish a maximum canvas size, universal performance budget,
 application cold-start time or physical input latency. Windows and Linux resource
@@ -82,8 +84,10 @@ establish a complete design workflow.
 
 Real image generation/editing has produced four test assets, with original failed
 receipts retained separately from successful later image reads. Complete real-image
-design and human quality acceptance remain pending. Grok's full-close Stop correction
-is implemented, with installed verification pending. Pi's image-request cancellation
+design acceptance remains incomplete; the two review artworks now have scoped
+human approval. Grok's full-close Stop and explicit session restoration passed
+an installed raw-evidence audit, with the harness's later auxiliary-request
+failure retained. Pi's image-request cancellation
 passes an installed regression against a synthetic provider; this does not establish
 cancellation behavior at a paid provider. Image generation
 requires your own supported connection and explicit model; there is no product
