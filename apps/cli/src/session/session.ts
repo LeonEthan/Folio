@@ -1,3 +1,4 @@
+import { withKimiImageToolTimeout } from '@/design/kimi-image-timeout';
 import { prepareGrokDesignReminder } from '@/design/grok-reminder';
 import { withCodexDesignReminder } from '@/design/codex-reminder';
 import { prepareClaudeDesignLaunch } from '@/design/claude-launch';
@@ -501,6 +502,8 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
       callbacks.command,
       this.buildShellEnv(callbacks.env, loginShellEnv)
     );
+    if (callbacks.cliType === 'builtin' && callbacks.agentType === 'kimi' && callbacks.designHooks)
+      env = await withKimiImageToolTimeout(env, this.getWorkdir());
     if (callbacks.cliType === 'builtin' && callbacks.agentType === 'codex' && callbacks.designHooks)
       env = withCodexDesignReminder(env);
     const grokReminder =

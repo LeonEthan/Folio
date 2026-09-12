@@ -168,6 +168,15 @@ quit, after the existing cancellable editor flush. See the
 
 ### Pi image and rendering tools
 
+Generation/edit MCP calls allow 210 seconds to cover the existing 180-second image
+service deadline and delivery. Render keeps its default; cancellation remains active
+and paid calls are never retried automatically. Builtin Kimi design launches use the
+public `KIMI_MCP_TOOL_TIMEOUT_MS` default only when neither the inherited/provider
+environment nor the native `config.toml` sets it. `KIMI_CODE_HOME` and the child
+HOME locate that file; unreadable or malformed configuration is left to Kimi.
+The managed executable exposes no separate config-file CLI option in this launch. See the
+[deadline correction](../../../../.agents/notes/implemented/bug-fix/2026-09-12-image-mcp-client-deadline.md).
+
 The separate `pi-mcp-extension` uses Pi's public tool API and the existing Lody
 MCP HTTP host. It exposes only listed `folio_generate_image`, `folio_edit_image`
 and `folio_render_preview` tools, with the server's descriptions and schemas.

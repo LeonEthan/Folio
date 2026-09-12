@@ -2,13 +2,13 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { registerPiMcpTools } from './pi-mcp-extension';
 
 type Pi = Parameters<typeof registerPiMcpTools>[0];
 type Tool = Parameters<Pi['registerTool']>[0];
 
-async function fixture() {
+async function fixture(hold?: () => Promise<void>) {
   const client = new Client({ name: 'test', version: '1' });
   const server = new Server({ name: 'lody', version: '1' }, { capabilities: { tools: {} } });
   const tools = new Map<string, Tool>();
@@ -37,6 +37,7 @@ async function fixture() {
   }));
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     calls.push(request.params);
+    await hold?.();
     return {
       content: [
         { type: 'text', text: state.error ? 'actual upstream failure' : 'actual asset result' },
@@ -106,6 +107,67 @@ describe('Pi existing Folio MCP tools', () => {
       await f.close();
     }
   });
+  it.each(['folio_generate_image', 'folio_edit_image'])(
+    '%s waits beyond the SDK default for the existing image service',
+    async (name) => {
+      vi.useFakeTimers();
+      let release = () => {};
+      let started = () => {};
+      const waiting = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const entered = new Promise<void>((resolve) => {
+        started = resolve;
+      });
+      const f = await fixture(async () => {
+        started();
+        await waiting;
+      });
+      try {
+        const result = f.tools.get(name)?.execute('long-image', { prompt: 'synthetic' });
+        const checked = expect(result).resolves.toMatchObject({
+          content: [{ text: 'actual asset result' }],
+        });
+        await entered;
+        await vi.advanceTimersByTimeAsync(180_000);
+        release();
+        await checked;
+      } finally {
+        release();
+        await f.close();
+        vi.useRealTimers();
+      }
+    }
+  );
+
+  it('retains native cancellation while an image request is pending', async () => {
+    let started = () => {};
+    let release = () => {};
+    const entered = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const f = await fixture(async () => {
+      started();
+      await held;
+    });
+    try {
+      const controller = new AbortController();
+      const result = f.tools
+        .get('folio_edit_image')
+        ?.execute('cancel-image', { prompt: 'synthetic' }, controller.signal);
+      const checked = expect(result).rejects.toThrow('user cancelled');
+      await entered;
+      controller.abort(Error('user cancelled'));
+      await checked;
+    } finally {
+      release();
+      await f.close();
+    }
+  });
+
   it('removes unavailable tools before the next generation and retains explicit inactive choices', async () => {
     const f = await fixture();
     try {

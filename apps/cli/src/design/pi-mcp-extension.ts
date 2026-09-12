@@ -16,6 +16,14 @@ const configSchema = z.union([
     env: z.record(z.string(), z.string()),
   }),
 ]);
+// Image HTTP work has a 180s production deadline; allow 30s for MCP delivery.
+const IMAGE_TOOL_TIMEOUT_MS = 210_000;
+const callOptions = (name: string, signal?: AbortSignal) => ({
+  signal,
+  ...(['folio_generate_image', 'folio_edit_image'].includes(name)
+    ? { timeout: IMAGE_TOOL_TIMEOUT_MS }
+    : {}),
+});
 const names = new Set(['folio_generate_image', 'folio_edit_image', 'folio_render_preview']);
 
 interface PiMcpApi {
@@ -52,7 +60,7 @@ export async function registerPiMcpTools(
     args: Parameters<Client['callTool']>[0],
     signal?: AbortSignal
   ) => ReturnType<Client['callTool']> = (args, signal) =>
-    client.callTool(args, undefined, { signal })
+    client.callTool(args, undefined, callOptions(args.name, signal))
 ): Promise<void> {
   let available = new Set<string>();
   let closed = false;
@@ -145,7 +153,7 @@ export default async function folioPiMcpExtension(pi: PiMcpApi): Promise<void> {
         try {
           await callClient.connect(transport());
           signal?.throwIfAborted();
-          return await callClient.callTool(args, undefined, { signal });
+          return await callClient.callTool(args, undefined, callOptions(args.name, signal));
         } finally {
           signal?.removeEventListener('abort', abort);
           try {

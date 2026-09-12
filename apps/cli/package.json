@@ -122,6 +122,7 @@
     "better-sqlite3": "catalog:",
     "loro-crdt": "1.15.1",
     "shell-env": "^4.0.3",
+    "smol-toml": "1.6.1",
     "tinypool": "^1.0.0",
     "typescript": "^5.9.3"
   }
