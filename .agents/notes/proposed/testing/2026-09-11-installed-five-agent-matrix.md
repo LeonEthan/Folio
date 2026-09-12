@@ -53,8 +53,10 @@ was open with no comments. Its seven criteria are retained:
 2026-09-12 requirement update: real provider generation and editing are mandatory,
 not satisfied by the synthetic rounds below. The user supplied an AruHub image2
 test connection; see the [live MCP TODO](2026-09-12-live-image-mcp-acceptance.zh.md)
-for non-secret configuration and cases. No request has been executed for this
-new TODO, and no credentials are stored in this record.
+for non-secret configuration and cases. Three real generation calls and one edit
+have produced four assets, with actual native image reading. Two original
+generation receipts failed or were interrupted; recovered assets and later reads
+do not turn those receipts into successes. No credentials are stored in this record.
 
 This summary uses the scoped installed rounds recorded below, each with its own
 package source and runtime identity. It does not imply that every behavior was
@@ -64,12 +66,53 @@ remains blocked; the preparation and replacement-package tables below are histor
 | Original criterion | Established evidence | Remaining limit |
 | --- | --- | --- |
 | 1. Runtime, ACP, launch, tools and platform | Five-Agent identities and actual installed launch records are retained per round. | These records do not establish another platform or commercial authentication. |
-| 2. Per-Agent workflow | Discovery, reference reading, skills and permissions have scoped evidence for all five; Pi permission and cancellation/explicit continuation now include successful cleanup. | Codex/Kimi/Grok lack the full native design-hook workflow. Grok cancellation acknowledgement and continuation are observed, but its held HTTP connection fails the transport-close check. |
-| 3. Read/write facts, negatives and final protection | Pi/Claude read, stale-write and same-byte attempts; both hook-error/uncovered-path negatives; Claude user-disabled hooks; independent final CAS for Codex/Kimi/Grok. | Pi extension absence has no established configuration-only route. The three runtime hook gaps remain; final CAS cannot replace those hooks. |
-| 4. Configured image service and actual image reading | Claude, Codex, Kimi and Grok have synthetic Folio generate/edit and actual native image-reading evidence. Rendering and watched source updates have their separate recorded rounds. | Required AruHub live generate/edit and visual verdicts remain unexecuted; see the live MCP TODO. Pi ACP does not expose Folio MCP tools in the recorded combination. |
+| 2. Per-Agent workflow | Discovery, reference reading, skills and permissions have scoped evidence for all five. Revised save/reminder success, failure and cancellation paths have native Pi/Claude evidence. Codex/Grok public reminders have native delivery evidence; Kimi's plugin has isolated-home evidence. | Full revised installed combinations remain incomplete; Kimi user installation awaits authorization. Grok Stop has a confirmed full-close/explicit-resume target, but its original HTTP cancellation failure is not fixed by reminder delivery. |
+| 3. Read/write facts, negatives and final protection | Historical strict read-proof and stale-write tests remain below. Current implementation uses independent automatic PPTD saves, public reminders, native guards and final source/draft/version checks; generation-proof ledgers have been removed. | Final CAS does not prove reminder delivery or model behavior. Verify each current combination without treating retired strict-hook requirements as runtime-patch work. |
+| 4. Configured image service and actual image reading | All five have scoped synthetic Folio generate/edit and native reading evidence, including installed Pi's public extension. Real AruHub calls and Kimi reading are recorded in the live TODO. Normal 5d03ea7 Kimi/Pi calls have held responses beyond the former 60-second client deadline. | Real multi-image design and human verdicts remain pending. The two real failed receipts remain failed; Pi's native image cancellation probe confirms that stopping the turn does not yet stop the held upstream request. No automatic paid retries. |
 | 5. Installed versus development evidence | Normal package identities, isolated installed launches and scoped outcomes are distinguished from development and diagnostic runs. | Only each recorded combination is supported by that evidence; the user chooses the Agent. |
 | 6. Existing facilities and private synthetic evidence | Existing harness and provider fixtures are reused; captured conversations remain outside Git. | No new test engine or public transcript artifact is introduced. |
 | 7. Documentation and checks | This owning matrix and affected instructions retain outcomes, failures and check records. | Documentation and green checks do not close the runtime or human acceptance gaps. |
+
+### Revised installed image deadline and cancellation evidence
+
+Normal macOS arm64 source `5d03ea7e58acb1095fe6d1c3e8fbe006bbc6da58`
+includes the [public timeout correction](../../implemented/bug-fix/2026-09-12-image-mcp-client-deadline.md).
+DMG SHA256 is `8c0f6d2f168a4f431c19b0edb76973749365f6c84165949506aabfa5d5bf96f8`,
+and ASAR SHA256 is `69a95e055629ee78201a8df9351f658f7000d50d744c700f3c22a757104fe5d1`.
+The normal build, DMG verification, copy from the mounted image and signature
+verification passed. These are private ad-hoc acceptance packages, not a release.
+
+Both language and image providers in the following rounds were isolated loopback
+fixtures. Before sending the first prompt, each probe checked the actual selected
+synthetic provider, exact private model configuration and absence of cached
+authentication. No paid request or user credential was used.
+
+- `folio-t28-kimi-input-8qcYQI`, handle 65307 exit 0: with no explicit timeout in
+  the isolated Kimi configuration, one image edit remained held for 81.87 seconds
+  before explicit fixture release and completed. Four native reads delivered the
+  exact reused/returned images. Endpoint and process cleanup passed; shutdown
+  EPIPE/attach diagnostics remain in the original evidence. This verifies the new
+  installed default, not a new real image-service request or Kimi user hook installation.
+- `folio-t28-kimi-input-WBKcu7`, Pi handle 55919 exit 1: actual Folio generation and
+  edit remained held for 100.71 and 78.461 seconds respectively, then returned and
+  passed two native image reads. The later cancellation stage never started because
+  the probe used a homepage-only input locator after entering a session. The full
+  round remains failed, with successful image stages and clean teardown recorded separately.
+- `folio-t28-kimi-input-43BZNC`, Pi cancel-only handle 15097 exit 1: one image request
+  arrived at 05:50:11.403Z; actual UI Stop was issued at 05:50:12.379Z. ACP ended the
+  turn as cancelled, but no HTTP close occurred during the following 60 seconds.
+  The fixture itself closed it at 05:51:12.529Z, so `nativeCancelled` remained false.
+  The app then cleaned up normally and all 14 recorded owned PIDs were absent.
+  The tool handler currently drops SDK cancellation before the image transport;
+  correction and a new installed regression remain required. A host startup log
+  alone does not identify this call's transport. Neither native cancelled state
+  nor later fixture cleanup counts as successful request cancellation.
+
+Each named round retains its `evidence/` directory under the system temporary
+directory, with tool results, event times and original failure details. The
+[live image TODO](2026-09-12-live-image-mcp-acceptance.zh.md) separately owns the
+three actual generations, one actual edit, recovered receipts and four final reads.
+Their assets are reused for full design acceptance without repeating paid calls.
 
 ## Preparation inventory
 

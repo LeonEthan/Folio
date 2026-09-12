@@ -10,6 +10,8 @@ execution, with PPTD authoring and the Bento editor.
 
 - Create a design, choose its dimensions, edit text, shapes and images in Bento,
   save it, reopen it, and export PNG or JPEG.
+- Manual edits save automatically. Use Save version to retain a version in
+  the artwork's local history, inspect earlier versions and continue editing from one.
 - Ask your configured Agent to create or revise a PPTD design. BentoDoc is the
   editable canvas; PPTD is the Agent-facing authoring format. The Agent chooses its
   creative approach and can use available file and image tools to review its work.
@@ -20,7 +22,7 @@ execution, with PPTD authoring and the Bento editor.
   identifier in Settings. Folio does not recommend a product-default model.
 
 This is a development build, not a claim of release readiness. Agent-specific
-image input, synchronization hooks, live PPTD preview, and the remaining workflow
+image input, public read-first reminders, live PPTD preview, and the remaining workflow
 cleanup are tracked in [Issues](https://github.com/LeonEthan/Folio/issues). An Agent
 being configurable does not prove every design operation works with that Agent.
 The [design specification](specs/graphic-design-platform.zh.md) describes the draft
@@ -43,8 +45,8 @@ images are optional; text and shape design does not require an image service.
 
 ## Continue, preview and recover
 
-Save your manual changes and continue the conversation. Folio flushes open canvas
-edits before dispatch and keeps the artwork read-only while the Agent executes
+Manual edits automatically update the saved canvas and its PPTD files. Folio waits
+for open-canvas saves before dispatch and keeps the artwork read-only while the Agent executes
 and its files are processed. A file preview shows the working source; it is not a
 saved canvas or proof that the Agent has finished. After a formal commit, edit the
 current canvas again. When explicitly importing a preview, Folio binds the import
@@ -68,19 +70,22 @@ packaging is not native execution evidence. See the
 [acceptance evidence](.agents/notes/proposed/testing/2026-09-11-complete-design-acceptance.md)
 and [review procedure](e2e/DESIGN-ACCEPTANCE.md).
 
-Pi and Claude have design synchronization implementations. The
+The current approach combines automatic PPTD saves with public read-first reminders,
+without patching Agent runtimes or requiring generation-by-generation read proofs.
+Pi, Claude, Codex and Grok reminders have scoped native evidence; Kimi's public
+plugin is prepared but its user-level installation remains pending. Pi now exposes
+Folio image and rendering tools through its public extension, with installed
+generation/editing and native image-reading evidence. The
 [installed Agent matrix](.agents/notes/proposed/testing/2026-09-11-installed-five-agent-matrix.md)
-records passed behavior separately from remaining runtime and cleanup gaps.
-Codex, Kimi and Grok remain
-blocked on the complete native design-hook contract. This does not remove their
-ordinary execution or image-reading capabilities: installed Codex, Kimi and Grok
-have separately verified Folio image MCP generate/edit calls and actual native
-image reading with local synthetic services. These checks do not establish paid
-service quality or complete design synchronization. An Agent appearing in Settings does
-not establish support for the complete design workflow. The current Pi ACP
-adapter does not forward the MCP catalog, so its route does not provide Folio's
-image MCP tools. Image generation still requires your own supported connection
-and an explicit model; there is no product default or automatic paid retry.
+records each combination and its limits; Settings availability alone does not
+establish a complete design workflow.
+
+Real image generation/editing has produced four test assets, with original failed
+receipts retained separately from successful later image reads. Complete real-image
+design and human quality acceptance remain pending. Grok Stop and cancellation of
+in-flight image requests still require correction and verification. Image generation
+requires your own supported connection and explicit model; there is no product
+default or automatic paid retry.
 
 No public release, Developer ID signing, notarization or automatic update channel
 is established by the local ad-hoc package checks.
