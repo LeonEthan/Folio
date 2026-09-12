@@ -31,6 +31,8 @@ Read each heading's linked rules before editing.
 - Human forks share the workspace; no Git probe/new-worktree menu. Keep recovery
   for previously accepted worktree forks.
 - Keep Current artwork wired in the visible toolbar.
+- When a design Agent turn starts with Current artwork selected, show the existing
+  readonly authoring preview automatically; respect later explicit source choices.
 - A Side Chat is a durable child Session (`childSessionPlacement: 'side-panel'`):
   no top tab/sidebar row; it rolls up into its parent. Mount lazily; only its tab
   `X` deletes it.

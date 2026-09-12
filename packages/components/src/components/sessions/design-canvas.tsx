@@ -97,7 +97,15 @@ export function DesignCanvas({
   const [versions, setVersions] = useState<Awaited<ReturnType<IpcServices['design']['versions']>>>([]);
   const versionsGeneration = useRef(0);
   const liveStatus = useAtomValue(sessionLiveStatusAtomFamily(sessionId as SessionId));
+  const previousLiveState = useRef({ sessionId, running: false });
   const readonlyView = preview || historyVersion !== undefined;
+  useEffect(() => {
+    const running = liveStatus != null;
+    const previous = previousLiveState.current;
+    const started = running && (previous.sessionId !== sessionId || !previous.running);
+    previousLiveState.current = { sessionId, running };
+    if (started && !preview && historyVersion === undefined) setPreview(true);
+  }, [sessionId, liveStatus, preview, historyVersion]);
   const refreshVersions = useCallback(async (isCurrent: () => boolean = () => true) => {
     const generation = ++versionsGeneration.current;
     const service = getIpcServices()?.design;

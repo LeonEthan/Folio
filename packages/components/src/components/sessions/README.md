@@ -103,6 +103,11 @@ asset bytes; waiting/error states retain the last valid preview. Current-artwork
 copy/export actions are disabled while viewing source files. The preview never
 unlocks or destroys the editor and does not declare Agent completion.
 
+When an Agent turn starts while Current artwork is selected, the canvas enters that
+same readonly source preview and subscribes to valid intermediate PPTD snapshots.
+An explicit view choice made afterward remains in place while that live status
+stays active; idle external-file previews still use the Unsubmitted preview control.
+
 “Reference selected elements” on Current artwork inserts an ordinary mention into
 the existing composer. It saves pending canvas edits first, retains the resulting
 revision through draft restoration, and restores input focus. Subsequent edits,

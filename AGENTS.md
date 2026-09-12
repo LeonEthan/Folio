@@ -8,6 +8,9 @@ Entry points: [README](README.md#repository).
 Finish authorized work using context and reasonable assumptions. Ask about material
 gaps while continuing independent work; reuse prior authorization.
 Planning/review requests do not authorize runtime implementation or publication.
+Image calls needed for an explicit task are preauthorized up to five total
+generate/edit calls. Count them together across runs; obtain approval before
+exceeding five unless the user already authorized a larger budget.
 User instructions override skill guidelines. If a skill blocks work, link, quote and
 explain its exact instruction. Preserve unrelated changes. Report outcomes,
 evidence and limits plainly. Complete required checks; broaden verification only

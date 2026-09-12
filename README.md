@@ -63,8 +63,9 @@ resolved before treating your latest edits as saved or quitting.
 Release acceptance is pending. The installed macOS package has completed scripted
 poster, infographic and long-image journeys with a native Claude runtime and a
 synthetic provider. The user has accepted six visual/editing checks on a later
-real-asset poster and 12-image review copy; the original three-scene human Agent
-journey remains incomplete. Nine
+real-asset poster and 12-image review copy, and subsequently passed all three human
+Agent journeys. The reported missing intermediate canvas preview is being corrected
+separately; supplemental real image MCP coverage remains open. Nine
 controlled canvas-operation samples were recorded on an Apple M4 Mac with 16 GiB
 RAM; these do not establish a maximum canvas size, universal performance budget,
 application cold-start time or physical input latency. Windows and Linux resource

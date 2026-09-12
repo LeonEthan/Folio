@@ -6,16 +6,18 @@ const state = vi.hoisted(() => ({
   hostId: '',
   events: new Map<string, (payload: unknown) => void>(),
   history: [] as Array<{ role: 'assistant'; id: string; finished: boolean; endedAt: number }>,
+  liveStatus: null as null | { type: 'running' },
   visible: false,
   previewVisible: false,
   refresh: async (): Promise<unknown> => ({ status: 'ready', source: '/synthetic/design.pptd' }),
   attach: async () => {},
   importPreview: async (_session: string, _host: string, _identity: string): Promise<{revisionId: string; reloadError?: string}> => ({revisionId: 'saved'}),
 }));
-vi.mock('jotai', async (original) => ({ ...await original<typeof import('jotai')>(), useAtomValue: (key: string) => key === 'machine' ? { machineId: 'machine' } : key === 'workspace' ? 'workspace' : null }));
+vi.mock('jotai', async (original) => ({ ...await original<typeof import('jotai')>(), useAtomValue: (key: string) => key === 'machine' ? { machineId: 'machine' } : key === 'workspace' ? 'workspace' : key === 'live' ? state.liveStatus : null }));
 vi.mock('../src/atoms', () => ({ userAtom: 'user', currentWorkspaceIdAtom: 'workspace' }));
 vi.mock('../src/atoms/runtime', () => ({ activeWorkspaceRuntimeAtom: 'runtime' }));
 vi.mock('../src/atoms/local-probe', () => ({ localProbeResultAtom: 'machine' }));
+vi.mock('../src/atoms/presence', () => ({ sessionLiveStatusAtomFamily: () => 'live' }));
 vi.mock('@tanstack/react-router', () => ({ useNavigate: () => () => {}, useBlocker: () => {} }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (_key: string, fallback: string) => fallback }) }));
 vi.mock('../src/hooks/use-session-doc', () => ({ useSessionDoc: () => ({ doc: { history: state.history } }) }));
@@ -33,7 +35,7 @@ let root: Root;
 let container: HTMLDivElement;
 beforeEach(async () => {
   state.events.clear(); state.history = [];
-  state.visible = false; state.previewVisible = false; state.attach = async () => {};
+  state.liveStatus = null; state.visible = false; state.previewVisible = false; state.attach = async () => {};
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, width: 400, height: 300, top: 0, bottom: 300, left: 0, right: 400, toJSON() { return this; } });
   container = document.createElement('div'); document.body.append(container); root = createRoot(container);
@@ -48,6 +50,20 @@ test('reselecting source during refresh keeps the pending response consumable', 
   await act(async () => complete({ status: 'ready', source: '/synthetic/design.pptd' }));
   expect(container.textContent).toContain('Showing the observed document and assets.');
   expect([...container.querySelectorAll('button')].find(button => button.textContent === 'Refresh preview')!.disabled).toBe(false);
+});
+test('shows valid intermediate authoring snapshots while an Agent turn is active', async () => {
+  state.refresh = async () => ({ status: 'ready', source: '/synthetic/intermediate-1/design.pptd', sourceIdentity: 'intermediate-1' });
+  await mount();
+  expect(state.visible).toBe(true); expect(state.previewVisible).toBe(false);
+  state.liveStatus = { type: 'running' };
+  await mount();
+  expect(state.hostId).not.toBe(''); expect(state.previewVisible).toBe(true); expect(state.visible).toBe(false);
+  expect(container.textContent).toContain('/synthetic/intermediate-1/design.pptd');
+  await act(async () => state.events.get('design.preview')?.({ hostId: state.hostId, source: '/synthetic/intermediate-2/design.pptd', sourceIdentity: 'intermediate-2', status: 'ready' }));
+  expect(container.textContent).toContain('/synthetic/intermediate-2/design.pptd'); expect(state.previewVisible).toBe(true);
+  await click('Current artwork');
+  expect(state.visible).toBe(true); expect(state.previewVisible).toBe(false);
+  await mount(); expect(state.previewVisible).toBe(false);
 });
 test('old attachment cleanup cannot hide the current artwork after a rapid switch', async () => {
   let finishAttach!: () => void;

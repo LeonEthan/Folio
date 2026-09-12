@@ -122,7 +122,10 @@ reviewer's interaction tolerance. No universal latency or memory limit has been
 established. The original nine-sample round remains measured evidence. The later real-image
 workload has six accepted human checks and a bounded recommendation in the
 [owning note](../.agents/notes/proposed/testing/2026-09-11-complete-design-acceptance.md#workload-recommendation-after-human-review);
-three-scene and shared workbench human judgments remain pending. Do not report
+the user subsequently accepted all three human scene journeys. Preserve the
+unfilled per-step fields rather than inventing observations or requiring the same
+overall verdict again. The newly reported intermediate-preview bug has separate
+regression work. Do not report
 zero, a guessed budget or “fast”. Retain
 slow and failed samples. A scope recommendation must state hardware, scene sizes,
 sample count, worst observed values and remaining limits. Export quality and edit
