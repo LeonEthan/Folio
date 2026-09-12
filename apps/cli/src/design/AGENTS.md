@@ -2,6 +2,14 @@
 
 Root and CLI instructions apply. `CLAUDE.md` links to this file.
 
+Target revision (2026-09-12): human saves publish PPTD independently; retain public
+read-before-edit reminder hooks and native guards. No runtime patches or new
+generation proofs. See the [transition](../../../../.agents/notes/proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md).
+The read/generation/attempt rules below describe the existing implementation until
+its coordinated replacement across writes, resubmission and collection. Do not
+extend them to other runtimes. Preserve CAS, source/draft isolation, real error and
+cancellation handling, and stale-producer rejection through that replacement.
+
 - Canonical BentoDoc and assets are read as one store payload. Publish only the
   fixed resolved projection directory; temporary publication directories are not
   history. Never synchronize over drafts or frozen turn input.

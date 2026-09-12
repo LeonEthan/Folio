@@ -9,6 +9,8 @@ Translation: pending
 
 ## 决策范围与来源
 
+2026-09-12 最新裁定：用户确认[人工保存自动更新 PPTD](../simplification/2026-09-12-editor-owned-pptd-save.zh.md)，但要求保留[修改前先读提醒 hook](../simplification/2026-09-12-noninvasive-design-hooks.zh.md)。本文余下内容保留旧读取驱动同步及严格基线方案，已被新目标部分替代；不再要求 runtime 补丁或逐次模型生成证明。实现迁移同时收敛写入和最终采集的旧依赖，保留结构、素材、来源、版本检查和草稿。新规则以 Spec 为准，不把已有实现或失败记录自动改成新合同已通过。
+
 本记录补充并部分替代[迁移计划](2026-09-09-graphic-design-platform.zh.md)中尚未实施的 P3：新增当前画稿读取一致性，取消完整三方对比和元素/属性自动合并的迁移要求。P0–P2 的实施事实不改写；产品合同见 [Spec](../../../../specs/graphic-design-platform.zh.md)。本次只修改文档，不实现同步器、hook 或运行时 skill。
 
 已有 [PPTD importer](../../../../packages/design-authoring/src/import.ts) 提供正向转换，不能据此认定反向转换已具备。相邻项目的 `packages/orchestration/src/job-context.ts` 可构造 Bento 上下文，也不等于已经实现 BentoDoc → PPTD。新增反向转换是确保 Agent 能读取手工编辑结果的必要成本；Lody 会话、文件、工具、权限与恢复能力继续复用。

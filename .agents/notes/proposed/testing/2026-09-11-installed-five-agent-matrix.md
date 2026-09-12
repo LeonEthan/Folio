@@ -10,8 +10,9 @@ the installed Folio application for each selected Agent. Source probes and a
 working package alone do not establish that combination. This acceptance work
 reuses the existing Electron harness with an explicit installed executable,
 retaining its isolated profiles, endpoint, logs and teardown. The full matrix
-remains blocked by the documented Codex, Kimi and Grok runtime hook gaps; passing
-other cells cannot close those requirements. No Agent is selected on the user's
+is incomplete. The 2026-09-12 target replaces strict generation proofs with
+automatic PPTD saves and public read-first reminders; old runtime gaps remain
+historical evidence, while the new combinations require fresh verification. No Agent is selected on the user's
 behalf and no paid service quality is inferred from synthetic protocol inputs.
 
 ## Ownership and requirements
@@ -20,7 +21,7 @@ This is the package-combination follow-up to
 [T27 package verification](../../implemented/testing/2026-09-11-packaged-design-verification.md).
 The [Spec](../../../../specs/graphic-design-platform.zh.md) and
 [scope review](../simplification/2026-09-11-design-result-feedback.zh.md) retain
-their existing target. Runtime-specific hook investigations remain owned by
+the latest [automatic-save/reminder target](../simplification/2026-09-12-noninvasive-design-hooks.zh.md). Earlier runtime-specific hook evidence remains owned by
 [Codex](../architecture/2026-09-11-codex-design-hook-boundary.md),
 [Kimi](../architecture/2026-09-11-kimi-design-hook-boundary.md), and
 [Grok](../architecture/2026-09-11-grok-design-hook-runtime-gap.md).
@@ -49,6 +50,12 @@ was open with no comments. Its seven criteria are retained:
 
 ## Current acceptance status
 
+2026-09-12 requirement update: real provider generation and editing are mandatory,
+not satisfied by the synthetic rounds below. The user supplied an AruHub image2
+test connection; see the [live MCP TODO](2026-09-12-live-image-mcp-acceptance.zh.md)
+for non-secret configuration and cases. No request has been executed for this
+new TODO, and no credentials are stored in this record.
+
 This summary uses the scoped installed rounds recorded below, each with its own
 package source and runtime identity. It does not imply that every behavior was
 repeated on one latest package, or replace a failed historical result. Full T28
@@ -59,7 +66,7 @@ remains blocked; the preparation and replacement-package tables below are histor
 | 1. Runtime, ACP, launch, tools and platform | Five-Agent identities and actual installed launch records are retained per round. | These records do not establish another platform or commercial authentication. |
 | 2. Per-Agent workflow | Discovery, reference reading, skills and permissions have scoped evidence for all five; Pi permission and cancellation/explicit continuation now include successful cleanup. | Codex/Kimi/Grok lack the full native design-hook workflow. Grok cancellation acknowledgement and continuation are observed, but its held HTTP connection fails the transport-close check. |
 | 3. Read/write facts, negatives and final protection | Pi/Claude read, stale-write and same-byte attempts; both hook-error/uncovered-path negatives; Claude user-disabled hooks; independent final CAS for Codex/Kimi/Grok. | Pi extension absence has no established configuration-only route. The three runtime hook gaps remain; final CAS cannot replace those hooks. |
-| 4. Configured image service and actual image reading | Claude, Codex, Kimi and Grok have synthetic Folio generate/edit and actual native image-reading evidence. Rendering and watched source updates have their separate recorded rounds. | Pi ACP does not expose Folio MCP tools. No paid-service quality or human visual judgment is inferred. |
+| 4. Configured image service and actual image reading | Claude, Codex, Kimi and Grok have synthetic Folio generate/edit and actual native image-reading evidence. Rendering and watched source updates have their separate recorded rounds. | Required AruHub live generate/edit and visual verdicts remain unexecuted; see the live MCP TODO. Pi ACP does not expose Folio MCP tools in the recorded combination. |
 | 5. Installed versus development evidence | Normal package identities, isolated installed launches and scoped outcomes are distinguished from development and diagnostic runs. | Only each recorded combination is supported by that evidence; the user chooses the Agent. |
 | 6. Existing facilities and private synthetic evidence | Existing harness and provider fixtures are reused; captured conversations remain outside Git. | No new test engine or public transcript artifact is introduced. |
 | 7. Documentation and checks | This owning matrix and affected instructions retain outcomes, failures and check records. | Documentation and green checks do not close the runtime or human acceptance gaps. |
@@ -1476,6 +1483,22 @@ response nor proves tools execute after cancellation. No host recovery engine,
 runtime patch, timeout extension or successful-cancellation claim is substituted
 for the failed transport assertion. The original T21 Pi/Claude recovery evidence
 remains separate; this Grok limit remains open in the installed matrix.
+
+### Cancellation interpretation after the design revision
+
+2026-09-12 review of the same retained native ACP evidence additionally confirms
+an idle Session notification at cancellation and no subsequent tool events in the
+bounded observation. The two later updates concern title metadata. This narrows
+the demonstrated failure to request-connection/resource release; it does not prove
+continued task execution, remote inference or billing after Stop. The transport
+assertion remains failed and explicit-continuation evidence remains separate.
+
+Folio's existing Session termination also disposes ACP terminals and the owned
+execution environment. Automatically applying it on every Stop would change the
+user's session semantics beyond the observed connection issue, so it is not added
+as a workaround. Further impact verification should release the held synthetic
+response after cancellation and inspect stale output/tool isolation; it need not
+repeat the already-proven timeout. No new native run was performed for this review.
 
 ### Claude hook-negative fixture: provider selector
 

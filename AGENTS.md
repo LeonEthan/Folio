@@ -37,10 +37,10 @@ review and completion. Expose honest capabilities; tool absence does not imply
 absence of other agent capabilities. Preserve rendering previews and image
 reading and commit receipts; retire per-turn result cards and dedicated thumbnails.
 
-App validation/hooks enforce schema, kernel replay, asset integrity and versions,
-not creative steps or semantic review. No silent output repair or automatic paid
-retries. Read hooks synchronize context; write hooks check read baselines; final
-commits independently check versions and protect unsaved human edits. Before Agent
+Design saves update PPTD from human edits independently of Agent execution. Keep
+public read-before-edit reminder hooks and native tool guards; no runtime patches
+or generation-level read proofs. Final commits check schema, kernel replay, assets
+and versions. No creative-step enforcement, silent repair or automatic paid retries. Before Agent
 execution, flush human edits; keep every Bento instance of that artwork read-only
 until execution and artifact processing end. The app enforces this through generic
 read-only and mutation checks; Bento does not track Agent lifecycle. Consumer-scoped
@@ -51,6 +51,9 @@ Agents resolve file conflicts through tool errors and re-reading; preserve draft
 and retire candidate workflows. Never auto-restart completed turns. External import
 validates and saves the viewed snapshot directly. Image MCP supports generate/edit
 with a user-required model and no product default.
+
+Design history uses a Folio-managed local Git repository only, isolated from user
+repositories. No parallel snapshot store; retain current saves, CAS and drafts.
 
 ## Context and documentation
 

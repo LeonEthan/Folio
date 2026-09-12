@@ -15,6 +15,13 @@ explicitly identified coverage are pending; neither T29 nor release is approved.
 
 ## Identity and evidence boundaries
 
+2026-09-12 acceptance addition: the [real image MCP and multi-image TODO](2026-09-12-live-image-mcp-acceptance.zh.md)
+requires actual provider generation/editing and substantial real image assets in
+the design journey. Its AruHub connection is test-only; the key stays in existing
+secret configuration. The rounds and measurements below remain synthetic evidence,
+not a pass for this new workload or real visual quality. The new TODO is unexecuted
+and must receive its own technical results and human verdicts before completion.
+
 The product is the copied arm64 application built from
 `b86a1c92aa529511c4390dc057649bbb00a53f50`, including the attachment-history repair.
 DMG SHA-256 is `22fb673c62f4277386f15c5f47689a53fcc59e486d87ef3935884b9274a16a20`;
