@@ -386,7 +386,7 @@ P2-A3 已列为 T10，在参考图完整旅程前完成。非 PNG 分析副本�
 | T19 Kimi 提醒 | `4ca6795`：[原生事件可用，但缺会话级加载入口](2026-09-12-kimi-read-reminder-loading.md) | [最小公开插件已准备并隔离验证](2026-09-12-kimi-reminder-plugin.md)，bb7a424c 安装包的隔离插件/当前稿读写/提交组合已通过；实际用户登记仍待确认，未改用户配置或 runtime |
 | T20 Grok 提醒与停止 | 主线 `e86a92a`：公开 session plugin + 原生 reload，实际首轮/恢复送达；[证据](../../implemented/architecture/2026-09-12-grok-read-reminder.md)，组合完整检查已通过 | 提醒到达当前工具之后的下一模型请求，不能保证已生成的写入先等 Read。用户已确认 Stop 完整关闭会话执行、后台及子任务，下一条显式消息恢复；bb7a424c 的公开关闭、HTTP 关闭、显式恢复/读取已补证；567741b 的提醒及当前稿读写/提交通过独立核对。原失败、辅助请求造成的整轮脚本失败及未执行的最终画布检查仍保留，详见安装包矩阵 |
 | T28 Pi 图像 MCP | `eccd540`：公开 Pi extension 复用现有三项图像/渲染工具，真实 HTTP/stdio 合成主机的目录、调用、取消与清理通过；[记录](2026-09-12-pi-folio-mcp-extension.md) | Pi 安装包的目录、调用、读图和取消回归已补证；真实 AruHub 调用及 Kimi 读图属于独立组合，不宣称五家逐一执行付费测试 |
-| P4.6 Git 版本 / P6.6 验收 | `c683038` 实现[独立 Git 历史](../feature/2026-09-12-design-version-history.zh.md)，五项 Git 测试通过；`50ddd41` 正常安装包的版本 UI、自动 PPTD、多实例门禁和受控外部写 CAS 补验通过 | 567741b 的真实四素材海报、12 图长图保存/版本/导出及同 profile 重启、复制 profile 独立重开已通过；人工完整视觉与编辑验收待完成，此新增功能不计入旧 29 票完成数 |
+| P4.6 Git 版本 / P6.6 验收 | `c683038` 实现[独立 Git 历史](../feature/2026-09-12-design-version-history.zh.md)，五项 Git 测试通过；`50ddd41` 正常安装包的版本 UI、自动 PPTD、多实例门禁和受控外部写 CAS 补验通过 | 567741b 的真实四素材海报、12 图长图保存/版本/导出及同 profile 重启、复制 profile 独立重开已通过；用户已确认该副本六项视觉/编辑检查可接受，更广范围验收仍按完整旅程记录保留；此新增功能不计入旧 29 票完成数 |
 
 `c683038` 组合完整检查通过（CLI 2671、组件 3288 项测试），格式、文档和边界检查通过。
 独立 Git/UI/自动回写轮为 `/tmp/folio-history-ui-3hA6WO/result.json`，没有模型调用；
@@ -397,7 +397,7 @@ Pi/Claude 六路径为 `/tmp/folio-t05-new-contract-NSbuQU/result.json`，记录
 第二、三张的原回合工具回执未完成，恢复图片及后续读图不能抹掉失败。
 `69780aa` 修复 Pi/Kimi 图像客户端期限短于服务期限的问题，源码完整检查通过，
 后续安装包已完成图像期限/取消回归和真实多图保存、版本、导出、重开；
-[P6.7 TODO](../testing/2026-09-12-live-image-mcp-acceptance.zh.md)仍保留原失败及人工结论。
+[P6.7 TODO](../testing/2026-09-12-live-image-mcp-acceptance.zh.md)仍保留原失败，并已补录两份作品的六项人工通过结论及其范围。
 [完整旅程记录](../testing/2026-09-11-complete-design-acceptance.md)给出 567741b 的确切包身份和人工检查副本。Spec 保持 draft，不关闭最终验收任务；安装包仅用于私有验收，没有发布。
 
 #### 本地集成进度（2026-09-11）

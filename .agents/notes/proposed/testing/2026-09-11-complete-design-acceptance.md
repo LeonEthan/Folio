@@ -9,9 +9,11 @@ T29 now has installed macOS evidence for three synthetic design journeys, a real
 four-asset poster and 12-image artwork, same-profile restart, and a copied-profile
 fresh-process reopen. Native Claude's synthetic-provider rounds prove protocol
 behavior, while the later real-asset runs prove the recorded save, PPTD, version,
-export and reopen behavior. Neither establishes model quality or human editing
-experience. Human visual/editing verdicts, acceptable target-machine limits and
-the remaining explicit coverage are pending; neither T29 nor release is approved.
+export and reopen behavior. The user has now accepted the four real assets, both
+artworks, editing, autosave/version/reopen, and PNG/JPEG results in the 567741b
+review copy. That bounded human verdict does not establish general model quality,
+numeric performance limits or the remaining explicit coverage; neither full T29
+nor release is approved.
 
 ## Identity and evidence boundaries
 
@@ -25,8 +27,9 @@ decoded assets; the original tool receipts for generate outputs two and three
 remain failures even though a later native round read the recovered bytes. The
 same TODO now records a real four-image poster and 12-image long-artwork journey
 through save, PPTD roundtrip, versioning, PNG/JPEG export, same-profile restart
-and a copied-profile fresh-process reopen. Human judgments and acceptable
-performance limits remain pending. T29 and release therefore remain unapproved.
+and a copied-profile fresh-process reopen. The six requested human checks for
+these two artworks now pass; see the human review supplement below. Broader
+coverage and numeric performance limits remain unapproved.
 
 The original three synthetic journeys use the copied arm64 application built from
 `b86a1c92aa529511c4390dc057649bbb00a53f50`, including the attachment-history repair.
@@ -47,8 +50,33 @@ Its full journey is `/tmp/folio-t29-real-images-nPfTcw/evidence/result.json`;
 the copied-profile process result is
 `/Users/macmini/copied-profile-verification-akD0AA/result.json`. Both verify the
 embedded source identity and clean owned-process/endpoint teardown. The copied
-review artifact remains at `/Users/macmini/FolioReview-567741b-20260912` for
-human review.
+review artifact remains at `/Users/macmini/FolioReview-567741b-20260912`; the user
+has filled in its six human checks.
+
+## Human review supplement (2026-09-12, 567741b)
+
+The user completed `开始验收.md` in the copied review profile and explicitly
+requested that its conclusions be read. All six fields accept the real assets'
+content/clarity, poster quality, 12-image artwork quality, crop/scale/text/Undo/Redo,
+autosave/version/reopen experience, and PNG/JPEG visual results. This supplements
+the immutable automated results; their original pending human fields are not
+rewritten. Earlier pending statements below describe earlier rounds.
+
+The review also raised the absence of conversation history in these two sessions.
+These particular fixtures were seeded through `design.create` and PPTD import,
+without Agent messages. The preparation script
+`/tmp/folio-t29-real-images-native-14.mjs` creates their associations at lines
+320–330 and copies the source files at lines 350–355. The review export in
+`e2e/src/support/electron-harness.ts` copies the complete stopped profile; it does
+not strip messages. There was no creation conversation to display for these
+fixtures. This explains their empty chat area and does not claim a new regression
+test of ordinary conversation-history persistence. The review instructions should
+have made this fixture boundary explicit.
+
+The verdict covers the inspected local package and workload, not Windows/Linux,
+all three original scene journeys, a separately scored edit-target comparison,
+numeric memory/latency thresholds, or release authorization. Remaining coverage
+continues to follow the installed matrix and live-image TODO.
 
 The [procedure](../../../../e2e/DESIGN-ACCEPTANCE.md) remains the human workflow;
 the [installed matrix](2026-09-11-installed-five-agent-matrix.md) owns the five-Agent

@@ -3,8 +3,10 @@
 This is the T29 review procedure, not human approval. The current installed
 rounds, all nine measurements and original eight-criterion audit are recorded in
 the [owning evidence note](../.agents/notes/proposed/testing/2026-09-11-complete-design-acceptance.md).
-Three synthetic native journeys and copied-profile mechanical verification pass;
-human visual/editing judgments and the explicitly recorded remaining scope are pending.
+Three synthetic native journeys and copied-profile mechanical verification pass.
+The user accepted six visual/editing checks on the later 567741b real-asset poster
+and 12-image review copy; that does not complete the original three-scene human
+journey or the explicitly recorded remaining scope.
 Use the final
 combined installed macOS application. The earlier T27 package, development
 Electron, unit tests and screenshots do not establish this journey or a human
@@ -114,14 +116,17 @@ usability require human review even when every timing fits the selected range.
 
 ## Release decision
 
-The release remains pending until this round is complete. Pi 0.85.1 / pi-acp
-0.0.33 and Claude 2.1.258 / ACP 0.70.0 have design-hook implementation evidence;
-the sealed native installed matrix owns the final verdict, including switching
-and recovery. Pi's adapter does not forward the MCP catalog, so do not advertise
-image MCP on that route. Codex, Kimi and Grok design hooks remain blocked on their
-native adapter seams; ordinary Agent availability is not complete design support. Codex already has
-earlier native reference-image and actual image-read evidence; the hook blocker
-does not establish absence of creation or image-reading ability.
+The release remains pending until this round is complete. The
+[installed matrix](../.agents/notes/proposed/testing/2026-09-11-installed-five-agent-matrix.md)
+owns runtime identities and scoped evidence for all five Agents, including
+switching and recovery. The current contract uses automatic PPTD saves and public
+read-before-edit reminders. Pi's installed public extension now exposes Folio's
+image MCP; the older adapter-catalog limitation is historical. Codex, Kimi and
+Grok have scoped installed reminder/current-file/collector evidence. Kimi's
+actual-user plugin registration remains unexecuted; isolated-home acceptance is
+not an installation for the user. Retain the matrix's failed fixture rounds and
+unexecuted assertions rather than restoring retired generation-proof blockers or
+claiming full design support from ordinary Agent availability.
 Windows/Linux cross-host resource collection does not establish native usability.
 
 The installed app in this round is locally ad-hoc signed only. This procedure
