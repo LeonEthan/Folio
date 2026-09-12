@@ -1,3 +1,4 @@
+import { reloadGrokDesignReminder } from '@/design/grok-reminder';
 import type { claudeDesignSettings } from '@/design/claude-launch';
 import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
@@ -575,6 +576,7 @@ function extractImageGenerationContentFields(content: unknown): {
  * Synchronous: everything that needs I/O already happened in the load phase.
  */
 export interface AgentClientOptions {
+  grokDesignReminderPluginDir?: string;
   designHookLaunchId?: string;
   claudeDesignHookSettings?: ReturnType<typeof claudeDesignSettings>;
   sessionId: SessionId;
@@ -1614,15 +1616,41 @@ export class AgentClient implements acp.Client {
           }
         : {}),
     };
+    const grokPlugin = this.options.grokDesignReminderPluginDir;
     const claude = this.options.claudeDesignHookSettings;
-    if (clientIdentifier === undefined && Object.keys(lody).length === 0 && !claude) return {};
+    if (clientIdentifier === undefined && Object.keys(lody).length === 0 && !claude && !grokPlugin)
+      return {};
     return {
       _meta: {
+        ...(grokPlugin ? { pluginDirs: [grokPlugin] } : {}),
         ...(claude ? { claudeCode: { options: { settings: claude } } } : {}),
         ...(clientIdentifier !== undefined ? { clientIdentifier } : {}),
         ...(Object.keys(lody).length > 0 ? { lody } : {}),
       },
     };
+  }
+
+  private async loadGrokDesignReminder(
+    connection: acp.ClientSideConnection,
+    sessionId: string,
+    abort?: Promise<never>
+  ) {
+    const directory = this.options.grokDesignReminderPluginDir;
+    if (!directory) return;
+    await withTimeout(
+      withAbort(
+        reloadGrokDesignReminder(
+          (method, params) => connection.extMethod(method, params),
+          sessionId,
+          directory
+        ),
+        abort
+      ),
+      this.logger,
+      'grok.readReminder.reload',
+      this.options.sessionId,
+      5000
+    );
   }
 
   private isCurrentAcpSession(acpSessionId: string): boolean {
@@ -2135,6 +2163,7 @@ export class AgentClient implements acp.Client {
       }
       this.logger.debug(`[${this.options.sessionId}] connection.newSession returned`);
     }
+    await this.loadGrokDesignReminder(connection, sessionResponse.sessionId, startupAbort);
     this.authenticationRequired = false;
     const newSessionDurationMs = performance.now() - newSessionStart;
     this.options.onStartupStage?.({ type: 'new_session_end', durationMs: newSessionDurationMs });
@@ -2191,13 +2220,15 @@ export class AgentClient implements acp.Client {
     const mcpServers = await this.buildMcpServers(workdir, this.options.loadExternalMcpServers?.());
     if (!forkSessionTurnId) {
       try {
-        return await withTimeout(
+        const prepared = await withTimeout(
           connection.newSession({ cwd: workdir, mcpServers, ...this.getSessionStartMeta() }),
           this.logger,
           'connection.newSession.editAndResend',
           this.options.sessionId,
           timeoutMs
         );
+        await this.loadGrokDesignReminder(connection, prepared.sessionId);
+        return prepared;
       } catch (error) {
         throw new Error(`[ACP_SESSION_PREPARE_FAILED] ${formatErrorMessage(error)}`, {
           cause: error,

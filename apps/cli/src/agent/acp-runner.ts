@@ -71,6 +71,7 @@ import { withLoopbackNoProxy } from '@lody/shared/proxy-env';
 import { withAcpSessionStartSlot } from './acp-session-start-gate';
 
 export type CreateAcpClientOptions = {
+  grokDesignReminderPluginDir?: string;
   designHookLaunchId?: string;
   claudeDesignHookSettings?: AgentClientOptions['claudeDesignHookSettings'];
   stream: Stream;
@@ -123,6 +124,7 @@ export const createAcpClient = async (options: CreateAcpClientOptions) => {
   const sessionId = options.sessionId ?? (uuidV4() as SessionId);
   options.logger.debug(`[${sessionId}] createAcpClient: creating AgentClient`);
   const client = new AgentClient({
+    grokDesignReminderPluginDir: options.grokDesignReminderPluginDir,
     claudeDesignHookSettings: options.claudeDesignHookSettings,
     designHookLaunchId: options.designHookLaunchId,
     logger: options.logger,

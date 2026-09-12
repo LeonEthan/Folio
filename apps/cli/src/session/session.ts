@@ -1,3 +1,4 @@
+import { prepareGrokDesignReminder } from '@/design/grok-reminder';
 import { withCodexDesignReminder } from '@/design/codex-reminder';
 import { prepareClaudeDesignLaunch } from '@/design/claude-launch';
 import { randomUUID } from 'node:crypto';
@@ -502,6 +503,10 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
     );
     if (callbacks.cliType === 'builtin' && callbacks.agentType === 'codex' && callbacks.designHooks)
       env = withCodexDesignReminder(env);
+    const grokReminder =
+      callbacks.cliType === 'builtin' && callbacks.agentType === 'grok' && callbacks.designHooks
+        ? await prepareGrokDesignReminder()
+        : undefined;
     const piLaunch =
       callbacks.agentType === 'pi-acp' && callbacks.designHooks === true
         ? await preparePiDesignLaunch(env, {
@@ -667,6 +672,7 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
       let acpCapabilities: AcpCapabilitiesResult;
       try {
         const started = await createAcpClient({
+          grokDesignReminderPluginDir: grokReminder?.directory,
           claudeDesignHookSettings: claudeLaunch?.settings,
           designHookLaunchId: this.designHookLaunchId,
           stream,
@@ -734,6 +740,7 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
       );
       agentProcess.once('exit', () => {
         void piLaunch?.cleanup();
+        void grokReminder?.cleanup();
       });
       this.acpSessionId = acpSessionId;
       this.agentClient = client;
@@ -764,6 +771,7 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
     } catch (error) {
       await cleanupFailedAttempt();
       await piLaunch?.cleanup();
+      await grokReminder?.cleanup();
       throw error;
     }
   }

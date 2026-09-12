@@ -51,3 +51,7 @@ Design history uses the artwork's independent local Git repository. Preserve exa
 embedded content and protect unversioned current work before restore; then use the
 ordinary canonical save/CAS and projection path. Never alter user Git state or add
 parallel snapshot storage. See [history](README.md#design-history).
+
+Grok reminders use only the app-owned session plugin and native hook reload. Preserve
+user plugin trust; PreToolUse context arrives after the tool and establishes no read
+or commit evidence. Missing/disabled Folio hooks must not be reported as loaded.

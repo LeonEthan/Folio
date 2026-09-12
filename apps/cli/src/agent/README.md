@@ -141,7 +141,7 @@ preserves Kimi's home configuration and state. See the
 The earlier generation-proof limitation no longer blocks the revised reminder
 scope; ordinary native tool instructions alone do not complete hook integration.
 
-Grok design-hook support is not enabled. The [1.0.13 native audit](../../../../.agents/notes/proposed/architecture/2026-09-11-grok-design-hook-runtime-gap.md) records working tool callbacks but no usable generation boundary; file hooks and SDK notifications have different completion semantics.
+Grok design sessions load a process-owned plugin through native session metadata and reload its hooks with the existing plugin-management API. Its public PreToolUse reminder reaches the next model request after tool execution; it does not enforce a preceding read for already-generated writes. See the [1.0.13 reminder verification](../../../../.agents/notes/implemented/architecture/2026-09-12-grok-read-reminder.md).
 
 Completed caches written before metadata schema v1 remain reusable through a separate strict
 legacy schema; their old `name`/`version`/`platform` fields are normalized in memory and only

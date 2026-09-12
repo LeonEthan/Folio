@@ -3,6 +3,7 @@ import type { MachineId, SessionId, WorkspaceId } from '@lody/shared';
 import type { Logger } from '@/utils/logger';
 
 const connectionMocks = vi.hoisted(() => ({
+  extMethod: vi.fn(),
   initialize: vi.fn(),
   newSession: vi.fn(),
   loadSession: vi.fn(),
@@ -16,6 +17,7 @@ const connectionMocks = vi.hoisted(() => ({
 vi.mock('@agentclientprotocol/sdk', () => ({
   PROTOCOL_VERSION: 1,
   ClientSideConnection: class {
+    readonly extMethod = connectionMocks.extMethod;
     readonly initialize = connectionMocks.initialize;
     readonly newSession = connectionMocks.newSession;
     readonly loadSession = connectionMocks.loadSession;
@@ -603,5 +605,54 @@ describe('AgentClient session preparation gate', () => {
       cwd: '/workdir',
       mcpServers: [],
     });
+  });
+});
+
+describe('Grok design reminder session startup', () => {
+  it('loads only the session plugin and waits for native reload before exposing the session', async () => {
+    const entered = deferred<void>();
+    const release = deferred<void>();
+    connectionMocks.initialize.mockResolvedValue({ agentCapabilities: {} });
+    connectionMocks.newSession.mockResolvedValue({ sessionId: 'grok-native' });
+    connectionMocks.extMethod.mockImplementation(async (method: string) => {
+      if (method === 'x.ai/hooks/action') {
+        entered.resolve();
+        await release.promise;
+        return {};
+      }
+      return {
+        result: {
+          hooks: [
+            { sourceDir: '/folio/grok-plugin/hooks', event: 'pre_tool_use', disabled: false },
+          ],
+        },
+      };
+    });
+    const client = new AgentClient({
+      logger: createLogger(),
+      sessionId: 'folio-grok' as SessionId,
+      terminalManager: {} as never,
+      onUpdateMessage: vi.fn(),
+      onRequestPermission: vi.fn(),
+      agentConfig: { cliType: 'builtin', agentType: 'grok' },
+      grokDesignReminderPluginDir: '/folio/grok-plugin',
+    });
+    let exposed = false;
+    const started = client.startSession({} as never, '/workdir').then((result) => {
+      exposed = true;
+      return result;
+    });
+    await entered.promise;
+    expect(exposed).toBe(false);
+    expect(connectionMocks.newSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _meta: expect.objectContaining({
+          pluginDirs: ['/folio/grok-plugin'],
+          clientIdentifier: 'lody:folio-grok',
+        }),
+      })
+    );
+    release.resolve();
+    expect((await started).sessionId).toBe('grok-native');
   });
 });
