@@ -1,73 +1,93 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { FRAME_MATCH_FRACTION, frameIsInversionOf } from './design-render-frame-core.ts'
+import { capturePresentedFrame } from './design-render-frame-core.ts'
 
-const pixel = (r, g, b, a = 255) => [r, g, b, a]
-const invertedPixel = (r, g, b, a = 255) => [255 - r, 255 - g, 255 - b, a]
+const frame = (name, empty = false) => ({ name, isEmpty: () => empty })
 
-void test('verifies an exact inversion pair', () => {
-  const plain = Uint8Array.from([
-    ...pixel(242, 246, 247),
-    ...pixel(18, 34, 64),
-    ...pixel(127, 127, 127)
-  ])
-  const inverted = Uint8Array.from([
-    ...invertedPixel(242, 246, 247),
-    ...invertedPixel(18, 34, 64),
-    ...invertedPixel(127, 127, 127)
-  ])
-  assert.equal(frameIsInversionOf(plain, inverted), true)
-})
+class FrameSource {
+  listener
+  queued = []
+  stopped = true
 
-void test('verifies BGRA order the same way', () => {
-  const plain = Uint8Array.from([247, 246, 242, 255, 64, 34, 18, 255])
-  const inverted = Uint8Array.from([8, 9, 13, 255, 191, 221, 237, 255])
-  assert.equal(frameIsInversionOf(plain, inverted), true)
-})
-
-void test('tolerates small raster differences', () => {
-  const plain = Uint8Array.from(pixel(100, 150, 200))
-  const inverted = Uint8Array.from([157, 103, 56, 255])
-  assert.equal(frameIsInversionOf(plain, inverted), true)
-})
-
-void test('rejects a frozen dark frame pair', () => {
-  const splash = Uint8Array.from([
-    ...pixel(20, 38, 76),
-    ...pixel(22, 40, 80),
-    ...pixel(240, 120, 110)
-  ])
-  assert.equal(frameIsInversionOf(splash, splash), false)
-})
-
-void test('rejects a stale splash against an inverted artwork', () => {
-  const splash = Uint8Array.from([...pixel(20, 38, 76), ...pixel(22, 40, 80)])
-  const invertedArtwork = Uint8Array.from([
-    ...invertedPixel(242, 246, 247),
-    ...invertedPixel(240, 244, 245)
-  ])
-  assert.equal(frameIsInversionOf(splash, invertedArtwork), false)
-  assert.equal(frameIsInversionOf(invertedArtwork, splash), false)
-})
-
-void test('rejects changed alpha and mismatched shapes', () => {
-  const plain = Uint8Array.from(pixel(10, 20, 30))
-  const alphaChanged = Uint8Array.from([245, 235, 225, 0])
-  assert.equal(frameIsInversionOf(plain, alphaChanged), false)
-  assert.equal(frameIsInversionOf(plain, Uint8Array.from([])), false)
-  assert.equal(frameIsInversionOf(plain, Uint8Array.from([...invertedPixel(10, 20, 30), 0])), false)
-})
-
-void test('rejects when too many pixels stop matching', () => {
-  const total = 200
-  const plain = new Uint8Array(total * 4)
-  const inverted = new Uint8Array(total * 4)
-  for (let i = 0; i < total; i++) {
-    plain.set(pixel(240, 242, 244), i * 4)
-    inverted.set(
-      i < total * (1 - FRAME_MATCH_FRACTION) + 1 ? pixel(0, 0, 0) : invertedPixel(240, 242, 244),
-      i * 4
-    )
+  listen(listener) {
+    this.listener = listener
+    return () => {
+      this.listener = undefined
+    }
   }
-  assert.equal(frameIsInversionOf(plain, inverted), false)
+
+  start() {
+    this.stopped = false
+  }
+
+  stop() {
+    this.stopped = true
+  }
+
+  invalidate() {
+    const next = this.queued.shift()
+    if (next) this.listener?.(next)
+  }
+}
+
+void test('returns the repaint requested after the first native frame', async () => {
+  const source = new FrameSource()
+  source.queued.push(frame('possibly queued'), frame('fresh repaint'))
+  const result = await capturePresentedFrame(source, new AbortController().signal)
+  assert.equal(result.name, 'fresh repaint')
+  assert.equal(source.listener, undefined)
+  assert.equal(source.stopped, true)
+})
+
+void test('retries empty native images without using their pixels as evidence', async () => {
+  const source = new FrameSource()
+  source.queued.push(frame('empty', true), frame('first full frame'), frame('fresh repaint'))
+  const result = await capturePresentedFrame(source, new AbortController().signal)
+  assert.equal(result.name, 'fresh repaint')
+})
+
+void test('abort removes the listener and stops offscreen painting', async () => {
+  const source = new FrameSource()
+  const controller = new AbortController()
+  const captured = capturePresentedFrame(source, controller.signal)
+  controller.abort(Error('deadline'))
+  await assert.rejects(captured, /deadline/)
+  assert.equal(source.listener, undefined)
+  assert.equal(source.stopped, true)
+})
+
+void test('an already-aborted capture never starts painting', async () => {
+  const source = new FrameSource()
+  const controller = new AbortController()
+  controller.abort(Error('already done'))
+  await assert.rejects(capturePresentedFrame(source, controller.signal), /already done/)
+  assert.equal(source.listener, undefined)
+  assert.equal(source.stopped, true)
+})
+
+void test('synchronous setup failure performs the same cleanup', async () => {
+  const source = new FrameSource()
+  source.start = () => {
+    source.stopped = false
+    throw Error('start failed')
+  }
+  await assert.rejects(capturePresentedFrame(source, new AbortController().signal), /start failed/)
+  assert.equal(source.listener, undefined)
+  assert.equal(source.stopped, true)
+})
+
+void test('repaint request failure performs the same cleanup', async () => {
+  const source = new FrameSource()
+  let firstRequest = true
+  source.invalidate = () => {
+    if (!firstRequest) throw Error('repaint failed')
+    firstRequest = false
+    source.listener?.(frame('first frame'))
+  }
+  await assert.rejects(
+    capturePresentedFrame(source, new AbortController().signal),
+    /repaint failed/
+  )
+  assert.equal(source.listener, undefined)
+  assert.equal(source.stopped, true)
 })

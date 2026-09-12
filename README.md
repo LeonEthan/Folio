@@ -82,8 +82,10 @@ establish a complete design workflow.
 
 Real image generation/editing has produced four test assets, with original failed
 receipts retained separately from successful later image reads. Complete real-image
-design and human quality acceptance remain pending. Grok Stop and cancellation of
-in-flight image requests still require correction and verification. Image generation
+design and human quality acceptance remain pending. Grok's full-close Stop correction
+is implemented, with installed verification pending. Pi's image-request cancellation
+passes an installed regression against a synthetic provider; this does not establish
+cancellation behavior at a paid provider. Image generation
 requires your own supported connection and explicit model; there is no product
 default or automatic paid retry.
 

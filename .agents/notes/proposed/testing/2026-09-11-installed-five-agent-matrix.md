@@ -63,15 +63,36 @@ package source and runtime identity. It does not imply that every behavior was
 repeated on one latest package, or replace a failed historical result. Full T28
 remains blocked; the preparation and replacement-package tables below are history.
 
-| Original criterion | Established evidence | Remaining limit |
-| --- | --- | --- |
-| 1. Runtime, ACP, launch, tools and platform | Five-Agent identities and actual installed launch records are retained per round. | These records do not establish another platform or commercial authentication. |
-| 2. Per-Agent workflow | Discovery, reference reading, skills and permissions have scoped evidence for all five. Revised save/reminder success, failure and cancellation paths have native Pi/Claude evidence. Codex/Grok public reminders have native delivery evidence; Kimi's plugin has isolated-home evidence. | Full revised installed combinations remain incomplete; Kimi user installation awaits authorization. Grok Stop has a confirmed full-close/explicit-resume target, but its original HTTP cancellation failure is not fixed by reminder delivery. |
-| 3. Read/write facts, negatives and final protection | Historical strict read-proof and stale-write tests remain below. Current implementation uses independent automatic PPTD saves, public reminders, native guards and final source/draft/version checks; generation-proof ledgers have been removed. | Final CAS does not prove reminder delivery or model behavior. Verify each current combination without treating retired strict-hook requirements as runtime-patch work. |
-| 4. Configured image service and actual image reading | All five have scoped synthetic Folio generate/edit and native reading evidence, including installed Pi's public extension. Real AruHub calls and Kimi reading are recorded in the live TODO. Normal 5d03ea7 Kimi/Pi calls have held responses beyond the former 60-second client deadline. | Real multi-image design and human verdicts remain pending. The two real failed receipts remain failed; Pi's native image cancellation probe confirms that stopping the turn does not yet stop the held upstream request. No automatic paid retries. |
-| 5. Installed versus development evidence | Normal package identities, isolated installed launches and scoped outcomes are distinguished from development and diagnostic runs. | Only each recorded combination is supported by that evidence; the user chooses the Agent. |
-| 6. Existing facilities and private synthetic evidence | Existing harness and provider fixtures are reused; captured conversations remain outside Git. | No new test engine or public transcript artifact is introduced. |
-| 7. Documentation and checks | This owning matrix and affected instructions retain outcomes, failures and check records. | Documentation and green checks do not close the runtime or human acceptance gaps. |
+| Original criterion                                    | Established evidence                                                                                                                                                                                                                                                                                                                                                                             | Remaining limit                                                                                                                                                                                                                                                                                                                          |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Runtime, ACP, launch, tools and platform           | Five-Agent identities and actual installed launch records are retained per round.                                                                                                                                                                                                                                                                                                                | These records do not establish another platform or commercial authentication.                                                                                                                                                                                                                                                            |
+| 2. Per-Agent workflow                                 | Discovery, reference reading, skills and permissions have scoped evidence for all five. Revised save/reminder success, failure and cancellation paths have native Pi/Claude evidence. Codex/Grok public reminders have native delivery evidence; Kimi's plugin has isolated-home evidence.                                                                                                       | Full revised installed combinations remain incomplete. Codex, Kimi and Grok still need installed-Electron reminder/save/commit combinations. Kimi real-user registration is a separate unexecuted setup action; isolated acceptance cannot be claimed as actual-user installation. Grok Stop/full-close remains separately owned by T20. |
+| 3. Read/write facts, negatives and final protection   | Historical strict read-proof and stale-write tests remain below. Current implementation uses independent automatic PPTD saves, public reminders, native guards and final source/draft/version checks; generation-proof ledgers have been removed.                                                                                                                                                | Final CAS does not prove reminder delivery or model behavior. Verify each current combination without treating retired strict-hook requirements as runtime-patch work.                                                                                                                                                                   |
+| 4. Configured image service and actual image reading  | All five have scoped synthetic Folio generate/edit and native reading evidence, including installed Pi's public extension. Real AruHub calls and Kimi reading are recorded in the live TODO. Normal 5d03ea7 Kimi/Pi calls held responses beyond the former 60-second client deadline, and corrected 47c0808 Pi cancellation closed its held synthetic image HTTP request before fixture cleanup. | Real multi-image design and human verdicts remain pending. The two real failed receipts remain failed; the corrected synthetic cancellation does not reclassify either receipt or prove paid-service cancellation. No automatic paid retries.                                                                                            |
+| 5. Installed versus development evidence              | Normal package identities, isolated installed launches and scoped outcomes are distinguished from development and diagnostic runs.                                                                                                                                                                                                                                                               | Only each recorded combination is supported by that evidence; the user chooses the Agent.                                                                                                                                                                                                                                                |
+| 6. Existing facilities and private synthetic evidence | Existing harness and provider fixtures are reused; captured conversations remain outside Git.                                                                                                                                                                                                                                                                                                    | No new test engine or public transcript artifact is introduced.                                                                                                                                                                                                                                                                          |
+| 7. Documentation and checks                           | This owning matrix and affected instructions retain outcomes, failures and check records.                                                                                                                                                                                                                                                                                                        | Documentation and green checks do not close the runtime or human acceptance gaps.                                                                                                                                                                                                                                                        |
+
+### Current-contract installed combinations still open
+
+The current target is the editor-owned PPTD save plus public reminder contract,
+not the retired per-generation read-proof design. Existing installed results for
+reference input, native reads, permissions, image tools, rendering, cancellation,
+continuation and final CAS remain usable within their recorded package and fixture
+scope; they need not be repeated merely to fill a newer package row. The smallest
+remaining combinations are:
+
+| Agent | Reusable evidence                                                                                                                                                                                                                                              | Missing installed combination                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Codex | Installed native input/skill, permission/cancel/continue, synthetic generate/edit/read, render/watcher/final-CAS and clean-exit rounds; the public UserPromptSubmit reminder separately passed the managed native ACP production-bundle probe.                 | A normal installed Electron design round on the revised implementation must observe the exact public reminder in the actual Codex model input, consume an independently human-saved current PPTD, and complete or preserve one draft through the current source/draft/version collector. This is a narrow integration seam, not a revival of generation/read ledgers or universal tool interception.                                              |
+| Kimi  | Installed native input/skill, permission/cancel/continue, synthetic generate/edit/read and render/watcher/final-CAS rounds; the prepared public plugin delivered initial and continuation reminders and excluded an ordinary session in isolated native Kimi homes. | An acceptance harness may seed the reviewed plugin only in the normal installed Electron round's isolated Kimi home, then verify exact design reminder delivery, coexistence with fixture configuration and the same current-PPTD/collector seam. This does not add product-owned home shadowing or install the plugin for the actual user. Real-user registration remains a separate authorized setup action. |
+| Grok  | Installed native input/skill, permission, reference and independent image reads, synthetic generate/edit/read, render/watcher/final-CAS and explicit-continuation rounds; the app-owned public reminder passed the managed native ACP production-bundle probe. | A normal installed Electron design round must observe the app-owned reminder at Grok's actual post-tool delivery point and exercise the current-PPTD/collector seam. Its complete Stop/session-close/resume acceptance remains T20's separate dependency and must not be duplicated here. The old generation-boundary blocker is historical.                                                                                                      |
+
+These are macOS arm64 installed combinations. Windows/Linux execution, commercial
+language-model authentication and human visual judgment remain separate gaps; none
+requires restoring strict read proofs. Pi's corrected image cancellation below
+closes only that previously failed transport regression and adds no new paid or
+full-matrix work.
 
 ### Revised installed image deadline and cancellation evidence
 
@@ -108,6 +129,32 @@ authentication. No paid request or user credential was used.
   alone does not identify this call's transport. Neither native cancelled state
   nor later fixture cleanup counts as successful request cancellation.
 
+Corrected normal package source `47c0808d354ce2227e4fed288a748f4fec9e2435`
+contains the cancellation fix integrated as `16a5940`. Its private macOS arm64
+DMG SHA256 is `f50900870ca1442feee70f6f391e633e6ef330420935ec8a1875a09e11300a62`;
+the installed ASAR SHA256 is
+`6925f94faae19bfc002973a50cf5c527b05a42363a990e7a7d2ebe6a5781ce0a`.
+The retained package identity, installed boot record and direct hashes agree on
+that source; strict deep signature verification passes.
+
+The cancel-only installed Pi round `folio-t28-kimi-input-EeOUGj` reused the
+single synthetic request and actual UI Stop without any paid call. The held image
+request arrived at `07:46:42.504Z`; the harness recorded the Stop action at
+`.652Z`, the daemon received `session/cancel` at `.717Z`, and the provider response
+closed at `.750Z`. Thus the response closed 98 ms after the Stop marker and before
+fixture cleanup, with `nativeCancelled=true`, `fixtureCleanup=false` and
+`writableEnded=false`. Provider cleanup followed at `07:46:43.040Z`; application
+endpoint release, isolated directory cleanup and harness teardown finished by
+`.386Z`. The isolated `lody-e2e-ZOjMYC` data root is absent and the 15 recorded
+owned processes are absent. Original evidence is under the host temporary
+directory's `folio-t28-kimi-input-EeOUGj/evidence`, including the timeline,
+selected-provider record, packaged boot/source identity and cleanup log.
+
+This closes the old installed Pi image-request cancellation regression. It does
+not execute generation/edit completion, publish an image asset, read an output,
+authenticate a commercial provider or change the two failed real-image receipts.
+The earlier 5d03ea7 failure above remains the before-correction record.
+
 Each named round retains its `evidence/` directory under the system temporary
 directory, with tool results, event times and original failure details. The
 [live image TODO](2026-09-12-live-image-mcp-acceptance.zh.md) separately owns the
@@ -142,7 +189,7 @@ retained in the private acceptance evidence handed to the task owner.
 | Kimi               | Native `Read` / `Write` / `Edit` hooks; `Bash` needs ACP terminal capability. Complete read delivery, reliable refusal and generation boundary are not available from the audited hooks.                                                            |
 | Grok               | Native `read_file` / `write` / `run_terminal_command`; `search_replace` remains unverified. SDK prehooks are requests, SDK posthooks notifications, file posthooks awaited. None identifies an acknowledged model-generation or last-tool boundary. |
 
-## Execution method and open matrix
+## Execution method and historical preparation matrix
 
 The existing [harness](../../../../e2e/src/support/electron-harness.ts) accepts
 `FOLIO_E2E_INSTALLED_EXECUTABLE`. A packaged executable locates its own packaged
@@ -180,6 +227,11 @@ and fail-open prehooks cannot satisfy the contract; Grok lacks generation/batch
 identity. Grok's file posthooks do await, whereas SDK posthooks are notifications.
 No partial adapter, generation inferred from tool arrival, runtime fork or relaxed
 commit check is substituted. Final CAS cannot supply a missing same-turn hook.
+
+This table and the blocker explanation preserve the pre-revision acceptance plan.
+They are not the current open matrix: generation-boundary/read-proof cells were
+retired by the automatic-save/reminder decision. Use the current-contract table
+above for remaining work, while retaining the old failures as historical evidence.
 
 Windows/Linux native execution and human visual-quality judgment remain separate
 unexecuted cells. The historical cross-host package/resource checks do not cover
@@ -372,17 +424,17 @@ Neither this observation nor the provider-drain control establishes a lifecycle
 repair. No delay, retry, pre-termination of the daemon or global process kill is
 used to make a failed round appear successful.
 
-| Required behavior on the replacement              | Codex           | Claude                                  | Pi                                        | Kimi            | Grok            |
-| ------------------------------------------------- | --------------- | --------------------------------------- | ----------------------------------------- | --------------- | --------------- |
-| Installed runtime/tool discovery with isolated configuration | Observed; cleanup failed | Observed                                | Observed, cleanup failed                  | Passed (synthetic provider) | Observed; functional fixture failed |
-| Actual reference bytes in native input           | Observed; cleanup failed | Passed                                  | Observed, cleanup failed                  | Passed | Path text only; bytes not established |
-| Native skill read                               | Observed; cleanup failed | Passed                                  | Observed, cleanup failed                  | Passed | Not executed    |
-| Native permission request and response            | Not executed    | Manual / Allow Once passed              | Extension No/Yes observed; cleanup failed | Default: Reject / Approve once passed | Not executed    |
-| Manual edit → native read → write → commit        | Hook blocked    | Passed                                  | Observed, cleanup failed                  | Hook blocked    | Hook blocked    |
-| Stale refusal / explicit same-byte attempt        | Hook blocked    | Passed                                  | Observed, cleanup failed                  | Hook blocked    | Hook blocked    |
-| Cancel / fail / final CAS / explicit continuation | Cancel / continue observed; cleanup failed | Only fresh-read switch destination here | Observed, cleanup failed                  | Cancel / explicit continue passed; fail / CAS not executed | Not executed    |
-| Configured image generate/edit and actual read    | Not executed    | Synthetic protocol passed               | MCP tools not exposed in observed catalog | Not executed    | Not executed    |
-| Complete per-Agent installed matrix               | Incomplete      | Incomplete                              | Incomplete                                | Incomplete      | Incomplete      |
+| Required behavior on the replacement                         | Codex                                      | Claude                                  | Pi                                        | Kimi                                                       | Grok                                  |
+| ------------------------------------------------------------ | ------------------------------------------ | --------------------------------------- | ----------------------------------------- | ---------------------------------------------------------- | ------------------------------------- |
+| Installed runtime/tool discovery with isolated configuration | Observed; cleanup failed                   | Observed                                | Observed, cleanup failed                  | Passed (synthetic provider)                                | Observed; functional fixture failed   |
+| Actual reference bytes in native input                       | Observed; cleanup failed                   | Passed                                  | Observed, cleanup failed                  | Passed                                                     | Path text only; bytes not established |
+| Native skill read                                            | Observed; cleanup failed                   | Passed                                  | Observed, cleanup failed                  | Passed                                                     | Not executed                          |
+| Native permission request and response                       | Not executed                               | Manual / Allow Once passed              | Extension No/Yes observed; cleanup failed | Default: Reject / Approve once passed                      | Not executed                          |
+| Manual edit → native read → write → commit                   | Hook blocked                               | Passed                                  | Observed, cleanup failed                  | Hook blocked                                               | Hook blocked                          |
+| Stale refusal / explicit same-byte attempt                   | Hook blocked                               | Passed                                  | Observed, cleanup failed                  | Hook blocked                                               | Hook blocked                          |
+| Cancel / fail / final CAS / explicit continuation            | Cancel / continue observed; cleanup failed | Only fresh-read switch destination here | Observed, cleanup failed                  | Cancel / explicit continue passed; fail / CAS not executed | Not executed                          |
+| Configured image generate/edit and actual read               | Not executed                               | Synthetic protocol passed               | MCP tools not exposed in observed catalog | Not executed                                               | Not executed                          |
+| Complete per-Agent installed matrix                          | Incomplete                                 | Incomplete                              | Incomplete                                | Incomplete                                                 | Incomplete                            |
 
 The original seven Issue criteria remain the acceptance target. Missing/error/
 uncovered-hook evidence from adapter development is not promoted to an installed
@@ -547,7 +599,6 @@ brackets removal at `.480`–`.571` seconds. This supports recreation during
 removal, without identifying its writer. T21's clean comparison ended after the
 12:53:28.778Z launch of `claude-acp.js` and quit at 12:53:32.894Z, as preserved
 in `folio-t05-desktop-IrQorC/evidence/cli-logs/2026-09-11.log`.
-
 
 The root's subsequent external mkdir-observer controls did not identify a writer.
 Observer v1 (retained evidence suffix `AlvXSp`) reproduced the original cleanup
@@ -960,14 +1011,14 @@ The paths below are relative to each previously named evidence root. CLI lines
 refer to `evidence/cli-logs/2026-09-12.log`, except TluNMa uses `2026-09-11.log`;
 native lines refer to `grok-home/logs/unified.jsonl`.
 
-| Round suffix | Title-ready CLI line | Matching 401 CLI / native line | Observed title ACP session |
-| --- | --- | --- | --- |
-| TluNMa | 615 | 862 / 190 | 01a09124-e4f0-7370-8468-d729889b4a27 |
-| gQgTTW | 612 | 831 / 184 | 01a09161-898c-7603-9dfc-5092590e436c |
-| GUk7WW | 485 | 565 / 129 | 01a09167-1e86-75f2-bf9d-21e8c9491d06 |
-| hImvsv | 522 | 562 / 127 | 01a09168-f5b4-7b20-8761-27530f36b584 |
-| BCAW74 | 522 | 562 / 127 | 01a0916c-a34d-7dc1-a979-73d389133da3 |
-| KdI2bZ | 522 | 728 / 137 | 01a09171-6938-7211-bfdf-c24d812e8d7c |
+| Round suffix | Title-ready CLI line | Matching 401 CLI / native line | Observed title ACP session           |
+| ------------ | -------------------- | ------------------------------ | ------------------------------------ |
+| TluNMa       | 615                  | 862 / 190                      | 01a09124-e4f0-7370-8468-d729889b4a27 |
+| gQgTTW       | 612                  | 831 / 184                      | 01a09161-898c-7603-9dfc-5092590e436c |
+| GUk7WW       | 485                  | 565 / 129                      | 01a09167-1e86-75f2-bf9d-21e8c9491d06 |
+| hImvsv       | 522                  | 562 / 127                      | 01a09168-f5b4-7b20-8761-27530f36b584 |
+| BCAW74       | 522                  | 562 / 127                      | 01a0916c-a34d-7dc1-a979-73d389133da3 |
+| KdI2bZ       | 522                  | 728 / 137                      | 01a09171-6938-7211-bfdf-c24d812e8d7c |
 
 Cancellation routing has additional native evidence in KdI2bZ. Its main Grok
 PID 72971, ACP session `01a09171-708a-7681-b19d-ea9a68a5578e`, recorded
@@ -1128,9 +1179,9 @@ native `read_file` for that file; only new image blocks accompanying its
 native Grok 1.0.13, image bytes, provider behavior and 120-second assertion are
 identical; only the external initialize-frame contrast changes the read capability.
 
-| Capability and evidence | Observed result |
-| --- | --- |
-| Existing `readTextFile=true`, transparent wrapper; handle 69857, `folio-t28-grok-input-lPtZB6/evidence` | Failed with exit 1. Native session `01a091a4-13f6-7ac1-ad0f-df5f91797d9e` requests `fs/read_text_file`, ID 0, for the independent PNG. The host returns a 2,168-byte UTF-8 string, then the native tool reports a binary-file error; subsequent model requests have no image blocks. Owned cleanup finishes at 18:06:01.876Z. |
+| Capability and evidence                                                                                  | Observed result                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Existing `readTextFile=true`, transparent wrapper; handle 69857, `folio-t28-grok-input-lPtZB6/evidence`  | Failed with exit 1. Native session `01a091a4-13f6-7ac1-ad0f-df5f91797d9e` requests `fs/read_text_file`, ID 0, for the independent PNG. The host returns a 2,168-byte UTF-8 string, then the native tool reports a binary-file error; subsequent model requests have no image blocks. Owned cleanup finishes at 18:06:01.876Z.                                                                                                          |
 | External `readTextFile=false`, `writeTextFile=true`; handle 1521, `folio-t28-grok-input-FFuLi0/evidence` | Passed with exit 0. The initial main request 5 has no images. Native session `01a091a6-72fa-7640-a33d-414b8deff39b` completes `native_reference` without a reverse file RPC. Requests 6–8 contain its tool-role PNG image with exact original bytes; the following skill read and visible completion also succeed. Owned cleanup finishes at 18:06:43.242Z; an independent process check finds all 13 recorded owned processes absent. |
 
 Root independently reproduced the first response by UTF-8 decoding and re-encoding
@@ -1143,7 +1194,6 @@ product fix, a normal unwrapped release pass, a permission/write regression or
 proof of Grok design-hook support. Standard ACP text responses must remain text;
 any product adaptation requires the unchanged native path and existing permission
 behavior to be verified together. The HTTP-cancellation failure remains separate.
-
 
 ### Normal Grok native-read repair acceptance
 
@@ -1167,9 +1217,9 @@ its normal entry and that source commit:
 Both following rounds directly launch the unchanged pinned Grok 1.0.13 executable,
 without either diagnostic wrapper. Only provider responses are synthetic/local.
 
-| Round | Executed result |
-| --- | --- |
-| `grok-native-image-fixed-1.log`, handle 47383, `folio-t28-grok-input-tvSRo6/evidence` | Exit 0. Main request 5 has no image in any role; the independent native read's tool result carries the exact 1,330-byte PNG in requests 6–8. Native SKILL reading and visible completion pass. Owned cleanup finishes at 18:22:54.579Z. |
+| Round                                                                                         | Executed result                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `grok-native-image-fixed-1.log`, handle 47383, `folio-t28-grok-input-tvSRo6/evidence`         | Exit 0. Main request 5 has no image in any role; the independent native read's tool result carries the exact 1,330-byte PNG in requests 6–8. Native SKILL reading and visible completion pass. Owned cleanup finishes at 18:22:54.579Z.                                                                                                                                            |
 | `grok-native-permission-fixed-1.log`, handle 56905, `folio-t28-grok-ordinary-94z2bY/evidence` | Exit 0. Native SKILL and marker reads succeed. Actual No returns a correlated write refusal and preserves the original file; Yes returns native success and writes exactly the expected 23 bytes. Root independently reads those retained bytes. Owned cleanup finishes at 18:23:42.336Z. A no-tool request 13 remains unclassified and is not counted as main execution evidence. |
 
 These results close this local image-file routing defect and establish its tested

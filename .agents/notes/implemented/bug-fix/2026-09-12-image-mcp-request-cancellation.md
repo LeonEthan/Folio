@@ -5,7 +5,7 @@ Translation: pending
 
 ## Abstract
 
-Native Stop cancelled the Agent's MCP request, but Pi's isolated HTTP client could close before sending the SDK cancellation notification and the built-in image handler discarded the server-side signal, leaving the paid upstream HTTP request open until fixture cleanup. The correction gives the ordinary SDK notification the existing 30-second MCP delivery allowance before per-call cleanup, then threads its signal through generation, edit uploads, returned-image downloads and the existing fetch transport, where it is combined with the 180-second deadline. Cancellation is checked before the atomic asset rename so a late upstream result cannot publish a new workspace asset. This changes no Agent runtime, retry policy or process lifecycle; installed validation of the corrected build remains pending.
+Native Stop cancelled the Agent's MCP request, but Pi's isolated HTTP client could close before sending the SDK cancellation notification and the built-in image handler discarded the server-side signal, leaving the paid upstream HTTP request open until fixture cleanup. The correction gives the ordinary SDK notification the existing 30-second MCP delivery allowance before per-call cleanup, then threads its signal through generation, edit uploads, returned-image downloads and the existing fetch transport, where it is combined with the 180-second deadline. Cancellation is checked before the atomic asset rename so a late upstream result cannot publish a new workspace asset. A corrected installed Pi round now closes the held synthetic image response before fixture cleanup and completes owned teardown; paid-provider cancellation and other Agents remain outside that result.
 
 ## Problem and evidence
 
@@ -27,4 +27,32 @@ Deterministic tests use the real MCP SDK `Client`, `McpServer` and linked `InMem
 
 The focused cancellation suite passes 67 tests across four files. CLI typechecking and the repository-wide `pnpm check` pass, including platform and public-boundary guards. Formatting and documentation checks are recorded at the correction commit.
 
-Source tests and static checks do not establish behavior in an installed native application. No native application, model call, paid image request, user setting or credential was used for this correction; the failed installed evidence above remains historical and the corrected installed regression is pending.
+The corrected normal macOS arm64 package source is
+`47c0808d354ce2227e4fed288a748f4fec9e2435`, which contains this correction as
+ancestor `16a5940`. The retained `package-identity.json`, installed boot record
+and direct hashes agree on that source: DMG SHA256
+`f50900870ca1442feee70f6f391e633e6ef330420935ec8a1875a09e11300a62`
+and installed ASAR SHA256
+`6925f94faae19bfc002973a50cf5c527b05a42363a990e7a7d2ebe6a5781ce0a`;
+strict deep signature verification passes.
+
+The installed Pi cancel-only round retained at
+`/var/folders/dn/56hdvtt50g19brtctz0c9c7w0000gn/T/folio-t28-kimi-input-EeOUGj/evidence`
+uses a unique isolated synthetic image request and actual desktop Stop. The image
+request arrived at `07:46:42.504Z`; the probe recorded the UI Stop action at
+`.652Z`, the daemon received `session/cancel` at `.717Z`, and the held provider
+response closed at `.750Z`. The original timeline classifies this as
+`nativeCancelled=true`, `fixtureCleanup=false` and `writableEnded=false`: 98 ms
+after the Stop marker and before fixture cleanup, rather than a provider release
+or late cleanup close. Provider drain and application cleanup then completed;
+endpoint release, isolated directory removal and harness teardown finished by
+`07:46:43.386Z`. The isolated data root is absent and the 15 recorded owned
+processes are absent.
+
+This installed result closes the earlier Pi synthetic image-request cancellation
+regression while preserving the 5d03ea7 failure above as its before-correction
+record. It does not complete generation or editing, publish/read an asset, use a
+paid image provider, establish remote billing behavior, or validate cancellation
+for Codex, Claude, Kimi or Grok. No actual user setting or credential was read or
+reused, no automatic retry ran, and the installed probe does not broaden the
+source tests' per-call cancellation guarantees.

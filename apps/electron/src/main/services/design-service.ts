@@ -3,7 +3,7 @@ import {
   validateDesignElementReferences
 } from '@lody/shared/design-element-reference'
 import { isDeepStrictEqual } from 'node:util'
-import { app, BrowserWindow, WebContentsView, session, dialog } from 'electron'
+import { app, BrowserWindow, WebContentsView, session, dialog, type NativeImage } from 'electron'
 import { spawn } from 'node:child_process'
 import { randomUUID, createHash } from 'node:crypto'
 import { readFile, open, rename, unlink } from 'node:fs/promises'
@@ -13,7 +13,8 @@ import type { DesignPayload, DesignRequest } from '../../../../cli/src/design/st
 import type { DesignHistoryRequest, DesignVersion } from '../../../../cli/src/design/history'
 import { openDesignCanvasNeedsReload, selectCanvasInstance } from './design-canvas-sync-core'
 import { DesignCanvasAccess, type CanvasInstance } from './design-canvas-access'
-import { frameIsInversionOf } from './design-render-frame-core'
+import { capturePresentedFrame, type PresentedFrameSource } from './design-render-frame-core'
+import { drainRelevantLoads } from './design-leave-drain-core'
 
 /** P2.5 candidate handling rides the existing design worker channel. */
 type DesignCandidateRequest = { sessionId: string; candidateId: string }
@@ -435,16 +436,9 @@ async function reloadDesignCanvas(id: string) {
 export async function leaveDesign(id: string, hostId?: string): Promise<boolean> {
   // An attach that is still loading already owns a record whose webContents
   // has no window.folio yet. Reading its state now misreports a clean loading
-  // canvas as unsaved edits, so drain relevant loads first and re-check until
-  // none remain. A failed load destroys its record, leaving the existing
-  // per-record protection below nothing to preserve.
-  for (;;) {
-    const pending = [...loading.keys()].filter((key) =>
-      hostId === undefined ? hosts.get(key) === id || !hosts.has(key) : key === hostId
-    )
-    if (pending.length === 0) break
-    await Promise.all(pending.map((key) => loading.get(key)?.catch(() => undefined)))
-  }
+  // canvas as unsaved edits, so drain relevant loads first (see
+  // `design-leave-drain-core.ts` for the selection semantics and its tests).
+  await drainRelevantLoads(loading, hosts, id, hostId)
   const entries = [...records].filter(
     ([key, record]) => record.artworkId === id && (hostId === undefined || hostId === key)
   )
@@ -557,38 +551,38 @@ export async function exportDesign(id: string, format: 'png' | 'jpeg', title: st
   }
 }
 
-/** Upper bound for proving a capture is current; exhaustion throws, never ships. */
+/** Upper bound for receiving a compositor-confirmed frame; exhaustion throws. */
 const RENDER_CAPTURE_VERIFY_TIMEOUT_MS = 30_000
 
 /**
- * Capture the hidden render window only once the compositor proves the frame
- * is newer than `document.body.replaceChildren(stage)`. Hidden windows can
- * hand back a frame composited before the replacement (the boot splash) while
- * the DOM already shows the finished artwork, so freshness is proved per
- * capture: shoot a candidate, invert the page, shoot again, and require the
- * second frame to be the pixel inversion of the first (see
- * `design-render-frame-core.ts`). Only a live compositor rendering the current
- * document can produce that pair. Shared by export, Agent preview and
- * verification renders through `renderSavedDesign`.
+ * Capture an offscreen paint requested after the prepared artwork replaced the
+ * editor shell. Painting stays stopped from before navigation through DOM
+ * preparation; after painting resumes, a second explicitly requested repaint
+ * avoids the queued first-frame behavior observed in the native probe. This
+ * path is independent of pixel format, artwork colors, and transparency.
  */
-async function captureVerifiedArtwork(
-  window: BrowserWindow,
-  rect: { x: number; y: number; width: number; height: number }
-) {
-  const deadline = Date.now() + RENDER_CAPTURE_VERIFY_TIMEOUT_MS
-  for (;;) {
-    const candidate = await window.webContents.capturePage(rect)
-    await window.webContents.executeJavaScript(
-      `document.documentElement.style.filter = 'invert(1)';` +
-        `new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))`
-    )
-    const inverted = await window.webContents.capturePage(rect)
-    await window.webContents.executeJavaScript(
-      `document.documentElement.style.filter = '';` +
-        `new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))`
-    )
-    if (frameIsInversionOf(candidate.toBitmap(), inverted.toBitmap())) return candidate
-    if (Date.now() > deadline) throw Error('Canvas capture did not settle on the saved artwork')
+async function captureVerifiedArtwork(window: BrowserWindow): Promise<NativeImage> {
+  const { webContents } = window
+  const source: PresentedFrameSource<NativeImage> = {
+    listen(listener) {
+      const onPaint = (_event: Electron.Event, _dirty: Electron.Rectangle, image: NativeImage) =>
+        listener(image)
+      webContents.on('paint', onPaint)
+      return () => webContents.off('paint', onPaint)
+    },
+    start: () => webContents.startPainting(),
+    stop: () => webContents.stopPainting(),
+    invalidate: () => webContents.invalidate()
+  }
+  const controller = new AbortController()
+  const timer = setTimeout(
+    () => controller.abort(Error('Canvas capture did not settle on the saved artwork')),
+    RENDER_CAPTURE_VERIFY_TIMEOUT_MS
+  )
+  try {
+    return await capturePresentedFrame(source, controller.signal)
+  } finally {
+    clearTimeout(timer)
   }
 }
 
@@ -610,9 +604,11 @@ export async function renderSavedDesign(
       sandbox: true,
       nodeIntegration: false,
       contextIsolation: true,
-      backgroundThrottling: false
+      backgroundThrottling: false,
+      offscreen: true
     }
   })
+  window.webContents.stopPainting()
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   try {
     await window.loadURL(source.url)
@@ -638,7 +634,7 @@ export async function renderSavedDesign(
         } catch(error) { clearTimeout(timer); reject(error); }
       } check();
     })`)
-    const image = await captureVerifiedArtwork(window, { x: 0, y: 0, width, height })
+    const image = await captureVerifiedArtwork(window)
     const exact = image.resize({ width, height })
     return format === 'png' ? exact.toPNG() : exact.toJPEG(95)
   } finally {

@@ -134,15 +134,23 @@ attach/leave 竞态修复见 [离开等待加载](../../implemented/bug-fix/2026
   （标题、四张真实图、日期），且同格式重复导出字节一致。证据
   `/tmp/folio-export-repro-oowgDi/evidence`（含 `result.json` 与六个导出文件）。
   旧包逐格式失败保留为历史，不覆盖。
-- 可编辑重开：同上流程覆盖新会话导入 → 快照 → 保存 → 回读一致，即可编辑副本重开验证。
+- 可编辑状态检查：同上流程覆盖新会话导入 → 快照 → 保存 → 回读一致，证明本进程内
+  导入的 Bento 快照可保存并从存储回读；该轮没有退出应用、启动新进程或复制 profile，
+  因此不构成可编辑副本重开验证。新进程重开仍待执行。
 - 合成 Pi 取消：`native-image-cancel-passed`，被 hold 的合成图像 HTTP 在真实 UI
   Stop 后、fixture 清理前关闭（旧包失败为清理时才关闭）。证据
   `/tmp/folio-t28-kimi-input-EeOUGj/evidence`。无付费调用。
-- leave 回归：新会话 attach 周期内 `design.leave` 三次全部 true 且零未保存对话框。
+- leave 回归：新会话 attach 周期内 `design.leave` 三次全部 true 且零未保存对话框，
+  但三轮 `exercised:false`，只证明常规 ready 实例的 leave guard 未回归，没有再次命中
+  原始 loading attach 的短竞态窗口。结构性修复证据仍由原失败记录与确定性 core 测试承担。
   证据 `/tmp/folio-leave-repro-nByRB0/evidence`。
-- Grok Stop/显式恢复安装态探针未能执行：发送后 30 秒无 provider 请求、无 runtime
-  拉起；旧 50ddd 包复现完全相同，排除本次变更回归，属预先存在的 Grok 分发链路
-  或夹具问题，待另行诊断。探针脚本保持 UNEXECUTED 原样，不改判。
+- Grok 旧探针在 47c0808 与 50ddd 包均未进入 provider 请求，但这不能排除产品回归：
+  后续静态核验发现旧隔离守卫会拒绝安装包工作目录下的能力探测，且脚本提前关闭了
+  尚未完成验证的配置对话框。修正夹具后的 47c0808 独立轮次
+  `folio-installed-grok-stop-v2-S6FMNQ` 已通过能力探测、原生启动及会话创建，
+  随后的 `x.ai/hooks/action` 重载请求返回 `-32601 Method not found`，仍未进入
+  provider 请求或 Stop/显式恢复。该轮退出 1，清理通过；适配边界由 T20 继续诊断，
+  旧失败记录保留，脚本文件名中的 UNEXECUTED 不作为实际执行状态。
 
 人工视觉/编辑体验与目标机器容忍度仍待用户评定；以上“读图正确”仅为代理观察，
 不代替人工结论。本轮无新增真实 generate/edit，累计仍为 3 generate + 1 edit。

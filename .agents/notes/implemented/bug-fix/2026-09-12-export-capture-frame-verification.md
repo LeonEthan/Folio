@@ -65,3 +65,14 @@ had `invert(1)` rendered as identity or approximately, every export would
 have thrown instead of passing. Source tests and static checks do not
 establish installed behavior; full installed acceptance of the corrected
 build remains pending with the release run.
+
+## Later correction
+
+The 18/18 result above remains evidence for the opaque poster and for this
+historical implementation. It did not cover valid transparent or
+semi-transparent PNG output: Electron's captured bitmap is premultiplied, and
+a fully transparent canvas cannot carry the CSS inversion relation at all.
+The pixel challenge was therefore replaced later the same day by
+[bounded offscreen paint](2026-09-12-offscreen-paint-export-capture.md). This
+note retains the original decision and evidence; it is no longer the current
+render-capture design.
