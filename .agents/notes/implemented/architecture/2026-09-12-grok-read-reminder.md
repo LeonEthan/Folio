@@ -35,12 +35,15 @@ sessions and custom launchers do not receive this plugin; the shared durable
 AgentClient adds the directory to session creation/restoration metadata alongside
 its existing client identity and Lody configuration. Before exposing that session,
 it invokes Grok's existing `x.ai/hooks/action` reload and `x.ai/hooks/list` through
-the ACP SDK extension transport. It verifies an enabled PreToolUse entry with the
-exact application plugin source directory. This also covers replacement-session
-creation for edit-and-resend. An absent, disabled, unrelated or malformed entry
-produces an explicit startup error instead of a false support claim. The existing
-startup timeout/abort bounds these requests; there is no separate scheduler or
-runtime patch.
+the ACP SDK extension transport. AgentClient adds the ACP `_` extension carrier
+prefix at this transport boundary; the SDK's legacy `extMethod` forwards its
+method argument unchanged. The transport-neutral reminder helper keeps the
+logical method names without that prefix. AgentClient verifies an enabled
+PreToolUse entry with the exact application plugin source directory. This also
+covers replacement-session creation for edit-and-resend. An absent, disabled,
+unrelated or malformed entry produces an explicit startup error instead of a
+false support claim. The existing startup timeout/abort bounds these requests;
+there is no separate scheduler or runtime patch.
 
 Only Folio's precise session plugin directory receives native caller-supplied
 plugin trust. Reload retains Grok's native discovery and trust policies for other
@@ -126,7 +129,16 @@ Verified order and effects:
   fixture includes that existing migration marker; Folio does not run, replace or
   bypass the native migration.
 - Focused tests reject unrelated/disabled hook entries and hold session exposure
-  until the native reload succeeds, while preserving existing session metadata.
+  until the native reload succeeds, assert the exact `_x.ai/hooks/action` and
+  `_x.ai/hooks/list` wire methods, and preserve existing session metadata.
+
+An installed acceptance run from source `47c0808d354ce2227e4fed288a748f4fec9e2435`
+exposed the missing carrier prefix: native `session/new` succeeded, then the
+application sent `x.ai/hooks/action` and Grok returned JSON-RPC `-32601 Method not
+found` before any model HTTP request. The same pinned native binary had passed the
+headless probe because that probe already added `_` at its transport boundary.
+The fix reuses that proven wire convention in AgentClient; it does not change the
+runtime, adapter, reminder policy or session metadata.
 
 Only macOS arm64 with this managed pair is natively verified. Windows quoting and
 Linux behavior remain unverified. This is not universal Shell/MCP enforcement,
@@ -137,17 +149,21 @@ read-proof or generation contract is introduced.
 
 ## Validation
 
-Root `corepack pnpm check` and `corepack pnpm format` passed; the check includes
-full type, lint, test, i18n and import/public/platform boundary checks. The focused
-reminder/session-preparation set passed 18 tests. CLI dev and production bundles
-built successfully, and both native ACP probes passed. `docs check` and
-`git diff --check` passed with existing rule-size warnings. Test children omitted
-inherited `ANTHROPIC_*` and `CLAUDE_CODE_USE_*` values without printing them.
+For the original implementation, root `corepack pnpm check` and `corepack pnpm
+format` passed; the check includes full type, lint, test, i18n and import/public/platform
+boundary checks. CLI dev and production bundles built successfully, and both
+native ACP probes passed before the transport fix. For that fix, the focused
+reminder/session-preparation set passed 26 tests, the CLI TypeScript check passed,
+and `docs check` and `git diff --check` passed with existing rule-size warnings.
+The integrated root `pnpm check` and `pnpm format` subsequently passed; installed verification of the corrected wire path remains pending. Test children omitted inherited
+`ANTHROPIC_*` and `CLAUDE_CODE_USE_*` values without printing them.
 
 Development evidence is under
 `/private/var/folders/dn/56hdvtt50g19brtctz0c9c7w0000gn/T/folio-grok-reminder-probe-KtPLJE`;
 production evidence with the untrusted configured plugin is under
 `/private/var/folders/dn/56hdvtt50g19brtctz0c9c7w0000gn/T/folio-grok-reminder-probe-QLi71x`.
+The installed failure evidence is under
+`/private/var/folders/dn/56hdvtt50g19brtctz0c9c7w0000gn/T/folio-installed-grok-stop-v2-S6FMNQ/evidence`.
 The dev-build file's pre-existing NUL remains unchanged; removing the single
 Grok entry line restores its exact base bytes. No runtime pin, submodule gitlink
 or upstream publication changed. The shared five-runtime activation/migration

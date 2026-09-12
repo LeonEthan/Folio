@@ -617,7 +617,7 @@ describe('Grok design reminder session startup', () => {
     connectionMocks.initialize.mockResolvedValue({ agentCapabilities: {} });
     connectionMocks.newSession.mockResolvedValue({ sessionId: 'grok-native' });
     connectionMocks.extMethod.mockImplementation(async (method: string) => {
-      if (method === 'x.ai/hooks/action') {
+      if (method === '_x.ai/hooks/action') {
         entered.resolve();
         await release.promise;
         return {};
@@ -656,6 +656,10 @@ describe('Grok design reminder session startup', () => {
     );
     release.resolve();
     expect((await started).sessionId).toBe('grok-native');
+    expect(connectionMocks.extMethod.mock.calls).toEqual([
+      ['_x.ai/hooks/action', { sessionId: 'grok-native', action: { type: 'reload' } }],
+      ['_x.ai/hooks/list', { sessionId: 'grok-native' }],
+    ]);
   });
 });
 

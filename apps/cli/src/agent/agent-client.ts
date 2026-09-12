@@ -1744,7 +1744,7 @@ export class AgentClient implements acp.Client {
     await withTimeout(
       withAbort(
         reloadGrokDesignReminder(
-          (method, params) => connection.extMethod(method, params),
+          (method, params) => connection.extMethod(`_${method}`, params),
           sessionId,
           directory
         ),
