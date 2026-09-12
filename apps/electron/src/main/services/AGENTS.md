@@ -22,7 +22,9 @@ Preserve retry baselines and distinguish committed saves from reload failures.
 before dispatch. Execution state comes from the versioned daemon canvas-host
 snapshot; unknown is readonly. Keep ownership independent of view lifetime, and
 reject reload of dirty/composing/saving instances. Bento receives generic readonly
-and flush only. Before changing these boundaries, read
+and flush only. A canonical attach completes only after Bento publishes its generic
+state/snapshot/flush/readonly API and reports the real ready state; a navigation or
+DOM load event alone is not canvas readiness. Before changing these boundaries, read
 [design resources](../../../../../packages/design-bento/README.md).
 The preview host uses the same local socket, independently of canvas preparation.
 Keep render policy in Node-testable `design-render-host-core.ts`: no retries, repair,

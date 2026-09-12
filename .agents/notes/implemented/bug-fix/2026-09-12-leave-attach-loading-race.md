@@ -74,3 +74,30 @@ drain spans the whole load, which strictly contains the misread window. A load
 that never settles would stall leave the way it already stalls attach; every
 observed load settles. Full installed acceptance of the corrected build
 remains pending with the release run.
+
+## Follow-up readiness correction
+
+The installed `bb7a424c1a0023a4ba0e9cb3fc5fe257b06a02f4` navigation diagnostic
+at `/tmp/folio-t29-real-images-BOAVYz/evidence/result.json` showed that draining
+the attach promise was necessary but not sufficient. An exact
+`data-sidebar-session-id` row click invoked `design.leave` for the old artwork.
+The new canonical WebContents emitted `did-finish-load` at 10:28:22.789Z and
+`design.attach` returned at 10:28:22.792Z, but one millisecond later leave opened
+the native unsaved-canvas dialog with `Canvas is not ready; edits are retained`.
+No hash or popstate event followed, so the URL stayed on the old Session until
+the 60-second diagnostic bound expired. Cleanup passed. This rules out the
+tooltip/title selector and directly demonstrates that the attach promise's old
+end boundary did not establish the generic canvas API's readiness.
+
+The earlier claim that the attach load _strictly contains_ the missing-
+`window.folio` interval is therefore corrected. Bento already tracks a real
+font-backed `ready` state for its editor-status message. Its generic
+`folio.state()` now exposes that state and the product session emits
+`folio:ready` at the same transition. Electron installs the event listener and
+performs an immediate check to close the already-ready race; attach proceeds
+only when `state`, `snapshot`, `flush`, and `setReadonly` all exist and
+`state().ready` is true. A main-process 30-second deadline bounds failure even
+when the renderer is stuck; it never marks the canvas ready. Failed readiness
+destroys the half-open instance through the existing attach cleanup, and the
+later leave path continues to protect any dirty/composing/saving state rather
+than treating it as discardable.

@@ -90,6 +90,9 @@ The desktop controls generic `folio.setReadonly`, `folio.flush` and `folio.state
 Bento does not observe Agent status: the bridge rejects semantic mutations while
 readonly, and the product overlay commits buffered input before freezing, then
 flushes accepted saves. An unfinished composition or save failure retains the draft.
+The product API reports its existing font-backed `ready` state and emits
+`folio:ready` at that boundary. Electron waits for both the complete generic API and
+`state().ready` before an attach can complete; document load alone is insufficient.
 Views start readonly until the desktop confirms execution state. The daemon's
 existing visible-turn owner waits for all artwork instances and keeps them readonly
 through provider completion and artifact processing; hiding a view changes no ownership.

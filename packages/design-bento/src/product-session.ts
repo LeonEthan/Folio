@@ -176,11 +176,12 @@ export function createProductSession(options: {
     document.getElementById('bento-splash')?.remove();
     if (state === 'loading') mark('saved', '已自动保存');
     else mark(state, status.textContent ?? '');
+    window.dispatchEvent(new Event('folio:ready'));
   });
   Object.assign(window, { folio: {
     setReadonly,
     selection() { return selection; },
-    state() { return { dirty: dirty(), composing, saving: saving !== undefined, readonly, revisionId }; },
+    state() { return { ready, dirty: dirty(), composing, saving: saving !== undefined, readonly, revisionId }; },
     async flush(permit: string) {
       writePermit = permit;
       try { await flush(); return { ok: true }; }

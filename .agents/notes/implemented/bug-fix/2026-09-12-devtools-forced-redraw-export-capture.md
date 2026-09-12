@@ -12,7 +12,9 @@ establish that the renderer submitted the prepared artwork. The dedicated
 render WebContents now captures a PNG through Chromium's
 `Page.captureScreenshot`, whose browser snapshot path force-redraws before it
 copies the surface. The existing logical resize and PNG/JPEG encoding remain.
-Installed full-Bento regression of this replacement is still required.
+The installed normal-package matrix now covers the saved poster, transparent
+empty artwork, semi-transparent artwork, JPEG background, dimensions, and
+success/failure cleanup. Human visual and editing acceptance remains pending.
 
 ## Superseded attempt and installed evidence
 
@@ -81,14 +83,52 @@ window and disposes the isolated surface on every outcome. The removed paint
 helper and its frame-count tests only modeled the invalid empirical sequence,
 so they are deleted rather than adapted to mock a Chromium redraw guarantee.
 
-## Verification and remaining acceptance
+## Installed verification and remaining acceptance
 
 Direct Electron node typechecking passes. The focused render-host and
 leave-loading suites pass 13/13 after deleting the obsolete frame helper tests.
-The next normal package must run the frozen retained reproduction: six real
-four-asset poster exports across PNG/JPEG, a fully transparent empty Bento PNG,
-the same empty Bento rendered onto JPEG white, and a semi-transparent Bento PNG.
-It must confirm logical dimensions, actual image content by format, render
-window cleanup, owned-process cleanup, and endpoint release. Passing that
-bounded matrix is evidence for this installed version, not a universal CDP
-contract.
+The repository-wide check, formatter, and documentation checks passed before
+packaging source `bb7a424c1a0023a4ba0e9cb3fc5fe257b06a02f4`; its installed app
+also passed deep/strict code-sign verification.
+
+The frozen normal-package reproduction then passed all nine exports. Six
+alternating PNG/JPEG exports of the saved four-asset poster were stable at
+1200×1800. A fully transparent empty Bento exported as transparent PNG
+(`[0,0,0,0]`) and white JPEG (`[255,255,255,255]`), and the semi-transparent
+PNG retained `[25,50,100,128]`. Every render window returned to baseline, and
+the harness released its owned processes and endpoint with no diagnostic
+errors. Evidence is retained at
+`/tmp/folio-export-repro-48NDBs/evidence/result.json`; an Agent inspection of
+the poster PNG and JPEG found the complete four-image poster rather than the
+boot surface. That inspection is not a human visual-quality verdict, so the
+raw evidence correctly leaves visual review pending.
+
+An independent failure diagnostic made `Page.captureScreenshot` throw only in
+a newly created render-only WebContents. Export rejected, a pre-existing target
+file retained its original bytes, no temporary output remained, the debugger
+detached, the WebContents was destroyed, the isolated protocol was released,
+and the render-window count returned to baseline. Evidence is retained at
+`/tmp/folio-t29-cdp-failure-5tV75g/evidence/result.json`. This diagnostic proves
+failure cleanup only; it is not image-quality evidence.
+
+The broader real-material journey at
+`/tmp/folio-t29-real-images-2RZih5/evidence/result.json` completed the poster's
+crop, scale, replacement, undo/redo, nine automatic persistence checkpoints,
+four versions, and both 1200×1800 exports. It then stopped at its first failure:
+after the harness performed a hard main-renderer reload to introduce the next
+fixture, clicking the second session left the URL on the poster session for 60
+seconds. Cleanup passed, no copied review profile was created, and the 12-image
+artwork, same-profile restart, and copied-profile fresh-process reopen did not
+run. The follow-up diagnostic at
+`/tmp/folio-t29-real-images-BOAVYz/evidence/result.json` used the row's unique
+`data-sidebar-session-id` and ruled out the selector: the correct click reached
+`design.leave`, but `design.attach` returned immediately after
+`did-finish-load`, before the new canvas product API was ready. Leave then
+opened the native unsaved-canvas dialog. The linked
+[readiness correction](2026-09-12-leave-attach-loading-race.md#follow-up-readiness-correction)
+now makes that attach boundary explicit. The wider journey still needs to be
+resumed on an installed build containing that correction.
+
+These bounded results establish the export regression and cleanup behavior for
+this installed build; they do not establish a universal CDP contract or human
+visual/editing acceptance.

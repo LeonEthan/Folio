@@ -126,6 +126,56 @@ validation remain open until a normal package containing that correction exercis
 the real in-session menu. Evidence is under
 `/tmp/folio-t28-codex-current-etvwNO/evidence`.
 
+The first package containing that menu correction, source
+`bb7a424c1a0023a4ba0e9cb3fc5fe257b06a02f4`, was exercised by
+`folio-t28-codex-current-0PoBzi` with frozen READY3 script SHA256
+`b24cc070f9b9be471a57f6352f9bd7c87af1332b7a5434f0d5a14004c277b116`.
+The real in-session menu selected Codex and the read-only product-state observer
+proved the same exact config id and machine in Session meta and machine flock,
+including the isolated environment and pinned Codex runtime override. The human
+save completed. Retained actual design request 2 independently contains the
+exact public reminder and saved-current/frozen-input paths. Its thread assertion
+failed before the harness evaluated those contents or reopened the frozen-input
+manifest, so this round does not establish the manifest's baseline revision.
+Static review of the retained requests identified the fixture error: request 1
+was the title task, but its quoted task description also contained the design marker.
+READY3 classified that title task as the main turn and bound its Codex thread id;
+request 2 then failed the fixture's one-design-thread assertion before any SSE
+tool item was emitted. Codex retried the disconnected title and design requests
+until the fixture closed request 17 at its bounded limit. The actual catalog
+declares `functions.exec` as a namespaced custom tool, so a corresponding
+`custom_tool_call` / `custom_tool_call_output` sequence remains correct; it was
+not exercised in this failed round. Native read/write and collector completion
+therefore remain unproved. The retained result is failed at
+`codex-reminder-read-draft-collector-turn` with `cleanupErrors=[]`; failure ARIA,
+DOM, screenshot and trace are present, the isolated harness root is absent, and
+all ten recorded owned processes are absent. Evidence is under
+`/tmp/folio-t28-codex-current-0PoBzi/evidence`.
+
+The same corrected package was exercised for Kimi by
+`folio-t28-kimi-current-08DFOW` with frozen READY3 script SHA256
+`7d25e588d983ff68b936e5e5b5ad7a3856773234d67b61dbdef72ebb9e099084`.
+The real in-session menu selected the exact isolated Kimi config and machine from
+the machine flock, including its isolated `HOME` / `KIMI_CODE_HOME` and pinned
+runtime override. The human save completed. Actual design request 2 contains the
+public plugin reminder and saved-current/frozen-input paths; native Kimi then read
+the current PPTD and page and successfully wrote the draft `design.pptd` after a
+single-use Manual approval. Request 5 carries that first Write result and the
+synthetic provider's next `write_page` call.
+
+The fixture's permission handler then finished the first approval by clearing the
+shared pending action after request 5 had already replaced it with `write_page`.
+The retained failure DOM and ARIA show the second Write permission card stuck with
+disabled controls and `Waiting for your permission`. The result is failed at
+`kimi-reminder-read-draft-collector-turn` with `cleanupErrors=[]`; the second page
+write and collector were not reached. Failure ARIA, DOM, screenshot and trace are
+present, the isolated harness root is absent, and all ten recorded owned processes
+are absent. This is a harness permission-automation race, while menu selection,
+human save, exact reminder delivery, both native current reads and the first draft
+write are independently established. Evidence is under
+`/tmp/folio-t28-kimi-current-08DFOW/evidence`. Real-user plugin registration
+remains unexecuted and requires explicit authorization.
+
 ### Revised installed image deadline and cancellation evidence
 
 Normal macOS arm64 source `5d03ea7e58acb1095fe6d1c3e8fbe006bbc6da58`
@@ -1885,3 +1935,38 @@ The fixture must not create an Agent Session early or change the runtime to make
 that assertion possible. It may then reuse the seeded artwork and existing Stop,
 public-close, HTTP-close and explicit-message load/read assertions. No further
 native run was made for this correction.
+
+A third bounded attempt used normal package source
+`bb7a424c1a0023a4ba0e9cb3fc5fe257b06a02f4`, handle 74238 and evidence root
+`folio-installed-grok-stop-v2-4L1W4l/evidence`. The installed ASAR hash and
+signature matched the package identity before launch. Capability discovery
+entered the isolated wrapper, passed its gate, initialized the unique synthetic
+model and closed its temporary public Session with outcome `closed`. The fixture
+then imported and re-read the exact ten-element poster revision. In the real
+in-Session run-configuration menu, the unique Grok provider changed from
+unchecked to checked. A read-only Session-meta join returned its authoritative
+configuration ID, and the corresponding machine-flock row decoded to the same
+machine and ID, `builtin` / `grok`, the unique provider name, all four isolated
+environment entries and the guarded `grokPath` runtime override.
+
+The attempt stopped while serializing that configuration evidence. Its fixture
+redactor first replaced the known synthetic key in an already serialized JSON
+string, then a broader expression matched the `XAI_API_KEY` field name and
+removed the JSON colon. Re-parsing failed in phase
+`in-session-provider-selection`. This is a fixture failure after the real menu
+and storage checks; it is not an installed product failure. The model submenu
+was not reached, the initial user message was not sent, and no main wrapper,
+model completion, Stop, public main-Session close, model HTTP close, explicit
+continuation, Session load or artwork read ran. Cleanup reports no failure, and
+an independent process query found no process owned by this evidence root.
+
+No isolated `auth.json` exists and no synthetic provider request was received.
+The capability native log still records three early model-catalog prefetch
+attempts to `https://cli-chat-proxy.grok.com/v1` with `has_auth: false`; the run
+therefore again makes no all-HTTP-loopback claim. It contains no real credential
+or model completion. The prepared replacement copies structured evidence,
+replaces only explicit sensitive field values and the known synthetic key, and
+then serializes. A Node 22 preflight against the third attempt's returned object
+shape preserves the underscore-containing keys, parses the output and confirms
+the synthetic secret is absent. That replacement has not had a native run, so
+the full installed Grok Stop/resume cell remains open.

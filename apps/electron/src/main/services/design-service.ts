@@ -22,6 +22,7 @@ import type { DesignHistoryRequest, DesignVersion } from '../../../../cli/src/de
 import { openDesignCanvasNeedsReload, selectCanvasInstance } from './design-canvas-sync-core'
 import { DesignCanvasAccess, type CanvasInstance } from './design-canvas-access'
 import { drainRelevantLoads } from './design-leave-drain-core'
+import { waitForCanvasReady } from './design-canvas-ready-core'
 
 /** P2.5 candidate handling rides the existing design worker channel. */
 type DesignCandidateRequest = { sessionId: string; candidateId: string }
@@ -136,6 +137,42 @@ export async function surface(
   }
 }
 
+const DESIGN_CANVAS_READY_TIMEOUT_MS = 30_000
+
+/**
+ * Wait for Bento's public product API and its real font-backed ready state.
+ * The event is emitted by the product session after it publishes all generic
+ * state/snapshot/flush/readonly methods; the immediate check closes the race
+ * where readiness happened before this listener was installed.
+ */
+async function waitForDesignCanvasReady(webContents: Electron.WebContents): Promise<void> {
+  await waitForCanvasReady(
+    () =>
+      webContents.executeJavaScript(`new Promise((resolve, reject) => {
+    const event = 'folio:ready';
+    const cleanup = () => {
+      window.removeEventListener(event, check);
+    };
+    const check = () => {
+      try {
+        const api = window.folio;
+        if (!api || typeof api.state !== 'function' || typeof api.snapshot !== 'function' ||
+            typeof api.flush !== 'function' || typeof api.setReadonly !== 'function') return;
+        if (api.state()?.ready !== true) return;
+        cleanup();
+        resolve(true);
+      } catch (error) {
+        cleanup();
+        reject(error);
+      }
+    };
+    window.addEventListener(event, check);
+    check();
+  })`),
+    { timeoutMs: DESIGN_CANVAS_READY_TIMEOUT_MS }
+  )
+}
+
 export async function attachDesign(
   owner: BrowserWindow,
   id: string,
@@ -163,7 +200,7 @@ export async function attachDesign(
           artworkId: id,
           setReadonly: async (value, reason) => {
             await view.webContents.executeJavaScript(
-              'window.folio?.setReadonly(' +
+              'window.folio.setReadonly(' +
                 JSON.stringify(value) +
                 ',' +
                 JSON.stringify(reason) +
@@ -172,7 +209,7 @@ export async function attachDesign(
           },
           flush: async (permit) => {
             const result = await view.webContents.executeJavaScript(
-              'window.folio?.flush(' + JSON.stringify(permit) + ')'
+              'window.folio.flush(' + JSON.stringify(permit) + ')'
             )
             if (!result?.ok) throw Error(result?.error ?? 'Canvas is not ready; edits are retained')
           }
@@ -194,6 +231,7 @@ export async function attachDesign(
         view.webContents.on('will-prevent-unload', (event) => event.preventDefault())
         try {
           await view.webContents.loadURL(source.url)
+          await waitForDesignCanvasReady(view.webContents)
         } catch (error) {
           destroyDesignInstance(hostId)
           throw error

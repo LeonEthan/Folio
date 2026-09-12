@@ -1,16 +1,16 @@
 /**
  * Which in-flight attaches `leaveDesign` must wait for.
  *
- * A record exists from `records.set` onward while `window.folio` only appears
- * after the page commits, so reading a loading record's state misreports a
- * clean canvas as unsaved edits. The drain below spans the whole load, which
- * strictly contains that misread window. Maps are injected so the selection
- * and re-check semantics stay testable under `node --test` without Electron.
+ * A record exists from `records.set` onward while the product API may still be
+ * loading, so reading that record's state can misreport a clean canvas as
+ * unsaved edits. The attach promise now settles only after the complete API
+ * reports its real ready state. Maps are injected so the selection and re-check
+ * semantics stay testable under `node --test` without Electron.
  *
  * Two load outcomes, both safe to continue past:
  *
- * - The load rejects after `loadURL` failed: `attachDesign` destroys the
- *   record, so the later per-record pass finds nothing to preserve.
+ * - The load or readiness wait rejects: `attachDesign` destroys the record, so
+ *   the later per-record pass finds nothing to preserve.
  * - The load rejects later (register/readonly): the record stays behind as a
  *   half-initialized zombie, and the later per-record pass still protects it
  *   through the usual dirty/undefined dialog. The drain swallows the rejection
