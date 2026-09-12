@@ -134,11 +134,12 @@ Grok launches the pinned `acp-extension-grok` compatibility adapter with an offi
 unmodified R2-managed runtime in `GROK_PATH`; the submodule owns the private-wire contract
 and minimum official version. Kimi is different: `packages/acp-extension-kimi` owns the
 Lody-maintained runtime source and implements the shared `acp-extension-core` contract.
-Its pinned `0.39.1-lody.f255222661c9` artifact does not yet support Folio design
-read/generation attestation: native post-tool hooks are asynchronous and truncate
-read output, while pre-hook errors/timeouts allow execution. See the
-[Kimi boundary evidence](../../../../.agents/notes/proposed/architecture/2026-09-11-kimi-design-hook-boundary.md).
-Ordinary ACP support does not establish design-hook support.
+Its pinned `0.39.1-lody.f255222661c9` artifact has a working public UserPromptSubmit
+reminder event, but Folio has no verified session-scoped hook loading path that
+preserves Kimi's home configuration and state. See the
+[reminder loading audit](../../../../.agents/notes/proposed/architecture/2026-09-12-kimi-read-reminder-loading.md).
+The earlier generation-proof limitation no longer blocks the revised reminder
+scope; ordinary native tool instructions alone do not complete hook integration.
 
 Grok design-hook support is not enabled. The [1.0.13 native audit](../../../../.agents/notes/proposed/architecture/2026-09-11-grok-design-hook-runtime-gap.md) records working tool callbacks but no usable generation boundary; file hooks and SDK notifications have different completion semantics.
 
