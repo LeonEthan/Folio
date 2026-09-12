@@ -102,9 +102,76 @@ Local evidence logs: `/tmp/folio-t05-revised-check.log`,
 `/tmp/folio-t05-revised-docs-check.log`. These contain synthetic test/check output;
 no captured user or model transcript is committed.
 
-This revised change has not launched Electron or a paid model. Earlier native
-runtime evidence proves the prior event surfaces only; it is not presented as
-end-to-end verification of this new save/reminder path. Pi launch/MCP and Codex
-reminder adaptations are coordinated owner changes and require integration checks.
-The exported PPTD retains the existing lossless conversion and asset checks;
-projection does not establish visual quality or change Bento's independent editor.
+The source-only handoff initially left desktop/native verification open. The
+following integrated acceptance closes the Pi/Claude save/terminal gap using a
+synthetic external provider; it does not use earlier generation-proof results as
+proof of this new contract. The exported PPTD retains existing lossless conversion
+and asset checks; projection does not establish visual quality or change Bento's
+independent editor.
+
+## Integrated native acceptance, 2026-09-12
+
+The actual built OSS desktop from source
+`c6830385c69f335d3b588858a4fd2ff8b7d758b4` includes this implementation
+(root integration `603bf9d`), Pi MCP, Codex reminders and Git history. The existing
+`ElectronHarness` launched the desktop package, bundled CLI, actual Pi `0.85.1`
+with `pi-acp@0.0.33`, and actual Claude Code `2.1.258` with its bundled ACP adapter.
+Provider configuration used only isolated loopback OpenAI/Anthropic endpoints and
+synthetic credentials. No paid model, runtime patch, direct service substitute or
+hook-registration-only success criterion was used.
+
+Final evidence is `/tmp/folio-t05-new-contract-NSbuQU/result.json`; that directory
+also holds the exact executed `probe.mjs`, native canvas/desktop screenshots and
+isolated CLI/harness logs. The run log is
+`/tmp/folio-t05-new-contract-run-final.log`. Bundle SHA-256 values were:
+
+- Electron main: `324930b32d43fc0962338780d9f3c5958510089625f900574aab69e38bac9478`.
+- Bundled CLI: `c0e40756882f6b9bf06107d5388cd6c402d13b522f24c63cd260fb77a9234c4c`.
+
+All six paths passed: Pi and Claude each produced `committed`, `failed` and
+`cancelled` receipts through actual Session/MessageHandler/finalization. The first
+human edit was a native Bento toolbar click followed by its real public save. With
+zero model requests, the probe read canonical bytes and current projection directly
+from disk, verified revision and all file hashes, and imported that PPTD back to
+the same document. It did not invoke `design.read` first and thereby mask a missing
+save-time publication. The subsequent manual edit before switching to Claude also
+left the prior Agent draft unchanged.
+
+Held provider responses made execution observable while every tested current
+canvas was read-only: native toolbar mutation left the document unchanged and
+native save returned a read-only error. Actual native Read/Write tools received
+current projection and draft paths, delivered the manually saved element, and
+modified the draft and an ordinary file. The common reminder appeared in the real
+provider request. Frozen input bytes remained unchanged, and their baseline was
+the saved version captured for that explicit turn. Success changed canonical
+through natural completion while preserving human elements. Provider failure and
+user Stop retained the new draft but left canonical and current projection at the
+preceding successful version.
+
+Pi's successful canonical revision was
+`a40d4242f95b3b3258571b6cc85f47c8b9d5b2810ab662c46fed266a22b50c34`;
+its failure and cancellation retained that revision. Claude's success and both
+subsequent retained versions were
+`d5a1e44b37ea6763bbe9970c58b257ba964c1040af944238cad0623ebdb85f5d`.
+`CLAUDE-CANCEL-final-canvas.png` was inspected and shows the retained `#667788`
+canvas; the two synthetic shape elements overlap by construction. This is the
+same final run and version, not a screenshot borrowed from an earlier probe.
+
+Two probe corrections preceded the final pass. Historical conversation prompts
+required selecting the latest frozen-input pointer rather than the first pointer.
+Claude retried the synthetic HTTP 400 once, so the provider had to repeat the same
+error instead of closing that subsequent connection; the latter had caused a
+probe-only timeout. Neither correction changed product code or added product
+retries. Native transport behavior is not a fabricated successful terminal event.
+The final process exited zero and harness logs confirm endpoint release, directory
+cleanup and completed owned-process teardown. The exclusive Electron slot was
+released before documentation work. The evidence-only update also passed full
+`corepack pnpm check` (`/tmp/folio-t05-native-evidence-check.log`), root format,
+docs check and diff checks; no product source changed during this acceptance.
+
+The external model was scripted, so this proves runtime/tool/IPC/storage behavior,
+not autonomous artistic judgment or paid-provider compatibility. This run covered
+one actual current canvas instance, ordinary chat source paths and native Pi/Claude
+execution; multi-instance locking, project/worktree isolation, other Agents,
+explicit resubmission and injected publication faults retain their separate test
+and owner evidence. No user or model transcript is committed.
