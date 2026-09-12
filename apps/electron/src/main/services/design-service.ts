@@ -3,7 +3,15 @@ import {
   validateDesignElementReferences
 } from '@lody/shared/design-element-reference'
 import { isDeepStrictEqual } from 'node:util'
-import { app, BrowserWindow, WebContentsView, session, dialog, type NativeImage } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  WebContentsView,
+  session,
+  dialog,
+  nativeImage,
+  type NativeImage
+} from 'electron'
 import { spawn } from 'node:child_process'
 import { randomUUID, createHash } from 'node:crypto'
 import { readFile, open, rename, unlink } from 'node:fs/promises'
@@ -13,7 +21,6 @@ import type { DesignPayload, DesignRequest } from '../../../../cli/src/design/st
 import type { DesignHistoryRequest, DesignVersion } from '../../../../cli/src/design/history'
 import { openDesignCanvasNeedsReload, selectCanvasInstance } from './design-canvas-sync-core'
 import { DesignCanvasAccess, type CanvasInstance } from './design-canvas-access'
-import { capturePresentedFrame, type PresentedFrameSource } from './design-render-frame-core'
 import { drainRelevantLoads } from './design-leave-drain-core'
 
 /** P2.5 candidate handling rides the existing design worker channel. */
@@ -551,38 +558,51 @@ export async function exportDesign(id: string, format: 'png' | 'jpeg', title: st
   }
 }
 
-/** Upper bound for receiving a compositor-confirmed frame; exhaustion throws. */
+/** Upper bound for Chromium to force-redraw and copy the prepared design surface. */
 const RENDER_CAPTURE_VERIFY_TIMEOUT_MS = 30_000
 
 /**
- * Capture an offscreen paint requested after the prepared artwork replaced the
- * editor shell. Painting stays stopped from before navigation through DOM
- * preparation; after painting resumes, a second explicitly requested repaint
- * avoids the queued first-frame behavior observed in the native probe. This
- * path is independent of pixel format, artwork colors, and transparency.
+ * Capture the prepared render-only surface through Chromium's screenshot path.
+ * `Page.captureScreenshot` force-redraws before copying the compositor surface,
+ * unlike Electron's OSR `invalidate()`, which can recomposite cached backing.
+ * The protocol always returns PNG so transparency survives until the existing
+ * logical resize and PNG/JPEG encoding step.
  */
-async function captureVerifiedArtwork(window: BrowserWindow): Promise<NativeImage> {
-  const { webContents } = window
-  const source: PresentedFrameSource<NativeImage> = {
-    listen(listener) {
-      const onPaint = (_event: Electron.Event, _dirty: Electron.Rectangle, image: NativeImage) =>
-        listener(image)
-      webContents.on('paint', onPaint)
-      return () => webContents.off('paint', onPaint)
-    },
-    start: () => webContents.startPainting(),
-    stop: () => webContents.stopPainting(),
-    invalidate: () => webContents.invalidate()
-  }
-  const controller = new AbortController()
-  const timer = setTimeout(
-    () => controller.abort(Error('Canvas capture did not settle on the saved artwork')),
-    RENDER_CAPTURE_VERIFY_TIMEOUT_MS
-  )
+async function captureVerifiedArtwork(
+  window: BrowserWindow,
+  format: 'png' | 'jpeg'
+): Promise<NativeImage> {
+  const client = window.webContents.debugger
+  let timer: NodeJS.Timeout | undefined
+  let attached = false
   try {
-    return await capturePresentedFrame(source, controller.signal)
+    client.attach('1.3')
+    attached = true
+    const capture = (async () => {
+      await client.sendCommand('Emulation.setDefaultBackgroundColorOverride', {
+        color: format === 'png' ? { r: 0, g: 0, b: 0, a: 0 } : { r: 255, g: 255, b: 255, a: 1 }
+      })
+      return client.sendCommand('Page.captureScreenshot', {
+        format: 'png',
+        fromSurface: true,
+        captureBeyondViewport: false
+      })
+    })()
+    const deadline = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(
+        () => reject(Error('Canvas capture did not settle on the saved artwork')),
+        RENDER_CAPTURE_VERIFY_TIMEOUT_MS
+      )
+      timer.unref()
+    })
+    const response = (await Promise.race([capture, deadline])) as { data?: unknown }
+    if (typeof response.data !== 'string') throw Error('Canvas capture returned no PNG data')
+    const image = nativeImage.createFromBuffer(Buffer.from(response.data, 'base64'))
+    if (image.isEmpty()) throw Error('Canvas capture returned an empty PNG')
+    return image
   } finally {
-    clearTimeout(timer)
+    if (timer) clearTimeout(timer)
+    if (attached && client.isAttached()) client.detach()
   }
 }
 
@@ -608,7 +628,6 @@ export async function renderSavedDesign(
       offscreen: true
     }
   })
-  window.webContents.stopPainting()
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   try {
     await window.loadURL(source.url)
@@ -634,7 +653,7 @@ export async function renderSavedDesign(
         } catch(error) { clearTimeout(timer); reject(error); }
       } check();
     })`)
-    const image = await captureVerifiedArtwork(window)
+    const image = await captureVerifiedArtwork(window, format)
     const exact = image.resize({ width, height })
     return format === 'png' ? exact.toPNG() : exact.toJPEG(95)
   } finally {

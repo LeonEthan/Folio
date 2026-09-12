@@ -56,6 +56,10 @@ import { matchesKeyboardEvent, parseBinding } from '@/lib/commands/key-matcher';
 import { isSessionContextCompacting } from '@/lib/session-context-compaction';
 import { hasFileTransfer, getFilesFromDataTransfer } from '@/lib/file-drop';
 import { resolveProgrammaticTurnAgentRole } from '@/lib/composer-agent-roles';
+import {
+  canSwitchDesignAgent,
+  selectDesignAgentConfigsForMachine,
+} from '@/lib/design-agent-switch';
 import { mergeDropZoneHandlers, useDropZone } from '@/hooks/use-drop-zone';
 import { useSessionMentionDropZone } from '@/hooks/use-session-mention-drag';
 import {
@@ -4131,16 +4135,20 @@ export const SessionChatInterface = memo(
     const handleAgentConfigChange = useCallback(
       (selection: AgentSelection) => {
         if (!runtime) return;
-        const config = agentConfigs.find((c) => c.id === selection.agentId);
+        const config = agentConfigs.find(
+          (candidate) =>
+            candidate.id === selection.agentId && candidate.machineId === selection.machineId
+        );
         if (!config) return;
         if (
           session.design &&
-          (isSessionWorking ||
-            activeAssistantTurnId != null ||
-            !(
-              config.agentType === 'pi-acp' ||
-              (config.cliType === 'builtin' && config.agentType === 'claude')
-            ))
+          !canSwitchDesignAgent({
+            selection,
+            config,
+            sessionMachineId: session.machineId,
+            isSessionWorking,
+            activeAssistantTurnId,
+          })
         )
           return;
         const roomId = getSessionRoomId(session.id);
@@ -4150,7 +4158,15 @@ export const SessionChatInterface = memo(
           agentType: config.agentType,
         } as Partial<SessionMeta>);
       },
-      [runtime, agentConfigs, session.id, session.design, isSessionWorking, activeAssistantTurnId]
+      [
+        runtime,
+        agentConfigs,
+        session.id,
+        session.design,
+        session.machineId,
+        isSessionWorking,
+        activeAssistantTurnId,
+      ]
     );
 
     // ── Pin management ──────────────────────────────────────────────────
@@ -5328,12 +5344,7 @@ export const SessionChatInterface = memo(
                         }
                         designAgentConfigs={
                           session.design
-                            ? agentConfigs.filter(
-                                (config) =>
-                                  config.machineId === session.machineId &&
-                                  (config.agentType === 'pi-acp' ||
-                                    (config.cliType === 'builtin' && config.agentType === 'claude'))
-                              )
+                            ? selectDesignAgentConfigsForMachine(agentConfigs, session.machineId)
                             : undefined
                         }
                         allowDesignAgentSwitch={

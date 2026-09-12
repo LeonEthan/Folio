@@ -95,3 +95,10 @@ The integrated repository `pnpm check` and `pnpm format` pass after this
 correction and the preserved leave-loading follow-up. The combined check includes
 typechecking, tests and public-boundary validation; it does not run the pending
 installed Bento export regression.
+
+## Later correction
+
+The installed package disproved this paint-sequence decision, and Electron's
+OSR source confirms that `invalidate()` can recomposite cached backing. The
+replacement and retained failure evidence are recorded in
+[Export captures use Chromium forced redraw snapshots](2026-09-12-devtools-forced-redraw-export-capture.md).

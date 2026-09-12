@@ -108,6 +108,24 @@ isolated data root is absent and all nine recorded owned processes are absent.
 This is a harness-readiness failure, not a product result, and the Codex row above
 remains open. Evidence is under `/tmp/folio-t28-codex-current-A7d1Y8/evidence`.
 
+The corrected-readiness Codex attempt, `folio-t28-codex-current-etvwNO`, used
+normal installed source `1806ea22b5658c38562a3aa8cfaa25fe6ca95c2f` and frozen
+script SHA256
+`1664732a0358b463c043a7b9c34cd83fb9e59b4b26accc31f7cf20405164db09`.
+It reached the exact session-bound native canvas, then found no Agent row in the
+in-session Run configuration menu. No human save, reminder, current-PPTD,
+collector or provider request ran. The retained result is failed with
+`cleanupErrors=[]`, and the isolated data root and every recorded owned process
+were absent after teardown. Static diagnosis found that the design-session menu
+still filtered the available Agent-config catalog to Pi and Claude even though the
+current Spec lets the user choose the Agent and the noninvasive reminder contract
+does not restrict other creative capability. The correction now offers every
+available config owned by the exact session machine while retaining the idle and
+active-turn guards; it adds no Agent-type support list. Installed Codex and Kimi
+validation remain open until a normal package containing that correction exercises
+the real in-session menu. Evidence is under
+`/tmp/folio-t28-codex-current-etvwNO/evidence`.
+
 ### Revised installed image deadline and cancellation evidence
 
 Normal macOS arm64 source `5d03ea7e58acb1095fe6d1c3e8fbe006bbc6da58`
@@ -1808,3 +1826,62 @@ finishes at 20:47:59.577Z, and all 16 recorded owned processes are independently
 absent. This supplies the missing successful installed Pi cancellation and
 explicit-continuation round, including a real transport-close observation.
 Earlier failed rounds and the separate Grok transport failure remain unchanged.
+
+### Grok full-close installed acceptance attempts
+
+Two bounded attempts on the normal macOS arm64 package from source
+`1806ea22b5658c38562a3aa8cfaa25fe6ca95c2f` did not reach the Grok Stop
+contract. They remain fixture failures and do not weaken the direct native
+transport failure above or establish installed full-close behavior.
+
+The first attempt retained evidence at
+`folio-installed-grok-stop-v2-FZNCFi/evidence`. Capability discovery entered the
+isolated wrapper, passed its native gate and completed a temporary Session. The
+application's main Grok Session then loaded the packaged read reminder through
+the corrected `_x.ai/hooks/action` carrier, confirmed the enabled Folio
+`pre_tool_use` hook and reached the synthetic loopback model with the configured
+model. Its new blank artwork contained no PPTD page, so the provider returned
+`Current PPTD manifest has no page` before the fixture established its held main
+response. Stop, public Session close, model HTTP closure and explicit-message
+load/read assertions did not run. Cleanup reported no failure and left no owned
+process.
+
+The seeded follow-up retained evidence at
+`folio-installed-grok-stop-v2-ODESoF/evidence`. It imported the existing poster
+fixture as a non-empty artwork and verified the exact document, ten elements,
+assets and saved revision before submitting through the visible Session
+composer. It then failed at Session creation with `Authentication required` and
+recorded no main wrapper entry or synthetic provider request. The reason is a
+fixture identity error: it treated capability `_meta.clientIdentifier` after
+the `lody:` prefix as an Agent configuration ID and wrote that value into the
+seeded Session metadata. In production, `AgentClient` constructs this identifier
+as `lody:${this.options.sessionId}`. The authoritative configuration selector is
+instead `SessionMeta.agentConfigId`; launch resolution uses that value to read
+the matching `agentConfig(<id>)` row from the machine flock. The failed run
+therefore does not show that product metadata dropped the configured environment
+or runtime override.
+
+The second run still preserved the account boundary. The application and both
+fallback Grok processes inherited its private `HOME`; their native logs resolve
+storage to `<run>/home/.grok`, show no `auth.json`, report `has_auth: false` and
+`No credentials found`, and never reached a model completion request. They did
+not read the user's Grok account. The capability process separately used the
+private configured `GROK_HOME`, synthetic API key and verified native binary.
+Its native startup log nevertheless records `startup.fetch_models_blocking` and
+an early model-catalog prefetch to `https://cli-chat-proxy.grok.com/v1`, followed
+by a failed catalog refresh. Thus this round cannot claim that every native HTTP
+request stayed on loopback. The only credential available to that attempt was
+the synthetic key; no real authentication, completion request or paid model call
+is evidenced. The fallback processes had no credential and their zero-duration
+prefetch entries record no external endpoint.
+
+The next installed attempt must select Grok from the real in-Session provider UI
+and read the configuration ID from product state rather than infer it from ACP
+client metadata. Before clicking Send, it must confirm the actual selected
+configuration and its environment/runtime override. If the main runtime starts
+on demand after Send, the wrapper must still gate the native Session and prompt
+before they reach the model; observing any bypass is a terminal fixture failure.
+The fixture must not create an Agent Session early or change the runtime to make
+that assertion possible. It may then reuse the seeded artwork and existing Stop,
+public-close, HTTP-close and explicit-message load/read assertions. No further
+native run was made for this correction.

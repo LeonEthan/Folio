@@ -69,14 +69,16 @@ Read each heading's linked rules before editing.
 
 ## [Run config and Agent Roles](../../../../../.agents/docs/sessions-run-config.md)
 
-- A Role never falls back: `machineId + agentConfigId` are exact, and an
-  unavailable one stays listed, disabled, with its reason. A draft authorizes the
-  whole Role; an existing session applies only its run config.
-- A Role IS the whole configuration: other knobs render inert,
-  `DesktopPermissionModeButton` is absent when the Role pins permission, and
-  moving a knob unnames the Role instead of clearing values.
-- Selection flows through `useAcpSessionConfigSelectionState`, a pure derivation:
-  never store the resolved selection or reconcile it in an effect (#185).
+- A Role never falls back: `machineId + agentConfigId` are exact. Keep unavailable
+  Roles listed and disabled with reasons. Drafts authorize the whole Role;
+  sessions apply only its run config.
+- A Role owns all config. Other knobs are inert; pinned permission hides
+  `DesktopPermissionModeButton`. Changing another knob unnames the Role without
+  clearing values.
+- Derive selection with `useAcpSessionConfigSelectionState`; never store or
+  effect-reconcile it (#185).
+- Idle design Agent switching uses the same-machine catalog without an Agent-type
+  list; execution or an active Turn blocks it.
 - Freeze `agentRoleId` + `agentRoleRevision` into the Turn `inputConfig` on send;
   `SessionMeta.agentRoleId` is creation provenance and is never rewritten.
 - Two durable authorities: the latest accepted/queued Turn `inputConfig`, and

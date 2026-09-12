@@ -57,9 +57,11 @@ this page is the full text of the rules summarised there.
   **An existing session** (`useSessionAgentRole`) applies a Role only to its
   current provider; Role selection does not change Agent, machine, or runtime.
   Idle desktop design sessions have one explicit exception to the ordinarily
-  fixed Agent: their Agent menu can select supported Pi/Claude for the next
-  explicit Turn. The daemon retires the prior runtime under its normal turn
-  guard and restores through existing history replay. Provider-bound model, mode,
+  fixed Agent: their Agent menu can select any currently available Agent config
+  owned by that Session's machine for the next explicit Turn. The available
+  Agent-config catalog remains the support authority; the design surface does
+  not maintain a second Agent-type list. The daemon retires the prior runtime
+  under its normal turn guard and restores through existing history replay. Provider-bound model, mode,
   permission, runtime baselines and Role identity do not transfer; the new provider
   supplies its defaults until the user selects its run config. This uses the
   [design continuation contract](../notes/implemented/bug-fix/2026-09-11-design-continuation-runtime-identity.md).
@@ -238,4 +240,3 @@ this page is the full text of the rules summarised there.
   `<input type="file">` on every platform (Windows included — the renderer no
   longer crashes once locale `.pak`s ship; see `apps/electron/AGENTS.md`) and
   routes each selection by MIME into the image or file state machine.
-
