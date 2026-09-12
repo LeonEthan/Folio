@@ -30,6 +30,11 @@ per-turn thumbnails or thumbnail IPC. Previews/PNG/JPEG use canvas dimensions.
 Historical files resolve by artwork/digest in the worker; local resources serve
 original bytes and embedded assets.
 
+Git history views reuse the isolated readonly renderer and have no file watcher or
+import action. Save-version and restore flush through the artwork mutation gate;
+restore preserves unversioned content in Git before canonical CAS. Report successful
+disk writes separately from failed canvas reloads.
+
 Element references originate only from visible canonical selections while idle.
 Capture IDs before flush and pair them with its saved revision; never rebase stored
 composer references. Validate artwork, revision and IDs again before dispatch.

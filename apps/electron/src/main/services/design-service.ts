@@ -10,6 +10,7 @@ import { readFile, open, rename, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { DesignWorker, quitDesignWorker } from './design-worker'
 import type { DesignPayload, DesignRequest } from '../../../../cli/src/design/store'
+import type { DesignHistoryRequest, DesignVersion } from '../../../../cli/src/design/history'
 import { openDesignCanvasNeedsReload, selectCanvasInstance } from './design-canvas-sync-core'
 import { DesignCanvasAccess, type CanvasInstance } from './design-canvas-access'
 
@@ -50,6 +51,7 @@ export const shutdownDesignWorker = () => designWorker.close()
 export function designRequest<T = DesignPayload>(
   request:
     | DesignRequest
+    | DesignHistoryRequest
     | { operation: 'source-preview'; workdir: string; previousSourceIdentity?: string }
     | { operation: 'pending' }
     | { operation: 'acknowledge'; sessionId: string }
@@ -245,6 +247,48 @@ export async function saveDesign(id: string) {
   if (designCanvasAccess.isReadonly(id)) throw Error('Canvas is read-only; edits are retained')
   await designCanvasAccess.prepareForSend(id)
 }
+/** Version actions reuse the same mutation gate as explicit import. */
+export async function createDesignVersion(id: string): Promise<DesignVersion> {
+  await queryCanvasState?.()
+  return designCanvasAccess.replaceAfterFlush(id, async (assertIdle) => {
+    const current = await designRequest({ operation: 'read', sessionId: id })
+    assertIdle()
+    return designRequest<DesignVersion>(
+      { operation: 'history-create', sessionId: id, baseRevisionId: current.revisionId },
+      assertIdle
+    )
+  })
+}
+
+export async function restoreDesignVersion(
+  id: string,
+  commitId: string
+): Promise<{ revisionId: string; reloadError?: string }> {
+  await queryCanvasState?.()
+  let saved: DesignPayload | undefined
+  try {
+    return await designCanvasAccess.replaceAfterFlush(id, async (assertIdle) => {
+      const current = await designRequest({ operation: 'read', sessionId: id })
+      assertIdle()
+      const result = await designRequest<DesignPayload>(
+        {
+          operation: 'history-restore',
+          sessionId: id,
+          commitId,
+          baseRevisionId: current.revisionId
+        },
+        assertIdle
+      )
+      saved = result
+      await syncDesignCanvasFromStore(id)
+      return { revisionId: result.revisionId }
+    })
+  } catch (error) {
+    if (saved) return { revisionId: saved.revisionId, reloadError: String(error) }
+    throw error
+  }
+}
+
 /** Capture only the visible canonical editor, after its ordinary save finishes. */
 export async function getDesignSelection(id: string, hostId: string, kind?: 'image') {
   await queryCanvasState?.()

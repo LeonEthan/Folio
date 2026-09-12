@@ -141,4 +141,4 @@ Read each heading's linked rules before editing.
   `SessionConversationPage.stories.tsx` hand-composes leaves and drifts — keep it
   minimal and verify UI changes in the real app.
 
-Previews never save or replace canonical editors; new receipts select them after guarded sync.
+Canvas previews, receipts and versions follow [README](README.md).

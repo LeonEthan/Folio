@@ -183,3 +183,20 @@ HTTP calls have independent SDK connections so aborting one closes its request
 without interrupting another; the stdio client uses ordinary MCP cancellation. Image configuration/model and render-host availability remain the daemon's
 gates. Installed Pi validation is pending; see the
 [implementation record](../../../../.agents/notes/proposed/architecture/2026-09-12-pi-folio-mcp-extension.md).
+
+## Design history
+
+`history.ts` adds list/read/create/restore operations to the existing design worker.
+Each artwork owns `<dataRoot>/chats/<artworkId>/history.git`; its Git objects and
+managed ref are the only version history. Commits contain the complete document
+and embedded assets, while current association metadata stays outside history.
+Ordinary saves do not create history entries. Git uses Lody's local executable;
+missing Git reports an error without falling back to another store.
+
+Readonly history verifies reachable version identity and content before rendering.
+Restore protects unversioned current content in the same Git repository, then uses
+the normal store save/CAS and current-PPTD publication. A failed protective write
+cannot replace the current artwork; a canonical save followed by projection or
+canvas-reload failure remains a saved state with a recovery error. User repositories,
+branches, index, global configuration and remote operations are not involved.
+See the [decision and acceptance limits](../../../../.agents/notes/proposed/feature/2026-09-12-design-version-history.zh.md).

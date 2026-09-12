@@ -2,6 +2,7 @@ import { createInterface } from 'node:readline';
 import { getLodyDataDir } from '@lody/shared/node/installation-profile';
 import { z } from 'zod';
 import { buildPreviewPayload } from './design/render-preview';
+import { designHistoryOperation } from './design/history';
 import {
   acknowledgeDesign,
   designOperation,
@@ -59,6 +60,8 @@ for await (const line of createInterface({ input: process.stdin, crlfDelay: Infi
       // ordinary file preview owns byte transport; never copy/rewrite history.
       const { file } = await readDesignCandidate(dataRoot, input.sessionId, input.candidateId);
       value = { path: file };
+    } else if (typeof request?.operation === 'string' && request.operation.startsWith('history-')) {
+      value = await designHistoryOperation(dataRoot, request);
     } else value = await designOperation(dataRoot, request);
     process.stdout.write(JSON.stringify({ ok: true, value }) + '\n');
   } catch (error) {

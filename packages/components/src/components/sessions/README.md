@@ -125,3 +125,15 @@ before the canvas returns to the current artwork. Historical receipts on initial
 hydration and later explicit source choices do not trigger that navigation. Reload
 failures remain visible and preserve unsaved edits. See the
 [decision and verification](../../../../../.agents/notes/implemented/bug-fix/2026-09-11-current-canvas-after-commit.md).
+
+### Design versions
+
+The version selector uses immutable local Git history. Save version flushes the current
+artwork and records its exact assets; ordinary autosave does not create a version.
+Historical views share the isolated readonly renderer, while the current editor remains
+hidden with its undo state. Edit from here explicitly restores the selected version;
+the service preserves unversioned current content in the same Git history first.
+Version mutations use the existing execution/processing gate, and history cannot supply
+current-artwork selections or enter the external-file import path. Git errors remain
+visible without replacing the current editor. See the
+[implementation and acceptance limits](../../../../../.agents/notes/proposed/feature/2026-09-12-design-version-history.zh.md).

@@ -46,3 +46,8 @@ overlay. Never treat reminder delivery as read or commit evidence.
 Pi image/render tools use the existing Lody MCP catalog and session context through
 the public extension API. Never implement providers there or expose unlisted tools;
 retain native tool policy, cancellation signals and session-scoped client cleanup.
+
+Design history uses the artwork's independent local Git repository. Preserve exact
+embedded content and protect unversioned current work before restore; then use the
+ordinary canonical save/CAS and projection path. Never alter user Git state or add
+parallel snapshot storage. See [history](README.md#design-history).

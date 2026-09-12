@@ -19,11 +19,14 @@ import {
   importSourcePreview,
   hideSourcePreview,
   attachSourcePreview,
-  closeSourcePreview
+  closeSourcePreview,
+  showDesignVersion
 } from '../../services/design-source-preview'
 import { getIpcServiceDeps } from '../ipc-service-deps'
 import {
   getDesignSelection,
+  createDesignVersion,
+  restoreDesignVersion,
   attachDesign,
   hideDesign,
   destroyDesign,
@@ -187,6 +190,29 @@ export class DesignIpc extends IpcService {
       association.parse(raw),
       hostId === undefined ? undefined : id.parse(hostId)
     )
+  }
+  @IpcMethod() async versions(sessionId: string) {
+    owner()
+    return designRequest<import('../../../../../cli/src/design/history').DesignVersion[]>({
+      operation: 'history-list',
+      sessionId: id.parse(sessionId)
+    })
+  }
+  @IpcMethod() async saveVersion(sessionId: string) {
+    owner()
+    return createDesignVersion(id.parse(sessionId))
+  }
+  @IpcMethod() async restoreVersion(sessionId: string, commitId: string) {
+    owner()
+    if (typeof commitId !== 'string' || !/^[a-f0-9]{40}$/.test(commitId))
+      throw Error('Invalid design version')
+    return restoreDesignVersion(id.parse(sessionId), commitId)
+  }
+  @IpcMethod() async viewVersion(sessionId: string, hostId: string, commitId: string) {
+    const window = owner()
+    if (typeof commitId !== 'string' || !/^[a-f0-9]{40}$/.test(commitId))
+      throw Error('Invalid design version')
+    return showDesignVersion(window, id.parse(sessionId), id.parse(hostId), commitId)
   }
   @IpcMethod() async export(sessionId: string, format: 'png' | 'jpeg', title: string) {
     owner()

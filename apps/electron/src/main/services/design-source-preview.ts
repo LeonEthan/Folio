@@ -56,6 +56,7 @@ const views = new Map<
     artworkId: string
     source: string
     sourceIdentity: string
+    kind: 'source' | 'history'
     snapshot: {
       content: Pick<import('../../../../cli/src/design/store').DesignPayload, 'doc' | 'assets'>
       baseRevisionId?: string
@@ -75,6 +76,7 @@ export async function importSourcePreview(
   const shown = views.get(hostId)
   if (
     !shown ||
+    shown.kind !== 'source' ||
     shown.owner !== owner ||
     shown.artworkId !== artworkId ||
     shown.sourceIdentity !== sourceIdentity ||
@@ -122,12 +124,7 @@ export function attachSourcePreview(hostId: string, bounds: Electron.Rectangle) 
 }
 
 /** Resolve trusted paths before subscribing; reopening always reconciles exact bytes. */
-export async function refreshSourcePreview(
-  owner: BrowserWindow,
-  artworkId: string,
-  hostId: string,
-  resolveSource: () => Promise<string>
-) {
+function registerConsumer(owner: BrowserWindow, artworkId: string, hostId: string) {
   if (!observedOwners.has(owner)) {
     observedOwners.add(owner)
     const close = () => {
@@ -143,6 +140,49 @@ export async function refreshSourcePreview(
   if (retained && (retained.artworkId !== artworkId || retained.owner !== owner))
     closeSourcePreview(hostId)
   consumers.set(hostId, owner)
+}
+
+/** Immutable history uses the existing isolated renderer, without a file watcher. */
+export async function showDesignVersion(
+  owner: BrowserWindow,
+  artworkId: string,
+  hostId: string,
+  commitId: string
+) {
+  closeSourcePreview(hostId)
+  registerConsumer(owner, artworkId, hostId)
+  const token = resolutions.begin(hostId, artworkId)
+  const saved = await designRequest<import('../../../../cli/src/design/store').DesignPayload>({
+    operation: 'history-read',
+    sessionId: artworkId,
+    commitId
+  })
+  if (!resolutions.current(token)) return { status: 'superseded' as const }
+  return renderSourcePreview(
+    owner,
+    artworkId,
+    hostId,
+    `git:${commitId}`,
+    {
+      status: 'ok',
+      doc: saved.doc,
+      assets: saved.assets,
+      width: saved.doc.canvas.width,
+      height: saved.doc.canvas.height,
+      sourceIdentity: saved.revisionId
+    },
+    () => resolutions.current(token),
+    'history'
+  )
+}
+
+export async function refreshSourcePreview(
+  owner: BrowserWindow,
+  artworkId: string,
+  hostId: string,
+  resolveSource: () => Promise<string>
+) {
+  registerConsumer(owner, artworkId, hostId)
   const token = resolutions.begin(hostId, artworkId)
   try {
     const source = await resolveSource()
@@ -252,7 +292,8 @@ async function renderSourcePreview(
   hostId: string,
   source: string,
   built: ObservedPreviewResult,
-  sourceCurrent: () => boolean
+  sourceCurrent: () => boolean,
+  kind: 'source' | 'history' = 'source'
 ) {
   const token = requests.begin(hostId, artworkId)
   const current = () => requests.current(token) && sourceCurrent()
@@ -307,7 +348,7 @@ async function renderSourcePreview(
           if (started || !window.folio || !window.bento?.doc || !document.querySelector('.bento-slide')) return;
           started = true; observer.disconnect();
           try {
-            window.folio.setReadonly(true, '未提交预览 · 只读 / Unsubmitted preview · Read-only');
+            window.folio.setReadonly(true, ${JSON.stringify(kind === 'history' ? '历史版本 · 只读 / Version history · Read-only' : '未提交预览 · 只读 / Unsubmitted preview · Read-only')});
             document.querySelector('.bento-slide').getBoundingClientRect();
             await Promise.all([...document.fonts].filter(font => font.status === 'loading').map(font => font.load()));
             if ([...document.fonts].some(font => font.status === 'error')) throw Error('Preview font failed to load');
@@ -345,6 +386,7 @@ async function renderSourcePreview(
       owner,
       artworkId,
       source,
+      kind,
       sourceIdentity: built.sourceIdentity,
       snapshot: { content: { doc: built.doc, assets: built.assets } },
       view,

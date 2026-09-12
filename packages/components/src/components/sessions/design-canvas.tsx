@@ -8,10 +8,12 @@ import { getSessionRoomId, type SessionId } from '@lody/shared';
 import { activeWorkspaceRuntimeAtom } from '@/atoms/runtime';
 import { localProbeResultAtom } from '@/atoms/local-probe';
 import { userAtom, currentWorkspaceIdAtom } from '@/atoms';
-import { getIpcServices, onIpcEvent } from '@/lib/electron-ipc-client';
+import { getIpcServices, onIpcEvent, type IpcServices } from '@/lib/electron-ipc-client';
 import { latestCommittedDesignReceipt, syncOpenDesignCanvas } from '@/lib/design-canvas-sync';
 import { useSessionDoc } from '@/hooks/use-session-doc';
 import { Button } from '@/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/select';
+import { sessionLiveStatusAtomFamily } from '@/atoms/presence';
 import { writeStoredLastActiveTabState } from '@/lib/session-draft-tabs';
 
 type Association = {
@@ -90,6 +92,24 @@ export function DesignCanvas({
   const create = useDesignCreation(workspaceSlug);
   const [focused, setFocused] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [historyVersion, setHistoryVersion] = useState<string>();
+  const [historyReady, setHistoryReady] = useState(false);
+  const [versions, setVersions] = useState<Awaited<ReturnType<IpcServices['design']['versions']>>>([]);
+  const versionsGeneration = useRef(0);
+  const liveStatus = useAtomValue(sessionLiveStatusAtomFamily(sessionId as SessionId));
+  const readonlyView = preview || historyVersion !== undefined;
+  const refreshVersions = useCallback(async (isCurrent: () => boolean = () => true) => {
+    const generation = ++versionsGeneration.current;
+    const service = getIpcServices()?.design;
+    if (!service) throw Error('Local workspace is not ready');
+    const result = await service.versions(sessionId);
+    if (isCurrent() && generation === versionsGeneration.current) setVersions(result);
+  }, [sessionId]);
+  useEffect(() => {
+    let cancelled = false;
+    if (active) void refreshVersions(() => !cancelled).catch(cause => { if (!cancelled) setError(String(cause)); });
+    return () => { cancelled = true; };
+  }, [active, refreshVersions]);
   const [previewStatus, setPreviewStatus] = useState<'waiting' | 'ready' | 'refreshing'>('waiting');
   const [previewSource, setPreviewSource] = useState('');
   const [previewIdentity, setPreviewIdentity] = useState<string>();
@@ -118,7 +138,7 @@ export function DesignCanvas({
       setPreviewStatus(result.status);
       if (result.status === 'waiting') setPreviewError(result.error ?? '');
       setAutomaticError(result.automaticError ?? '');
-      if (host.current && !document.querySelector('[role="dialog"]')) {
+      if (host.current && !document.querySelector('[role="dialog"], [role="listbox"]')) {
         const {x, y, width, height} = host.current.getBoundingClientRect();
         await service.attachPreview(hostId, {x, y, width, height});
       }
@@ -128,7 +148,8 @@ export function DesignCanvas({
     }
   }, [workspaceId, machine?.machineId, sessionId, hostId]);
   const switchPreview = (value: boolean) => {
-    if (value === preview) return;
+    if (value === preview && historyVersion === undefined) return;
+    setHistoryVersion(undefined);
     ++viewChoiceGeneration.current;
     ++previewGeneration.current;
     setPreview(value);
@@ -142,6 +163,26 @@ export function DesignCanvas({
     ++previewGeneration.current;
     void getIpcServices()?.design.closePreview(hostId);
   }, [hostId, sessionId]);
+  useEffect(() => {
+    if (!historyVersion || !active) return undefined;
+    let cancelled = false;
+    const generation = ++previewGeneration.current;
+    setHistoryReady(false);
+    const service = getIpcServices()?.design;
+    if (!service) return undefined;
+    void service.viewVersion(sessionId, hostId, historyVersion).then(async result => {
+      if (cancelled || generation !== previewGeneration.current || result.status === 'superseded') return;
+      if (result.status !== 'ready') throw Error(result.error ?? 'Version could not render');
+      setHistoryReady(true);
+      if (host.current && !document.querySelector('[role="dialog"], [role="listbox"]')) {
+        const { x, y, width, height } = host.current.getBoundingClientRect();
+        await service.attachPreview(hostId, { x, y, width, height });
+      }
+    }).catch(cause => {
+      if (!cancelled && generation === previewGeneration.current) setError(String(cause));
+    });
+    return () => { cancelled = true; void service.hidePreview(hostId); };
+  }, [historyVersion, active, sessionId, hostId]);
   const { doc, synced } = useSessionDoc(sessionId as SessionId, { enabled: sessionId.length > 0 });
   const finalized = doc.history?.filter(entry => entry.role === 'assistant' && (entry.finished || typeof entry.endedAt === 'number')).map(entry => `${entry.id}:${entry.endedAt}:${JSON.stringify(entry.designOutcome)}`).join('|');
   useEffect(() => {
@@ -183,14 +224,14 @@ export function DesignCanvas({
         .catch(() => {})
         .then(async () => {
           if (attachmentGeneration.current !== generation) return;
-          if (disposed || !active || !host.current || document.querySelector('[role="dialog"]')) {
+          if (disposed || !active || !host.current || document.querySelector('[role="dialog"], [role="listbox"]')) {
             await service.hide(sessionId, hostId);
             await service.hidePreview(hostId, false);
             return;
           }
           const { x, y, width, height } = host.current.getBoundingClientRect();
           if (width > 0 && height > 0) {
-            if (preview) {
+            if (readonlyView) {
               await service.hide(sessionId, hostId);
               await service.attachPreview(hostId, { x, y, width, height });
             } else {
@@ -215,7 +256,7 @@ export function DesignCanvas({
         if (ownsAttachment()) await service.hide(sessionId, hostId);
       }).catch((cause) => console.error(cause));
     };
-  }, [sessionId, active, hostId, preview]);
+  }, [sessionId, active, hostId, readonlyView]);
   useEffect(() => {
     // Seed from hydrated history: opening an old session is not a new commit.
     if (!synced) return undefined;
@@ -234,7 +275,7 @@ export function DesignCanvas({
       if (cancelled) return;
       const shouldShowCanonical = receipt.pending;
       receipt.pending = false;
-      if (!shouldShowCanonical || choice !== viewChoiceGeneration.current) return;
+      if (!shouldShowCanonical || historyVersion || choice !== viewChoiceGeneration.current) return;
       // Only the guarded canonical reload succeeding changes the visible source.
       // Preview snapshots never enter this path's save or completion decisions.
       ++previewGeneration.current;
@@ -244,7 +285,7 @@ export function DesignCanvas({
       if (!cancelled) setError(String(cause));
     });
     return () => { cancelled = true; };
-  }, [sessionId, committedReceipt, synced, hostId]);
+  }, [sessionId, committedReceipt, synced, hostId, historyVersion]);
   const run = (action: () => Promise<unknown>) => {
     setBusy(true);
     setError('');
@@ -275,24 +316,24 @@ export function DesignCanvas({
       </style>
       <div className="flex flex-wrap items-center gap-2 border-b p-2">
         {onReferenceSelection && <>
-          <Button size="sm" variant="outline" disabled={busy || preview} onClick={() => referenceSelection()}>
+          <Button size="sm" variant="outline" disabled={busy || readonlyView} onClick={() => referenceSelection()}>
             {t('design.referenceSelection', 'Reference selected elements')}
           </Button>
-          <Button size="sm" variant="outline" disabled={busy || preview} onClick={() => referenceSelection(
+          <Button size="sm" variant="outline" disabled={busy || readonlyView} onClick={() => referenceSelection(
             t('design.generateImagesPrompt', 'Generate a new image for each selected image, using the current design as context. Replace only the selected images with the resulting assets.'), 'image'
           )}>{t('design.generateSelectedImages', 'Generate selected images')}</Button>
-          <Button size="sm" variant="outline" disabled={busy || preview} onClick={() => referenceSelection(
+          <Button size="sm" variant="outline" disabled={busy || readonlyView} onClick={() => referenceSelection(
             t('design.editImagesPrompt', 'Edit each selected image using its current image as the source. Replace only the selected images with the resulting assets. Requested changes: '), 'image'
           )}>{t('design.editSelectedImages', 'Edit selected images')}</Button>
-          <Button size="sm" variant="outline" disabled={busy || preview} onClick={() => referenceSelection(
+          <Button size="sm" variant="outline" disabled={busy || readonlyView} onClick={() => referenceSelection(
             t('design.adjustStylePrompt', 'Adjust the style of the selected elements while preserving their content. Requested style: ')
           )}>{t('design.adjustSelectedStyle', 'Adjust selected style')}</Button>
-          <Button size="sm" variant="outline" disabled={busy || preview} onClick={() => referenceSelection(
+          <Button size="sm" variant="outline" disabled={busy || readonlyView} onClick={() => referenceSelection(
             t('design.regenerateSelectionPrompt', 'Regenerate the selected elements using the current design and our conversation as context. Preserve the rest of the artwork.')
           )}>{t('design.regenerateSelection', 'Regenerate selection')}</Button>
         </>}
 
-        <Button size="sm" variant={preview ? 'outline' : 'default'} onClick={() => switchPreview(false)}>
+        <Button size="sm" variant={readonlyView ? 'outline' : 'default'} onClick={() => switchPreview(false)}>
           {t('design.currentCanvas', 'Current artwork')}
         </Button>
         <Button size="sm" variant={preview ? 'default' : 'outline'} onClick={() => switchPreview(true)}>
@@ -310,13 +351,51 @@ export function DesignCanvas({
         })}>
           {t('design.importPreview', 'Import as current artwork')}
         </Button>}
+        <div className="ml-auto flex items-center gap-2">
+          <Select value={historyVersion ?? 'current'} disabled={busy}
+            onOpenChange={open => { if (open) void refreshVersions().catch(cause => setError(String(cause))); }}
+            onValueChange={value => {
+              setError('');
+              if (value === 'current') { switchPreview(false); return; }
+              ++viewChoiceGeneration.current;
+              ++previewGeneration.current;
+              setPreview(false);
+              setHistoryVersion(value);
+            }}>
+            <SelectTrigger className="h-8 w-auto min-w-28" aria-label={t('design.versions', 'Version history')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="current">{t('design.currentCanvas', 'Current artwork')}</SelectItem>
+              {[...versions].reverse().map(version => <SelectItem key={version.commitId} value={version.commitId}>
+                V{version.number} · {new Date(version.createdAt).toLocaleString()}
+                {version.kind === 'before-restore' ? ` · ${t('design.beforeRestore', 'Before restore')}` : ''}
+              </SelectItem>)}
+            </SelectContent>
+          </Select>
+          {historyVersion ? <Button size="sm" disabled={busy || !historyReady || liveStatus != null} onClick={() => run(async () => {
+            const service = getIpcServices()?.design;
+            if (!service) throw Error('Local workspace is not ready');
+            const saved = await service.restoreVersion(sessionId, historyVersion);
+            await refreshVersions();
+            if (saved.reloadError) throw Error(t('design.restoreReloadFailed', 'Restored and saved, but the canvas could not reload: ') + saved.reloadError);
+            switchPreview(false);
+          })}>{t('design.editFromVersion', 'Edit from here')}</Button> : <Button size="sm"
+            disabled={busy || preview || liveStatus != null} onClick={() => run(async () => {
+              const service = getIpcServices()?.design;
+              if (!service) throw Error('Local workspace is not ready');
+              const version = await service.saveVersion(sessionId);
+              await refreshVersions();
+              toast.success(t('design.versionSaved', 'Saved as V{{number}}', { number: version.number }));
+            })}>{t('design.saveVersion', 'Save version')}</Button>}
+        </div>
         <Button size="sm" variant="outline" onClick={() => setFocused((value) => !value)}>
           {focused ? t('design.showChat', 'Show conversation') : t('design.focus', 'Focus canvas')}
         </Button>
         <Button
           size="sm"
           variant="outline"
-          disabled={busy || preview}
+          disabled={busy || readonlyView}
           onClick={() =>
             run(() => create(name + t('design.copySuffix', ' — copy'), 800, 600, sessionId, hostId))
           }
@@ -325,19 +404,20 @@ export function DesignCanvas({
         </Button>
         <Button
           size="sm"
-          disabled={busy || preview}
+          disabled={busy || readonlyView}
           onClick={() => run(async () => getIpcServices()?.design.export(sessionId, 'png', name))}
         >
           PNG
         </Button>
         <Button
           size="sm"
-          disabled={busy || preview}
+          disabled={busy || readonlyView}
           onClick={() => run(async () => getIpcServices()?.design.export(sessionId, 'jpeg', name))}
         >
           JPEG
         </Button>
       </div>
+      {historyVersion && <p role="status" className="border-b p-2 text-xs text-muted-foreground">{historyReady ? t('design.historyReadonly', 'Read-only version. Edit from here to restore it as the current artwork.') : t('design.historyLoading', 'Loading version…')}</p>}
       {preview && <div role="status" className="border-b p-2 text-xs text-muted-foreground">
         <p>{t('design.previewReadonly', 'Read-only authoring files · not submitted. Valid drafts may still be unfinished.')}</p>
         {previewSource && <p className="break-all">{previewSource}</p>}
