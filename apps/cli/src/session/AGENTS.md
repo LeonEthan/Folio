@@ -71,9 +71,9 @@ contract: specs/session-orchestration.md.
 
 ## Lifecycle
 
-- Grok Stop requires native `closed`/`notResident`. Keep drafts/canvas locked through closure and
-  artifacts. Explicit input retries the original provider close, releases its owner, then
-  loads; never replay the stopped prompt.
+- Grok Stop: raw load settlement, then native `closed`/`notResident`. Keep drafts/canvas
+  locked through closure/artifacts. Explicit input retries that close, releases its owner,
+  then loads; never replay the stopped prompt.
 
 - `Session.createAgent` acquires the shared ACP start gate before spawn. ACP terminal creation
   passes the protocol's executable and argv straight to `SessionSandbox.spawn`, never a rebuilt

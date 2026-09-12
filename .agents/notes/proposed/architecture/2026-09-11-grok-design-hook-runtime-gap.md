@@ -277,3 +277,34 @@ lint, full tests and public/platform boundaries. The two focused suites contain
 114 passing tests. Root format, docs check and diff check passed. Test children
 excluded inherited `ANTHROPIC_*` and `CLAUDE_CODE_USE_*` flags. These checks do not
 replace the pending integrated native acceptance.
+
+### Load timeout is not native completion
+
+Static follow-up found that `withTimeout` races the load promise without cancelling
+its RPC. Retrying close after only the timeout could observe `notResident` before
+the original load later establishes residency. AgentClient now retains the raw
+load RPC settlement independently of the bounded caller wait. Every subsequent
+Stop/close waits for that original request to resolve or reject before dispatching
+close; elapsed time is never a substitute for this boundary. A fake-clock test
+keeps the raw load pending past both the load timeout and another close interval,
+asserts no close is dispatched, then resolves the original RPC and observes close.
+No native request was run for this verification.
+
+A replacement installed-package probe was prepared privately and syntax-checked
+only. Its native wrapper gates every invocation, including version/inspect,
+against canonical private HOME/GROK_HOME/work paths, no authentication cache,
+fixed synthetic loopback configuration, an explicit environment allowlist and the
+pinned binary checksum. Native initialize must report the synthetic model and
+API-key authentication before any prompt is forwarded. It reuses ElectronHarness
+and records close/load responses independently from HTTP closure. This fixture
+remains unexecuted: root reviewed the revised gates, but execution still requires
+a new checked package and a released UI slot. It is not integrated acceptance
+evidence.
+
+
+The official [close implementation](https://github.com/xai-org/grok-build/blob/37949780c144e37df692e3d669051a21fec24f20/crates/codegen/xai-grok-shell/src/agent/mvp_agent/session_lifecycle.rs#L15-L108)
+limits its load-attachment wait to five seconds within an eight-second aggregate
+budget, then can return `notResident`. This corroborates the need to await the
+original load RPC before calling close; the public-source/binary correspondence
+limit above still applies. Full root check, format, docs check and diff check
+passed for this correction; the focused AgentClient suite now has 22 passing tests.

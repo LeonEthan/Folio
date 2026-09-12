@@ -755,6 +755,42 @@ describe('Grok explicit Stop residency', () => {
     }
   });
 
+  it('waits for the original load RPC after timeout before retrying close', async () => {
+    const events: string[] = [];
+    const loading = deferred<void>(),
+      originalLoad = deferred<Record<string, never>>();
+    connectionMocks.closeSession.mockImplementation(async () => {
+      events.push('close');
+      return { _meta: { 'x.ai/closeOutcome': 'notResident' } };
+    });
+    connectionMocks.loadSession.mockImplementation(async () => {
+      events.push('load');
+      loading.resolve();
+      return originalLoad.promise;
+    });
+    const client = await createGrok();
+    const sessionId = 'grok-resident' as ACPSessionId;
+    await client.closeAfterStop(sessionId);
+    vi.useFakeTimers();
+    try {
+      const restoration = client.resumeAfterStop(sessionId);
+      const timedOut = expect(restoration).rejects.toThrow();
+      await loading.promise;
+      await vi.advanceTimersByTimeAsync(120000);
+      await timedOut;
+      const closing = client.retryCloseAfterStop(sessionId);
+      await vi.advanceTimersByTimeAsync(10000);
+      expect(events).toEqual(['close', 'load']);
+      await expect(client.prompt(sessionId, [])).rejects.toThrow('resident session is stopped');
+      originalLoad.resolve({});
+      await closing;
+      expect(events).toEqual(['close', 'load', 'close']);
+      await expect(client.prompt(sessionId, [])).rejects.toThrow('resident session is stopped');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('closes a restore cancelled while native load is still pending', async () => {
     const events: string[] = [];
     const loading = deferred<void>(),

@@ -653,6 +653,7 @@ export class AgentClient implements acp.Client {
   private grokStopState: 'active' | 'closing' | 'closed' | 'failed' | 'restoring' = 'active';
   private grokStopCompletion?: Promise<void>;
   private grokRestoreCompletion?: Promise<void>;
+  private grokRestoreRpcSettlement?: Promise<void>;
 
   /** Explicit Stop closes the resident Grok session; ordinary ACP cancel stays unchanged. */
   closeAfterStop(sessionId: ACPSessionId): Promise<void> | undefined {
@@ -669,6 +670,8 @@ export class AgentClient implements acp.Client {
       try {
         // A cancelled explicit restore must settle before closing its new residency.
         await restoring?.catch(() => {});
+        // A timeout ends the caller's wait, not the load RPC or its ability to create residency.
+        await this.grokRestoreRpcSettlement;
         if (!this.supportsClose || !this.connection?.closeSession)
           throw new Error('Grok did not advertise session.close');
         const response = await withTimeout(
@@ -681,6 +684,7 @@ export class AgentClient implements acp.Client {
         const outcome = response._meta?.['x.ai/closeOutcome'];
         if (outcome !== 'closed' && outcome !== 'notResident')
           throw new Error('Grok did not confirm that the resident session closed');
+        this.grokRestoreRpcSettlement = undefined;
         this.grokStopState = 'closed';
       } catch (error) {
         this.grokStopState = 'failed';
@@ -719,13 +723,18 @@ export class AgentClient implements acp.Client {
         workdir,
         this.options.loadExternalMcpServers?.()
       );
+      const loadRequest = connection.loadSession({
+        sessionId,
+        cwd: workdir,
+        mcpServers,
+        ...this.getSessionStartMeta(),
+      });
+      this.grokRestoreRpcSettlement = loadRequest.then(
+        () => {},
+        () => {}
+      );
       const response = await withTimeout(
-        connection.loadSession({
-          sessionId,
-          cwd: workdir,
-          mcpServers,
-          ...this.getSessionStartMeta(),
-        }),
+        loadRequest,
         this.logger,
         'grok.stop.load',
         this.options.sessionId,
