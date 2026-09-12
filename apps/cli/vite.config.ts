@@ -75,6 +75,7 @@ export default defineConfig({
         'claude-design-hook': path.resolve(__dirname, 'src/claude-design-hook.ts'),
         'pi-design-launcher': path.resolve(__dirname, 'src/pi-design-launcher.ts'),
         'pi-design-extension': path.resolve(__dirname, 'src/design/pi-extension.ts'),
+        'pi-mcp-extension': path.resolve(__dirname, 'src/design/pi-mcp-extension.ts'),
         'design-sample': path.resolve(__dirname, 'src/design-sample-entry.ts'),
         index: path.resolve(__dirname, 'src/index.ts'),
         'codex-acp': path.resolve(__dirname, 'src/codex-acp-entry.ts'),

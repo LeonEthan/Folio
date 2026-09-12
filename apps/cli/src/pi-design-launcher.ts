@@ -12,13 +12,23 @@ const version = spawn.sync(command, ['--version'], {
   killSignal: 'SIGKILL',
   windowsHide: true,
 });
-const child = spawn(command, ['--extension', extension, ...process.argv.slice(2)], {
-  stdio: 'inherit',
-  env: {
-    ...process.env,
-    FOLIO_DESIGN_PI_VERSION: version.status === 0 ? version.stdout.trim() : 'unknown',
-  },
-});
+const mcpExtension = process.env.FOLIO_PI_MCP_EXTENSION;
+const child = spawn(
+  command,
+  [
+    '--extension',
+    extension,
+    ...(mcpExtension ? ['--extension', mcpExtension] : []),
+    ...process.argv.slice(2),
+  ],
+  {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      FOLIO_DESIGN_PI_VERSION: version.status === 0 ? version.stdout.trim() : 'unknown',
+    },
+  }
+);
 child.on('error', () => {
   process.exitCode = 1;
 });

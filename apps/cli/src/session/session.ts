@@ -507,6 +507,9 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
         ? await preparePiDesignLaunch(env, {
             machineId: this.config.machineId,
             workspaceId: this.config.workspaceId,
+            sessionId: this.sessionId,
+            workdir: this.getWorkdir(),
+            taskToolsEnabled: this.config.taskToolsEnabled === true,
           })
         : undefined;
     if (piLaunch) env = piLaunch.env;

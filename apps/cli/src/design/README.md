@@ -183,3 +183,21 @@ Missing canonical reads reject without creating a session directory. The Electro
 owner drains accepted design-worker operations and awaits child exit on application
 quit, after the existing cancellable editor flush. See the
 [shutdown fix](../../../../.agents/notes/implemented/bug-fix/2026-09-12-design-worker-shutdown.md).
+
+### Pi image and rendering tools
+
+The separate `pi-mcp-extension` uses Pi's public tool API and the existing Lody
+MCP HTTP host. It exposes only listed `folio_generate_image`, `folio_edit_image`
+and `folio_render_preview` tools, with the server's descriptions and schemas.
+Before each generation it refreshes availability without re-enabling an explicitly
+inactive tool. Execution uses the ordinary native extension tool policy and MCP
+session context; the adapter does not answer permissions for the user or implement
+image requests itself. MCP failures remain tool failures and cancellation signals
+reach the SDK. Session shutdown closes the client.
+
+The launch prefers the existing daemon HTTP endpoint. If startup has no endpoint,
+it uses the existing bundled stdio MCP entry with the same owned Session context.
+HTTP calls have independent SDK connections so aborting one closes its request
+without interrupting another; the stdio client uses ordinary MCP cancellation. Image configuration/model and render-host availability remain the daemon's
+gates. Installed Pi validation is pending; see the
+[implementation record](../../../../.agents/notes/proposed/architecture/2026-09-12-pi-folio-mcp-extension.md).

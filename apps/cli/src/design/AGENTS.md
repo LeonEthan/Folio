@@ -66,3 +66,7 @@ creation in mutation operations and preserve their independent validation and CA
 Codex's public UserPromptSubmit reminder supplies context only. Preserve native
 user hook declarations/trust; trust only Folio's exact bundled command in the
 per-session overlay. Never treat reminder delivery as read or commit evidence.
+
+Pi image/render tools use the existing Lody MCP catalog and session context through
+the public extension API. Never implement providers there or expose unlisted tools;
+retain native tool policy, cancellation signals and session-scoped client cleanup.
