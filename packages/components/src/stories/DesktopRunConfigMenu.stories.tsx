@@ -363,6 +363,35 @@ function EmptyMachineScopeShell() {
   );
 }
 
+function LeftOpeningAgentMenuShell() {
+  const store = useMemo(() => {
+    const next = createStore();
+    next.set(
+      agentConfigMetaCacheAtom,
+      Object.fromEntries(agents.map((agent) => [getAgentConfigRoomId(agent.id), agent]))
+    );
+    return next;
+  }, []);
+  const [selection, setSelection] = useState({ agentId: codexId, machineId });
+
+  return (
+    <Provider store={store}>
+      <div className="relative h-[670px] w-[900px] overflow-hidden bg-background">
+        <div className="absolute left-[650px] top-[619px]">
+          <DesktopRunConfigMenu
+            agentSelection={selection}
+            availableAgentConfigs={agents}
+            allowedMachineIds={[machineId]}
+            onAgentConfigChange={setSelection}
+            modelOptions={modelOptions}
+            selectedModelId={modelOptions[0]?.value ?? null}
+          />
+        </div>
+      </div>
+    </Provider>
+  );
+}
+
 const meta = {
   title: 'Sessions/DesktopRunConfigMenu',
   component: StoryShell,
@@ -401,4 +430,8 @@ export const MachineScope: Story = {
 export const MachineScopeEmpty: Story = {
   args: { isEmptyConversation: true },
   render: () => <EmptyMachineScopeShell />,
+};
+export const LeftOpeningAgentMenu: Story = {
+  args: { isEmptyConversation: true },
+  render: () => <LeftOpeningAgentMenuShell />,
 };

@@ -248,13 +248,33 @@ const DropdownMenuSubTrigger = React.forwardRef<
       ref={ref}
       className={cn(menuItemClassName, inset && 'ps-8', className)}
       disabled={disabled}
+      {...props}
       onPointerEnter={(event) => {
         onPointerEnter?.(event);
         if (!event.defaultPrevented && event.pointerType === 'mouse' && !disabled) {
           setSubmenuOpen?.(true);
         }
       }}
-      {...props}
+      onPointerLeave={(event) => {
+        props.onPointerLeave?.(event);
+        if (event.defaultPrevented || event.pointerType !== 'mouse') return;
+        const contentId = event.currentTarget.getAttribute('aria-controls');
+        const content = contentId
+          ? event.currentTarget.ownerDocument.getElementById(contentId)
+          : null;
+        // A sparse pointer move can jump directly from the trigger to its
+        // left-opening content before Radix observes the new direction. Its
+        // grace check then focuses the parent menu and closes the submenu.
+        // The related target proves the pointer already arrived inside this
+        // submenu, so keep the parent item from overriding that transition.
+        if (
+          content &&
+          event.relatedTarget instanceof Node &&
+          content.contains(event.relatedTarget)
+        ) {
+          event.preventDefault();
+        }
+      }}
     >
       {icon ? <span className={menuItemIconClassName}>{icon}</span> : null}
       {children}

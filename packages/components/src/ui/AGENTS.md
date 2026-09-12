@@ -42,5 +42,8 @@ strings on i18n rather than the registry's inline English.
 
 - Dialog-contained `OptionSelector` menus must portal into the nearest
   `[data-lody-dialog-content]`; a body portal is outside Radix remove-scroll handling.
+- A sparse pointer move that lands inside an open dropdown submenu must not refocus
+  the parent menu. Preserve Radix's pointer grace and the related-target guard in the
+  shared `DropdownMenuSubTrigger`, including for left-opening submenus.
 - `DiffViewer` uses the shared `@pierre/diffs` worker pools for syntax work regardless
   of file size. Do not create or terminate a worker pool per viewer.
