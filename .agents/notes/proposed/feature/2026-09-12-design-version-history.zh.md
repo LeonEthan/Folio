@@ -120,3 +120,12 @@ Git 已选定为唯一历史后端，与“当前作品存储旁保存快照”�
 恢复后当前 PPTD 同版本，V1/V2/切换前/V4 与重启回读全部通过。所属 Electron/CLI 与
 端点由 harness 正常清理；未调用模型。这补齐 built OSS 的自动回写组合证据，仍不
 替代正常安装包、真实图像供应商及人工完整旅程验收。
+
+正常 macOS arm64 安装包 `50ddd41bfb3e88537c0dcbec40c0ce86ca40b8e4` 随后通过同一轮
+版本界面、只读历史、保留当前稿/撤销栈、保护版本、恢复后 PPTD、继续编辑和退出重开验证。
+DMG 校验、只读挂载复制、签名校验均通过；私有安装目录为
+`folio-current-50ddd41b-78c0b9vz`，包身份记录为该目录的 `package-identity.json`。
+安装包轮 `/tmp/folio-history-ui-S9u0fO/result.json`（handle 73932 exit 0）的 boot-state
+确认 `isPackaged: true`，installed-source 记录上述确切提交，关闭后 endpoint-release、
+directory-cleanup 和 finished 均完成。本轮没有模型调用；补齐正常安装包版本操作证据，
+多实例与真实多图负载、人工视觉/编辑评定仍分别待完成。
