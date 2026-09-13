@@ -51,6 +51,11 @@ was open with no comments. Its seven criteria are retained:
 
 ## Current acceptance status
 
+The [2026-09-13 closeout supplement](2026-09-13-design-closeout-evidence.zh.md)
+records the Geon 0.1.0 package, complete Codex baseline/receipt, final Grok canvas
+assertions, shared workbench human confirmation, settings and cross-process history
+regressions. The source-version-specific failed rounds below remain historical.
+
 2026-09-12 requirement update: real provider generation and editing are mandatory,
 not satisfied by the synthetic rounds below. The user supplied an AruHub image2
 test connection; see the [live MCP TODO](2026-09-12-live-image-mcp-acceptance.zh.md)
