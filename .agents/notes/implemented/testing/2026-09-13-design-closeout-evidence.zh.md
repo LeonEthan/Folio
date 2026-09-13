@@ -83,3 +83,8 @@ PR 静态检查发现此前停止追踪 output 后，14 处历史证据本地链
 ### Windows 原生测试 Agent 命令
 
 第二轮 Daily `34764016494` 的 macOS/Linux 通过，Windows 引导通过，另外三个场景在测试 Agent 探测失败。截图显示未加引号的 Windows 路径；确定性 round-trip 测试复现反斜杠被产品 POSIX 风格解析器移除。夹具改用已有的 `formatCustomAcpCommandLine`，与实际解析器共享合约，不改变产品解析规则或就绪断言。修复前回归失败，修复后通过；此前引号修复也保持有效。
+
+
+### 统一桌面 E2E 构建内存
+
+PR smoke `34764848785` 在 CLI Vite 构建阶段复现约 2 GB 默认堆上限 OOM，尚未进入场景。Daily 已有的 8 GB 构建步骤配置同步至 PR smoke 和调用相同构建的 Scout；仅扩大构建进程堆上限，不改运行时、场景选择或断言。

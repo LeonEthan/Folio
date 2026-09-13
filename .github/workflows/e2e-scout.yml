@@ -57,6 +57,9 @@ jobs:
         run: pnpm e2e:check
 
       - name: Build OSS desktop and bundled CLI
+        env:
+          # CLI Vite SSR chunk rendering exceeds Node's default heap on macOS.
+          NODE_OPTIONS: --max-old-space-size=8192
         run: pnpm e2e:build
 
       - name: Run resource scout
