@@ -58,7 +58,7 @@ describe('file session fork operation store', () => {
   it('skips corrupt entries instead of failing the listing', async () => {
     const store = createFileSessionForkOperationStore();
     await store.record(marker);
-    const root = path.join(tempHome, '.lody', 'session-fork-operations');
+    const root = path.join(tempHome, '.geon', 'session-fork-operations');
     await writeFile(path.join(root, 'corrupt.json'), 'not json', 'utf8');
     await writeFile(path.join(root, 'wrong-shape.json'), JSON.stringify({ version: 2 }), 'utf8');
     expect(await store.list()).toEqual([marker]);
@@ -82,7 +82,7 @@ describe('file session fork operation store', () => {
   it('creates the store root with owner-only permissions', async () => {
     const store = createFileSessionForkOperationStore();
     await store.record(marker);
-    const root = path.join(tempHome, '.lody', 'session-fork-operations');
+    const root = path.join(tempHome, '.geon', 'session-fork-operations');
     const { stat } = await import('node:fs/promises');
     expect((await stat(root)).mode & 0o777).toBe(0o700);
   });

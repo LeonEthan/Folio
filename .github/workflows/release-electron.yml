@@ -238,7 +238,7 @@ jobs:
       - name: Upload release assets
         uses: actions/upload-artifact@v4
         with:
-          name: folio-release-${{ matrix.target }}
+          name: geon-release-${{ matrix.target }}
           path: release-assets/*
           if-no-files-found: error
 
@@ -253,7 +253,7 @@ jobs:
       - name: Download release assets
         uses: actions/download-artifact@v4
         with:
-          pattern: folio-release-*
+          pattern: geon-release-*
           path: release-assets
           merge-multiple: true
 

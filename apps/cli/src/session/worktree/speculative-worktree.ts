@@ -1,9 +1,9 @@
 import { createHash, randomUUID } from 'node:crypto';
-import os from 'node:os';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { z } from 'zod';
+import { getLodyDataDir } from '@lody/shared/node/installation-profile';
 import type { MachineId, RepoId, SessionId, WorkspaceId } from '@lody/shared';
 import type { Logger } from '@/utils/logger';
 import {
@@ -49,7 +49,7 @@ const SpeculativeWorktreeMarkerSchema = z
 type SpeculativeWorktreeMarker = z.infer<typeof SpeculativeWorktreeMarkerSchema>;
 
 function getMarkerRoot(): string {
-  return path.join(os.homedir(), '.lody', 'session-preparations', 'worktrees');
+  return path.join(getLodyDataDir('local'), 'session-preparations', 'worktrees');
 }
 
 function getMarkerPath(sessionId: SessionId): string {

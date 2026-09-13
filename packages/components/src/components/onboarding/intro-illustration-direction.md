@@ -1,9 +1,9 @@
 # Geon opening direction
 
 The independent-release specification selects paper and typography: restrained,
-precise, warm and useful. The vector mark sets a display F built from rounded
-text rules on a ruled paper tile, with a terracotta caret at the end of the mid
-rule — text still being edited, matching the product's editable-text promise.
+precise, warm and useful. The vector mark sets a display G built from a rounded arc, a mid-rule crossbar,
+and a right vertical stem on a ruled-paper tile, with a terracotta caret at the
+upper right — text still being edited, matching the product's editable-text promise.
 It was selected from four hand-drawn candidates (letterpress imprint, folded
 folio, baseline grid, signature f); review drafts live in
 `output/logo-candidates/`, outside product source. The editable source is

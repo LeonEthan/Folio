@@ -1,4 +1,4 @@
-/** Folio's lossless projection profile. No embedded canonical document or edit log. */
+/** Geon's lossless projection profile. No embedded canonical document or edit log. */
 import { createHash } from 'node:crypto';
 import { stringify } from 'yaml';
 import {

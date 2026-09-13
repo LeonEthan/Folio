@@ -1,7 +1,7 @@
 {
   "name": "geon",
   "version": "1.0.0",
-  "description": "Local-first workspace for coding agents",
+  "description": "Local-first desktop workspace for graphic design with an Agent",
   "private": true,
   "scripts": {
     "preinstall": "node scripts/guard-nested-workspace-install.mjs",

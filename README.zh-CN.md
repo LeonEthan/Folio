@@ -73,7 +73,7 @@ Electron 使用当前操作系统的 Geon 用户数据位置。现有 `LODY_*` �
 ## 来源与许可证
 
 Geon 基于 [Lody](https://github.com/LodyAI/Lody)，保留上游署名、
-[Apache-2.0 许可证](LICENSE)和归属声明。当前 Geon 标记（横线纸面上由文字线构成的 F，行尾带赭色编辑光标）与排版开场为 Geon 新制作；旧素材保留原有归属。新品牌的视觉验收随独立发布工作记录。PPTD 和编辑器适配来自
+[Apache-2.0 许可证](LICENSE)和归属声明。当前 Geon 标记（圆弧、中部横规与右侧竖笔在圆角纸面上构成 G，右上方带赭色编辑光标）与排版开场为 Geon 新制作；旧素材保留原有归属。新品牌的视觉验收随独立发布工作记录。PPTD 和编辑器适配来自
 `agentic-listing-design`；
 [Bento 来源与许可证说明](packages/design-bento/README.md)及
 [创作格式来源说明](packages/design-authoring/README.md)记录各自来源。

@@ -2,8 +2,8 @@ import { execFileSync } from 'node:child_process';
 
 import { isMissingEmail } from '@lody/shared';
 
-export const DEFAULT_AI_GIT_AUTHOR_NAME = 'LodyAI';
-export const DEFAULT_AI_GIT_AUTHOR_EMAIL = 'agent@lody.ai';
+export const DEFAULT_AI_GIT_AUTHOR_NAME = 'Geon';
+export const DEFAULT_AI_GIT_AUTHOR_EMAIL = 'geon@localhost';
 
 export type GitIdentity = {
   name: string;

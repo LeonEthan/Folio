@@ -3,7 +3,7 @@
  * see source-manifest.json). This is the trust boundary: allowlist + lstat
  * without following links. Consumers only receive the collected Map.
  *
- * Folio adaptation: the only authoring entry is `design.pptd` (upstream also
+ * Geon adaptation: the only authoring entry is `design.pptd` (upstream also
  * admitted the runner-era case.yaml / commands.json / prompt.txt roots).
  * Upstream's AuthoringSnapshotError is replaced by a local error class so
  * the CAS workspace module is not migrated.

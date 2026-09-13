@@ -146,7 +146,7 @@ upstream Lody website material and is not the Geon feature reference.
 ## Source and licenses
 
 Geon builds on [Lody](https://github.com/LodyAI/Lody). Its upstream authorship,
-[Apache-2.0 license](LICENSE) and attribution notices remain intact. The current Geon mark — an F set in rounded text rules on ruled paper with a terracotta caret — and the typographic opening are authored for Geon;
+[Apache-2.0 license](LICENSE) and attribution notices remain intact. The current Geon mark — a G built from a rounded arc, a mid-rule crossbar, and a right vertical stem on a ruled-paper tile, with a terracotta caret at the upper right — and the typographic opening are authored for Geon;
 legacy upstream artwork retains its original attribution. Visual acceptance of
 the new identity is tracked with the independent-release work.
 PPTD and editor adapters come from

@@ -1,9 +1,9 @@
 import type { ChildProcess, SpawnOptions } from 'node:child_process';
 import spawn from 'cross-spawn';
 import * as fs from 'node:fs/promises';
-import * as os from 'node:os';
 import * as path from 'node:path';
 import { z } from 'zod';
+import { getLodyDataDir } from '@lody/shared/node/installation-profile';
 import {
   deriveConvexSiteUrl,
   type MachineLifecycleCapability,
@@ -98,8 +98,7 @@ const DaemonUpgradeIntentSchema = z
 export type DaemonUpgradeIntent = z.infer<typeof DaemonUpgradeIntentSchema>;
 
 export const DAEMON_UPGRADE_INTENT_FILE = path.join(
-  os.homedir(),
-  '.lody',
+  getLodyDataDir('local'),
   'daemon-upgrade-intent.json'
 );
 
