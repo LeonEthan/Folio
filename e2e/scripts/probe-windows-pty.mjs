@@ -16,13 +16,15 @@ if (process.argv.includes('--child')) {
   const service = makeTerminalPtyService({ logger, resolveSessionWorkdir: async () => process.cwd() });
   let sent = false;
   let closing = false;
+  let output = '';
   service.onEvent((event) => {
     if (event.type === 'data') {
+      output += event.data;
       if (!sent) {
         sent = true;
         service.input(event.terminalId, "Write-Output ('geon-pty-probe-' + 'ready')\r");
       }
-      if (!closing && event.data.includes('geon-pty-probe-ready')) {
+      if (!closing && output.includes('geon-pty-probe-ready')) {
         closing = true;
         process.send({ phase: 'close-session', hostPid: process.pid });
         service.closeSession('native-probe');

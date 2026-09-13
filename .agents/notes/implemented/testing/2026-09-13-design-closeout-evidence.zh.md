@@ -5,7 +5,7 @@ Translation: pending
 
 ## 摘要
 
-本次核对将历史票据中的旧读证明要求与当前非侵入式 Agent 合约分开，并复用已有人工评价。Daily 的失败包括 Windows 文本换行、macOS CLI 构建堆内存、Review 合成仓库被运行时技能污染，以及退出时过早检查子进程；报告器还使用了 Actions token 不支持的附件上传。修复保持原场景断言，并通过 Actions artifact 链接保留录像。另一个确定性并发测试发现等待历史锁的操作可能沿用恢复前的当前稿，现于持锁后复核版本；这不扩大到任意外部文件系统操作的原子性保证。本地完整桌面回归和最终安装包验收已通过；远端 Daily 的 Windows 入口补修及主分支集成仍需独立确认。
+本次核对将历史票据中的旧读证明要求与当前非侵入式 Agent 合约分开，并复用已有人工评价。Daily 的失败包括 Windows 文本换行、macOS CLI 构建堆内存、Review 合成仓库被运行时技能污染，以及退出时过早检查子进程；报告器还使用了 Actions token 不支持的附件上传。修复保持原场景断言，并通过 Actions artifact 链接保留录像。另一个确定性并发测试发现等待历史锁的操作可能沿用恢复前的当前稿，现于持锁后复核版本；这不扩大到任意外部文件系统操作的原子性保证。本地完整桌面回归和安装包验收已通过；Windows 归档的原生重复关闭另见下文。远端三平台 full Daily 与主分支集成依各自执行记录确认，不由本地包验收推导。
 
 ## 有效标准与证据归属
 
@@ -94,4 +94,21 @@ PR smoke `34764848785` 在 CLI Vite 构建阶段复现约 2 GB 默认堆上限 O
 
 第三轮 Daily `34764854085` 的 Windows 已通过 3 场景、24/25 步，剩余 Work 归档后报 `terminal_socket_closed`，同时数据同步断开、CLI 控制管道消失。单次原生 PTY 关闭在 Windows Node/Electron 下均通过；归档路径会先调用 closeSession，Session terminated 回调又调用一次。确定性测试复现原生退出通知到来前的重复 kill。服务增加关闭中标记，保留记录至原生退出；调用失败则保留记录并允许显式重试。Windows 原生双关闭探针 `34765909003` 已确认：单次关闭的 Node/Electron 宿主均返回 0；Electron 双关闭宿主以 `3221226356` 退出，未发出终端退出回执。修复后的真实服务原生探针与完整场景验证另行记录。
 
-同时将 Work 的终端输出标记拆分在 shell 表达式中，避免命令回显提前满足就绪断言；Windows 使用 PowerShell 表达式。更严格的信号在 `5e070c0` 安装包上完整 4 场景、25 步通过。PTY 运行时修复将另行生成带新源提交身份的包，旧包证据不会被覆盖。
+同时将 Work 的终端输出标记拆分在 shell 表达式中，避免命令回显提前满足就绪断言；Windows 显式启动 PowerShell 执行表达式，兼容宿主终端为 cmd.exe。更严格的信号在 `5e070c0` 安装包上完整 4 场景、25 步通过。PTY 运行时修复将另行生成带新源提交身份的包，旧包证据不会被覆盖。
+
+
+## 当前收口安装包（替代前轮）
+
+终端修复后的运行时源提交为 `ffe0e91944634a942b64b7465bb646a5eb9d65d2`。前文 `5e070c0` 是此前验收包，保留其历史证据；当前包仍为 Geon 0.1.0 / Electron 39.5.1 / macOS arm64、本地 ad-hoc 验收配置，未公证且未启用 hardened runtime。
+
+- DMG：`cb258ed4158e804e9deaf46d18bbf07e52bf6bb580913db9368acad710411fbd`。
+- ASAR：`993609184b5bda46b2d5ff86b9fa08c5e24c6993e785b7c909e1036bd319ce1d`。
+- 可执行文件：`cae0733128ed35027ee2955c49bebf203e63ffe855790645ea08e2919135f83a`。
+- 经过 DMG 校验、只读挂载、复制安装、卸载卷，再由 Harness 核对包内源提交。完整桌面 4 场景、25 步通过；设置八项及重启通过（`geon-settings-final-DFKjxr`）；画布/预览/导入三个结果全部 passed（`geon-final-p1`）。
+- 同包 Codex 当前 PPTD 原生读写、collector 提交、最终画布及进程退出通过：`folio-t28-codex-current-IadjOC`。适用的其他 Agent 原生/权限/取消路径继续按前文具名证据归属复用；本轮没有再次付费生成，也没有重复人工视觉验收。
+- 终端确定性测试：修复前失败，修复后两项通过；包含重复清理和关闭失败后显式重试。全仓 `pnpm check`、格式化、文档/公开边界检查通过。
+- [运行时源提交的 full Daily](https://github.com/LeonEthan/Geon/actions/runs/34766275797) 与 [PR smoke](https://github.com/LeonEthan/Geon/actions/runs/34766272803) 保留独立 CI 结论。默认分支 full Daily 成功之前 #2 保持打开。
+
+本机交付目录：`/Users/macmini/GeonReview-ffe0e91-20260913`，保存 DMG、校验值及当前包验收证据。公开分发仍归 #32，不把本地安装包通过等同于正式签名、公证和更新发布通过。
+
+`34766275797` 的 macOS/Linux 通过，Windows 原生 PTY 服务探针通过；完整场景停在新加入的真实输出断言，因为宿主为 cmd.exe，不能直接执行 PowerShell 表达式。明确启动 PowerShell 修正此夹具假设，保留该失败；不放宽输出或资源释放断言。
