@@ -49,9 +49,11 @@ the Electron-owned CLI worker forwards UI requests over stdin, and the daemon ca
 the same exported operations in-process after a turn (P2.3). Both paths verify
 expected content hashes and semantic kernel commands, fsync replacement bytes, then
 acknowledge. A lost reply can be retried; a different baseline is a conflict — the
-daemon keeps the imported document as a candidate instead of overwriting. Two callers
+daemon preserves the existing draft and returns `DESIGN_CONFLICT`, leaving the Agent
+to re-read, compare and explicitly continue or resubmit. Two callers
 still do not mean two writers: commits are coordinated by content only, so a caller
-that loses the baseline race never sees its bytes land.
+that loses the baseline race never sees its bytes land. Historical candidate files
+remain readable as ordinary files, but no new candidate production or adoption flow exists.
 
 `design-pending/` contains only unfinished Session associations. UI repair authors
 those through the existing workspace writer, then acknowledges them to the CLI.
@@ -60,9 +62,8 @@ Session deletion keeps its existing meaning. No conversation or undo log is copi
 when conflict edits become an independent design.
 
 Each native view retains its editor while its canvas tab is open, including hidden
-panels and Session route switches. A committed turn (and an adopted candidate)
-re-creates clean instances from the store so an open view cannot
-keep showing, or later saving, a superseded document. Explicit close releases undo
+panels and Session route switches. A committed turn re-creates clean instances from
+the store so an open view cannot keep showing, or later saving, a superseded document. Explicit close releases undo
 history. Save failures
 block leaving with retry/discard choices; an unexpected crash recovers the last
 confirmed file. Export uses an isolated instance of the same saved Bento document,

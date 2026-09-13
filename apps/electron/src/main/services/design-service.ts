@@ -24,7 +24,7 @@ import { DesignCanvasAccess, type CanvasInstance } from './design-canvas-access'
 import { drainRelevantLoads } from './design-leave-drain-core'
 import { waitForCanvasReady } from './design-canvas-ready-core'
 
-/** P2.5 candidate handling rides the existing design worker channel. */
+/** Historical candidate files are read back through the existing design worker channel; new candidate production is retired. */
 type DesignCandidateRequest = { sessionId: string; candidateId: string }
 
 const resources = () =>

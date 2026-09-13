@@ -51,7 +51,7 @@ P1 支持宽高各 1–4096 像素的单画布，手工调整画布尺寸时保�
 7. 元素引用携带作品、当前稿基线及稳定元素 ID；选区失效时明确提示，不猜测另一元素作为目标。首期在回合完成后引用当前稿继续修改，不扩展运行中引用临时预览的交互。
 8. 只读覆盖等待工具/权限、取消处理中和结束后的采集/提交；正常完成、失败、取消均待执行与结果处理确认结束后恢复编辑。无有效产物则保留原稿。关闭标签或断开 UI 不解锁；重开先核对真实执行状态，状态未知时暂只读并显示恢复状态。延迟的结束事件不能解锁后续回合，同一作品的重叠派发沿用既有排队/拒绝机制。
 
-2026-09-12 用户确认 Grok 的“停止”采用完整关闭语义：终止当前会话执行及其后台任务和子任务，保留会话记录、当前稿和工作文件。应用通过公开会话关闭能力确认执行已结束，并等待产物处理完成后才恢复画布编辑；关闭失败不得当作已停止。仅在用户发送下一条消息时沿既有恢复路径继续会话，不自动重启或重发被停止的回合。该语义修复尚待实施和验证，不将原生 cancel 回执当作底层请求已关闭的证据。
+2026-09-12 用户确认 Grok 的“停止”采用完整关闭语义：终止当前会话执行及其后台任务和子任务，保留会话记录、当前稿和工作文件。应用通过公开会话关闭能力确认执行已结束，并等待产物处理完成后才恢复画布编辑；关闭失败不得当作已停止。仅在用户发送下一条消息时沿既有恢复路径继续会话，不自动重启或重发被停止的回合。该语义修复已实现并经验证（见「依据与验证状态」节），不将原生 cancel 回执当作底层请求已关闭的证据。
 
 ## 当前画稿读取与文件一致性（P3 目标）
 
@@ -141,7 +141,7 @@ Git 分支操作、PR/CI 等开发功能退出设计主流程，并停止其不�
 
 ## 依据与验证状态
 
-2026-09-12 已确认采用[Git 设计版本方案](../.agents/notes/proposed/feature/2026-09-12-design-version-history.zh.md)：Git 为唯一历史后端，取消自建文件快照库，保留当前稿自动保存、版本检查和草稿保护；支持“存为版本”、历史选择及从旧版继续编辑。仓库由 Geon 独立管理。另已确认[人工编辑自动更新 PPTD](../.agents/notes/proposed/simplification/2026-09-12-editor-owned-pptd-save.zh.md)，并保留[先读提醒 hook](../.agents/notes/proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md)，取代旧读取同步和逐次生成证明目标。上述为当时的设计确认，后续实施证据见下一段；Spec 当时保持 draft。下面旧 hook 缺口仍是历史验收事实，不是新合同必须补 runtime 的依据。
+2026-09-12 已确认采用[Git 设计版本方案](../.agents/notes/implemented/feature/2026-09-12-design-version-history.zh.md)：Git 为唯一历史后端，取消自建文件快照库，保留当前稿自动保存、版本检查和草稿保护；支持“存为版本”、历史选择及从旧版继续编辑。仓库由 Geon 独立管理。另已确认[人工编辑自动更新 PPTD](../.agents/notes/implemented/simplification/2026-09-12-editor-owned-pptd-save.zh.md)，并保留[先读提醒 hook](../.agents/notes/proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md)，取代旧读取同步和逐次生成证明目标。上述为当时的设计确认，后续实施证据见下一段；Spec 当时保持 draft。下面旧 hook 缺口仍是历史验收事实，不是新合同必须补 runtime 的依据。
 
 **修订后的实施证据（2026-09-12，主线 `e86a92a`，桌面组合 `c683038`）**：人工保存自动更新 PPTD、移除旧读取证明及 Git 版本功能已集成；Codex/Grok 公开提醒和 Pi MCP 扩展已集成，Kimi 最小公开插件已准备并隔离验证，实际用户登记已于 2026-09-12 经用户批准完成。真实 built OSS 版本界面与自动 PPTD 保存/恢复轮、Pi/Claude 原生成功/失败/取消六路径通过；六路径使用合成外部语言模型。后续正常安装包已补齐 Codex/Kimi/Grok 当前 PPTD 读写、公开提醒与采集的分项证据，以及 Grok 完整停止/显式恢复。567741b 的真实四素材海报、12 图长图通过保存、版本、导出及独立重开；原失败和未执行的断言保留；用户已确认该副本的素材、两份作品、编辑、保存/版本/重开和导出六项检查可接受，不代表通用性能阈值或全部旅程验收。实际 Kimi 用户登记已于同日完成，对新启动的 Kimi 进程生效。准确来源及限制见[目标修订后的实施](../.agents/notes/implemented/architecture/2026-09-09-graphic-design-platform.zh.md#目标修订后的实施2026-09-12)。这不把提醒当读取证明，也不表示完整迁移已经验收。
 
@@ -155,10 +155,10 @@ Git 分支操作、PR/CI 等开发功能退出设计主流程，并停止其不�
 
 2026-09-11 [Lody 常规能力复核](../.agents/notes/proposed/simplification/2026-09-11-design-result-feedback.zh.md#lody-常规能力复核2026-09-11)更正附件判断：Lody 已有本地附件基础设施，Geon 需补组合适配；撤回“必须新建本地存储”的推断。源码和安装版菜单观察不代表完整上传/发送已验证，本轮未运行产品测试或 Agent。
 
-2026-09-11 已确认[串行编辑方案](../.agents/notes/proposed/architecture/2026-09-11-design-serial-editing.zh.md)：Agent 执行及产物处理期间所属画布禁止人工修改，取代此前允许人机并行编辑的目标。本次仅修改文档，P3 尚未实现该边界；历史 P1/P2 证据不覆盖它。
+2026-09-11 已确认[串行编辑方案](../.agents/notes/implemented/architecture/2026-09-11-design-serial-editing.zh.md)：Agent 执行及产物处理期间所属画布禁止人工修改，取代此前允许人机并行编辑的目标。本次仅修改文档，P3 尚未实现该边界；历史 P1/P2 证据不覆盖它。
 
 2026-09-11 范围复核已确认删除通用结果卡及专用缩略图链路，保留 Agent 渲染与看图；P3.0 负责退役已实现部分，P4 删除侧栏缩略图目标，P3.6 收敛已迁入的强制 skill 流程。见[审查与处置记录](../.agents/notes/proposed/simplification/2026-09-11-design-result-feedback.zh.md)。本次只修改设计文档，以下 P2.5/P2.6 仍是历史事实，不是继续保留这些功能的要求。
 
-[改造清单及分阶段实施计划](../.agents/notes/implemented/architecture/2026-09-09-graphic-design-platform.zh.md)记录源码证据、模块归属、实施顺序和阶段门槛。[按需同步与 hook 决策](../.agents/notes/proposed/architecture/2026-09-10-design-sync-hooks.zh.md)记录 P3 新增职责、复用依据及尚未验证的接入覆盖。2026-09-10 修订仅修改文档；以下 P0–P2 记录是既有实施证据，不代表 P3–P6 已执行。2026-09-11 新增[文件实时预览决策](../.agents/notes/proposed/architecture/2026-09-11-pptd-live-preview.zh.md)，记录源码复用、快照限制和已确认的只读/直接导入边界；同样只调整设计。
+[改造清单及分阶段实施计划](../.agents/notes/implemented/architecture/2026-09-09-graphic-design-platform.zh.md)记录源码证据、模块归属、实施顺序和阶段门槛。[按需同步与 hook 决策](../.agents/notes/rejected/architecture/2026-09-10-design-sync-hooks.zh.md)记录 P3 新增职责、复用依据及尚未验证的接入覆盖。2026-09-10 修订仅修改文档；以下 P0–P2 记录是既有实施证据，不代表 P3–P6 已执行。2026-09-11 新增[文件实时预览决策](../.agents/notes/implemented/architecture/2026-09-11-pptd-live-preview.zh.md)，记录源码复用、快照限制和已确认的只读/直接导入边界；同样只调整设计。
 
 P0 已实现固定合成样稿加载、当前文件持久化和 PNG/JPEG 导出；macOS arm64 开发构建及打包后应用的探针已通过。macOS DMG 构建、校验及从镜像复制后的应用运行和 ad-hoc 签名验证已通过；macOS/Windows/Linux 资源构建与完整性 CI 均已通过，Developer ID 签名及公证不属于本次本地验收；P1 已实现手工编辑闭环；P2.1–P2.7（技能与物化、回合输入物化、回合后采集与提交、图像连接与 `geon_generate_image`、结果卡与候选采用/丢弃、结果卡缩略图引用、持久化加固）已分九个独立提交实现。`geon_render_preview` 渲染预览按升级条款拆为 P2.4b 并已实现：拿不到「守护进程发起」的通道，所以方向反过来——运行中的 Geon 桌面轮询守护进程领取渲染任务，能力因此**可观测**（没有桌面在轮询就没有该工具，缺席仍是诚实状态），且不改会话文档 schema、不新增持久事件种类、不给 Electron 新增入站面。**P2 总验收已执行**——在 macOS arm64 打包应用内用真实 Agent 跑通「参考图 + 需求 → 可编辑作品 → 手工修改 → 保存重开 → PNG/JPEG 导出」，取消／权限回应／无效产物三条负路径均通过；视觉效果仍为人工判断。同轮发现一处打包缺陷并已修复：暂存的技能树被针对源码树的排除规则剥掉了 `SKILL.md`、参考文档与示例，包内因此只有技能脚本而没有技能说明。提交回合后已打开的画布不重绘（P2-A2）已随后修复：渲染器在 history 出现新的 committed revision 时调用 `design.syncFromStore`，Electron 在打开的编辑器修订与 store 不一致时销毁并按同一 host／bounds 重建，与采用候选共用 `reloadDesignCanvas`。当时 Geon OSS 首页参考图附件失败（P2-A3）仍待适配，且不并入 P3；此观察不能推广为 Lody 没有附件或本地存储。验收通过不表示整份草案获批，也不覆盖 Windows/Linux 实机验证、Developer ID 签名与公证。详见实施记录与[验收证据](../output/folio-p2/acceptance.json)。
