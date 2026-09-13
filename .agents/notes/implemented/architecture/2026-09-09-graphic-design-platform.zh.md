@@ -462,7 +462,7 @@ T19 的 [Kimi 托管运行时审查](../../rejected/architecture/2026-09-11-kimi
 
 ### 预期 UI 效果图
 
-2026-09-09 补充了[五张 UI 概念图与提示词](../../../../output/imagegen/folio-ui-v1/README.md)，覆盖首页、对话画布、素材库、版本对比及设置。通过内置 imagegen 生成，以同一工作台图作为其他页面的视觉参考；合成案例与 Agent 状态只用于界面示意。已检查主要布局和页面覆盖，没有进行交互实现或验收，方案仍为 proposed。素材库页面/导航、历史版本列表与恢复承诺已取消，完整三方对比也不进入迁移范围；候选创建、采用/拒绝也已退出范围。旧图仅保留为历史生成记录，不能恢复已取消的入口或要求。通用结果卡、作品列表/侧栏缩略图也不再构成实现要求；按 P3.0 退役既有专用链路。
+2026-09-09 补充了[五张 UI 概念图与提示词](https://github.com/LeonEthan/Geon/blob/8bac4b433a3c7ac38ddd5be14b315363c75a8f92/output/imagegen/folio-ui-v1/README.md)，覆盖首页、对话画布、素材库、版本对比及设置。通过内置 imagegen 生成，以同一工作台图作为其他页面的视觉参考；合成案例与 Agent 状态只用于界面示意。已检查主要布局和页面覆盖，没有进行交互实现或验收，方案仍为 proposed。素材库页面/导航、历史版本列表与恢复承诺已取消，完整三方对比也不进入迁移范围；候选创建、采用/拒绝也已退出范围。旧图仅保留为历史生成记录，不能恢复已取消的入口或要求。通用结果卡、作品列表/侧栏缩略图也不再构成实现要求；按 P3.0 退役既有专用链路。
 
 | 决定         | 建议默认                                                       | 改变选择的影响                                         |
 | ------------ | -------------------------------------------------------------- | ------------------------------------------------------ |
@@ -501,7 +501,7 @@ T19 的 [Kimi 托管运行时审查](../../rejected/architecture/2026-09-11-kimi
 - 相邻源码固定在 `7fd3c0691876ec7428fe3f3ef1ef6c4c46cdef12`，Bento 子模块固定在 `813c71fff72491e6898f5e55a20da44a562be586`。来源清单校验拷贝源码与补丁哈希，保留 capability matrix、离线图标和字体声明。真实构建闭包为 Bento slides/kernel + contracts + adapter kernel/editor；PPTD authoring、quality 编排与历史修订存储不进入固定样稿切片。
 - CLI 独立构建入口 `design-sample.js` 只接收严格校验的 `open-sample` 请求，拥有 `<Folio data root>/chats/folio-p0/design.json`。整份样稿和素材原子发布，重复打开不会覆盖已有文件；损坏或不同内容明确报错。响应丢失后再次打开读取已落盘内容。此合成样稿不新增 Session 元数据，真实 Session 关联属于 P1。
 - Electron 原生 File 菜单打开样稿并导出，使用无 preload/Node 权限的独立 session；仅提供固定文档和编辑器资源，拒绝其他路径、写请求、权限、弹窗及外网。Bento 投影出的 stage 为展示与导出唯一来源；导出不包含窗口界面。
-- Electron 精确固定为 39.5.1（Chromium 142.0.7444.265）；这是 Folio 实际生产渲染宿主，未迁入隔壁的独立 Chrome for Testing/Playwright 后台。改变宿主后的结果重新验收，不继承隔壁渲染结论。macOS arm64 开发构建与打包后 `.app` 均实际通过固定样稿重开字节一致、800×600 输出、PNG 透明角和 JPEG 白色角检查；已查看实际导出图。证据见 [开发记录](../../../../output/folio-p0/development.json)、[打包运行记录](../../../../output/folio-p0/packaged.json)、[PNG](../../../../output/folio-p0/sample.png)。
+- Electron 精确固定为 39.5.1（Chromium 142.0.7444.265）；这是 Folio 实际生产渲染宿主，未迁入隔壁的独立 Chrome for Testing/Playwright 后台。改变宿主后的结果重新验收，不继承隔壁渲染结论。macOS arm64 开发构建与打包后 `.app` 均实际通过固定样稿重开字节一致、800×600 输出、PNG 透明角和 JPEG 白色角检查；已查看实际导出图。证据见 [开发记录](https://github.com/LeonEthan/Geon/blob/8bac4b433a3c7ac38ddd5be14b315363c75a8f92/output/folio-p0/development.json)、[打包运行记录](https://github.com/LeonEthan/Geon/blob/8bac4b433a3c7ac38ddd5be14b315363c75a8f92/output/folio-p0/packaged.json)、[PNG](https://github.com/LeonEthan/Geon/blob/8bac4b433a3c7ac38ddd5be14b315363c75a8f92/output/folio-p0/sample.png)。
 - Folio 的 profile 使用 `.folio`、`folio` scheme、`dev.folio.app` 及独立本地 host 端口 17790；TS/CJS、桌面打包和相关路径测试同步。普通 workspace 删除语义未改，Lody 数据不迁移或删除。
 - Windows/Linux/macOS 的资源构建矩阵已加入 CI，使用相同源清单及资源检查脚本。本机 macOS arm64 和三平台远端 CI 均已通过；Windows/Linux 只验证资源构建与完整性，不扩大应用运行支持平台。
 
@@ -534,9 +534,9 @@ P1 提交前已采用该隔离方式重跑 `pnpm check`，退出码为 0；`pnpm
 
 ### P0 安装产物补充验收（2026-09-09）
 
-用户清理磁盘后，ad-hoc 签名重试成功。随后通过既有 `package-electron.mjs` 包装器重新构建 macOS arm64 DMG，命令退出 0，内嵌 CLI 启动及原生依赖探针通过。`hdiutil verify` 确认镜像校验有效；只读挂载后将应用复制到隔离目录，严格递归签名检查通过，再从该副本启动 P0 探针：重开一致、800×600、PNG 透明与 JPEG 白底均通过。挂载已卸载，未覆盖用户已有应用或数据。见[安装产物证据](../../../../output/folio-p0/installed.json)。此结果取代上文签名失败及安装器未验证的当前结论；仍为本地 ad-hoc 签名，未做 Developer ID 签名、公证或发布。
+用户清理磁盘后，ad-hoc 签名重试成功。随后通过既有 `package-electron.mjs` 包装器重新构建 macOS arm64 DMG，命令退出 0，内嵌 CLI 启动及原生依赖探针通过。`hdiutil verify` 确认镜像校验有效；只读挂载后将应用复制到隔离目录，严格递归签名检查通过，再从该副本启动 P0 探针：重开一致、800×600、PNG 透明与 JPEG 白底均通过。挂载已卸载，未覆盖用户已有应用或数据。见[安装产物证据](https://github.com/LeonEthan/Geon/blob/8bac4b433a3c7ac38ddd5be14b315363c75a8f92/output/folio-p0/installed.json)。此结果取代上文签名失败及安装器未验证的当前结论；仍为本地 ad-hoc 签名，未做 Developer ID 签名、公证或发布。
 
-Windows/Linux/macOS 资源构建及完整性探针已全部通过，[CI 运行](https://github.com/LeonEthan/Folio/actions/runs/34350883149)对应提交 `e64edec462a732003966bea2b1795224d4a4c124`。用户已确认向公开仓库上传资源验证分支；只提交资源闭包、工作流和验证记录，未发布应用或提交工作区全部实现。首次 Windows 构建发现 TEMP 的 8.3 路径与完整路径混用导致 Vite HTML 代理模块失配；构建器对临时目录执行 `realpathSync.native`，重跑三平台均通过。本机重建资源哈希未变，原 macOS 安装产物证据仍对应相同资源。见[CI 证据](../../../../output/folio-p0/ci.json)和[路径修复记录](../../implemented/testing/2026-09-09-bento-resource-ci.md)。
+Windows/Linux/macOS 资源构建及完整性探针已全部通过，[CI 运行](https://github.com/LeonEthan/Folio/actions/runs/34350883149)对应提交 `e64edec462a732003966bea2b1795224d4a4c124`。用户已确认向公开仓库上传资源验证分支；只提交资源闭包、工作流和验证记录，未发布应用或提交工作区全部实现。首次 Windows 构建发现 TEMP 的 8.3 路径与完整路径混用导致 Vite HTML 代理模块失配；构建器对临时目录执行 `realpathSync.native`，重跑三平台均通过。本机重建资源哈希未变，原 macOS 安装产物证据仍对应相同资源。见[CI 证据](https://github.com/LeonEthan/Geon/blob/8bac4b433a3c7ac38ddd5be14b315363c75a8f92/output/folio-p0/ci.json)和[路径修复记录](../../implemented/testing/2026-09-09-bento-resource-ci.md)。
 
 P0 固定样稿、macOS 安装产物门槛及同期三平台资源 CI 已完成。Windows/Linux 应用运行、Developer ID 签名、公证和发布属于后续平台交付验证；不把资源 CI 通过解释为已支持这些平台的完整产品旅程。整份产品提案仍为 proposed，Spec 仍为 draft。
 
@@ -552,7 +552,7 @@ P0 固定样稿、macOS 安装产物门槛及同期三平台资源 CI 已完成�
 
 验证：存储集成检查覆盖原子重开、幂等响应、过期基线拒绝、独立图片/字体复制、损坏文件及路径逃逸拒绝、关联确认。真实 Electron 探针覆盖编辑、隐藏后的撤销/重做、关闭后重开清空撤销、旧挂载失效、冲突保留、另存和透明 PNG/白底 JPEG。实际桌面入口也已在无 Agent 配置下创建并打开合成作品。全量 `pnpm check` 在隔离 shell Anthropic 配置后通过：CLI 2616 项、UI 3275 项、Electron 100 项，CLI 另有 4 项既有跳过；沿用 P0 已发现的环境影响，不修改认证逻辑。末次视图生命周期细化另经类型检查、lint 及原生探针验证。已执行 `pnpm format`，移除无关格式差异；文档检查无错误、18 条既有大小警告。
 
-macOS arm64 本地打包通过，内嵌 CLI 启动与原生依赖检查通过，同一 P1 探针在应用包中全部通过。首次下载停滞后复用本机同版本 Electron 39.5.1，使用既有打包包装器且禁止发布；补齐 CLI 构建资源复制步骤后完整打包成功。证据：[开发探针](../../../../output/folio-p1/result.json)、[应用包探针](../../../../output/folio-p1/packaged/result.json)。本轮验证为 macOS 本地 ad-hoc 应用包；未执行 P1 Windows/Linux 实机验收、Developer ID 签名、公证或发布。
+macOS arm64 本地打包通过，内嵌 CLI 启动与原生依赖检查通过，同一 P1 探针在应用包中全部通过。首次下载停滞后复用本机同版本 Electron 39.5.1，使用既有打包包装器且禁止发布；补齐 CLI 构建资源复制步骤后完整打包成功。证据：[开发探针](https://github.com/LeonEthan/Geon/blob/8bac4b433a3c7ac38ddd5be14b315363c75a8f92/output/folio-p1/result.json)、[应用包探针](https://github.com/LeonEthan/Geon/blob/8bac4b433a3c7ac38ddd5be14b315363c75a8f92/output/folio-p1/packaged/result.json)。本轮验证为 macOS 本地 ad-hoc 应用包；未执行 P1 Windows/Linux 实机验收、Developer ID 签名、公证或发布。
 
 ## P1 新建设计入口布局复核（2026-09-09，提议）
 
@@ -586,7 +586,7 @@ Auto 修订验证：扩展存储检查覆盖省略宽高时的缺省初始化，
 
 验收发现导出建议文件名仍取作品初始名称，已改为传递当前 Session 标题，并在原生服务校验、过滤文件名非法字符。重新构建和打包后，再次通过 UI 确认 PNG、JPEG 建议名均跟随自动命名。最终应用位于 `apps/electron/dist/p1-layout/mac-arm64/Folio.app`，验收后保持打开。
 
-证据：[人工路径检查结果](../../../../output/folio-p1/manual.json)、[PNG 合成样稿](../../../../output/folio-p1/manual-acceptance.png)、[JPEG 合成样稿](../../../../output/folio-p1/manual-acceptance.jpg)。记录仅含检查结果及合成画稿，不保存对话或窗口截图。保存失败、冲突、独立复制、旧挂载身份和导出透明度采用前述存储测试与应用包探针证据，未在此次人工路径重复故障注入。
+证据：[人工路径检查结果](https://github.com/LeonEthan/Geon/blob/8bac4b433a3c7ac38ddd5be14b315363c75a8f92/output/folio-p1/manual.json)、[PNG 合成样稿](https://github.com/LeonEthan/Geon/blob/8bac4b433a3c7ac38ddd5be14b315363c75a8f92/output/folio-p1/manual-acceptance.png)、[JPEG 合成样稿](https://github.com/LeonEthan/Geon/blob/8bac4b433a3c7ac38ddd5be14b315363c75a8f92/output/folio-p1/manual-acceptance.jpg)。记录仅含检查结果及合成画稿，不保存对话或窗口截图。保存失败、冲突、独立复制、旧挂载身份和导出透明度采用前述存储测试与应用包探针证据，未在此次人工路径重复故障注入。
 
 末次导出修复通过 Electron 类型检查、lint、OSS 构建、macOS arm64 打包和内嵌 CLI 原生检查；相关文件已格式化。交付整理完成后重新运行文档、公开边界和差异空白检查。P1 的本地 macOS 验收完成；整份平台提案仍为 proposed，Spec 保持 draft，英文翻译待补。P2 生成流程、P1 Windows/Linux 实机验证、Developer ID 签名、公证及发布未包含在本轮交付，本轮交付仅创建本地提交。
 
@@ -774,7 +774,7 @@ Auto 修订验证：扩展存储检查覆盖省略宽高时的缺省初始化，
 
 ### P2 总验收（2026-09-10）
 
-**状态：已执行，通过，附三处发现。** 在 macOS arm64 本地应用包（`0.76.0`／Electron 39.5.1，`apps/electron/p2-layout/mac-arm64/Folio.app`，经 `scripts/package-electron.mjs` 包装器打包、禁止发布）内用 computer-use 驱动真实 Agent 完成验收准则的全部路径。证据落在 [output/folio-p2/](../../../../output/folio-p2/acceptance.json)：正路径的提交回执、修订摘要、导出件与缩略图，负路径三条的回执与夹具，以及三处发现。
+**状态：已执行，通过，附三处发现。** 在 macOS arm64 本地应用包（`0.76.0`／Electron 39.5.1，`apps/electron/p2-layout/mac-arm64/Folio.app`，经 `scripts/package-electron.mjs` 包装器打包、禁止发布）内用 computer-use 驱动真实 Agent 完成验收准则的全部路径。证据落在 [output/folio-p2/](https://github.com/LeonEthan/Geon/blob/8bac4b433a3c7ac38ddd5be14b315363c75a8f92/output/folio-p2/acceptance.json)：正路径的提交回执、修订摘要、导出件与缩略图，负路径三条的回执与夹具，以及三处发现。
 
 **正路径。** 参考图（480×640 合成海报）以绝对路径写进需求，Agent 自行读取参考图与物化后的 `graphic-design` 技能，产出 `design.pptd` 并提交为修订 `df39a577…`（800×600、11 个元素）。提交后卡上显示已提交与修订号；重新附着画布可见并可编辑。手工改动背景（`#E6D8CE` → `#F3E4D0`）后修订为 `34419810…`，无冲突；退出并重启后该改动仍在。再用应用内的原生保存窗口导出 PNG（`6935bf42…`）与 JPEG（`2c4494f5…`），均为 800×600。
 
