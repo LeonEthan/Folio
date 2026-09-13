@@ -23,7 +23,7 @@ describe('buildProviderWaitReport', () => {
   it('carries the three things the user cannot see: stage, elapsed, and build', () => {
     expect(buildProviderWaitReport(base)).toBe(
       [
-        'Lody: agent setup is taking longer than usual',
+        'Geon: agent setup is taking longer than usual',
         '',
         'Agent: Claude Code (builtin/claude)',
         'Stage: probing-provider',

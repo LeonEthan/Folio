@@ -201,7 +201,7 @@ export function ProjectsScreenView({
             title={t('onboarding.projects.connectGitHubTitle', 'Connect a GitHub repository')}
             description={t(
               'onboarding.projects.connectGitHubDescription',
-              'Authorize Folio to access selected repos.'
+              'Authorize Geon to access selected repos.'
             )}
             trailing={<ExternalLink className="h-3.5 w-3.5 text-muted-foreground/70" />}
             disabled={connectingGitHub || !canConnectGitHub}

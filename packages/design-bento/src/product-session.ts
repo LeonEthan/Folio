@@ -28,12 +28,12 @@ export function createProductSession(options: {
   let writePermit: string | undefined;
   options.setReadonly(true);
   const style = document.createElement('style');
-  style.textContent = `:root{color-scheme:light dark}.ed-panel-toggle,.ed-resizer,.ed-logo,.ed-title,.ed-insert,.ed-group-right,.ed-sidebar,.ed-present-pill,.ed-phone-only,.ed-props{display:none!important}.ed-topbar{background:Canvas!important;color:CanvasText!important}.c2a-btn,.c2a-select,.c2a-number,.c2a-text,.c2a-textarea,.c2a-color{background:Field!important;color:FieldText!important}.c2a-label,.c2a-section{color:CanvasText!important;opacity:.8}.c2a-surface{left:auto!important;right:8px!important;bottom:44px!important;width:min(300px,calc(100vw - 20px))!important;background:Canvas!important;color:CanvasText!important}.folio-properties-hidden .c2a-surface{display:none!important}`;
+  style.textContent = `:root{color-scheme:light dark}.ed-panel-toggle,.ed-resizer,.ed-logo,.ed-title,.ed-insert,.ed-group-right,.ed-sidebar,.ed-present-pill,.ed-phone-only,.ed-props{display:none!important}.ed-topbar{background:Canvas!important;color:CanvasText!important}.c2a-btn,.c2a-select,.c2a-number,.c2a-text,.c2a-textarea,.c2a-color{background:Field!important;color:FieldText!important}.c2a-label,.c2a-section{color:CanvasText!important;opacity:.8}.c2a-surface{left:auto!important;right:8px!important;bottom:44px!important;width:min(300px,calc(100vw - 20px))!important;background:Canvas!important;color:CanvasText!important}.geon-properties-hidden .c2a-surface{display:none!important}`;
   document.head.append(style);
   const properties = document.createElement('button');
   properties.textContent = '属性 / Properties';
   properties.style.cssText = 'position:fixed;right:12px;top:8px;z-index:2147483100;padding:5px 10px';
-  properties.onclick = () => document.body.classList.toggle('folio-properties-hidden');
+  properties.onclick = () => document.body.classList.toggle('geon-properties-hidden');
   document.body.append(properties);
   const status = document.createElement('div');
   status.id = 'autosave-status';
@@ -176,9 +176,9 @@ export function createProductSession(options: {
     document.getElementById('bento-splash')?.remove();
     if (state === 'loading') mark('saved', '已自动保存');
     else mark(state, status.textContent ?? '');
-    window.dispatchEvent(new Event('folio:ready'));
+    window.dispatchEvent(new Event('geon:ready'));
   });
-  Object.assign(window, { folio: {
+  Object.assign(window, { geon: {
     setReadonly,
     selection() { return selection; },
     state() { return { ready, dirty: dirty(), composing, saving: saving !== undefined, readonly, revisionId }; },

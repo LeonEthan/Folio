@@ -58,7 +58,7 @@ export async function verifyDesign(directory: string) {
   await view.webContents.executeJavaScript(`new Promise((resolve, reject) => {
     const timer = setTimeout(() => { observer.disconnect(); reject(Error('Editor not ready')); }, 30000);
     const observer = new MutationObserver(check); observer.observe(document, { childList:true, subtree:true });
-    function check() { if (window.folio && document.querySelector('[data-c2a-kind="text"]')) { clearTimeout(timer); observer.disconnect(); resolve(true); } } check();
+    function check() { if (window.geon && document.querySelector('[data-c2a-kind="text"]')) { clearTimeout(timer); observer.disconnect(); resolve(true); } } check();
   })`)
   await view.webContents.executeJavaScript(
     `document.querySelector('[data-c2a-kind="text"]').click(); document.querySelector('[data-c2a-kind="shape"]').click();`
@@ -92,7 +92,7 @@ export async function verifyDesign(directory: string) {
   await view.webContents.executeJavaScript(`new Promise((resolve, reject) => {
     const timer = setTimeout(() => { observer.disconnect(); reject(Error('Editor not ready after commit reload')); }, 30000);
     const observer = new MutationObserver(check); observer.observe(document, { childList:true, subtree:true });
-    function check() { if (window.folio && window.bento?.doc) { clearTimeout(timer); observer.disconnect(); resolve(true); } } check();
+    function check() { if (window.geon && window.bento?.doc) { clearTimeout(timer); observer.disconnect(); resolve(true); } } check();
   })`)
   assert.deepEqual(
     JSON.parse(await view.webContents.executeJavaScript('window.bento.visual.snapshot()'))
@@ -205,7 +205,7 @@ export async function verifyDesign(directory: string) {
   for (const [index, target] of [reopenedView, secondView, thirdView].entries()) {
     await target.webContents.executeJavaScript(`
       for (let i = 0; i < ${index + 1}; i++) document.querySelector('[data-c2a-kind="shape"]').click();
-      window.folio.setReadonly(true);
+      window.geon.setReadonly(true);
     `)
   }
   await designCanvasAccess.update([{ artworkId: id, turnId: randomUUID(), preparing: false }])
@@ -256,10 +256,7 @@ export async function verifyDesign(directory: string) {
       await thirdView.webContents.executeJavaScript('window.bento.visual.snapshot()'),
       thirdDirty
     )
-    assert.equal(
-      (await thirdView.webContents.executeJavaScript('window.folio.state()')).dirty,
-      true
-    )
+    assert.equal((await thirdView.webContents.executeJavaScript('window.geon.state()')).dirty, true)
   } finally {
     dialog.showMessageBox = showMessageBox
   }

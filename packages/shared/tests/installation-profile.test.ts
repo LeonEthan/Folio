@@ -26,13 +26,13 @@ describe('installation profile', () => {
       localCliHostPort: 17_788,
     });
     expect(getInstallationProfile('local')).toMatchObject({
-      namespace: 'folio',
-      dataDirectoryName: '.folio',
-      desktopProtocol: 'folio',
+      namespace: 'geon',
+      dataDirectoryName: '.geon',
+      desktopProtocol: 'geon',
       localCliHostPort: 17_790,
     });
     expect(getLodyDataDir('cloud', '/home/alice')).toBe(path.join('/home/alice', '.lody'));
-    expect(getLodyDataDir('local', '/home/alice')).toBe(path.join('/home/alice', '.folio'));
+    expect(getLodyDataDir('local', '/home/alice')).toBe(path.join('/home/alice', '.geon'));
   });
 
   it('uses disjoint local host lease endpoints', () => {
@@ -99,11 +99,11 @@ describe('installation profile', () => {
       const cloudRunDir = getLocalDaemonRunDir('cloud');
       const localRunDir = getLocalDaemonRunDir('local');
       expect(localRunDir).not.toBe(cloudRunDir);
-      expect(localRunDir).toContain('.folio');
-      expect(getLocalWorkspaceCatalogPath('local')).toContain('.folio');
-      expect(getLocalControlSocketPath('local')).toContain('folio-control');
-      expect(getLocalLoroDataPlaneSocketPath('local')).toContain('folio-loro-data-plane');
-      expect(getLocalTerminalSocketPath('local')).toContain('folio-terminal');
+      expect(localRunDir).toContain('.geon');
+      expect(getLocalWorkspaceCatalogPath('local')).toContain('.geon');
+      expect(getLocalControlSocketPath('local')).toContain('geon-control');
+      expect(getLocalLoroDataPlaneSocketPath('local')).toContain('geon-loro-data-plane');
+      expect(getLocalTerminalSocketPath('local')).toContain('geon-terminal');
     } finally {
       if (previousPlatform === undefined) delete process.env.LODY_PLATFORM;
       else process.env.LODY_PLATFORM = previousPlatform;

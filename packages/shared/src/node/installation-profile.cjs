@@ -13,11 +13,11 @@ const CLOUD_PROFILE = Object.freeze({
 
 const LOCAL_PROFILE = Object.freeze({
   platform: 'local',
-  namespace: 'folio',
-  dataDirectoryName: '.folio',
-  desktopProtocol: 'folio',
-  desktopProductName: 'Folio',
-  desktopAppId: 'dev.folio.app',
+  namespace: 'geon',
+  dataDirectoryName: '.geon',
+  desktopProtocol: 'geon',
+  desktopProductName: 'Geon',
+  desktopAppId: 'dev.geon.app',
   localCliHostPort: 17790,
 });
 

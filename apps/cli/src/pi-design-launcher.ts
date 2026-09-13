@@ -2,9 +2,9 @@ import spawn from 'cross-spawn';
 
 // Executable-only contract, matching pi-acp's PI_ACP_PI_COMMAND. Never interpolate
 // a user command into a shell string. Preserve Pi arguments and user config.
-const command = process.env.FOLIO_DESIGN_PI_COMMAND;
-const extension = process.env.FOLIO_DESIGN_EXTENSION;
-if (!command || !extension) throw Error('Missing Folio Pi launch context');
+const command = process.env.GEON_DESIGN_PI_COMMAND;
+const extension = process.env.GEON_DESIGN_EXTENSION;
+if (!command || !extension) throw Error('Missing Geon Pi launch context');
 const version = spawn.sync(command, ['--version'], {
   env: process.env,
   encoding: 'utf8',
@@ -12,7 +12,7 @@ const version = spawn.sync(command, ['--version'], {
   killSignal: 'SIGKILL',
   windowsHide: true,
 });
-const mcpExtension = process.env.FOLIO_PI_MCP_EXTENSION;
+const mcpExtension = process.env.GEON_PI_MCP_EXTENSION;
 const child = spawn(
   command,
   [
@@ -25,7 +25,7 @@ const child = spawn(
     stdio: 'inherit',
     env: {
       ...process.env,
-      FOLIO_DESIGN_PI_VERSION: version.status === 0 ? version.stdout.trim() : 'unknown',
+      GEON_DESIGN_PI_VERSION: version.status === 0 ? version.stdout.trim() : 'unknown',
     },
   }
 );

@@ -145,7 +145,7 @@ export class LocalProjectsIpc extends IpcService {
     if (!selectedPath) return null
     const machineId = await getIpcServiceDeps().cliService.getLocalMachineId()
     if (!machineId) {
-      return { error: 'Local CLI daemon is unavailable. Run `npx lody start`.' }
+      return { error: 'The Geon background service is unavailable. Restart Geon and try again.' }
     }
     return { rootPath: selectedPath, machineId }
   }

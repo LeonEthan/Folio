@@ -2,23 +2,23 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { createProductSession } from '../../design-bento/src/product-session';
 
-afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); document.body.replaceChildren(); delete (window as unknown as { folio?: unknown }).folio; });
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); document.body.replaceChildren(); delete (window as unknown as { geon?: unknown }).geon; });
 
 it('publishes the complete generic canvas API at the real ready boundary', async () => {
   let resolveFonts!: () => void;
   const fontsReady = new Promise<void>((resolve) => { resolveFonts = resolve; });
   Object.defineProperty(document, 'fonts', { configurable: true, value: { ready: fontsReady } });
-  const readyEvent = new Promise<void>((resolve) => window.addEventListener('folio:ready', () => resolve(), { once: true }));
+  const readyEvent = new Promise<void>((resolve) => window.addEventListener('geon:ready', () => resolve(), { once: true }));
   createProductSession({
     sessionId: 'art', revisionId: 'old', snapshot: () => ({}), assets: () => ({}),
     setDirty: () => {}, setReadonly: () => {}, commitPending: () => {},
   });
-  const api = (window as unknown as { folio: {
+  const api = (window as unknown as { geon: {
     setReadonly(value: boolean): void;
     state(): { ready: boolean };
     snapshot(): Promise<unknown>;
     flush(permit: string): Promise<{ ok: boolean }>;
-  } }).folio;
+  } }).geon;
   expect(api.state().ready).toBe(false);
   expect([typeof api.setReadonly, typeof api.snapshot, typeof api.flush]).toEqual(['function', 'function', 'function']);
   resolveFonts();
@@ -40,12 +40,12 @@ it('freezes semantic commands after committing buffered input and flushes withou
     setDirty: () => {}, setReadonly: (value) => { readonly = value; },
     commitPending: () => { if (buffered && !readonly) { content = buffered; buffered = ''; session.changed(); } },
   });
-  const api = (window as unknown as { folio: {
+  const api = (window as unknown as { geon: {
     setReadonly(value: boolean): void;
     state(): { dirty: boolean; readonly: boolean };
     flush(permit: string): Promise<{ ok: boolean }>;
     save(): Promise<{ ok: boolean }>;
-  } }).folio;
+  } }).geon;
   expect(readonly).toBe(true);
   api.setReadonly(false); buffered = 'buffered human text';
   api.setReadonly(true);

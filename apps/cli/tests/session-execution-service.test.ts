@@ -1347,7 +1347,7 @@ describe('SessionExecutionService', () => {
    * workdir resolution reads, so the stage under test sees the same paths.
    */
   const setupDesignWorkspace = async (sessionId: string, options: { pptd?: boolean } = {}) => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'folio-design-service-'));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'geon-design-service-'));
     const previousDataDir = process.env.LODY_DATA_DIR;
     process.env.LODY_DATA_DIR = root;
     const created = await designOperation(root, {

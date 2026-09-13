@@ -1,5 +1,10 @@
+import './user-data-migration'
 import { verifyDesign } from './services/design-verification'
-import { prepareDesignQuit, shutdownDesignWorker } from './services/design-service'
+import {
+  prepareDesignQuit,
+  prepareDesignUpdate,
+  shutdownDesignWorker
+} from './services/design-service'
 import { startDesignCanvasHost } from './services/design-canvas-host-service'
 import { startDesignRenderHost } from './services/design-render-host-service'
 import { verifyDesignSample } from './services/design-sample-verification'
@@ -191,7 +196,7 @@ if (hasSingleInstanceLock) {
 if (hasSingleInstanceLock) {
   recordE2EBootDiagnostic('waiting-for-app-ready')
   const appReady = app.whenReady().then(async () => {
-    const p1Probe = process.argv.find((argument) => argument.startsWith('--folio-p1-verify='))
+    const p1Probe = process.argv.find((argument) => argument.startsWith('--geon-p1-verify='))
     if (p1Probe) {
       try {
         // This opt-in synthetic probe runs before the daemon is constructed.
@@ -201,7 +206,7 @@ if (hasSingleInstanceLock) {
         setDesignCanvasStateQuery(async () => {
           await designCanvasAccess.update([])
         })
-        await verifyDesign(p1Probe.slice('--folio-p1-verify='.length))
+        await verifyDesign(p1Probe.slice('--geon-p1-verify='.length))
         await shutdownDesignWorker()
         app.exit(0)
       } catch (error) {
@@ -211,10 +216,10 @@ if (hasSingleInstanceLock) {
       }
       return
     }
-    const designProbe = process.argv.find((argument) => argument.startsWith('--folio-p0-verify='))
+    const designProbe = process.argv.find((argument) => argument.startsWith('--geon-p0-verify='))
     if (designProbe) {
       try {
-        await verifyDesignSample(designProbe.slice('--folio-p0-verify='.length))
+        await verifyDesignSample(designProbe.slice('--geon-p0-verify='.length))
         await shutdownDesignWorker()
         app.exit(0)
       } catch (error) {
@@ -247,8 +252,12 @@ if (hasSingleInstanceLock) {
     const appUpdaterService = new AppUpdaterService({
       enabled: shouldConstructUpdaterEnabled({
         localPlatform: isLocalPlatform(),
-        forceEnable: process.env.LODY_ELECTRON_ENABLE_UPDATER === '1'
-      })
+        forceEnable: process.env.LODY_ELECTRON_ENABLE_UPDATER === '1',
+        platform: process.platform,
+        arch: process.arch
+      }),
+      requireSparkle: isLocalPlatform(),
+      prepareInstall: isLocalPlatform() ? prepareDesignUpdate : undefined
     })
     const notificationService = new NotificationService(() => getMainWindow())
     const windowsTrayService = new WindowsTrayService({
@@ -310,7 +319,7 @@ if (hasSingleInstanceLock) {
     })
 
     // The design preview render host (P2.4b): the desktop polls its daemon for
-    // previews to render, so `folio_render_preview` is available exactly while
+    // previews to render, so `geon_render_preview` is available exactly while
     // this window is open. Started here rather than lazily because the daemon
     // treats "no poller" as "no render capability", and a preview asked for
     // before the first poll would be refused for no reason.
@@ -426,7 +435,7 @@ if (hasSingleInstanceLock) {
 app.on('window-all-closed', () => {
   if (
     process.platform !== 'darwin' &&
-    !process.argv.some((argument) => argument.startsWith('--folio-p0-verify='))
+    !process.argv.some((argument) => argument.startsWith('--geon-p0-verify='))
   ) {
     app.quit()
   }

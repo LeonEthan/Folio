@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const DEFAULT_TITLE = 'Folio';
+const DEFAULT_TITLE = 'Geon';
 
 /**
  * Hook to manage document title.

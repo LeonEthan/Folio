@@ -1,7 +1,7 @@
 import path from 'node:path'
 
 export const DEFAULT_SPARKLE_APPCAST_URL =
-  'https://github.com/LodyAI/Lody/releases/latest/download/appcast.xml'
+  'https://github.com/LeonEthan/Geon/releases/latest/download/appcast.xml'
 
 export const SPARKLE_ED_PUBLIC_KEY_PLACEHOLDER = 'SPARKLE_ED_PUBLIC_KEY_PLACEHOLDER'
 

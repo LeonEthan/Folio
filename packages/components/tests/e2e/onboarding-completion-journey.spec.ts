@@ -13,8 +13,8 @@ test('provider skip remains an honest path into Lody', async ({ page }) => {
   await page.getByRole('button', { name: 'Skip for now' }).click();
 
   await expect(page.getByRole('heading', { name: 'Explore Lody' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Enter Folio' })).toBeEnabled();
-  await page.getByRole('button', { name: 'Enter Folio' }).click();
+  await expect(page.getByRole('button', { name: 'Enter Geon' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Enter Geon' }).click();
 
   await expect(page.getByTestId('onboarding-complete')).toBeVisible();
 });
@@ -42,7 +42,7 @@ test('pending provider selects a project then finishes on the preparing summary'
   await expect(page.getByRole('cell', { name: 'Lody' })).toBeVisible();
   await expect(page.getByText('Setting up')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Run your first task' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Enter Folio' }).click();
+  await page.getByRole('button', { name: 'Enter Geon' }).click();
 
   await expect(page.getByTestId('onboarding-complete')).toBeVisible();
 });

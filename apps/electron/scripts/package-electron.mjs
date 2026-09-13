@@ -11,7 +11,7 @@ import {
 } from './sparkle-packaging.mjs'
 
 // electron-builder derives the packaged version from apps/electron/package.json,
-// which carries Folio's independent release line (0.1.0 onward; the inherited
+// which carries Geon's independent release line (0.1.0 onward; the inherited
 // private cloud line is not continued). Releases are tagged, so the tag is the
 // source of truth: this script generates a throwaway config that extends
 // electron-builder.yml and overrides the version via extraMetadata. Mirrors
@@ -116,7 +116,7 @@ const version = resolveVersion(forwardedArguments)
 const electronBuilderArguments = withExplicitPublishPolicy(forwardedArguments)
 assertPublishPolicyIsExplicit(electronBuilderArguments)
 
-const generatedConfigDirectory = mkdtempSync(path.join(tmpdir(), 'lody-oss-electron-builder-'))
+const generatedConfigDirectory = mkdtempSync(path.join(tmpdir(), 'geon-electron-builder-'))
 const generatedConfigPath = path.join(generatedConfigDirectory, 'electron-builder.json')
 const configuredSparkleFeedUrl = process.env.SPARKLE_APPCAST_URL
 const sparkleFeedUrl = resolvePackagedSparkleFeedUrl({
@@ -147,7 +147,7 @@ function cleanupGeneratedConfig() {
   rmSync(generatedConfigDirectory, { recursive: true, force: true })
 }
 
-console.log(`[package-electron] packaging Lody OSS ${version}`)
+console.log(`[package-electron] packaging Geon ${version}`)
 
 const runner = resolveRunner()
 

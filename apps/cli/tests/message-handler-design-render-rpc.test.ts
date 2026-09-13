@@ -1,9 +1,9 @@
 import { resolveDesignWorkspace } from '../src/design/workspace';
 /**
  * The daemon's design preview Machine RPC (P2.4b): the transport behind
- * `folio_render_preview`.
+ * `geon_render_preview`.
  *
- * The render host is the running Folio desktop, which polls the daemon over the
+ * The render host is the running Geon desktop, which polls the daemon over the
  * same owner-only control socket the image methods use. So the direction is the
  * ordinary one — a machine with no desktop polling has no render capability at
  * all — and the daemon never calls out.
@@ -172,7 +172,7 @@ let previousDataRoot: string | undefined;
 
 beforeEach(() => {
   previousDataRoot = process.env.LODY_DATA_DIR;
-  dataRoot = mkdtempSync(path.join(tmpdir(), 'folio-design-render-rpc-'));
+  dataRoot = mkdtempSync(path.join(tmpdir(), 'geon-design-render-rpc-'));
   // The render path resolves the session workdir from the daemon data root, so
   // point it at a throwaway one: no test may read or write the user's workspace.
   process.env.LODY_DATA_DIR = dataRoot;

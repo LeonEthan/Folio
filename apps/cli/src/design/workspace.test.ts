@@ -9,7 +9,7 @@ import { materializeDesignTurnInput } from './turn-input';
 import { readDesignArtifact } from './artifact';
 import { buildPreviewPayload } from './render-preview';
 import { collectDesignTurnOutcome } from './turn-outcome';
-import { exportPptd } from '@folio/design-authoring';
+import { exportPptd } from '@geon/design-authoring';
 import {
   resolveDesignContext,
   resolveDesignWorkspace,
@@ -21,7 +21,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 async function setup(kind = 'project') {
-  const root = await mkdtemp(path.join(tmpdir(), 'folio-workspace-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'geon-workspace-'));
   roots.push(root);
   const sessionId = randomUUID();
   const legacyWorkdir = path.join(root, 'chats', sessionId);
@@ -141,7 +141,7 @@ describe('resolved design workspace', () => {
         legacyWorkdir: root,
       })
     ).toThrow();
-    await symlink(workspace.inputWorkdir, path.join(workspace.workspaceRoot, '.folio'));
+    await symlink(workspace.inputWorkdir, path.join(workspace.workspaceRoot, '.geon'));
     await expect(
       resolveDesignContext({
         workspaceRoot: workspace.workspaceRoot,

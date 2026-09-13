@@ -10,13 +10,13 @@
 // convenience, not a gate: Folio re-validates at intake regardless, and you
 // may promote the draft yourself as long as the final entry is design.pptd.
 //
-// The validator ships pre-bundled in ./lib/folio-pptd.mjs (built from
-// @folio/design-authoring at the app's pinned upstream revision), so this
+// The validator ships pre-bundled in ./lib/geon-pptd.mjs (built from
+// @geon/design-authoring at the app's pinned upstream revision), so this
 // script runs anywhere Node 22+ is available, with no repo checkout.
 
 import { existsSync, renameSync } from 'node:fs';
 import path from 'node:path';
-import { validate } from './lib/folio-pptd.mjs';
+import { validate } from './lib/geon-pptd.mjs';
 
 const draft = process.argv[2];
 const isTmpDraft = typeof draft === 'string' && draft.endsWith('.pptd.tmp');

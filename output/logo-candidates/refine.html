@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Folio logo — C refinement</title>
+<style>
+  body { margin: 0; font: 14px/1.5 -apple-system, "Helvetica Neue", sans-serif; background: #efece4; color: #26281f; }
+  h1 { font-size: 20px; margin: 28px 32px 4px; }
+  p.sub { margin: 0 32px 20px; color: #6b6a60; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 0 32px 32px; }
+  .card { background: #fbf9f3; border: 1px solid #ddd6c6; border-radius: 14px; padding: 16px; }
+  .card h2 { font-size: 15px; margin: 0 0 2px; }
+  .card .en { font-size: 12px; color: #8a887b; margin: 0 0 12px; }
+  .row { display: flex; align-items: flex-end; gap: 14px; margin-bottom: 12px; justify-content: center; }
+  .dark { background: #16170f; border-radius: 10px; padding: 18px; display: flex; align-items: flex-end; gap: 14px; margin-bottom: 12px; }
+  .light { background: #ffffff; border: 1px solid #e2ddcf; border-radius: 10px; padding: 18px; display: flex; align-items: flex-end; gap: 14px; }
+  img { display: block; }
+  .lbl { font-size: 10px; color: #9a988c; text-align: center; margin-top: 4px; }
+  .dark .lbl { color: #7d7c6e; }
+</style>
+</head>
+<body>
+<h1>C · 版式基线 — 细化变体</h1>
+<p class="sub">C1 行尾光标 · C2 句号 F. · C3 标题光标</p>
+<div class="grid" id="g"></div>
+<script>
+  const candidates = [
+    ['c1-caret.svg', 'C1 · 行尾光标', 'caret after the mid line — editing in progress'],
+    ['c2-period.svg', 'C2 · 句号', 'terracotta full stop — confident editorial initial'],
+    ['c3-headline-caret.svg', 'C3 · 标题光标', 'caret after the headline — just typed']
+  ]
+  const g = document.getElementById('g')
+  for (const [file, zh, en] of candidates) {
+    const card = document.createElement('div')
+    card.className = 'card'
+    card.innerHTML = `
+      <h2>${zh}</h2><p class="en">${en}</p>
+      <div class="row">
+        <div><img src="${file}" width="240"><div class="lbl">240</div></div>
+      </div>
+      <div class="dark">
+        <div><img src="${file}" width="96"><div class="lbl">96</div></div>
+        <div><img src="${file}" width="48"><div class="lbl">48</div></div>
+        <div><img src="${file}" width="24"><div class="lbl">24</div></div>
+        <div><img src="${file}" width="16"><div class="lbl">16</div></div>
+      </div>
+      <div class="light">
+        <div><img src="${file}" width="96"><div class="lbl">96</div></div>
+        <div><img src="${file}" width="48"><div class="lbl">48</div></div>
+        <div><img src="${file}" width="24"><div class="lbl">24</div></div>
+        <div><img src="${file}" width="16"><div class="lbl">16</div></div>
+      </div>`
+    g.appendChild(card)
+  }
+</script>
+</body>
+</html>

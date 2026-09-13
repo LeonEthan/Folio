@@ -126,7 +126,7 @@ function buildAndSetMenu(): void {
       label: t(locale, 'menu.file'),
       submenu: [
         {
-          label: 'Folio Sample',
+          label: 'Geon Sample',
           click: () => {
             void openDesignSampleWindow().catch(reportDesignSampleError)
           }
@@ -256,15 +256,15 @@ function buildAndSetMenu(): void {
           click: () => {
             void shell.openExternal(
               locale === 'zh_CN'
-                ? 'https://github.com/LeonEthan/Folio/blob/main/README.zh-CN.md'
-                : 'https://github.com/LeonEthan/Folio#readme'
+                ? 'https://github.com/LeonEthan/Geon/blob/main/README.zh-CN.md'
+                : 'https://github.com/LeonEthan/Geon#readme'
             )
           }
         },
         {
           label: t(locale, 'menu.feedback'),
           click: () => {
-            void shell.openExternal('https://github.com/LeonEthan/Folio/issues')
+            void shell.openExternal('https://github.com/LeonEthan/Geon/issues')
           }
         }
       ]

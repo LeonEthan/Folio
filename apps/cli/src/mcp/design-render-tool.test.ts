@@ -1,11 +1,11 @@
 /**
- * `folio_render_preview` (P2.4b): the tool exists exactly while a Folio desktop
+ * `geon_render_preview` (P2.4b): the tool exists exactly while a Geon desktop
  * is polling the daemon, and every answer it gives is the daemon's own.
  *
  * The capability here is not a credential, so the gate is not a setting: it is
  * "is a window open right now". That is why the tool is registered disabled
  * rather than advertised-then-refused — an agent that cannot render should not
- * see the tool at all, and should be told to ask the user to open Folio.
+ * see the tool at all, and should be told to ask the user to open Geon.
  *
  * The socket servers below are real unix sockets (a named pipe on Windows)
  * speaking the same envelope the daemon does; nothing here reaches the network.
@@ -23,7 +23,7 @@ import type { SessionId } from '@lody/shared';
 import { renderHostFromRpcResult, resolveRenderHost } from './design-tools';
 import { buildLodyMcpServer, runWithMcpSessionContext } from './lody-mcp-server';
 
-const TOOL_NAME = 'folio_render_preview';
+const TOOL_NAME = 'geon_render_preview';
 const SESSION_ID = 'design-session-id' as SessionId;
 
 /**
@@ -132,7 +132,7 @@ const callRender = async (options: Parameters<typeof withServer>[0] = {}) => {
 const textOf = (result: CallToolResult): string =>
   result.content.map((part) => (part.type === 'text' ? part.text : '')).join('\n');
 
-describe('folio_render_preview gate', () => {
+describe('geon_render_preview gate', () => {
   it('publishes image-reading guidance without imposing a creative gate', async () => {
     await withServer({ renderHost: true }, async (client) => {
       const tool = (await client.listTools()).tools.find((entry) => entry.name === TOOL_NAME);
@@ -222,7 +222,7 @@ describe('resolveRenderHost', () => {
   });
 });
 
-describe('folio_render_preview call', () => {
+describe('geon_render_preview call', () => {
   it('renders through the daemon and returns the landed preview', async () => {
     await withAnsweringSocket(
       renderAnswer({
@@ -262,7 +262,7 @@ describe('folio_render_preview call', () => {
     await withAnsweringSocket(
       renderAnswer({
         ok: false,
-        error: 'the Folio desktop restarted before the preview was rendered',
+        error: 'the Geon desktop restarted before the preview was rendered',
       }),
       async (socketPath) => {
         const result = await callRender({ renderHost: true, localControlSocketPath: socketPath });

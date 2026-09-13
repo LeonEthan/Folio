@@ -113,7 +113,7 @@ import { readDesignArtifact } from '../src/design/artifact';
 let dataRoot: string;
 let handler: MessageHandler;
 beforeEach(async () => {
-  dataRoot = mkdtempSync(path.join(tmpdir(), 'folio-t21-rpc-'));
+  dataRoot = mkdtempSync(path.join(tmpdir(), 'geon-t21-rpc-'));
   vi.stubEnv('LODY_DATA_DIR', dataRoot);
   client = {};
   launchId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';

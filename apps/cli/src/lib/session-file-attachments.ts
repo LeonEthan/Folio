@@ -9,16 +9,16 @@ const execFileAsync = promisify(execFile);
 /**
  * Directory (relative to the session workspace root) where human→agent file
  * attachments are materialized. Excluded from version control and from
- * code-collab file watching. Kept under `.lody/` so a single ignore entry
- * covers all Lody-managed runtime state.
+ * code-collab file watching. Kept under `.geon/` so a single ignore entry
+ * covers all Geon-managed runtime state.
  */
-export const ATTACHMENTS_DIR_RELATIVE = path.join('.lody', 'attachments');
+export const ATTACHMENTS_DIR_RELATIVE = path.join('.geon', 'attachments');
 
 /** The path segment we ensure is present in `.git/info/exclude`. */
-export const ATTACHMENTS_EXCLUDE_ENTRY = '.lody/';
+export const ATTACHMENTS_EXCLUDE_ENTRY = '.geon/';
 
 const EXCLUDE_HEADER_COMMENT =
-  '# Added by Lody: runtime state and session file attachments (do not commit).';
+  '# Added by Geon: runtime state and session file attachments (do not commit).';
 
 /**
  * Sanitize an untrusted file name into a single safe path component:
@@ -60,7 +60,7 @@ export const sanitizeAttachmentFileName = (rawName: string): string => {
 
 /**
  * Build the workspace-relative destination path for a materialized attachment:
- * `.lody/attachments/<fileId first 8 chars>-<sanitized name>`. If that name is
+ * `.folio/attachments/<fileId first 8 chars>-<sanitized name>`. If that name is
  * already taken (collision), a numeric suffix is added before the extension.
  *
  * `existingNames` is the set of basenames already present in the attachments
@@ -141,7 +141,7 @@ export const resolveGitInfoExcludePath = async (workspaceRoot: string): Promise<
 };
 
 /**
- * Ensure `.lody/` is listed in the workspace's `.git/info/exclude`. Idempotent;
+ * Ensure `.geon/` is listed in the workspace's `.git/info/exclude`. Idempotent;
  * a no-op for non-git workspaces. Failures are swallowed by the caller (the
  * attachment still works; it just may show up as an untracked change).
  */

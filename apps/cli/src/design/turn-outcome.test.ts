@@ -200,7 +200,7 @@ function createHarness(
     metaThrows?: boolean;
   } = {}
 ): Harness {
-  const root = mkdtempSync(path.join(tmpdir(), 'folio-turn-outcome-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'geon-turn-outcome-'));
   roots.push(root);
   const sessionId = crypto.randomUUID();
   const turnId = 'turn-outcome-1';

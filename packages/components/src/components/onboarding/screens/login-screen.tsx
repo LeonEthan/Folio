@@ -89,7 +89,7 @@ export function LoginScreen({ onBack, onNext }: { onBack: () => void; onNext: ()
   return (
     <OnboardingShell
       stepKey="login"
-      title={t('onboarding.login.title', 'Sign in to Folio')}
+      title={t('onboarding.login.title', 'Sign in to Geon')}
       description={t(
         'onboarding.login.description',
         'Authentication finishes in your browser and returns here automatically.'

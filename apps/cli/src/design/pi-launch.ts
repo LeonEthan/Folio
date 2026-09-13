@@ -24,27 +24,27 @@ export async function preparePiDesignLaunch(
   const mcpExtension = path.join(directory, 'pi-mcp-extension.js');
   const endpoint = getLodyMcpHttpEndpoint();
   if (!existsSync(launcher) || !existsSync(extension) || !existsSync(mcpExtension))
-    throw Error('Folio Pi design extension is missing from the CLI bundle');
+    throw Error('Geon Pi design extension is missing from the CLI bundle');
   if (!endpoint && !process.argv[1]) throw Error('Missing bundled MCP entry');
-  const temporary = await mkdtemp(path.join(tmpdir(), 'folio-pi-launch-'));
+  const temporary = await mkdtemp(path.join(tmpdir(), 'geon-pi-launch-'));
   const command = path.join(temporary, process.platform === 'win32' ? 'pi.cmd' : 'pi');
   await writeFile(
     command,
     process.platform === 'win32'
-      ? '@echo off\r\n"%FOLIO_DESIGN_NODE%" "%FOLIO_DESIGN_LAUNCHER%" %*\r\n'
-      : '#!/bin/sh\nexec "$FOLIO_DESIGN_NODE" "$FOLIO_DESIGN_LAUNCHER" "$@"\n',
+      ? '@echo off\r\n"%GEON_DESIGN_NODE%" "%GEON_DESIGN_LAUNCHER%" %*\r\n'
+      : '#!/bin/sh\nexec "$GEON_DESIGN_NODE" "$GEON_DESIGN_LAUNCHER" "$@"\n',
     { mode: 0o700, flag: 'wx' }
   );
   return {
     env: {
       ...env,
       PI_ACP_PI_COMMAND: command,
-      FOLIO_DESIGN_PI_COMMAND: env.PI_ACP_PI_COMMAND || 'pi',
-      FOLIO_DESIGN_NODE: process.execPath,
-      FOLIO_DESIGN_LAUNCHER: launcher,
-      FOLIO_DESIGN_EXTENSION: extension,
-      FOLIO_PI_MCP_EXTENSION: mcpExtension,
-      FOLIO_PI_MCP_CONFIG: endpoint
+      GEON_DESIGN_PI_COMMAND: env.PI_ACP_PI_COMMAND || 'pi',
+      GEON_DESIGN_NODE: process.execPath,
+      GEON_DESIGN_LAUNCHER: launcher,
+      GEON_DESIGN_EXTENSION: extension,
+      GEON_PI_MCP_EXTENSION: mcpExtension,
+      GEON_PI_MCP_CONFIG: endpoint
         ? JSON.stringify({
             type: 'http',
             url: endpoint.url,
@@ -67,9 +67,9 @@ export async function preparePiDesignLaunch(
                 : {}),
             },
           }),
-      FOLIO_DESIGN_MACHINE_ID: identity.machineId,
-      FOLIO_DESIGN_WORKSPACE_ID: identity.workspaceId,
-      FOLIO_DESIGN_CONTROL_SOCKET: getLocalControlSocketPath(),
+      GEON_DESIGN_MACHINE_ID: identity.machineId,
+      GEON_DESIGN_WORKSPACE_ID: identity.workspaceId,
+      GEON_DESIGN_CONTROL_SOCKET: getLocalControlSocketPath(),
     },
     cleanup: () => rm(temporary, { recursive: true, force: true }),
   };

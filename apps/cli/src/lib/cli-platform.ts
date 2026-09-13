@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import fs from 'fs/promises';
+import os from 'os';
 import path from 'path';
 import { Effect } from 'effect';
 import {
@@ -90,8 +91,40 @@ export async function loadOrCreateLocalIdentity(
   return identity;
 }
 
-export const LOCAL_WORKSPACE_NAME = 'Folio';
+export const LOCAL_WORKSPACE_NAME = 'Geon';
 export const LOCAL_WORKSPACE_SLUG = 'local';
+
+/**
+ * One-time rename of the pre-Geon home data directory (`~/.folio` → `~/.geon`).
+ * Runs before any local store opens; a fresh install finds nothing to move.
+ * A LODY_DATA_DIR override that pins the default location (the desktop passes
+ * it to every CLI child) still migrates; a custom override location is left
+ * alone.
+ */
+export async function migrateLegacyLocalDataDir(
+  logger: Logger,
+  options: { homeDir?: string } = {}
+): Promise<void> {
+  const homeDir = options.homeDir ?? os.homedir();
+  const current = getLodyDataDir('local', homeDir);
+  const legacy = path.join(homeDir, '.folio');
+  if (current === legacy) return;
+  const override = process.env.LODY_DATA_DIR?.trim();
+  const defaultDir = path.join(homeDir, '.geon');
+  if (override && path.resolve(override) !== defaultDir) return;
+  try {
+    await fs.access(current);
+    return;
+  } catch {
+    // New dir absent: migration candidate.
+  }
+  try {
+    await fs.rename(legacy, current);
+    logger.info(`[platform] Migrated local data directory ${legacy} -> ${current}`);
+  } catch {
+    // No legacy directory: fresh install.
+  }
+}
 
 export type LocalWorkspaceListItem = {
   id: string;
@@ -124,9 +157,28 @@ export async function ensureImplicitLocalWorkspace(options: {
         )
       : undefined;
   if (existing) {
+    if (existing.name !== LOCAL_WORKSPACE_NAME) {
+      await Effect.runPromise(
+        catalog.cacheRemoteWorkspaces({
+          identity: { userId: identity.userId },
+          machine: { machineId, machineName },
+          workspaces: [
+            {
+              id: existing.workspaceId,
+              name: LOCAL_WORKSPACE_NAME,
+              slug: existing.slug,
+              role: existing.role,
+            },
+          ],
+        })
+      );
+      logger.info(
+        `[platform] Renamed implicit local workspace ${existing.workspaceId} ${existing.name} -> ${LOCAL_WORKSPACE_NAME}`
+      );
+    }
     return {
       id: existing.workspaceId,
-      name: existing.name,
+      name: LOCAL_WORKSPACE_NAME,
       slug: existing.slug,
       role: existing.role,
     };

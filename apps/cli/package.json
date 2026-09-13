@@ -1,12 +1,9 @@
 {
   "name": "lody",
   "version": "0.1.0",
-  "description": "Lody Agent CLI tool for managing remote command execution",
+  "description": "Geon embedded Agent runtime",
   "type": "module",
   "main": "dist/index.js",
-  "bin": {
-    "lody": "dist/index.js"
-  },
   "scripts": {
     "dev": "pnpm run prepare:acp-adapters && pnpm run prepare:design-authoring && node scripts/dev-build.mjs && node --enable-source-maps dist-dev/index.js",
     "dev:build": "node scripts/dev-build.mjs",
@@ -14,7 +11,7 @@
     "build:watch": "vite build --watch",
     "build:bundle": "vite build",
     "prepare:acp-adapters": "corepack pnpm --dir ../.. --filter acp-extension-core build && corepack pnpm --dir ../.. --filter acp-extension-claude build && corepack pnpm --dir ../.. --filter acp-extension-codex build && corepack pnpm --dir ../.. --filter acp-extension-grok build && corepack pnpm --dir ../.. --filter acp-extension-dsh build",
-    "prepare:design-authoring": "corepack pnpm --dir ../.. --filter @folio/design-authoring build",
+    "prepare:design-authoring": "corepack pnpm --dir ../.. --filter @geon/design-authoring build",
     "check:published-bundle-imports": "node scripts/check-published-bundle-imports.js",
     "copy:dsh-presets": "node scripts/copy-deepseek-presets.js",
     "copy:design-skills": "node scripts/copy-design-skills.js",
@@ -47,7 +44,7 @@
     "@anthropic-ai/claude-agent-sdk": "0.3.258",
     "@better-auth/api-key": "catalog:",
     "@convex-dev/better-auth": "catalog:",
-    "@folio/design-authoring": "workspace:*",
+    "@geon/design-authoring": "workspace:*",
     "@lody/cli-supervisor": "workspace:*",
     "@lody/cloud-api": "workspace:*",
     "@lody/loro-streams-rpc": "workspace:*",
@@ -125,5 +122,6 @@
     "smol-toml": "1.6.1",
     "tinypool": "^1.0.0",
     "typescript": "^5.9.3"
-  }
+  },
+  "private": true
 }

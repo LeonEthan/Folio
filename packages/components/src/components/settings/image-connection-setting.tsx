@@ -46,7 +46,7 @@ import { Field, Section } from './form-primitives';
  * disabled, half-typed, or unreachable connection must never block editing,
  * saving, or exporting an existing design: nothing here is on any other
  * surface's path, every call is wrapped, and the worst outcome of a broken
- * connection is that `folio_generate_image` and `folio_edit_image` are not offered to design
+ * connection is that `geon_generate_image` and `geon_edit_image` are not offered to design
  * sessions.
  *
  * The API key is write-only in this UI. It is never read back into a field —

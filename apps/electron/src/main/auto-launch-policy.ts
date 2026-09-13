@@ -1,4 +1,4 @@
-export const AUTO_LAUNCH_ARG = '--lody-auto-launch'
+export const AUTO_LAUNCH_ARG = '--geon-auto-launch'
 
 export type AutoLaunchPlatform = 'darwin' | 'win32' | 'linux'
 
@@ -46,7 +46,12 @@ export function resolveAutoLaunchInvocation(input: {
   if (input.platform === 'darwin') {
     return input.wasOpenedAtLogin
   }
-  return input.platform === 'win32' && input.argv.includes(AUTO_LAUNCH_ARG)
+  return (
+    input.platform === 'win32' &&
+    (input.argv.includes(AUTO_LAUNCH_ARG) ||
+      input.argv.includes('--folio-auto-launch') ||
+      input.argv.includes('--lody-auto-launch'))
+  )
 }
 
 export function shouldHideMainWindowOnAutoLaunch(input: {

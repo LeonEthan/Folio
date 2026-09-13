@@ -12,7 +12,7 @@
 
 import path from 'node:path';
 import { existsSync } from 'node:fs';
-import { collectAuthoring, intakeAuthoring } from './lib/folio-pptd.mjs';
+import { collectAuthoring, intakeAuthoring } from './lib/geon-pptd.mjs';
 
 const entry = process.argv[2];
 if (!entry || path.basename(entry) !== 'design.pptd' || !existsSync(entry)) {

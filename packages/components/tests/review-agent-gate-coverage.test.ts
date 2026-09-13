@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const read = (path: string) => readFileSync(join(__dirname, '..', 'src', path), 'utf8');
 
-describe('Folio developer workflow retirement', () => {
+describe('Geon developer workflow retirement', () => {
   it('keeps GitHub authentication and auto-review subscriptions out of settings', () => {
     expect(read('components/settings/settings-tabs.tsx')).not.toContain("id: 'github'");
     expect(read('components/settings/machine-agent-settings.tsx')).not.toContain(

@@ -11,7 +11,25 @@ import {
   sparklePackageJsonPathFromModuleEntry
 } from './app-updater-sparkle-policy.ts'
 
-void test('keeps Folio local updater off even when explicitly force-enabled', () => {
+void test('Geon supports updates only on its first-release platform', () => {
+  assert.equal(
+    shouldConstructUpdaterEnabled({
+      localPlatform: true,
+      forceEnable: false,
+      platform: 'darwin',
+      arch: 'arm64'
+    }),
+    true
+  )
+  assert.equal(
+    shouldConstructUpdaterEnabled({
+      localPlatform: true,
+      forceEnable: true,
+      platform: 'win32',
+      arch: 'x64'
+    }),
+    false
+  )
   assert.equal(shouldConstructUpdaterEnabled({ localPlatform: true, forceEnable: false }), false)
   assert.equal(shouldConstructUpdaterEnabled({ localPlatform: true, forceEnable: true }), false)
   assert.equal(shouldConstructUpdaterEnabled({ localPlatform: false, forceEnable: false }), true)
@@ -63,7 +81,7 @@ void test('uses Sparkle only for packaged macOS when the native bridge is availa
 void test('resolves the GitHub Releases appcast and ignores blank overrides', () => {
   assert.equal(
     resolveSparkleAppcastUrl({}),
-    'https://github.com/LodyAI/Lody/releases/latest/download/appcast.xml'
+    'https://github.com/LeonEthan/Geon/releases/latest/download/appcast.xml'
   )
   assert.equal(
     resolveSparkleAppcastUrl({ configuredAppcastUrl: '  https://example.com/appcast.xml  ' }),

@@ -227,7 +227,7 @@ importers:
       '@convex-dev/better-auth':
         specifier: 'catalog:'
         version: 0.11.2(@standard-schema/spec@1.1.0)(better-auth@1.5.5(f00b050de135afaee0bf8a26fdaa86ac))(convex@1.33.1(react@19.2.0))(hono@4.12.14)(react@19.2.0)(typescript@5.9.3)
-      '@folio/design-authoring':
+      '@geon/design-authoring':
         specifier: workspace:*
         version: link:../../packages/design-authoring
       '@lody/cli-supervisor':

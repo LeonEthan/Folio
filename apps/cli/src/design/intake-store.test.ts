@@ -1,6 +1,6 @@
 /**
  * Intake → store integration: a synthetic PPTD project must import through
- * @folio/design-authoring and pass the single-writer design store validation
+ * @geon/design-authoring and pass the single-writer design store validation
  * (schema + kernel replay + asset integrity). Synthetic fixtures only.
  */
 
@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { deflateSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
-import { intakeAuthoring } from '@folio/design-authoring';
+import { intakeAuthoring } from '@geon/design-authoring';
 import { designOperation } from './store';
 
 function syntheticPng(width: number, height: number, rgb: [number, number, number]): Uint8Array {
@@ -67,7 +67,7 @@ afterEach(() => {
 
 describe('PPTD intake → design store', () => {
   it('a synthetic PPTD project imports and saves through designOperation validation', async () => {
-    const dataRoot = mkdtempSync(path.join(tmpdir(), 'folio-intake-store-'));
+    const dataRoot = mkdtempSync(path.join(tmpdir(), 'geon-intake-store-'));
     roots.push(dataRoot);
 
     const snapshot = new Map<string, Uint8Array>([

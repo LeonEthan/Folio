@@ -15,7 +15,7 @@ export async function sendLocalProjectControl(
     ok: false,
     type: request.type,
     error: 'daemon_unavailable',
-    message: 'Local CLI daemon is unavailable. Run `npx lody start`.'
+    message: 'The Geon background service is unavailable. Restart Geon and try again.'
   } as const
 
   const { cliService } = getIpcServiceDeps()

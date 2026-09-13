@@ -13,14 +13,14 @@ describe('Codex design reminder config', () => {
       },
     };
     const saved = JSON.stringify(existing);
-    const result = codexDesignReminderConfig('folio-fixed-command', saved);
+    const result = codexDesignReminderConfig('geon-fixed-command', saved);
     expect(result.model_provider).toBe('custom');
     expect(result.features).toEqual({ hooks: false });
     expect(result.hooks.PreToolUse).toEqual(existing.hooks.PreToolUse);
     expect(result.hooks.UserPromptSubmit[0]).toEqual(existing.hooks.UserPromptSubmit[0]);
     expect(result.hooks.state['user-hook']).toEqual(existing.hooks.state['user-hook']);
     expect(result.hooks.UserPromptSubmit[1]).toEqual({
-      hooks: [{ async: false, command: 'folio-fixed-command', timeout: 5, type: 'command' }],
+      hooks: [{ async: false, command: 'geon-fixed-command', timeout: 5, type: 'command' }],
     });
     expect(Object.entries(result.hooks.state).filter(([key]) => key !== 'user-hook')).toEqual([
       [
@@ -38,7 +38,7 @@ describe('Codex design reminder config', () => {
     '{"hooks":{"UserPromptSubmit":{}}}',
     '{"hooks":{"state":[]}}',
   ])('rejects malformed existing config rather than discarding it: %s', (raw) => {
-    expect(() => codexDesignReminderConfig('folio-fixed-command', raw)).toThrow();
+    expect(() => codexDesignReminderConfig('geon-fixed-command', raw)).toThrow();
   });
 
   it('binds native trust to the exact supplied application command', () => {

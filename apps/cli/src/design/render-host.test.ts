@@ -154,7 +154,7 @@ describe('DesignRenderHost', () => {
     expect(host.handleHostPoll([])).toEqual([]);
     await expect(pending).resolves.toEqual({
       status: 'refused',
-      error: 'the Folio desktop restarted before the preview was rendered',
+      error: 'the Geon desktop restarted before the preview was rendered',
     });
   });
 

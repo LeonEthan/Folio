@@ -35,7 +35,7 @@ export async function verifySourcePreview(
   const bounds = { x: 0, y: 0, width: 1200, height: 800 }
   const saved = await designRequest({ operation: 'read', sessionId: artworkId })
   await canonical.webContents.executeJavaScript(
-    'document.querySelector(\'[data-c2a-kind="shape"]\').click(); window.folio.setReadonly(true)'
+    'document.querySelector(\'[data-c2a-kind="shape"]\').click(); window.geon.setReadonly(true)'
   )
   const editedSnapshot = await canonical.webContents.executeJavaScript(
     'window.bento.visual.snapshot()'
@@ -69,7 +69,7 @@ export async function verifySourcePreview(
     join(directory, 'source-preview.png'),
     (await preview.webContents.capturePage()).toPNG()
   )
-  assert.equal((await preview.webContents.executeJavaScript('window.folio.state()')).readonly, true)
+  assert.equal((await preview.webContents.executeJavaScript('window.geon.state()')).readonly, true)
   assert.equal(
     await preview.webContents.executeJavaScript(
       "fetch('/ws/' + new URLSearchParams(location.search).get('ws') + '/save', {method:'POST', body:'{}'}).then(r => r.status)"
@@ -82,7 +82,7 @@ export async function verifySourcePreview(
   hideSourcePreview(host)
   await attachDesign(owner, artworkId, bounds, artworkId, false)
   assert.equal(
-    (await canonical.webContents.executeJavaScript('window.folio.state()')).readonly,
+    (await canonical.webContents.executeJavaScript('window.geon.state()')).readonly,
     true
   )
   const before = await canonical.webContents.executeJavaScript('window.bento.visual.snapshot()')
@@ -162,7 +162,7 @@ export async function verifySourcePreview(
     owner.webContents.send = send
   }
   const image = await getPreview().webContents.executeJavaScript(
-    "(async () => { const image = document.querySelector('.bento-slide img'); if (image && (!image.complete || !image.naturalWidth)) throw Error('Preview image not loaded'); return window.folio.snapshot(); })()"
+    "(async () => { const image = document.querySelector('.bento-slide img'); if (image && (!image.complete || !image.naturalWidth)) throw Error('Preview image not loaded'); return window.geon.snapshot(); })()"
   )
   assert.ok(
     Object.values(image.assets).includes(
@@ -195,7 +195,7 @@ export async function verifySourcePreview(
   })()`)
   assert.deepEqual(JSON.parse(undoRedo.undone), saved.doc)
   assert.equal(undoRedo.redone, editedSnapshot)
-  await canonical.webContents.executeJavaScript('window.folio.save()')
+  await canonical.webContents.executeJavaScript('window.geon.save()')
   await writeFile(
     join(directory, 'source-preview-result.json'),
     JSON.stringify(
@@ -335,10 +335,10 @@ export async function verifySourceImport(owner: BrowserWindow, directory: string
   ) as WebContentsView
   assert.ok(editor)
   assert.deepEqual(
-    (await editor.webContents.executeJavaScript('window.folio.snapshot()')).doc,
+    (await editor.webContents.executeJavaScript('window.geon.snapshot()')).doc,
     imported.doc
   )
-  assert.equal((await editor.webContents.executeJavaScript('window.folio.state()')).readonly, false)
+  assert.equal((await editor.webContents.executeJavaScript('window.geon.state()')).readonly, false)
   destroyDesign(artworkId)
   setDesignCanvasStateQuery(async () => {
     await designCanvasAccess.update([])

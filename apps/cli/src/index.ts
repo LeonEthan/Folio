@@ -40,8 +40,8 @@ installCliHttpGlobalDispatcher({ logger: getLogger('http-transport') });
 const program = new Command();
 
 program
-  .name('lody')
-  .description('Lody Agent CLI tool for managing remote command execution')
+  .name('geon-runtime')
+  .description('Internal Agent runtime for the Geon desktop app')
   .version(version, '-v, --version', 'display version number')
   .enablePositionalOptions();
 

@@ -13,11 +13,11 @@ import {
 } from '../src/design/grok-reminder.ts';
 import { DESIGN_READ_BEFORE_EDIT_REMINDER } from '../src/design/read-before-edit-reminder.ts';
 
-const executable = process.env.FOLIO_PROBE_GROK;
-assert.ok(executable, 'Set FOLIO_PROBE_GROK to the managed Grok executable');
+const executable = process.env.GEON_PROBE_GROK;
+assert.ok(executable, 'Set GEON_PROBE_GROK to the managed Grok executable');
 assert.match(execFileSync(executable, ['--version'], { encoding: 'utf8' }), /^grok 1\.0\.13 /);
-const bundle = path.resolve(process.env.FOLIO_PROBE_BUNDLE_DIR || 'apps/cli/dist-dev');
-const root = await realpath(await mkdtemp(path.join(tmpdir(), 'folio-grok-reminder-probe-')));
+const bundle = path.resolve(process.env.GEON_PROBE_BUNDLE_DIR || 'apps/cli/dist-dev');
+const root = await realpath(await mkdtemp(path.join(tmpdir(), 'geon-grok-reminder-probe-')));
 const home = path.join(root, 'grok');
 const work = path.join(root, 'work');
 await mkdir(home);

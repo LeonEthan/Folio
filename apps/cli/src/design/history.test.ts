@@ -5,14 +5,14 @@ import { randomUUID } from 'node:crypto';
 import { afterEach, expect, test } from 'vitest';
 import { designHistoryOperation } from './history';
 import { designOperation } from './store';
-import { collectAuthoring, intakeAuthoring } from '@folio/design-authoring';
+import { collectAuthoring, intakeAuthoring } from '@geon/design-authoring';
 
 const roots: string[] = [];
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 async function fixture() {
-  const root = await mkdtemp(path.join(tmpdir(), 'folio-history-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'geon-history-'));
   roots.push(root);
   const sessionId = randomUUID();
   const initial = await designOperation(root, {
@@ -219,7 +219,7 @@ test('stale restore and another artwork version cannot overwrite current work', 
 
 test('history cannot be redirected into an unrelated repository', async () => {
   const { root, sessionId, initial } = await fixture();
-  const unrelated = await mkdtemp(path.join(tmpdir(), 'folio-unrelated-'));
+  const unrelated = await mkdtemp(path.join(tmpdir(), 'geon-unrelated-'));
   roots.push(unrelated);
   await symlink(unrelated, path.join(root, 'chats', sessionId, 'history.git'), 'dir');
   await expect(

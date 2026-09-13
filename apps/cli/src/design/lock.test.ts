@@ -17,7 +17,7 @@ afterEach(async () => {
 });
 
 async function scratch(): Promise<string> {
-  const root = await mkdtemp(path.join(tmpdir(), 'folio-design-lock-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'geon-design-lock-'));
   roots.push(root);
   return root;
 }

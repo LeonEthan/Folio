@@ -28,7 +28,7 @@ export function resolveDesignWorkspace(args: {
   const artifactWorkdir =
     workspaceRoot === inputWorkdir
       ? inputWorkdir
-      : path.join(workspaceRoot, '.folio', 'artworks', args.artworkId, args.sessionId);
+      : path.join(workspaceRoot, '.geon', 'artworks', args.artworkId, args.sessionId);
   return {
     workspaceRoot,
     inputWorkdir,

@@ -9,7 +9,7 @@ import {
 // The ceremony's interaction sound palette, built with @web-kits/audio.
 //
 // This is deliberately separate from `use-onboarding-audio.ts`, which is the
-// continuous SCORE (pad / arp / bass, driven by energy + layer mix). This file
+// bundled opening SCORE. This file
 // is the FOLEY: the sounds that respond to what the user does — every button,
 // every choice, every cut. Two different jobs, two different lifetimes.
 //
@@ -167,7 +167,14 @@ export const playReveal = safe(playRevealRaw);
  * means editing ten definitions and losing their balance against each other.
  * 0.7 is a deliberate 30% cut from the first pass, which sat too far forward.
  */
-const FOLEY_VOLUME = 0.7;
+const FOLEY_VOLUME = 0.35;
+let soundMuted = false;
+let soundReady = false;
+
+export function setOnboardingSoundMuted(muted: boolean): void {
+  soundMuted = muted;
+  if (soundReady) setMasterVolume(muted ? 0 : FOLEY_VOLUME);
+}
 
 /**
  * Web Audio will not start without a user gesture. The overlay opens without
@@ -176,7 +183,10 @@ const FOLEY_VOLUME = 0.7;
  */
 export function unlockSound(): void {
   void ensureReady()
-    .then(() => setMasterVolume(FOLEY_VOLUME))
+    .then(() => {
+      soundReady = true;
+      setMasterVolume(soundMuted ? 0 : FOLEY_VOLUME);
+    })
     .catch((error: unknown) => {
       console.error('[onboarding] Failed to unlock ceremony sounds:', error);
     });

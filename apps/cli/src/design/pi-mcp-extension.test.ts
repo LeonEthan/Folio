@@ -14,12 +14,7 @@ async function fixture(hold?: () => Promise<void>) {
   const tools = new Map<string, Tool>();
   const handlers = new Map<string, () => Promise<void>>();
   const state = {
-    names: [
-      'folio_generate_image',
-      'folio_edit_image',
-      'folio_render_preview',
-      'lody_session_create',
-    ],
+    names: ['geon_generate_image', 'geon_edit_image', 'geon_render_preview', 'lody_session_create'],
     active: ['read', 'write'],
     error: false,
   };
@@ -79,23 +74,23 @@ async function fixture(hold?: () => Promise<void>) {
   };
 }
 
-describe('Pi existing Folio MCP tools', () => {
-  it('exposes only the live Folio catalog and forwards actual arguments/results', async () => {
+describe('Pi existing Geon MCP tools', () => {
+  it('exposes only the live Geon catalog and forwards actual arguments/results', async () => {
     const f = await fixture();
     try {
       expect([...f.tools.keys()]).toEqual([
-        'folio_generate_image',
-        'folio_edit_image',
-        'folio_render_preview',
+        'geon_generate_image',
+        'geon_edit_image',
+        'geon_render_preview',
       ]);
-      const tool = f.tools.get('folio_edit_image');
+      const tool = f.tools.get('geon_edit_image');
       expect(tool?.parameters).toMatchObject({ required: ['prompt'] });
       expect(
         await tool?.execute('native-id', { prompt: 'synthetic', images: ['/owned/input.png'] })
       ).toEqual({ content: [{ type: 'text', text: 'actual asset result' }], details: {} });
       expect(f.calls).toEqual([
         {
-          name: 'folio_edit_image',
+          name: 'geon_edit_image',
           arguments: { prompt: 'synthetic', images: ['/owned/input.png'] },
         },
       ]);
@@ -107,7 +102,7 @@ describe('Pi existing Folio MCP tools', () => {
       await f.close();
     }
   });
-  it.each(['folio_generate_image', 'folio_edit_image'])(
+  it.each(['geon_generate_image', 'geon_edit_image'])(
     '%s waits beyond the SDK default for the existing image service',
     async (name) => {
       vi.useFakeTimers();
@@ -156,7 +151,7 @@ describe('Pi existing Folio MCP tools', () => {
     try {
       const controller = new AbortController();
       const result = f.tools
-        .get('folio_edit_image')
+        .get('geon_edit_image')
         ?.execute('cancel-image', { prompt: 'synthetic' }, controller.signal);
       const checked = expect(result).rejects.toThrow('user cancelled');
       await entered;
@@ -215,7 +210,7 @@ describe('Pi existing Folio MCP tools', () => {
     try {
       const controller = new AbortController();
       const result = client.callTool(
-        { name: 'folio_generate_image', arguments: { prompt: 'synthetic' } },
+        { name: 'geon_generate_image', arguments: { prompt: 'synthetic' } },
         undefined,
         { signal: controller.signal }
       );
@@ -293,17 +288,17 @@ describe('Pi existing Folio MCP tools', () => {
   it('removes unavailable tools before the next generation and retains explicit inactive choices', async () => {
     const f = await fixture();
     try {
-      f.state.active = f.state.active.filter((name) => name !== 'folio_edit_image');
-      f.state.names = ['folio_edit_image'];
+      f.state.active = f.state.active.filter((name) => name !== 'geon_edit_image');
+      f.state.names = ['geon_edit_image'];
       await f.handlers.get('before_agent_start')?.();
       expect(f.state.active).toEqual(['read', 'write']);
       await expect(
-        f.tools.get('folio_generate_image')?.execute('old', { prompt: 'no' })
+        f.tools.get('geon_generate_image')?.execute('old', { prompt: 'no' })
       ).rejects.toThrow('unavailable');
       expect(f.calls).toEqual([]);
       await f.handlers.get('session_shutdown')?.();
       await expect(
-        f.tools.get('folio_edit_image')?.execute('closed', { prompt: 'no' })
+        f.tools.get('geon_edit_image')?.execute('closed', { prompt: 'no' })
       ).rejects.toThrow('unavailable');
     } finally {
       await f.close();

@@ -7,7 +7,7 @@ import { openDesignSample } from './sample';
 
 describe('P0 sample workspace', () => {
   it('publishes once, reopens after lost response, and never overwrites changed files', async () => {
-    const root = await mkdtemp(path.join(tmpdir(), 'folio-sample-test-'));
+    const root = await mkdtemp(path.join(tmpdir(), 'geon-sample-test-'));
     try {
       const resources = path.join(root, 'resources');
       await mkdir(resources);
@@ -21,7 +21,7 @@ describe('P0 sample workspace', () => {
       );
       await Promise.all([openDesignSample(root, resources), openDesignSample(root, resources)]);
       expect(await openDesignSample(root, resources)).toEqual(JSON.parse(fixture));
-      const current = path.join(root, 'chats/folio-p0/design.json');
+      const current = path.join(root, 'chats/geon-p0/design.json');
       await writeFile(current, 'user content');
       await expect(openDesignSample(root, resources)).rejects.toThrow('Saved sample');
       expect(await readFile(current, 'utf8')).toBe('user content');

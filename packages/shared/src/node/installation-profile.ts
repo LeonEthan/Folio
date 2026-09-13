@@ -4,11 +4,11 @@ import { resolvePlatformKind, type PlatformKind } from '../platform-kind';
 
 export type InstallationProfile = {
   platform: PlatformKind;
-  namespace: 'lody' | 'folio';
-  dataDirectoryName: '.lody' | '.folio';
-  desktopProtocol: 'lody' | 'folio';
-  desktopProductName: 'Lody' | 'Folio';
-  desktopAppId: 'ai.lody.desktop' | 'dev.folio.app';
+  namespace: 'lody' | 'geon';
+  dataDirectoryName: '.lody' | '.geon';
+  desktopProtocol: 'lody' | 'geon';
+  desktopProductName: 'Lody' | 'Geon';
+  desktopAppId: 'ai.lody.desktop' | 'dev.geon.app';
   localCliHostPort: 17_788 | 17_790;
 };
 
@@ -24,11 +24,11 @@ const CLOUD_PROFILE: InstallationProfile = {
 
 const LOCAL_PROFILE: InstallationProfile = {
   platform: 'local',
-  namespace: 'folio',
-  dataDirectoryName: '.folio',
-  desktopProtocol: 'folio',
-  desktopProductName: 'Folio',
-  desktopAppId: 'dev.folio.app',
+  namespace: 'geon',
+  dataDirectoryName: '.geon',
+  desktopProtocol: 'geon',
+  desktopProductName: 'Geon',
+  desktopAppId: 'dev.geon.app',
   localCliHostPort: 17_790,
 };
 

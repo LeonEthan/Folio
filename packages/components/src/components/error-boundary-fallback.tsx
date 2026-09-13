@@ -23,7 +23,7 @@ import {
 } from '@/ui/alert-dialog';
 import { writeTextToClipboard } from '@/lib/clipboard';
 import { openExternalUrl } from '@/lib/native-browser';
-import { LODY_DISCORD_URL } from '@/lib/lody-urls';
+import { GEON_ISSUES_URL } from '@/lib/lody-urls';
 import { reloadApp, startHardReset } from '@/lib/clear-local-cache';
 import {
   buildErrorBoundaryReport,
@@ -98,7 +98,7 @@ export function ErrorBoundaryFallback({
   // Backend payloads quote server internals, so the headline stays generic while
   // the raw text remains one deliberate click (or one copy) away.
   const headline = isRawConvexServerError(error)
-    ? t('errorBoundary.serverErrorSummary', 'The Lody backend returned a server error.')
+    ? t('errorBoundary.serverErrorSummary', 'The Geon backend returned a server error.')
     : report.summary;
 
   useEffect(() => {
@@ -184,13 +184,13 @@ export function ErrorBoundaryFallback({
           />
           <div className="min-w-0">
             <h2 className={cn('font-semibold text-foreground', isPage ? 'text-base' : 'text-sm')}>
-              {t('errorBoundary.title', 'Lody hit an unexpected error')}
+              {t('errorBoundary.title', 'Geon hit an unexpected error')}
             </h2>
             <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
               {automaticRetriesStopped
                 ? t(
                     'errorBoundary.descriptionRetriesStopped',
-                    'This error came back every time, so Lody stopped retrying on its own — the screen now stays put until you choose a step below.'
+                    'This error came back every time, so Geon stopped retrying on its own — the screen now stays put until you choose a step below.'
                   )
                 : t(
                     'errorBoundary.description',
@@ -220,7 +220,7 @@ export function ErrorBoundaryFallback({
             }}
           >
             <RefreshCw className="size-3.5" aria-hidden="true" />
-            {t('errorBoundary.reload', 'Reload Lody')}
+            {t('errorBoundary.reload', 'Reload Geon')}
           </Button>
           <Button type="button" size="sm" variant="outline" onClick={handleCopy}>
             {copied ? (
@@ -250,21 +250,21 @@ export function ErrorBoundaryFallback({
           <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-xs leading-5 text-muted-foreground">
             <li>{t('errorBoundary.stepRetry', 'Try again — one-off glitches recover here.')}</li>
             <li>
-              {t('errorBoundary.stepReload', 'Reload Lody. Your synced work is not affected.')}
+              {t('errorBoundary.stepReload', 'Reload Geon. Your synced work is not affected.')}
             </li>
             <li>
               {t(
                 'errorBoundary.stepReport',
-                'Still broken? Copy the error details and send them to us on Discord — they tell us exactly what failed.'
+                'Still broken? Copy the error details and report the problem on Geon’s issue tracker.'
               )}{' '}
               <button
                 type="button"
                 className="font-medium text-primary underline-offset-4 hover:underline"
                 onClick={() => {
-                  void openExternalUrl(LODY_DISCORD_URL);
+                  void openExternalUrl(GEON_ISSUES_URL);
                 }}
               >
-                {t('errorBoundary.openDiscord', 'Open Discord')}
+                {t('errorBoundary.openDiscord', 'Report an issue')}
               </button>
             </li>
             <li>
@@ -352,7 +352,7 @@ export function HardResetConfirmDialog({
           <AlertDialogDescription>
             {t(
               'errorBoundary.hardResetConfirmDescription',
-              'This signs you out and deletes everything Lody stored on this device — local caches, offline copies, and preferences — then restarts the app. Work already synced to your account stays safe and downloads again after you sign in. Unsynced local drafts on this device are lost.'
+              'This signs you out and deletes everything Geon stored on this device — local caches, offline copies, and preferences — then restarts the app. Work already synced to your account stays safe and downloads again after you sign in. Unsynced local drafts on this device are lost.'
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>

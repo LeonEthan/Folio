@@ -49,7 +49,7 @@ import {
 } from '@/lib/posthog-analytics';
 import { identifyPostHogUser } from '@/lib/posthog-identity';
 import { cn } from '@/lib/utils';
-import lodyLogo from '@/assets/lody-icon.png';
+import lodyLogo from '@/assets/geon-icon.png';
 
 const LEGAL_LINK_FALLBACK_ORIGIN = 'https://lody.ai';
 const ELECTRON_OAUTH_DEBUG_PREFIX = '[electron-oauth-debug]';

@@ -1,4 +1,4 @@
-import { getFolioDocumentationUrl, FOLIO_ISSUES_URL } from '@/lib/lody-urls';
+import { getGeonDocumentationUrl, GEON_ISSUES_URL } from '@/lib/lody-urls';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { startSessionMentionDrag } from '@/lib/session-mention-drag';
 import { useSidebarKeyboardNav } from '@/hooks/use-sidebar-keyboard-nav';
@@ -2641,18 +2641,18 @@ export function LoroAppSidebar({ className }: LoroAppSidebarProps) {
     closeMobileDrawer();
     if (typeof window === 'undefined') return;
 
-    const targetUrl = getFolioDocumentationUrl(language);
+    const targetUrl = getGeonDocumentationUrl(language);
     void openExternalUrl(targetUrl);
   }, [closeMobileDrawer, language]);
 
   const handleJoinCommunityClicked = useCallback(() => {
     closeMobileDrawer();
-    void openExternalUrl(FOLIO_ISSUES_URL);
+    void openExternalUrl(GEON_ISSUES_URL);
   }, [closeMobileDrawer]);
 
   const handleFeedbackClicked = useCallback(() => {
     closeMobileDrawer();
-    void openExternalUrl(FOLIO_ISSUES_URL);
+    void openExternalUrl(GEON_ISSUES_URL);
   }, [closeMobileDrawer]);
 
   const setBugReportDialogOpen = useSetAtom(bugReportDialogOpenAtom);

@@ -11,7 +11,7 @@ export function codexDesignReminderConfig(command: string, rawConfig?: string) {
   const config = rawConfig ? record.parse(JSON.parse(rawConfig)) : {};
   if (Object.keys(config).some((key) => key.startsWith('hooks.')))
     throw Error(
-      'Folio Codex reminders require CODEX_CONFIG hook overrides under one nested hooks object; dotted hook overrides were preserved without launching'
+      'Geon Codex reminders require CODEX_CONFIG hook overrides under one nested hooks object; dotted hook overrides were preserved without launching'
     );
   const hooks = config.hooks === undefined ? {} : record.parse(config.hooks);
   const groups =
@@ -51,7 +51,7 @@ export function codexDesignReminderConfig(command: string, rawConfig?: string) {
 
 export function withCodexDesignReminder(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const hook = path.join(path.dirname(fileURLToPath(import.meta.url)), 'codex-design-reminder.js');
-  if (!existsSync(hook)) throw Error('Folio Codex design reminder is missing from the CLI bundle');
+  if (!existsSync(hook)) throw Error('Geon Codex design reminder is missing from the CLI bundle');
   const quote = (value: string) =>
     process.platform === 'win32'
       ? `"${value.replaceAll('"', '""')}"`
