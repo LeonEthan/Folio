@@ -21,6 +21,7 @@ if (process.argv.includes('--child')) {
       closed = true;
       process.send({ phase: 'kill', hostPid: process.pid, terminalPid: terminal.pid });
       terminal.kill();
+      if (process.argv.includes('--double-close')) terminal.kill();
     }
   });
   terminal.onExit((event) => {
@@ -28,9 +29,9 @@ if (process.argv.includes('--child')) {
     process.disconnect();
   });
 } else {
-  for (const [name, executable] of [['node', process.execPath], ['electron', electronRequire('electron')]]) {
+  for (const [name, executable] of [['node', process.execPath], ['electron', electronRequire('electron')], ['electron-double-close', electronRequire('electron')]]) {
     const events = [];
-    const child = fork(fileURLToPath(import.meta.url), ['--child'], {
+    const child = fork(fileURLToPath(import.meta.url), ['--child', ...(name.endsWith('double-close') ? ['--double-close'] : [])], {
       execPath: executable, execArgv: [], env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
       stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
     });

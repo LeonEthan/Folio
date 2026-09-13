@@ -73,7 +73,10 @@ When('用户打开已有 worktree Session 并启动 Terminal', async function (t
   );
   const completed = await this.workFixture!.waitForAcpEvent('prompt-end', promptEnds + 1);
   this.activeAcpEvent = completed.at(-1)!;
-  await this.workPage!.openTerminalAndRun("printf 'lody-terminal-ready\\n'", 'lody-terminal-ready');
+  const terminalCommand = process.platform === 'win32'
+    ? "Write-Output ('lody-terminal-' + 'ready')"
+    : "printf 'lody-terminal-%s\\n' ready";
+  await this.workPage!.openTerminalAndRun(terminalCommand, 'lody-terminal-ready');
   this.workResources = await this.workPage!.captureResources();
 });
 
