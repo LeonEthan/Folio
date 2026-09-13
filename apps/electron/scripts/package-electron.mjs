@@ -11,11 +11,11 @@ import {
 } from './sparkle-packaging.mjs'
 
 // electron-builder derives the packaged version from apps/electron/package.json,
-// which tracks the private cloud release line only when someone remembers to bump
-// it. Releases are tagged instead, so the tag is the source of truth: this script
-// generates a throwaway config that extends electron-builder.yml and overrides the
-// version via extraMetadata. Mirrors apps/electron-cloud/package-electron.mjs in
-// the private composition repository.
+// which carries Folio's independent release line (0.1.0 onward; the inherited
+// private cloud line is not continued). Releases are tagged, so the tag is the
+// source of truth: this script generates a throwaway config that extends
+// electron-builder.yml and overrides the version via extraMetadata. Mirrors
+// apps/electron-cloud/package-electron.mjs in the private composition repository.
 
 const electronDir = fileURLToPath(new URL('../', import.meta.url))
 const baseConfigPath = path.join(electronDir, 'electron-builder.yml')

@@ -3,7 +3,7 @@
   "productName": "Folio",
   "desktopName": "dev.folio.app.desktop",
   "private": true,
-  "version": "0.76.0",
+  "version": "0.1.0",
   "description": "Folio — local desktop canvas for Agent-assisted graphic design",
   "main": "./out/main/index.js",
   "author": "LodyAI",
