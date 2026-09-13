@@ -1,38 +1,55 @@
-// Native dependency diagnostic: run only on an isolated Windows CI host.
+// Exercise the CLI's real PTY lifecycle in both supported Windows Node hosts.
 import assert from 'node:assert/strict';
 import { fork } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 if (process.platform !== 'win32') process.exit(0);
-const cliRequire = createRequire(new URL('../../apps/cli/package.json', import.meta.url));
 const electronRequire = createRequire(new URL('../../apps/electron/package.json', import.meta.url));
+const suiteRequire = createRequire(new URL('../package.json', import.meta.url));
 if (process.argv.includes('--child')) {
-  const terminalEnv = { ...process.env };
-  delete terminalEnv.ELECTRON_RUN_AS_NODE;
-  const terminal = cliRequire('@lydell/node-pty').spawn('powershell.exe', [], {
-    cols: 80, rows: 24, cwd: process.cwd(), env: terminalEnv,
-  });
+  const { makeTerminalPtyService } = await import('../../apps/cli/src/lib/terminal-pty-service.ts');
+  const logger = {
+    info() {}, warn() {}, error() {}, success() {}, debug() {},
+    setLevel() {}, setDebug() {}, child: () => logger, close: async () => {},
+  };
+  const service = makeTerminalPtyService({ logger, resolveSessionWorkdir: async () => process.cwd() });
   let sent = false;
-  let closed = false;
-  terminal.onData((data) => {
-    if (!sent) { sent = true; terminal.write("Write-Output 'geon-pty-probe-ready'\r"); }
-    if (!closed && data.includes('geon-pty-probe-ready')) {
-      closed = true;
-      process.send({ phase: 'kill', hostPid: process.pid, terminalPid: terminal.pid });
-      terminal.kill();
-      if (process.argv.includes('--double-close')) terminal.kill();
+  let closing = false;
+  service.onEvent((event) => {
+    if (event.type === 'data') {
+      if (!sent) {
+        sent = true;
+        service.input(event.terminalId, "Write-Output ('geon-pty-probe-' + 'ready')\r");
+      }
+      if (!closing && event.data.includes('geon-pty-probe-ready')) {
+        closing = true;
+        process.send({ phase: 'close-session', hostPid: process.pid });
+        service.closeSession('native-probe');
+        service.closeSession('native-probe');
+        service.closeAll();
+      }
+    }
+    if (event.type === 'exit') {
+      assert.ok(closing, 'Terminal exited before the lifecycle cleanup');
+      assert.deepEqual(service.list('native-probe'), []);
+      process.send({ phase: 'terminal-exit', event });
+      process.disconnect();
     }
   });
-  terminal.onExit((event) => {
-    process.send({ phase: 'terminal-exit', event });
-    process.disconnect();
-  });
+  await service.open({ sessionId: 'native-probe', cols: 80, rows: 24 });
 } else {
-  for (const [name, executable] of [['node', process.execPath], ['electron', electronRequire('electron')], ['electron-double-close', electronRequire('electron')]]) {
+  for (const [name, executable] of [['node', process.execPath], ['electron', electronRequire('electron')]]) {
     const events = [];
-    const child = fork(fileURLToPath(import.meta.url), ['--child', ...(name.endsWith('double-close') ? ['--double-close'] : [])], {
-      execPath: executable, execArgv: [], env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+    const child = fork(fileURLToPath(import.meta.url), ['--child'], {
+      execPath: executable,
+      execArgv: ['--import', pathToFileURL(suiteRequire.resolve('tsx')).href],
+      env: {
+        ...process.env, ELECTRON_RUN_AS_NODE: '1',
+        TSX_TSCONFIG_PATH: fileURLToPath(new URL('../../apps/cli/tsconfig.json', import.meta.url)),
+        // Pin PowerShell so the output expression has one shell interpretation.
+        ComSpec: 'powershell.exe',
+      },
       stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
     });
     child.on('message', (event) => { events.push(event); console.log(JSON.stringify({ name, ...event })); });

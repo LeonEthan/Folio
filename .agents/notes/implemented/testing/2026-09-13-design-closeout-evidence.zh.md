@@ -19,7 +19,7 @@ GitHub #20、#21、#22、#23、#24、#25、#30 已增加当前标准和历史证
 证据来源为 [Daily 34744650650](https://github.com/LeonEthan/Geon/actions/runs/34744650650) 与 [报告器 34744902156](https://github.com/LeonEthan/Geon/actions/runs/34744902156)。
 
 - Windows 的 PPTD 示例逐字节校验失败可由 LF 转 CRLF 精确复现；两个上游来源目录固定文本 LF，二进制保持自动识别。
-- macOS 在 CLI Vite 构建阶段堆溢出，尚未执行界面测试；仅 Daily 构建提供 8 GiB 堆预算。
+- macOS 在 CLI Vite 构建阶段堆溢出，尚未执行界面测试；Daily、PR smoke 与 Scout 构建步骤提供 8 GiB 堆预算。
 - Linux Review 期望三个源码文件却得到 27 个，新增项来自运行时技能。仅合成仓库的本地 exclude 排除两个技能目录，保留原三个 diff 断言。
 - 退出后立即探测 PID 可能先于渲染进程结束。等待捕获的所属 PID 消失，有界超时仍失败并保留数据；不通过终止其他进程或删除证据使测试通过。
 - Daily 报告器使用标准 Actions token 发布已验证录像的 artifact 链接，不增加个人令牌或权限。PR 报告器的既有默认模式未改变。
@@ -88,3 +88,10 @@ PR 静态检查发现此前停止追踪 output 后，14 处历史证据本地链
 ### 统一桌面 E2E 构建内存
 
 PR smoke `34764848785` 在 CLI Vite 构建阶段复现约 2 GB 默认堆上限 OOM，尚未进入场景。Daily 已有的 8 GB 构建步骤配置同步至 PR smoke 和调用相同构建的 Scout；仅扩大构建进程堆上限，不改运行时、场景选择或断言。
+
+
+### Windows 归档终端清理
+
+第三轮 Daily `34764854085` 的 Windows 已通过 3 场景、24/25 步，剩余 Work 归档后报 `terminal_socket_closed`，同时数据同步断开、CLI 控制管道消失。单次原生 PTY 关闭在 Windows Node/Electron 下均通过；归档路径会先调用 closeSession，Session terminated 回调又调用一次。确定性测试复现原生退出通知到来前的重复 kill。服务增加关闭中标记，保留记录至原生退出；调用失败则保留记录并允许显式重试。Windows 原生双关闭探针 `34765909003` 已确认：单次关闭的 Node/Electron 宿主均返回 0；Electron 双关闭宿主以 `3221226356` 退出，未发出终端退出回执。修复后的真实服务原生探针与完整场景验证另行记录。
+
+同时将 Work 的终端输出标记拆分在 shell 表达式中，避免命令回显提前满足就绪断言；Windows 使用 PowerShell 表达式。更严格的信号在 `5e070c0` 安装包上完整 4 场景、25 步通过。PTY 运行时修复将另行生成带新源提交身份的包，旧包证据不会被覆盖。

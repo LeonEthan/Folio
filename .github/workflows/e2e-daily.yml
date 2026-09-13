@@ -54,7 +54,7 @@ jobs:
       - name: Check suite contract
         run: pnpm --filter @lody/e2e check
 
-      - name: Diagnose Windows native PTY close
+      - name: Verify Windows native PTY lifecycle
         if: matrix.os == 'windows-latest'
         run: node e2e/scripts/probe-windows-pty.mjs
 

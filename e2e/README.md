@@ -178,3 +178,5 @@ Copy failure retains the source evidence; success uses normal temporary cleanup.
 Use a short stable data path on macOS because local Unix sockets have path limits.
 Reopen the exported profile and check its sessions, saves and source previews before
 calling it ready for human use; copying files alone is insufficient.
+
+Windows Daily also runs `node e2e/scripts/probe-windows-pty.mjs` before building. It exercises the real CLI terminal service under Node and Electron, closes the same Session through overlapping cleanup paths, and requires the native terminal exit receipt and a successful host exit. This catches native double-close crashes independently of the desktop journey.

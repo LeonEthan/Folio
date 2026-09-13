@@ -78,6 +78,7 @@ type TerminalRecord = {
   cwd: string;
   title: string;
   pty: IPty;
+  closing: boolean;
   scrollback: string;
   titleParseBuffer: string;
 };
@@ -191,6 +192,7 @@ class TerminalPtyServiceImpl implements TerminalPtyServiceApi {
         cwd,
         title: basenameForTitle(cwd),
         pty: terminal,
+        closing: false,
         scrollback: '',
         titleParseBuffer: '',
       };
@@ -263,7 +265,14 @@ class TerminalPtyServiceImpl implements TerminalPtyServiceApi {
 
   close(terminalId: string): void {
     const record = this.requireRecord(terminalId);
-    record.pty.kill();
+    if (record.closing) return;
+    record.closing = true;
+    try {
+      record.pty.kill();
+    } catch (error) {
+      record.closing = false;
+      throw error;
+    }
   }
 
   closeSession(sessionId: string): void {
@@ -299,12 +308,11 @@ class TerminalPtyServiceImpl implements TerminalPtyServiceApi {
     const record = this.records.get(terminalId);
     if (!record) return;
     try {
-      record.pty.kill();
+      this.close(terminalId);
     } catch (error) {
       this.logger.debug(
         `[terminal] failed to close terminalId=${terminalId}: ${formatErrorMessage(error)}`
       );
-      this.removeRecord(terminalId);
     }
   }
 
