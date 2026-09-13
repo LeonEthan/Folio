@@ -1,7 +1,10 @@
 # Folio 平面设计工作台
 
-Status: draft
-Translation: pending
+Status: approved
+Approved: [2026-09-12 批准记录](../.agents/notes/implemented/architecture/2026-09-09-graphic-design-platform.zh.md#spec-批准记录2026-09-12)
+Translation: current
+
+[English](graphic-design-platform.md)
 
 ## 使用场景
 
@@ -126,23 +129,23 @@ Git 分支操作、PR/CI 等开发功能退出设计主流程，并停止其不�
 
 ## 待实施验证项
 
-- 真实生图与编辑属于必测项：使用用户提供的测试连接，通过内置 image MCP 验证 generate、带真实原图的 edit、Agent 实际读图及真实多图画稿的保存/重开/导出，人工判断视觉与编辑效果。模拟供应商只证明协议和受控边界，不能替代真实服务。具体 TODO 与非机密配置见[真实图像验收](../.agents/notes/proposed/testing/2026-09-12-live-image-mcp-acceptance.zh.md)；测试供应商及模型不成为产品默认值。
+- 真实生图与编辑属于必测项：使用用户提供的测试连接，通过内置 image MCP 验证 generate、带真实原图的 edit、Agent 实际读图及真实多图画稿的保存/重开/导出，人工判断视觉与编辑效果。模拟供应商只证明协议和受控边界，不能替代真实服务。具体 TODO 与非机密配置见[真实图像验收](../.agents/notes/implemented/testing/2026-09-12-live-image-mcp-acceptance.zh.md)；测试供应商及模型不成为产品默认值。
 
 - Git 历史已选独立本地仓库；验证运行依赖供给及普通目录支持。验证自动保存与存版本分离、完整素材留存、历史查看不改稿、恢复前保护、从旧版再编辑、跨实例只读/竞争、保存失败与重开恢复；确认没有独立历史快照库或双写。
 
 - 首个真实设计验收使用当前可用接入，不绑定特定 Agent。Pi 与其他 coding agent 一样属于用户侧选择，不是 Folio 的前置依赖；具体能力以各接入的验证结果为准。
-- P0 以 macOS 实机开发版及安装包通过为阶段门槛；Windows/Linux 同期执行构建与资源探针。首发操作系统及架构矩阵仍待实机证据确定。
+- P0 以 macOS 实机开发版及安装包通过为阶段门槛；Windows/Linux 同期执行构建与资源探针。2026-09-12 已确定首发支持范围为 macOS arm64——唯一完成实机安装包验收的平台；Windows/Linux 仅有跨宿主构建与资源完整性证据，不构成实机验收承诺，其验收与是否进入支持矩阵另行决定。
 - P3 的画稿投影、Agent 草稿、素材和提交基线沿用现有 workspace；具体布局与 hook 配置方式由技术切片确定。准备、实际 Agent cwd、预览/MCP 和最终采集必须指向同一作品入口，不覆盖用户全局配置或另建作品目录产品。
-- 既有参考图附件在 Folio 本地组合中的适配（P2-A3）已由 [T10](../.agents/notes/implemented/feature/2026-09-11-local-reference-attachments.zh.md)交付，复用 Lody 附件 UI、本地传输及存储，具备首条消息、设计参考快照和本地读回证据。各 Agent 的安装包图片输入仍按 [T28 矩阵](../.agents/notes/proposed/testing/2026-09-11-installed-five-agent-matrix.md)分别验收；不是新建附件系统，P3 当前画布图片操作不吸收此项。
+- 既有参考图附件在 Folio 本地组合中的适配（P2-A3）已由 [T10](../.agents/notes/implemented/feature/2026-09-11-local-reference-attachments.zh.md)交付，复用 Lody 附件 UI、本地传输及存储，具备首条消息、设计参考快照和本地读回证据。各 Agent 的安装包图片输入仍按 [T28 矩阵](../.agents/notes/implemented/testing/2026-09-11-installed-five-agent-matrix.md)分别验收；不是新建附件系统，P3 当前画布图片操作不吸收此项。
 - reference-pack 首期明确可选辅助脚本的非 PNG 栅格分析限制，不能扩大为附件或 Agent 不支持 JPEG 等图片。已有渲染端 PNG 转换可供可选改进复用，具体接入及外部路径覆盖仍需验证，不阻塞基础实施。不扩写编解码器，不在 CLI/skill 中 import Electron，不以脚本成功作为 Agent 读图前置条件。
 
 ## 依据与验证状态
 
-2026-09-12 已确认采用[Git 设计版本方案](../.agents/notes/proposed/feature/2026-09-12-design-version-history.zh.md)：Git 为唯一历史后端，取消自建文件快照库，保留当前稿自动保存、版本检查和草稿保护；支持“存为版本”、历史选择及从旧版继续编辑。仓库由 Folio 独立管理。另已确认[人工编辑自动更新 PPTD](../.agents/notes/proposed/simplification/2026-09-12-editor-owned-pptd-save.zh.md)，并保留[先读提醒 hook](../.agents/notes/proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md)，取代旧读取同步和逐次生成证明目标。上述为当时的设计确认，后续实施证据见下一段；Spec 保持 draft。下面旧 hook 缺口仍是历史验收事实，不是新合同必须补 runtime 的依据。
+2026-09-12 已确认采用[Git 设计版本方案](../.agents/notes/proposed/feature/2026-09-12-design-version-history.zh.md)：Git 为唯一历史后端，取消自建文件快照库，保留当前稿自动保存、版本检查和草稿保护；支持“存为版本”、历史选择及从旧版继续编辑。仓库由 Folio 独立管理。另已确认[人工编辑自动更新 PPTD](../.agents/notes/proposed/simplification/2026-09-12-editor-owned-pptd-save.zh.md)，并保留[先读提醒 hook](../.agents/notes/proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md)，取代旧读取同步和逐次生成证明目标。上述为当时的设计确认，后续实施证据见下一段；Spec 当时保持 draft。下面旧 hook 缺口仍是历史验收事实，不是新合同必须补 runtime 的依据。
 
-**修订后的实施证据（2026-09-12，主线 `e86a92a`，桌面组合 `c683038`）**：人工保存自动更新 PPTD、移除旧读取证明及 Git 版本功能已集成；Codex/Grok 公开提醒和 Pi MCP 扩展已集成，Kimi 最小公开插件已准备并隔离验证，实际用户登记待确认。真实 built OSS 版本界面与自动 PPTD 保存/恢复轮、Pi/Claude 原生成功/失败/取消六路径通过；六路径使用合成外部语言模型。后续正常安装包已补齐 Codex/Kimi/Grok 当前 PPTD 读写、公开提醒与采集的分项证据，以及 Grok 完整停止/显式恢复。567741b 的真实四素材海报、12 图长图通过保存、版本、导出及独立重开；原失败和未执行的断言保留；用户已确认该副本的素材、两份作品、编辑、保存/版本/重开和导出六项检查可接受，不代表通用性能阈值或全部旅程验收。实际 Kimi 用户登记尚未执行。准确来源及限制见[目标修订后的实施](../.agents/notes/proposed/architecture/2026-09-09-graphic-design-platform.zh.md#目标修订后的实施2026-09-12)。这不把提醒当读取证明，也不表示完整迁移已经验收。
+**修订后的实施证据（2026-09-12，主线 `e86a92a`，桌面组合 `c683038`）**：人工保存自动更新 PPTD、移除旧读取证明及 Git 版本功能已集成；Codex/Grok 公开提醒和 Pi MCP 扩展已集成，Kimi 最小公开插件已准备并隔离验证，实际用户登记已于 2026-09-12 经用户批准完成。真实 built OSS 版本界面与自动 PPTD 保存/恢复轮、Pi/Claude 原生成功/失败/取消六路径通过；六路径使用合成外部语言模型。后续正常安装包已补齐 Codex/Kimi/Grok 当前 PPTD 读写、公开提醒与采集的分项证据，以及 Grok 完整停止/显式恢复。567741b 的真实四素材海报、12 图长图通过保存、版本、导出及独立重开；原失败和未执行的断言保留；用户已确认该副本的素材、两份作品、编辑、保存/版本/重开和导出六项检查可接受，不代表通用性能阈值或全部旅程验收。实际 Kimi 用户登记已于同日完成，对新启动的 Kimi 进程生效。准确来源及限制见[目标修订后的实施](../.agents/notes/implemented/architecture/2026-09-09-graphic-design-platform.zh.md#目标修订后的实施2026-09-12)。这不把提醒当读取证明，也不表示完整迁移已经验收。
 
-**旧合同实施快照（2026-09-12，主线 `ec5ea41`，正常包产品源 `81d54b6`）**：用户随后授权的 29 项任务已有 23 项实现经单项验收并集成，详见[本地集成进度](../.agents/notes/proposed/architecture/2026-09-09-graphic-design-platform.zh.md#本地集成进度2026-09-11)。结果卡、专用缩略图和新候选工作流已退役，串行编辑、PPTD 往返、读写基线、直接导入和实时预览均已有实施证据。当前正常 macOS arm64 包已包含标题 Agent 退出、设计 worker 退出、标题模型默认值（源 `fdf72d0`）及 Grok 原生读图修复（源 `81d54b6`），构建、安装和包身份核验通过；标题修复的实际模型请求及独立存储读回证据属于 `5b21c6a` 包，前两轮 fixture 失败保留，具体范围见[安装包矩阵](../.agents/notes/proposed/testing/2026-09-11-installed-five-agent-matrix.md)。原 Pi cold/resubmit 与独立零 Bento worker 退出的通过证据仍属于 `dcc3c975` 正常包，未据此声称已在新包重跑。先前三场景、测量及人工验收资料仍对应 `b86a1c92`，旧失败保留；新回归不替代完整 T29 验收。Codex/Kimi/Grok 的设计 hook 仍缺所需运行时边界，Grok 的参考附件输入已有 `5b21c6a` 诊断证据，独立 PNG 读图及文字读取、写入权限已在 `81d54b6` 正常包通过，底层模型连接取消仍有失败，T22/T29 所需人工视觉与完整编辑体验也未通过确认。最终支持范围仍在验收；不据静态检查、模拟模型或打包成功宣称全部完成，Spec 继续为 draft。
+**旧合同实施快照（2026-09-12，主线 `ec5ea41`，正常包产品源 `81d54b6`）**：用户随后授权的 29 项任务已有 23 项实现经单项验收并集成，详见[本地集成进度](../.agents/notes/implemented/architecture/2026-09-09-graphic-design-platform.zh.md#本地集成进度2026-09-11)。结果卡、专用缩略图和新候选工作流已退役，串行编辑、PPTD 往返、读写基线、直接导入和实时预览均已有实施证据。当前正常 macOS arm64 包已包含标题 Agent 退出、设计 worker 退出、标题模型默认值（源 `fdf72d0`）及 Grok 原生读图修复（源 `81d54b6`），构建、安装和包身份核验通过；标题修复的实际模型请求及独立存储读回证据属于 `5b21c6a` 包，前两轮 fixture 失败保留，具体范围见[安装包矩阵](../.agents/notes/implemented/testing/2026-09-11-installed-five-agent-matrix.md)。原 Pi cold/resubmit 与独立零 Bento worker 退出的通过证据仍属于 `dcc3c975` 正常包，未据此声称已在新包重跑。先前三场景、测量及人工验收资料仍对应 `b86a1c92`，旧失败保留；新回归不替代完整 T29 验收。Codex/Kimi/Grok 的设计 hook 仍缺所需运行时边界，Grok 的参考附件输入已有 `5b21c6a` 诊断证据，独立 PNG 读图及文字读取、写入权限已在 `81d54b6` 正常包通过，底层模型连接取消仍有失败，T22/T29 所需人工视觉与完整编辑体验也未通过确认。最终支持范围仍在验收；不据静态检查、模拟模型或打包成功宣称全部完成，Spec 当时继续为 draft。
 
 以下记录保留各次设计修订和 P0–P2 实施当时的状态；其中“仅文档”“尚未实施”不代表上述后续任务的当前进度。
 
@@ -156,6 +159,6 @@ Git 分支操作、PR/CI 等开发功能退出设计主流程，并停止其不�
 
 2026-09-11 范围复核已确认删除通用结果卡及专用缩略图链路，保留 Agent 渲染与看图；P3.0 负责退役已实现部分，P4 删除侧栏缩略图目标，P3.6 收敛已迁入的强制 skill 流程。见[审查与处置记录](../.agents/notes/proposed/simplification/2026-09-11-design-result-feedback.zh.md)。本次只修改设计文档，以下 P2.5/P2.6 仍是历史事实，不是继续保留这些功能的要求。
 
-[改造清单及分阶段实施计划](../.agents/notes/proposed/architecture/2026-09-09-graphic-design-platform.zh.md)记录源码证据、模块归属、实施顺序和阶段门槛。[按需同步与 hook 决策](../.agents/notes/proposed/architecture/2026-09-10-design-sync-hooks.zh.md)记录 P3 新增职责、复用依据及尚未验证的接入覆盖。2026-09-10 修订仅修改文档；以下 P0–P2 记录是既有实施证据，不代表 P3–P6 已执行。2026-09-11 新增[文件实时预览决策](../.agents/notes/proposed/architecture/2026-09-11-pptd-live-preview.zh.md)，记录源码复用、快照限制和已确认的只读/直接导入边界；同样只调整设计。
+[改造清单及分阶段实施计划](../.agents/notes/implemented/architecture/2026-09-09-graphic-design-platform.zh.md)记录源码证据、模块归属、实施顺序和阶段门槛。[按需同步与 hook 决策](../.agents/notes/proposed/architecture/2026-09-10-design-sync-hooks.zh.md)记录 P3 新增职责、复用依据及尚未验证的接入覆盖。2026-09-10 修订仅修改文档；以下 P0–P2 记录是既有实施证据，不代表 P3–P6 已执行。2026-09-11 新增[文件实时预览决策](../.agents/notes/proposed/architecture/2026-09-11-pptd-live-preview.zh.md)，记录源码复用、快照限制和已确认的只读/直接导入边界；同样只调整设计。
 
 P0 已实现固定合成样稿加载、当前文件持久化和 PNG/JPEG 导出；macOS arm64 开发构建及打包后应用的探针已通过。macOS DMG 构建、校验及从镜像复制后的应用运行和 ad-hoc 签名验证已通过；macOS/Windows/Linux 资源构建与完整性 CI 均已通过，Developer ID 签名及公证不属于本次本地验收；P1 已实现手工编辑闭环；P2.1–P2.7（技能与物化、回合输入物化、回合后采集与提交、图像连接与 `folio_generate_image`、结果卡与候选采用/丢弃、结果卡缩略图引用、持久化加固）已分九个独立提交实现。`folio_render_preview` 渲染预览按升级条款拆为 P2.4b 并已实现：拿不到「守护进程发起」的通道，所以方向反过来——运行中的 Folio 桌面轮询守护进程领取渲染任务，能力因此**可观测**（没有桌面在轮询就没有该工具，缺席仍是诚实状态），且不改会话文档 schema、不新增持久事件种类、不给 Electron 新增入站面。**P2 总验收已执行**——在 macOS arm64 打包应用内用真实 Agent 跑通「参考图 + 需求 → 可编辑作品 → 手工修改 → 保存重开 → PNG/JPEG 导出」，取消／权限回应／无效产物三条负路径均通过；视觉效果仍为人工判断。同轮发现一处打包缺陷并已修复：暂存的技能树被针对源码树的排除规则剥掉了 `SKILL.md`、参考文档与示例，包内因此只有技能脚本而没有技能说明。提交回合后已打开的画布不重绘（P2-A2）已随后修复：渲染器在 history 出现新的 committed revision 时调用 `design.syncFromStore`，Electron 在打开的编辑器修订与 store 不一致时销毁并按同一 host／bounds 重建，与采用候选共用 `reloadDesignCanvas`。当时 Folio OSS 首页参考图附件失败（P2-A3）仍待适配，且不并入 P3；此观察不能推广为 Lody 没有附件或本地存储。验收通过不表示整份草案获批，也不覆盖 Windows/Linux 实机验证、Developer ID 签名与公证。详见实施记录与[验收证据](../output/folio-p2/acceptance.json)。

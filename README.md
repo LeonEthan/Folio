@@ -70,9 +70,11 @@ replacement, commit, export and reopen have scoped evidence, with failed harness
 rounds retained separately. Nine
 controlled canvas-operation samples were recorded on an Apple M4 Mac with 16 GiB
 RAM; these do not establish a maximum canvas size, universal performance budget,
-application cold-start time or physical input latency. Windows and Linux resource
-packaging is not native execution evidence. See the
-[acceptance evidence](.agents/notes/proposed/testing/2026-09-11-complete-design-acceptance.md)
+application cold-start time or physical input latency. The supported first-release platform is macOS arm64, the only platform with
+installed native acceptance. Windows and Linux resource packaging is
+build-and-integrity evidence only, not native execution evidence; their
+real-machine acceptance is a separate future decision. See the
+[acceptance evidence](.agents/notes/implemented/testing/2026-09-11-complete-design-acceptance.md)
 and [review procedure](e2e/DESIGN-ACCEPTANCE.md).
 
 The current approach combines automatic PPTD saves with public read-first reminders,
@@ -84,7 +86,7 @@ opt-in plugin setup; Folio does not install it silently or claim it works before
 registration. Pi now exposes
 Folio image and rendering tools through its public extension, with installed
 generation/editing and native image-reading evidence. The
-[installed Agent matrix](.agents/notes/proposed/testing/2026-09-11-installed-five-agent-matrix.md)
+[installed Agent matrix](.agents/notes/implemented/testing/2026-09-11-installed-five-agent-matrix.md)
 records each combination and its limits; Settings availability alone does not
 establish a complete design workflow.
 

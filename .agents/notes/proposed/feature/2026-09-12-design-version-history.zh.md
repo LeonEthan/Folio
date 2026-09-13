@@ -9,7 +9,7 @@ Translation: pending
 
 ## 范围与依据
 
-2026-09-12 用户确认 Git 历史方案并授权更新文档，取代 [Spec](../../../../specs/graphic-design-platform.zh.md) 和[迁移计划](../architecture/2026-09-09-graphic-design-platform.zh.md)原先不提供历史版本的范围。本记录不恢复候选审批、分支合并、素材库、逐轮结果卡或历史缩略图；用户随后确认由 Folio 管理独立本地 Git 仓库，与用户项目 Git 隔离。
+2026-09-12 用户确认 Git 历史方案并授权更新文档，取代 [Spec](../../../../specs/graphic-design-platform.zh.md) 和[迁移计划](../../implemented/architecture/2026-09-09-graphic-design-platform.zh.md)原先不提供历史版本的范围。本记录不恢复候选审批、分支合并、素材库、逐轮结果卡或历史缩略图；用户随后确认由 Folio 管理独立本地 Git 仓库，与用户项目 Git 隔离。
 
 本方案与[人工编辑自动更新 PPTD](../simplification/2026-09-12-editor-owned-pptd-save.zh.md)衔接，后续已确认自动回写并保留公开的先读文件提醒 hook。自动保存维护工作状态；人工存为版本提供可返回的明确节点；编辑器撤销/重做继续沿用 Bento，不用版本列表代替每次操作的撤销。Git 历史不可编辑，不与当前稿争夺权威身份。
 

@@ -16,7 +16,7 @@ package; this does not attribute every earlier cleanup failure to this worker.
 
 ## Evidence and decision
 
-The [installed matrix](../../proposed/testing/2026-09-11-installed-five-agent-matrix.md)
+The [installed matrix](../../implemented/testing/2026-09-11-installed-five-agent-matrix.md)
 owns the diagnostic history and exact evidence. Its second instrumented creation
 site observed a late `read` with PPID 1 inside the cleanup window. Recursive mkdir
 completion proves that call returned, not that it created a new directory. That

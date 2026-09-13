@@ -9,7 +9,7 @@ Translation: pending
 
 ## 取代的约定
 
-本决定取代[主计划](2026-09-09-graphic-design-platform.zh.md)、[读取同步](2026-09-10-design-sync-hooks.zh.md)及[实时预览](2026-09-11-pptd-live-preview.zh.md)中允许人机同时修改同一稿的目标。产品合同更新到 [Spec](../../../../specs/graphic-design-platform.zh.md)，P1/P2 历史实施记录保留。它补充[范围复核](../simplification/2026-09-11-design-result-feedback.zh.md)，不恢复结果卡或专用缩略图。
+本决定取代[主计划](../../implemented/architecture/2026-09-09-graphic-design-platform.zh.md)、[读取同步](2026-09-10-design-sync-hooks.zh.md)及[实时预览](2026-09-11-pptd-live-preview.zh.md)中允许人机同时修改同一稿的目标。产品合同更新到 [Spec](../../../../specs/graphic-design-platform.zh.md)，P1/P2 历史实施记录保留。它补充[范围复核](../simplification/2026-09-11-design-result-feedback.zh.md)，不恢复结果卡或专用缩略图。
 
 ## 最小执行边界
 

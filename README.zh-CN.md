@@ -90,10 +90,10 @@ Folio 问题和建议请提交到 [Folio Issues](https://github.com/LeonEthan/Fo
 
 ## 发布状态与支持限制
 
-发布验收尚未完成。macOS 安装包已用原生 Claude 与合成 provider 完成海报、信息图、长图的脚本化旅程，人工视觉和编辑体验判断仍待完成。Apple M4、16 GiB 内存机器已记录 9 组受控画布操作样本；这不确立最大画布尺寸、通用性能预算、应用冷启动时间或物理输入延迟。Windows/Linux 资源打包不代表原生执行通过。详见[实际证据](.agents/notes/proposed/testing/2026-09-11-complete-design-acceptance.md)和[验收说明](e2e/DESIGN-ACCEPTANCE.md)。
+约定的本地设计验收范围已完成；公开发布是独立事项。macOS 安装包已用原生 Claude 与合成 provider 完成海报、信息图、长图的脚本化旅程。用户已在后续真实素材评审副本上通过海报与 12 图作品的六项视觉/编辑检查，并随后总体通过全部三个人工 Agent 旅程。此前报告的画布中间过程预览缺失已修复并在安装包内观察到。补充的真实图像 MCP 输出、选中替换、提交、导出与重开已有各自范围证据，失败的测试轮次单独保留。Apple M4、16 GiB 内存机器已记录 9 组受控画布操作样本；这不确立最大画布尺寸、通用性能预算、应用冷启动时间或物理输入延迟。首发支持平台为 macOS arm64——唯一完成安装态原生验收的平台；Windows/Linux 资源打包仅为构建与完整性证据，不代表原生执行通过，其实机验收另行决定。详见[实际证据](.agents/notes/implemented/testing/2026-09-11-complete-design-acceptance.md)和[验收说明](e2e/DESIGN-ACCEPTANCE.md)。
 
-当前采用自动保存 PPTD 与公开先读提醒，不修改 Agent runtime，也不要求逐次模型生成的读取证明。Pi、Claude、Codex、Grok 的提醒已有各自原生证据；Kimi 公开插件已准备，用户目录安装仍待进行。Pi 已通过公开 extension 接通 Folio 图像与渲染工具，并有安装包内生成、编辑和原生读图证据。[安装态 Agent 矩阵](.agents/notes/proposed/testing/2026-09-11-installed-five-agent-matrix.md)分别记录各组合及限制；出现在设置中不代表完整设计流程已获支持。
+当前采用自动保存 PPTD 与公开先读提醒，不修改 Agent runtime，也不要求逐次模型生成的读取证明。Pi、Claude、Codex、Grok 的提醒已有各自原生证据；Kimi 公开插件也在正常安装包内以隔离 Kimi home 显式登记通过。在用户自己的目录启用该提醒需要其自愿登记插件；Folio 不静默安装，也不在登记前声称可用。Pi 已通过公开 extension 接通 Folio 图像与渲染工具，并有安装包内生成、编辑和原生读图证据。[安装态 Agent 矩阵](.agents/notes/implemented/testing/2026-09-11-installed-five-agent-matrix.md)分别记录各组合及限制；出现在设置中不代表完整设计流程已获支持。
 
-真实图像生成与编辑已得到四张测试素材，原回合失败回执与后续成功读图分别保留。完整真实图片设计及人工质量验收仍未完成。Grok 完整关闭式停止已修复，安装态验证待完成；Pi 图像请求取消已通过安装包内合成 provider 回归，但不代表付费供应商侧的取消行为已验证。图像生成需要自备受支持连接及明确模型，没有产品默认模型或自动付费重试。
+真实图像生成与编辑已记录七份测试输出，原失败回执与成功调用及免费文件恢复分别保留。真实图像 TODO 已在记录范围内完成；评审作品、原编辑目标和三场景旅程均有明确人工通过结论。Grok 完整关闭式停止与显式会话恢复已通过安装态原始证据审查，测试脚本后续的辅助请求失败单独保留。Pi 图像请求取消已通过安装包内合成 provider 回归，但不代表付费供应商侧的取消行为已验证。图像生成需要自备受支持连接及明确模型，没有产品默认模型或自动付费重试。
 
 本地临时签名包验证不代表公开发布、Developer ID 签名、公证或自动更新通道已就绪。

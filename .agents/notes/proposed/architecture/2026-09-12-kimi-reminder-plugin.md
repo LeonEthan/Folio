@@ -9,8 +9,9 @@ A small native Kimi plugin is prepared for review without installing it into use
 configuration. Its public UserPromptSubmit hook emits Folio's shared read reminder
 only when the existing design-launch marker is present. The exact managed runtime
 received the reminder on initial and continuation prompts in an isolated synthetic
-home, while ordinary sessions received none. The artifact is ready for a user
-installation decision; this is not a completed real-user Kimi integration.
+home, while ordinary sessions received none. The artifact was registered in the actual user's Kimi home on
+2026-09-12 under explicit user approval; real-session reminder delivery remains
+observable behavior on new Kimi processes, not a new acceptance claim.
 
 ## Scope and artifact
 
@@ -122,7 +123,8 @@ registration, process-restart resume, cancellation or Windows execution. The lat
 normal-package `folio-t28-kimi-current-IovONp` round establishes scoped plugin
 loading, current-file reads, permissioned writes and formal commit; see the
 [later installed evidence](2026-09-12-kimi-read-reminder-loading.md#later-installed-evidence-and-user-setup).
-Personal registration remains unexecuted and requires separate opt-in. It is not
+Personal registration was executed on 2026-09-12 under explicit user
+approval; see the registration section below. It is not
 a technical acceptance requirement to modify the user's global configuration;
 the supported combination requires an explicitly registered plugin. The native
 TUI installation command itself has not been verified.
@@ -136,3 +138,26 @@ platform/public boundaries. The preparation script additionally passed a direct
 passed. Child checks stripped inherited `ANTHROPIC_*` and `CLAUDE_CODE_USE_*`
 values without reading or printing them. This note remains proposed and
 translation pending; preparation is not installation approval.
+
+## Real-user registration (2026-09-12)
+
+The user approved and executed the personal registration described above.
+`KIMI_CODE_HOME` was unset, so the active home was the default
+`~/.kimi-code`. The review artifact at
+`/tmp/folio-kimi-reminder-review-20260912/` still matched both recorded
+SHA256 values before copying, and the manifest's pinned Node path existed.
+The two files were copied to
+`~/.kimi-code/plugins/managed/folio-read-before-edit/` and verified
+byte-identical after copying (same two SHA256 values). No `plugins/`
+directory existed beforehand, so registration created a new
+`~/.kimi-code/plugins/installed.json` (mode 0600) containing exactly the
+documented version-1 record with `installedAt`/`updatedAt`
+`2026-09-12T15:19:53Z` and `originalSource` pointing at the review
+directory; no existing records or other configuration were displaced.
+
+The hook loads when a Kimi process loads its plugins: already-running
+processes pick it up only after their ordinary restart/reload, and the
+reminder still fires only in Folio design launches carrying
+`FOLIO_DESIGN_LAUNCH_ID`. This registration used the documented record
+shape directly; the native TUI install command remains unverified. It is a
+configuration fact, not new evidence of reminder delivery in real sessions.

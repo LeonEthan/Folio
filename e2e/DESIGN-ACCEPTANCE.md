@@ -2,7 +2,7 @@
 
 This is the T29 review procedure, not human approval. The current installed
 rounds, all nine measurements and original eight-criterion audit are recorded in
-the [owning evidence note](../.agents/notes/proposed/testing/2026-09-11-complete-design-acceptance.md).
+the [owning evidence note](../.agents/notes/implemented/testing/2026-09-11-complete-design-acceptance.md).
 Three synthetic native journeys and copied-profile mechanical verification pass.
 The user accepted six visual/editing checks on the later 567741b real-asset poster
 and 12-image review copy; that does not complete the original three-scene human
@@ -121,7 +121,7 @@ Choose acceptable ranges from the target machine's measured distributions and
 reviewer's interaction tolerance. No universal latency or memory limit has been
 established. The original nine-sample round remains measured evidence. The later real-image
 workload has six accepted human checks and a bounded recommendation in the
-[owning note](../.agents/notes/proposed/testing/2026-09-11-complete-design-acceptance.md#workload-recommendation-after-human-review);
+[owning note](../.agents/notes/implemented/testing/2026-09-11-complete-design-acceptance.md#workload-recommendation-after-human-review);
 the user subsequently accepted all three human scene journeys. Preserve the
 unfilled per-step fields rather than inventing observations or requiring the same
 overall verdict again. The newly reported intermediate-preview bug has separate
@@ -134,7 +134,7 @@ usability require human review even when every timing fits the selected range.
 ## Release decision
 
 The release remains pending until this round is complete. The
-[installed matrix](../.agents/notes/proposed/testing/2026-09-11-installed-five-agent-matrix.md)
+[installed matrix](../.agents/notes/implemented/testing/2026-09-11-installed-five-agent-matrix.md)
 owns runtime identities and scoped evidence for all five Agents, including
 switching and recovery. The current contract uses automatic PPTD saves and public
 read-before-edit reminders. Pi's installed public extension now exposes Folio's

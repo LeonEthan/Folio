@@ -9,7 +9,7 @@ Translation: pending
 
 ## 历史与当前事实
 
-- 首版方案提交 `b660bb34f3bf3d0cd28d7a86dddbc1c7c271ee46` 的功能表已提出“作品卡”，P2.5 明确要求“真实结果卡和画布定位”；原 Spec 要求候选采用/拒绝与失败状态可见，未指定卡片形态。可用 `git show b660bb3:.agents/notes/proposed/architecture/2026-09-09-graphic-design-platform.zh.md` 核对；当前入口为[阶段计划](../architecture/2026-09-09-graphic-design-platform.zh.md)。这证明它来自方案，不证明形态本身必要，也不能把方向性认可等同于每个控件得到单独认可。
+- 首版方案提交 `b660bb34f3bf3d0cd28d7a86dddbc1c7c271ee46` 的功能表已提出“作品卡”，P2.5 明确要求“真实结果卡和画布定位”；原 Spec 要求候选采用/拒绝与失败状态可见，未指定卡片形态。可用 `git show b660bb3:.agents/notes/proposed/architecture/2026-09-09-graphic-design-platform.zh.md` 核对；当前入口为[阶段计划](../../implemented/architecture/2026-09-09-graphic-design-platform.zh.md)。这证明它来自方案，不证明形态本身必要，也不能把方向性认可等同于每个控件得到单独认可。
 - `a09858632afaf2a9d1929af95f593308951d8ae9` 实现 P2.5 卡片和候选动作，`baed947b6f16263cb6a2f8f37e10f1695d146fe0` 增加 P2.6 缩略图引用。它不是 P2 开发时无计划增加的功能。
 - [消息渲染入口](../../../../packages/components/src/components/ai-gui/view.tsx)在设计会话的用户回合下挂载卡片；[状态解析](https://github.com/LeonEthan/Folio/blob/a09858632afaf2a9d1929af95f593308951d8ae9/packages/components/src/lib/design-turn-result.ts)读取持久 `designOutcome`，另提供 live 显示，状态包括 committed、candidate、invalid、no_artifact、failed、cancelled。
 - [卡片组件](https://github.com/LeonEthan/Folio/blob/a09858632afaf2a9d1929af95f593308951d8ae9/packages/components/src/components/sessions/design-turn-result-card.tsx)读取候选状态和缩略图，提供定位、采用、丢弃和用户触发修复。修复经 [session-chat-interface](../../../../packages/components/src/components/sessions/session-chat-interface.tsx) 的普通 `dispatchPrompt`，不是自动修复或私有 Agent 通道；卡片不执行语义质量评审。
@@ -152,7 +152,7 @@ P3.0 删除范围必须贯穿卡片挂载、专用修复动作、采集缩略图
 
 删除可独立于实时预览交付：代价是 P3.7 上线前不再由普通回合自动提示磁盘旧工程，文件仍保留。验收区分当前画布与旧工程相同/不同、旧工程原已无效、新产物变更、异常版本冲突、已有回执恢复；取消/失败仍按真实执行结果处理，不一律改成 no_artifact。本轮未运行这些测试。
 
-[下一步实施切片](../architecture/2026-09-09-graphic-design-platform.zh.md#下一步实施切片2026-09-11)沿用 Pn.x 编号，先安排旧文件删减、串行编辑、格式往返和强制流程收敛，并可推进图像 MCP 补齐及独立附件适配；不再把候选面板作为卡片退役前置。hook 先完成一个可验证的实际接入，再扩到其余接入；文件预览只依赖共享来源边界，不等待五种 hook。P4 复用 UI，P5 按消费者清理，P6 汇总实际交付证据；没有创建执行任务或修改运行时代码。
+[下一步实施切片](../../implemented/architecture/2026-09-09-graphic-design-platform.zh.md#下一步实施切片2026-09-11)沿用 Pn.x 编号，先安排旧文件删减、串行编辑、格式往返和强制流程收敛，并可推进图像 MCP 补齐及独立附件适配；不再把候选面板作为卡片退役前置。hook 先完成一个可验证的实际接入，再扩到其余接入；文件预览只依赖共享来源边界，不等待五种 hook。P4 复用 UI，P5 按消费者清理，P6 汇总实际交付证据；没有创建执行任务或修改运行时代码。
 
 ## 整体审查后的当前边界
 

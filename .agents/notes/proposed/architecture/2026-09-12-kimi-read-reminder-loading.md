@@ -19,7 +19,7 @@ recorded below; no runtime patch or static-skill substitute is introduced.
 The normal-package `folio-t28-kimi-current-IovONp` round subsequently passed
 actual in-session Agent selection, native public-plugin reminder delivery,
 current-PPTD reads, permissioned draft writes and collector commit. The
-[installed matrix](../testing/2026-09-11-installed-five-agent-matrix.md)
+[installed matrix](../../implemented/testing/2026-09-11-installed-five-agent-matrix.md)
 records its package/runtime identity and limits. The plugin was registered only
 in the isolated test home; user credentials and global configuration were not
 copied or changed.

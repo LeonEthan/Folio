@@ -47,7 +47,7 @@ The unchanged cold-cache Pi/resubmission probe still failed directory cleanup wi
 `ENOTEMPTY` after its functional assertions passed. This establishes the Codex
 round's clean exit, not the historical survivor's identity or a repair of the Pi
 failure. Exact package identities, scripts and retained evidence are in the
-[installed matrix](../../proposed/testing/2026-09-11-installed-five-agent-matrix.md).
+[installed matrix](../../implemented/testing/2026-09-11-installed-five-agent-matrix.md).
 
 The referenced legacy `context/message-flow.md` is absent from this checkout. Current
 agent README and lib/ACP shutdown rules were used; no replacement historical content

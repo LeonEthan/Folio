@@ -75,5 +75,5 @@ quality or user account authentication.
 This does not resolve Grok's known HTTP cancellation behavior or missing design
 generation boundary. Direct attachment input already worked with normal
 negotiation; this repair concerns reading a separate PNG through a native tool.
-See the [installed matrix](../../proposed/testing/2026-09-11-installed-five-agent-matrix.md)
+See the [installed matrix](../../implemented/testing/2026-09-11-installed-five-agent-matrix.md)
 and [hook boundary](../../proposed/architecture/2026-09-11-grok-design-hook-runtime-gap.md).

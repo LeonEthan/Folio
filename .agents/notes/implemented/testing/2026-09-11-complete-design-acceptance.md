@@ -1,6 +1,6 @@
 # Complete design acceptance and release evidence
 
-Status: proposed
+Status: implemented
 Translation: pending
 
 ## Abstract

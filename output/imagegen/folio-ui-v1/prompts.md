@@ -1,6 +1,6 @@
 # Folio UI v1 — final prompt set
 
-**2026-09-11 范围更新：通用逐轮结果卡、逐轮历史缩略图及新增侧栏作品缩略图链路退出迁移范围。图中的对应卡片/缩略图仅保留为历史示意；候选创建/采用/拒绝流程也已删除；Agent 渲染预览/实际读图及旧内容可达保留，按 [当前方案](../../../.agents/notes/proposed/architecture/2026-09-09-graphic-design-platform.zh.md) 的 P3.0/P4 实施。**
+**2026-09-11 范围更新：通用逐轮结果卡、逐轮历史缩略图及新增侧栏作品缩略图链路退出迁移范围。图中的对应卡片/缩略图仅保留为历史示意；候选创建/采用/拒绝流程也已删除；Agent 渲染预览/实际读图及旧内容可达保留，按 [当前方案](../../../.agents/notes/implemented/architecture/2026-09-09-graphic-design-platform.zh.md) 的 P3.0/P4 实施。**
 
 Scope update (2026-09-10): The standalone asset library and cross-design asset reuse have been removed from the entire migration plan. The 03-assets page and asset-library sidebar entries in all prompts below are obsolete. These are historical generation inputs, not implementation requirements.
 

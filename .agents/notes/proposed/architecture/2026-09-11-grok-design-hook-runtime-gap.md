@@ -163,7 +163,7 @@ translation remains pending.
 
 This supplement concerns cancellation under the revised reminder scope, not the
 retired generation-proof acceptance above. The [installed matrix's original
-cancel transport failure](../testing/2026-09-11-installed-five-agent-matrix.md#grok-cancellation-direct-native-transport-boundary)
+cancel transport failure](../../implemented/testing/2026-09-11-installed-five-agent-matrix.md#grok-cancellation-direct-native-transport-boundary)
 remains failed: native `cancelled` and idle did not close the held model HTTP
 response before fixture cleanup. The public reminder does not fix that failure.
 

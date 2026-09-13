@@ -20,7 +20,7 @@ The retained installed Grok continuation log under
 initial `probe` model at lines 473/512, Folio's `grok-4.5` override at 523–524 and
 its remote 401 at 712/717/728. This establishes an explicit model override after
 correct startup, not lost environment inheritance or evidence of real credentials
-or payment. The [installed matrix](../../proposed/testing/2026-09-11-installed-five-agent-matrix.md)
+or payment. The [installed matrix](../../implemented/testing/2026-09-11-installed-five-agent-matrix.md)
 owns broader native acceptance evidence.
 
 The existing shared default function serves both settings initialization and title
@@ -49,5 +49,5 @@ helper requests retained `probe` and reached the configured local provider; a
 separate UI-only SQLite readback verified that newly saved provider title options
 omit the model key. The first two combined scripts failed on fixture/catalog
 inspection issues and remain failed records; the independent storage case passed
-without an Agent turn. The [installed matrix](../../proposed/testing/2026-09-11-installed-five-agent-matrix.md#normal-title-model-default-regression)
+without an Agent turn. The [installed matrix](../../implemented/testing/2026-09-11-installed-five-agent-matrix.md#normal-title-model-default-regression)
 records the exact package, request identities, cleanup and verification limits.

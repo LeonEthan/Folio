@@ -9,7 +9,7 @@ Translation: pending
 
 ## 结论与既有方案的关系
 
-方向合理，可纳入 P3；本次只修订设计文档和阶段计划，没有运行时代码实现。它补充[同步与 hook 决策](2026-09-10-design-sync-hooks.zh.md)，不替代读取基线、草稿隔离或 canonical 原子提交。产品合同由 [Spec](../../../../specs/graphic-design-platform.zh.md)表达，工作拆分见[阶段计划](2026-09-09-graphic-design-platform.zh.md)。
+方向合理，可纳入 P3；本次只修订设计文档和阶段计划，没有运行时代码实现。它补充[同步与 hook 决策](2026-09-10-design-sync-hooks.zh.md)，不替代读取基线、草稿隔离或 canonical 原子提交。产品合同由 [Spec](../../../../specs/graphic-design-platform.zh.md)表达，工作拆分见[阶段计划](../../implemented/architecture/2026-09-09-graphic-design-platform.zh.md)。
 
 | 边界 | 唯一职责 |
 | --- | --- |
