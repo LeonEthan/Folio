@@ -1,4 +1,4 @@
-# Folio 平面设计工作台
+# Geon 平面设计工作台
 
 Status: approved
 Approved: [2026-09-12 批准记录](../.agents/notes/implemented/architecture/2026-09-09-graphic-design-platform.zh.md#spec-批准记录2026-09-12)
@@ -20,11 +20,11 @@ Translation: current
 
 - 本地单人桌面工作台；每个作品一个静态画布，项目可组织多个作品。
 - 覆盖海报、封面、社交配图、横幅、信息图、长图和通用电商图片；场景知识放在技能和参考材料中。
-- 保留 Folio 现有桌面架构、UI 设计语言、Agent 接入及本地会话能力；迁入 Bento 的文档、编辑和渲染能力。
+- 保留 Geon 现有桌面架构、UI 设计语言、Agent 接入及本地会话能力；迁入 Bento 的文档、编辑和渲染能力。
 - 整个迁移计划不包含独立素材库、跨作品素材浏览或复用，也不将其顺延至后续迁移阶段。保留当前画布的图片插入、替换、选中图片重新生成及文档所需素材持久化；回合参考图附件是独立需求。
 - 首期交付 PNG/JPEG。多画板、演示文稿、视频、模板市场、云协作及其他专业格式不属于本草案。
 - 不提供通用逐轮结果卡、逐轮历史缩略图、侧栏作品缩略图或独立候选创建/采用/拒绝流程。普通回合状态、文件诊断和当前画稿入口复用会话能力；冲突保留草稿供 Agent 继续处理。Agent 的渲染预览与图片读取能力保留。
-- 附件选择、粘贴/拖放、通用图片/文件预览、搜索/置顶/重命名、命令/快捷键和会话恢复复用 Lody 现有能力，不重复建设。参考图接入只补 Folio 本地组合与设计输入的差异；通用附件呈现不属于待删除的设计结果卡链路。
+- 附件选择、粘贴/拖放、通用图片/文件预览、搜索/置顶/重命名、命令/快捷键和会话恢复复用 Lody 现有能力，不重复建设。参考图接入只补 Geon 本地组合与设计输入的差异；通用附件呈现不属于待删除的设计结果卡链路。
 
 首页保留原有顶部与对话输入结构，尺寸选择与项目目录处于同一行最右侧，右边缘对齐输入框，不单独堆叠一行，不提供独立的新建设计按钮或名称输入。尺寸默认 Auto，不要求预填宽高；切换自定义后才显示并校验宽高。输入内容并按回车时复用现有 Session 提交及自动命名流程，同时初始化空白单画布作品；Auto 在 P1 使用默认初始画布，后续可在编辑器调整，尚不承诺 Agent 根据内容自动计算尺寸。创建失败保留输入草稿。提交沿用现有 Agent 配置要求，作品打开后的手工编辑不依赖 Agent 执行。
 
@@ -57,7 +57,7 @@ P1 支持宽高各 1–4096 像素的单画布，手工调整画布尺寸时保�
 
 2026-09-12 修订目标为自动回写与读取提醒；既有读取同步/generation 证明实现需后续收敛，不能把旧验收当作本修订已实现。
 
-- Bento 保持独立编辑/渲染，提供通用变更、snapshot/flush 和只读能力。人工编辑经 Folio 设计保存适配自动更新 BentoDoc、同版本 PPTD 与素材；不感知 Agent 生命周期，也不等待 Agent 主动同步。
+- Bento 保持独立编辑/渲染，提供通用变更、snapshot/flush 和只读能力。人工编辑经 Geon 设计保存适配自动更新 BentoDoc、同版本 PPTD 与素材；不感知 Agent 生命周期，也不等待 Agent 主动同步。
 - 复用已有自动保存、反向转换和投影发布。连续编辑可合并，flush 等待最后一次已完成编辑的文件结果；启动 Agent 只等待已有保存队列与文件就绪，不首次触发设计同步。创建、导入和恢复等当前稿入口保持同一就绪条件。
 - 当前稿已保存但 PPTD 发布失败时保留人工结果，明确反馈并阻止使用陈旧投影开始创作；重开按当前稿版本核对/重建。逐个 rename 或防抖不代表跨文件原子性，旧任务不能覆盖新版本。
 - BentoDoc → PPTD → BentoDoc 保持首期开放的编辑语义、稳定元素 ID、层级、样式和素材引用。对分组、多层阴影等做最小格式及双向适配；不静默丢弃或栅格化。不要求还原 YAML 排版、注释或别名。
@@ -69,11 +69,11 @@ P1 支持宽高各 1–4096 像素的单画布，手工调整画布尺寸时保�
 
 设计建议和可选辅助工具放在 skill；应用只做结构校验和可观测结果分类，不强制工具调用次数、视觉自检轮数或固定完成流程。工具缺席不推断 Agent 自带能力缺席。正式导出继续采用固定 Bento 渲染路径。
 
-Agent 可调用已有 `folio_render_preview` 渲染 PPTD，再用实际可用的图片读取工具查看并继续修改。应用不要求通过结果卡取图，也不把渲染成功等同模型已读取图片；预览工具缺席时，仅说明该能力不可用，不替 Agent 判定全部视觉 review 失败。可选 finalize 脚本不构成必经写入顺序或文件发布事务。
+Agent 可调用已有 `geon_render_preview` 渲染 PPTD，再用实际可用的图片读取工具查看并继续修改。应用不要求通过结果卡取图，也不把渲染成功等同模型已读取图片；预览工具缺席时，仅说明该能力不可用，不替 Agent 判定全部视觉 review 失败。可选 finalize 脚本不构成必经写入顺序或文件发布事务。
 
 ## 内置图像工具
 
-Folio 内置 MCP 提供 generate 和 edit 两种能力，复用既有图像连接、会话权限、传输与 workspace 素材保存。用户配置 URL、Key 和必填 model；产品不设默认模型、不猜测模型别名或静默切换。已有用户配置保留其明确保存的值，空 model 不再自动补默认值。
+Geon 内置 MCP 提供 generate 和 edit 两种能力，复用既有图像连接、会话权限、传输与 workspace 素材保存。用户配置 URL、Key 和必填 model；产品不设默认模型、不猜测模型别名或静默切换。已有用户配置保留其明确保存的值，空 model 不再自动补默认值。
 
 - Generate 接收提示词生成图片；edit 接收提示词与一张或多张原图/参考图，可选 mask。默认接入协议为 OpenAI Images-compatible 的 generations/edits，不要求每个供应商都支持全部参数；实际不支持时如实报错，不自动改走文生图或重复付费调用。
 - 工具结果保存为工作区素材，由 Agent 决定如何用于 PPTD；调用生图/编辑接口本身不提交或替换当前画稿。复用 Bento 已有裁切、替换及普通选区动作，不增加独立图像作业系统或 mask 编辑器。
@@ -115,7 +115,7 @@ Folio 内置 MCP 提供 generate 和 edit 两种能力，复用既有图像连�
 - 恢复通过既有结构/素材校验和原子版本检查，只影响所属作品；更新 Agent 可读 PPTD，保留未完成 Agent 草稿、旧回执、会话记录和无关项目文件。恢复不伪造 Agent 读取或新产物事实，也不自动调用模型。画布加载失败与磁盘保存成功分别报告。
 - Agent 执行及产物处理期间仅可查看历史，不能恢复或存为版本。历史视图与当前稿的身份、选区和保存状态分离；所有实例复用同一作品的变更检查。普通离开视图保留编辑状态，明确恢复历史后需按新当前稿重建撤销/选区状态。
 - Git 只承担历史内容存储；当前稿自动保存、PPTD 转换、完整文件发布、冲突检查和草稿保护继续由设计服务负责。Git commit 不能证明多文件输入来自同一编辑版本。必要临时文件不作为第二个持久历史库。
-- Git 历史为本地能力，不要求 GitHub、远程仓库、push 或额外 Agent 回合。由 Folio 管理独立本地 Git 仓库，支持普通非 Git 项目创作并隔离用户分支、暂存区和无关内容，不能直接用项目级 reset/checkout 实现画稿恢复。
+- Git 历史为本地能力，不要求 GitHub、远程仓库、push 或额外 Agent 回合。由 Geon 管理独立本地 Git 仓库，支持普通非 Git 项目创作并隔离用户分支、暂存区和无关内容，不能直接用项目级 reset/checkout 实现画稿恢复。
 
 ## 工作台与边界
 
@@ -133,15 +133,15 @@ Git 分支操作、PR/CI 等开发功能退出设计主流程，并停止其不�
 
 - Git 历史已选独立本地仓库；验证运行依赖供给及普通目录支持。验证自动保存与存版本分离、完整素材留存、历史查看不改稿、恢复前保护、从旧版再编辑、跨实例只读/竞争、保存失败与重开恢复；确认没有独立历史快照库或双写。
 
-- 首个真实设计验收使用当前可用接入，不绑定特定 Agent。Pi 与其他 coding agent 一样属于用户侧选择，不是 Folio 的前置依赖；具体能力以各接入的验证结果为准。
+- 首个真实设计验收使用当前可用接入，不绑定特定 Agent。Pi 与其他 coding agent 一样属于用户侧选择，不是 Geon 的前置依赖；具体能力以各接入的验证结果为准。
 - P0 以 macOS 实机开发版及安装包通过为阶段门槛；Windows/Linux 同期执行构建与资源探针。2026-09-12 已确定首发支持范围为 macOS arm64——唯一完成实机安装包验收的平台；Windows/Linux 仅有跨宿主构建与资源完整性证据，不构成实机验收承诺，其验收与是否进入支持矩阵另行决定。
 - P3 的画稿投影、Agent 草稿、素材和提交基线沿用现有 workspace；具体布局与 hook 配置方式由技术切片确定。准备、实际 Agent cwd、预览/MCP 和最终采集必须指向同一作品入口，不覆盖用户全局配置或另建作品目录产品。
-- 既有参考图附件在 Folio 本地组合中的适配（P2-A3）已由 [T10](../.agents/notes/implemented/feature/2026-09-11-local-reference-attachments.zh.md)交付，复用 Lody 附件 UI、本地传输及存储，具备首条消息、设计参考快照和本地读回证据。各 Agent 的安装包图片输入仍按 [T28 矩阵](../.agents/notes/implemented/testing/2026-09-11-installed-five-agent-matrix.md)分别验收；不是新建附件系统，P3 当前画布图片操作不吸收此项。
+- 既有参考图附件在 Geon 本地组合中的适配（P2-A3）已由 [T10](../.agents/notes/implemented/feature/2026-09-11-local-reference-attachments.zh.md)交付，复用 Lody 附件 UI、本地传输及存储，具备首条消息、设计参考快照和本地读回证据。各 Agent 的安装包图片输入仍按 [T28 矩阵](../.agents/notes/implemented/testing/2026-09-11-installed-five-agent-matrix.md)分别验收；不是新建附件系统，P3 当前画布图片操作不吸收此项。
 - reference-pack 首期明确可选辅助脚本的非 PNG 栅格分析限制，不能扩大为附件或 Agent 不支持 JPEG 等图片。已有渲染端 PNG 转换可供可选改进复用，具体接入及外部路径覆盖仍需验证，不阻塞基础实施。不扩写编解码器，不在 CLI/skill 中 import Electron，不以脚本成功作为 Agent 读图前置条件。
 
 ## 依据与验证状态
 
-2026-09-12 已确认采用[Git 设计版本方案](../.agents/notes/proposed/feature/2026-09-12-design-version-history.zh.md)：Git 为唯一历史后端，取消自建文件快照库，保留当前稿自动保存、版本检查和草稿保护；支持“存为版本”、历史选择及从旧版继续编辑。仓库由 Folio 独立管理。另已确认[人工编辑自动更新 PPTD](../.agents/notes/proposed/simplification/2026-09-12-editor-owned-pptd-save.zh.md)，并保留[先读提醒 hook](../.agents/notes/proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md)，取代旧读取同步和逐次生成证明目标。上述为当时的设计确认，后续实施证据见下一段；Spec 当时保持 draft。下面旧 hook 缺口仍是历史验收事实，不是新合同必须补 runtime 的依据。
+2026-09-12 已确认采用[Git 设计版本方案](../.agents/notes/proposed/feature/2026-09-12-design-version-history.zh.md)：Git 为唯一历史后端，取消自建文件快照库，保留当前稿自动保存、版本检查和草稿保护；支持“存为版本”、历史选择及从旧版继续编辑。仓库由 Geon 独立管理。另已确认[人工编辑自动更新 PPTD](../.agents/notes/proposed/simplification/2026-09-12-editor-owned-pptd-save.zh.md)，并保留[先读提醒 hook](../.agents/notes/proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md)，取代旧读取同步和逐次生成证明目标。上述为当时的设计确认，后续实施证据见下一段；Spec 当时保持 draft。下面旧 hook 缺口仍是历史验收事实，不是新合同必须补 runtime 的依据。
 
 **修订后的实施证据（2026-09-12，主线 `e86a92a`，桌面组合 `c683038`）**：人工保存自动更新 PPTD、移除旧读取证明及 Git 版本功能已集成；Codex/Grok 公开提醒和 Pi MCP 扩展已集成，Kimi 最小公开插件已准备并隔离验证，实际用户登记已于 2026-09-12 经用户批准完成。真实 built OSS 版本界面与自动 PPTD 保存/恢复轮、Pi/Claude 原生成功/失败/取消六路径通过；六路径使用合成外部语言模型。后续正常安装包已补齐 Codex/Kimi/Grok 当前 PPTD 读写、公开提醒与采集的分项证据，以及 Grok 完整停止/显式恢复。567741b 的真实四素材海报、12 图长图通过保存、版本、导出及独立重开；原失败和未执行的断言保留；用户已确认该副本的素材、两份作品、编辑、保存/版本/重开和导出六项检查可接受，不代表通用性能阈值或全部旅程验收。实际 Kimi 用户登记已于同日完成，对新启动的 Kimi 进程生效。准确来源及限制见[目标修订后的实施](../.agents/notes/implemented/architecture/2026-09-09-graphic-design-platform.zh.md#目标修订后的实施2026-09-12)。这不把提醒当读取证明，也不表示完整迁移已经验收。
 
@@ -153,7 +153,7 @@ Git 分支操作、PR/CI 等开发功能退出设计主流程，并停止其不�
 
 2026-09-11 用户确认删除“未修改旧 PPTD 自动提升为候选”，已纳入编辑与回合合同及 P3.0d。保留原文件、已有候选、历史回执和真正新产物的版本保护；运行时尚未修改，完整 Spec 仍为 draft。来源与实施边界见[删除裁定](../.agents/notes/proposed/simplification/2026-09-11-design-result-feedback.zh.md#旧文件自动候选删除裁定与实施拆分)。
 
-2026-09-11 [Lody 常规能力复核](../.agents/notes/proposed/simplification/2026-09-11-design-result-feedback.zh.md#lody-常规能力复核2026-09-11)更正附件判断：Lody 已有本地附件基础设施，Folio 需补组合适配；撤回“必须新建本地存储”的推断。源码和安装版菜单观察不代表完整上传/发送已验证，本轮未运行产品测试或 Agent。
+2026-09-11 [Lody 常规能力复核](../.agents/notes/proposed/simplification/2026-09-11-design-result-feedback.zh.md#lody-常规能力复核2026-09-11)更正附件判断：Lody 已有本地附件基础设施，Geon 需补组合适配；撤回“必须新建本地存储”的推断。源码和安装版菜单观察不代表完整上传/发送已验证，本轮未运行产品测试或 Agent。
 
 2026-09-11 已确认[串行编辑方案](../.agents/notes/proposed/architecture/2026-09-11-design-serial-editing.zh.md)：Agent 执行及产物处理期间所属画布禁止人工修改，取代此前允许人机并行编辑的目标。本次仅修改文档，P3 尚未实现该边界；历史 P1/P2 证据不覆盖它。
 
@@ -161,4 +161,4 @@ Git 分支操作、PR/CI 等开发功能退出设计主流程，并停止其不�
 
 [改造清单及分阶段实施计划](../.agents/notes/implemented/architecture/2026-09-09-graphic-design-platform.zh.md)记录源码证据、模块归属、实施顺序和阶段门槛。[按需同步与 hook 决策](../.agents/notes/proposed/architecture/2026-09-10-design-sync-hooks.zh.md)记录 P3 新增职责、复用依据及尚未验证的接入覆盖。2026-09-10 修订仅修改文档；以下 P0–P2 记录是既有实施证据，不代表 P3–P6 已执行。2026-09-11 新增[文件实时预览决策](../.agents/notes/proposed/architecture/2026-09-11-pptd-live-preview.zh.md)，记录源码复用、快照限制和已确认的只读/直接导入边界；同样只调整设计。
 
-P0 已实现固定合成样稿加载、当前文件持久化和 PNG/JPEG 导出；macOS arm64 开发构建及打包后应用的探针已通过。macOS DMG 构建、校验及从镜像复制后的应用运行和 ad-hoc 签名验证已通过；macOS/Windows/Linux 资源构建与完整性 CI 均已通过，Developer ID 签名及公证不属于本次本地验收；P1 已实现手工编辑闭环；P2.1–P2.7（技能与物化、回合输入物化、回合后采集与提交、图像连接与 `folio_generate_image`、结果卡与候选采用/丢弃、结果卡缩略图引用、持久化加固）已分九个独立提交实现。`folio_render_preview` 渲染预览按升级条款拆为 P2.4b 并已实现：拿不到「守护进程发起」的通道，所以方向反过来——运行中的 Folio 桌面轮询守护进程领取渲染任务，能力因此**可观测**（没有桌面在轮询就没有该工具，缺席仍是诚实状态），且不改会话文档 schema、不新增持久事件种类、不给 Electron 新增入站面。**P2 总验收已执行**——在 macOS arm64 打包应用内用真实 Agent 跑通「参考图 + 需求 → 可编辑作品 → 手工修改 → 保存重开 → PNG/JPEG 导出」，取消／权限回应／无效产物三条负路径均通过；视觉效果仍为人工判断。同轮发现一处打包缺陷并已修复：暂存的技能树被针对源码树的排除规则剥掉了 `SKILL.md`、参考文档与示例，包内因此只有技能脚本而没有技能说明。提交回合后已打开的画布不重绘（P2-A2）已随后修复：渲染器在 history 出现新的 committed revision 时调用 `design.syncFromStore`，Electron 在打开的编辑器修订与 store 不一致时销毁并按同一 host／bounds 重建，与采用候选共用 `reloadDesignCanvas`。当时 Folio OSS 首页参考图附件失败（P2-A3）仍待适配，且不并入 P3；此观察不能推广为 Lody 没有附件或本地存储。验收通过不表示整份草案获批，也不覆盖 Windows/Linux 实机验证、Developer ID 签名与公证。详见实施记录与[验收证据](../output/folio-p2/acceptance.json)。
+P0 已实现固定合成样稿加载、当前文件持久化和 PNG/JPEG 导出；macOS arm64 开发构建及打包后应用的探针已通过。macOS DMG 构建、校验及从镜像复制后的应用运行和 ad-hoc 签名验证已通过；macOS/Windows/Linux 资源构建与完整性 CI 均已通过，Developer ID 签名及公证不属于本次本地验收；P1 已实现手工编辑闭环；P2.1–P2.7（技能与物化、回合输入物化、回合后采集与提交、图像连接与 `geon_generate_image`、结果卡与候选采用/丢弃、结果卡缩略图引用、持久化加固）已分九个独立提交实现。`geon_render_preview` 渲染预览按升级条款拆为 P2.4b 并已实现：拿不到「守护进程发起」的通道，所以方向反过来——运行中的 Geon 桌面轮询守护进程领取渲染任务，能力因此**可观测**（没有桌面在轮询就没有该工具，缺席仍是诚实状态），且不改会话文档 schema、不新增持久事件种类、不给 Electron 新增入站面。**P2 总验收已执行**——在 macOS arm64 打包应用内用真实 Agent 跑通「参考图 + 需求 → 可编辑作品 → 手工修改 → 保存重开 → PNG/JPEG 导出」，取消／权限回应／无效产物三条负路径均通过；视觉效果仍为人工判断。同轮发现一处打包缺陷并已修复：暂存的技能树被针对源码树的排除规则剥掉了 `SKILL.md`、参考文档与示例，包内因此只有技能脚本而没有技能说明。提交回合后已打开的画布不重绘（P2-A2）已随后修复：渲染器在 history 出现新的 committed revision 时调用 `design.syncFromStore`，Electron 在打开的编辑器修订与 store 不一致时销毁并按同一 host／bounds 重建，与采用候选共用 `reloadDesignCanvas`。当时 Geon OSS 首页参考图附件失败（P2-A3）仍待适配，且不并入 P3；此观察不能推广为 Lody 没有附件或本地存储。验收通过不表示整份草案获批，也不覆盖 Windows/Linux 实机验证、Developer ID 签名与公证。详见实施记录与[验收证据](../output/folio-p2/acceptance.json)。

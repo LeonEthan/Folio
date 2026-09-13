@@ -77,7 +77,7 @@ material deviations that affect fidelity or editability.
 ## Visual fidelity
 
 The optional `scripts/finalize.mjs` helper checks syntax; it does not establish
-visual fidelity. When rendering with `folio_render_preview`, open the resulting
+visual fidelity. When rendering with `geon_render_preview`, open the resulting
 PNG with an actual image-reading tool. Useful questions include:
 
 - Is there unintended stretching, blur, clipping, or crop drift?

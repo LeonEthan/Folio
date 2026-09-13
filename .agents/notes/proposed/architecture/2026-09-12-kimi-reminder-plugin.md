@@ -6,7 +6,7 @@ Translation: pending
 ## Abstract
 
 A small native Kimi plugin is prepared for review without installing it into user
-configuration. Its public UserPromptSubmit hook emits Folio's shared read reminder
+configuration. Its public UserPromptSubmit hook emits Geon's shared read reminder
 only when the existing design-launch marker is present. The exact managed runtime
 received the reminder on initial and continuation prompts in an isolated synthetic
 home, while ordinary sessions received none. The artifact was registered in the actual user's Kimi home on
@@ -31,9 +31,9 @@ not read or write Kimi settings. From the repository root:
 apps/cli/node_modules/.bin/tsx apps/cli/scripts/prepare-kimi-read-reminder.ts /absolute/new/plugin-directory
 ```
 
-`kimi.plugin.json` declares `folio-read-before-edit@0.1.0` with one
+`kimi.plugin.json` declares `geon-read-before-edit@0.1.0` with one
 UserPromptSubmit command and a five-second native timeout. `reminder.mjs` prints
-the shared literal only when `FOLIO_DESIGN_LAUNCH_ID` is nonempty after trimming.
+the shared literal only when `GEON_DESIGN_LAUNCH_ID` is nonempty after trimming.
 Otherwise it emits no stdout. It reads no files, uses no network and makes no
 mutation. The manifest records the preparing process's safely quoted absolute
 Node executable, avoiding a PATH-selected interpreter. Kimi runs plugin hooks
@@ -42,7 +42,7 @@ installer copies the directory. Regenerate/review the artifact if that Node
 installation moves; this is not an automatic runtime-management mechanism.
 
 Root's integrated Session code at `c683038` includes built-in Kimi in the existing
-design-launch registration and sets `FOLIO_DESIGN_LAUNCH_ID` for that launch.
+design-launch registration and sets `GEON_DESIGN_LAUNCH_ID` for that launch.
 It clears the marker for ordinary launches. This was read directly from the
 integrated source; this preparation commit adds no Session wiring. The marker is
 an output selector, not authentication, read evidence or commit authority.
@@ -65,7 +65,7 @@ describes this native TUI command:
 ```
 
 It installs per-user, across projects. The public implementation copies the
-reviewed files to `<KIMI_CODE_HOME>/plugins/managed/folio-read-before-edit` and
+reviewed files to `<KIMI_CODE_HOME>/plugins/managed/geon-read-before-edit` and
 preserves the other plugin records while registering this one in
 `<KIMI_CODE_HOME>/plugins/installed.json`. When no explicit Kimi home is set,
 that root defaults to `~/.kimi-code`. Those are target locations, not permission
@@ -82,8 +82,8 @@ installing. This is a reference, not an executed global configuration change:
 
 ```json
 {
-  "id": "folio-read-before-edit",
-  "root": "/absolute/kimi-home/plugins/managed/folio-read-before-edit",
+  "id": "geon-read-before-edit",
+  "root": "/absolute/kimi-home/plugins/managed/geon-read-before-edit",
   "source": "local-path",
   "enabled": true,
   "installedAt": "<installation timestamp>"
@@ -105,7 +105,7 @@ was changed.
 
 | Launch | Initial model request | Explicit continuation |
 | --- | --- | --- |
-| Synthetic Folio marker present | Exact shared reminder present | Exact shared reminder present |
+| Synthetic Geon marker present | Exact shared reminder present | Exact shared reminder present |
 | Ordinary launch, marker absent | Reminder absent | Reminder absent |
 
 All four ACP prompts ended naturally. The shared string was emitted by the
@@ -147,7 +147,7 @@ The user approved and executed the personal registration described above.
 `/tmp/folio-kimi-reminder-review-20260912/` still matched both recorded
 SHA256 values before copying, and the manifest's pinned Node path existed.
 The two files were copied to
-`~/.kimi-code/plugins/managed/folio-read-before-edit/` and verified
+`~/.kimi-code/plugins/managed/geon-read-before-edit/` and verified
 byte-identical after copying (same two SHA256 values). No `plugins/`
 directory existed beforehand, so registration created a new
 `~/.kimi-code/plugins/installed.json` (mode 0600) containing exactly the
@@ -157,7 +157,7 @@ directory; no existing records or other configuration were displaced.
 
 The hook loads when a Kimi process loads its plugins: already-running
 processes pick it up only after their ordinary restart/reload, and the
-reminder still fires only in Folio design launches carrying
-`FOLIO_DESIGN_LAUNCH_ID`. This registration used the documented record
+reminder still fires only in Geon design launches carrying
+`GEON_DESIGN_LAUNCH_ID`. This registration used the documented record
 shape directly; the native TUI install command remains unverified. It is a
 configuration fact, not new evidence of reminder delivery in real sessions.

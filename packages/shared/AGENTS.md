@@ -71,7 +71,7 @@ per-turn MCP selection, or Role-based session creation and dispatch.
 
 ## Installation identity
 
-The public local profile is Folio. Keep its data directory, host endpoint, protocol,
+The public local profile is Geon. Keep its data directory, host endpoint, protocol,
 app ID and packaged desktop identity isolated from Lody. Update both TypeScript
 and CommonJS installation profiles together; never migrate or delete Lody data.
 

@@ -385,7 +385,7 @@ P2-A3 已列为 T10，在参考图完整旅程前完成。非 PNG 分析副本�
 | T18 Codex 提醒 | `7df62fa`：公开 UserPromptSubmit 在模型请求前及恢复时送达，保留用户配置/信任；[原生证据](../../implemented/architecture/2026-09-12-codex-read-reminder.md) | bb7a424c 安装包的公开提醒、人工当前稿读取、草稿写入与提交回执通过独立证据核对；整轮辅助请求失败及仅保留基线前缀的限制仍保留，不代表强制先读顺序 |
 | T19 Kimi 提醒 | `4ca6795`：[原生事件可用，但缺会话级加载入口](../../proposed/architecture/2026-09-12-kimi-read-reminder-loading.md) | [最小公开插件已准备并隔离验证](../../proposed/architecture/2026-09-12-kimi-reminder-plugin.md)，bb7a424c 安装包的隔离插件/当前稿读写/提交组合已通过；实际用户登记属自愿启用的配置操作，经用户批准后已于 2026-09-12 在真实 Kimi home 完成（见插件笔记），对新启动的 Kimi 进程生效；不作为该已验证组合的技术阻塞；未改 runtime |
 | T20 Grok 提醒与停止 | 主线 `e86a92a`：公开 session plugin + 原生 reload，实际首轮/恢复送达；[证据](../../implemented/architecture/2026-09-12-grok-read-reminder.md)，组合完整检查已通过 | 提醒到达当前工具之后的下一模型请求，不能保证已生成的写入先等 Read。用户已确认 Stop 完整关闭会话执行、后台及子任务，下一条显式消息恢复；bb7a424c 的公开关闭、HTTP 关闭、显式恢复/读取已补证；567741b 的提醒及当前稿读写/提交通过独立核对。原失败、辅助请求造成的整轮脚本失败及未执行的最终画布检查仍保留，详见安装包矩阵 |
-| T28 Pi 图像 MCP | `eccd540`：公开 Pi extension 复用现有三项图像/渲染工具，真实 HTTP/stdio 合成主机的目录、调用、取消与清理通过；[记录](../../proposed/architecture/2026-09-12-pi-folio-mcp-extension.md) | Pi 安装包的目录、调用、读图和取消回归已补证；真实 AruHub 调用及 Kimi 读图属于独立组合，不宣称五家逐一执行付费测试 |
+| T28 Pi 图像 MCP | `eccd540`：公开 Pi extension 复用现有三项图像/渲染工具，真实 HTTP/stdio 合成主机的目录、调用、取消与清理通过；[记录](../../proposed/architecture/2026-09-12-pi-geon-mcp-extension.md) | Pi 安装包的目录、调用、读图和取消回归已补证；真实 AruHub 调用及 Kimi 读图属于独立组合，不宣称五家逐一执行付费测试 |
 | P4.6 Git 版本 / P6.6 验收 | `c683038` 实现[独立 Git 历史](../../proposed/feature/2026-09-12-design-version-history.zh.md)，五项 Git 测试通过；`50ddd41` 正常安装包的版本 UI、自动 PPTD、多实例门禁和受控外部写 CAS 补验通过 | 567741b 的真实四素材海报、12 图长图保存/版本/导出及同 profile 重启、复制 profile 独立重开已通过；用户已确认该副本六项视觉/编辑检查可接受，更广范围验收仍按完整旅程记录保留；此新增功能不计入旧 29 票完成数 |
 
 `c683038` 组合完整检查通过（CLI 2671、组件 3288 项测试），格式、文档和边界检查通过。

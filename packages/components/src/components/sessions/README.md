@@ -93,7 +93,7 @@ What each file in this directory is responsible for. Binding rules live in
 - [Stories and Storybook fidelity](../../../../../.agents/docs/sessions-stories.md)
 
 PR/CI actions, live GitHub review comments and automatic review settings/engines are
-retired from Folio. Generic file/diff viewers and send-to-chat references remain.
+retired from Geon. Generic file/diff viewers and send-to-chat references remain.
 
 ### Authoring preview in the canvas
 

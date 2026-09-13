@@ -1,107 +1,44 @@
-# Intro illustration direction
+# Geon opening direction
 
-## Approved product role
+The independent-release specification selects paper and typography: restrained,
+precise, warm and useful. The vector mark sets a display F built from rounded
+text rules on a ruled paper tile, with a terracotta caret at the end of the mid
+rule — text still being edited, matching the product's editable-text promise.
+It was selected from four hand-drawn candidates (letterpress imprint, folded
+folio, baseline grid, signature f); review drafts live in
+`output/logo-candidates/`, outside product source. The editable source is
+`../../assets/geon-mark.svg`; PNG/ICNS/ICO exports serve actual app consumers.
 
-The illustrated sequence belongs **only** to Intro. Its job is to make Folio
-memorable before real configuration begins; Login, Workspace, Providers,
-Projects, First Task, and Summary already communicate through their persistent
-`TourStill` camera and must not receive a competing illustration layer.
+The user rejected the six previous beige still-life candidates and the subsequent
+reference-led set for excessive similarity. These candidates were generated from
+text alone with different subjects, names, palettes and compositions. Visual
+acceptance remains pending; generation is not evidence of legal clearance. Four distinct
+finished graphic-design examples now pair with matching localized copy:
 
-The Intro is four full-screen beats. The layout never flips: copy remains on
-the left, a vertical illustration remains on the right, and both cross-fade
-between beats. Do not use sliding panels or a carousel-like layout change.
-Only the fourth beat reveals `Configure Folio`; the first three remain readable
-without a CTA. `Skip intro` may remain available.
+1. Poster design: `../../assets/geon-poster-v3.png` - nocturnal botanical cyanotype and elegant display type.
+2. Editorial design: `../../assets/geon-editorial-v3.png` - plum-toned food journal, large serif type and magazine columns.
+3. Brand identity: `../../assets/geon-brand-v3.png` - a mint-green sound festival identity extended to wristbands, lineup graphics and passes.
+4. E-commerce product details: `../../assets/geon-commerce-v3.png` - burgundy espresso-maker A+ hero, detail modules and outdoor use scene.
 
-Final 3:4 assets live in `../../assets/onboarding/intro/`:
+The artworks deliberately differ in palette, medium and composition. The restrained
+Geon shell unifies them; progression comes from expression, editorial structure,
+a visual system, then product storytelling. Artwork itself dominates each frame.
+Adjacent `.prompt.md` files preserve the exact built-in image_gen prompts.
+The fourth scene represents product-detail graphics, not website construction.
+The app logo remains separate from this artwork.
+Copy and composition remain readable in narrow windows; reduced-motion removes
+movement. Skip proceeds directly to configuration. Local setup uses the editorial image,
+without the upstream coding tour or an additional runtime/configuration flow.
 
-1. `queue-current.png` — paper-current opening.
-2. `quiet-work.png` — a quiet desk and continuing work.
-3. `continuous-scroll.png` — one story travelling across rooms.
-4. `ready-to-begin.png` — map, notebook, compass, and departure still-life.
+The user-authorized MiniMax Audio web generation produced `Geon — Form & Rhythm`
+with Music-3.0 in instrumental mode (one output; the UI displayed 300 credits).
+The downloaded source was 122.8 seconds despite the short-cue prompt. The bundled
+`../../assets/geon-opening-v1.mp3` uses its opening 20 seconds, normalized to
+-20 LUFS before a 0.4-second fade-in and four-second fade-out. The generated
+background score replaces the old synthesizer; interaction sounds remain separate.
+Four scenes now advance at five-second intervals. First opening attempts autoplay,
+with mute and gesture recovery; the cue never loops or restarts after ending.
+Leaving the intro stops it immediately. Final hearing acceptance is human-owned.
 
-## Illustration thinking
-
-Use an editorial visual metaphor, not a literal description of a feature. The
-copy explains Folio's product meaning; the art creates an emotionally memorable
-scene. A complete little action or surreal still-life is better than a set of
-icons that try to encode workspace, agent, project, device, and sync.
-
-The successful storyboard explored this progression:
-
-1. **The queue keeps moving** — a broad current of paper, notes, and fragments;
-   Lody stays calm inside or against it.
-2. **Work can keep moving** — a quiet human-scale work scene where papers or
-   ideas continue their gentle motion while the person pauses.
-3. **The same work continues** — one long accordion-folded scroll moves through
-   two distant small rooms. It is a visual story, not a connection diagram.
-4. **Prepare to begin** — Lody with a compass, map, notebook, and a composed
-   pool of light: an unhurried departure still-life, not an installation flow.
-
-These are starting motifs rather than feature specifications. Each beat must
-have a clearly different viewpoint, object scale, density, and rhythm.
-
-## Visual language
-
-- Start from minimalist hand-drawn editorial illustration: generous cool-white
-  space, an expressive action, a few distinctive objects, and slightly
-  imperfect deep-navy contour lines.
-- Translate that language into a premium pixel printmaking treatment: deliberate
-  low-resolution edges, limited colour ramps, local dither, and fine grain.
-  Pixel is a material treatment, **not** a game world or a UI style.
-- Background: neutral cool white through pale blue-grey, with faint icy-aqua
-  dither/grid texture. No yellow, beige, parchment, or sepia cast.
-- Accents: Lody blue/teal as the richest colour; navy ink; sparse coral-orange
-  marks; very occasional muted gold.
-- The desired feeling is quiet, intelligent, tactile, and professional — not
-  cute, childish, neon, or dark.
-
-## Lody IP invariant
-
-The source of truth is `../../assets/lody-icon.png`:
-
-- rounded blue-to-teal jellyfish bell;
-- six flowing tentacles;
-- no face, eyes, clothes, arms, hands, or replacement creature.
-
-Pass that source image as an explicit image-generation reference. If a model
-warps the bell or tentacles, generate only the scene environment and composite
-the real asset into the final illustration; do not accept a near-match.
-
-## Rejected directions
-
-- Literal sea-floor scenes, coral, shells, fish swarms, or cute animated Sprite
-  environments.
-- 3D/isometric devices, robot arms, glossy platforms, and generic game-level
-  scenery.
-- Node graphs, glowing data lines, device dashboards, browser-window diagrams,
-  or icon networks. These are architecture diagrams, not illustrations.
-- A different mascot, anthropomorphised Lody, or a distorted jellyfish.
-- A one-page SaaS hero or changing left/right layout.
-
-## Reusable image-generation prompt shape
-
-Use this structure, then replace only the `Scene` section:
-
-```text
-Asset type: a vertical right-column editorial illustration for one full-screen
-desktop onboarding Intro beat. The left half of the UI contains copy.
-Input image: the supplied Lody icon is the exact IP reference. Preserve its
-rounded blue-to-teal bell and six tentacles; no face, eyes, limbs, clothes, or
-substitute mascot.
-Scene: <one complete visual metaphor; never a product diagram>.
-Style: mature minimalist hand-drawn editorial illustration translated into
-premium pixel printmaking: imperfect deep-navy contour lines, controlled
-low-resolution edges, limited colour ramps, local dither and fine grain.
-Palette: cool white and pale blue-grey background, icy-aqua texture, Lody
-blue/teal, sparse coral-orange, occasional muted gold.
-Composition: a true 3:4 portrait with a distinct silhouette, generous breathing
-room, and an intentional scene-specific viewpoint.
-Avoid: node graphs, network lines, literal UI, 3D/isometric forms, yellow paper,
-generic SaaS gradients, sea-floor decoration, kawaii/chibi treatment, text, and
-watermarks.
-```
-
-The approved exploration is a four-scene 2x2 storyboard generated during this
-session. It validates the **metaphorical scene approach**, not final crop or
-asset dimensions; generate each final beat separately as a 3:4 portrait.
+Assets and hearing/visual approval are tracked in the
+[independent-release proposal](../../../../../.agents/notes/proposed/feature/2026-09-13-geon-independent-brand-release.zh.md).

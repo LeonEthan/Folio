@@ -17,7 +17,7 @@ adapter or support claim.
 
 ## Scope and ownership
 
-This is the runtime audit for [Issue #22](https://github.com/LeonEthan/Folio/issues/22),
+This is the runtime audit for [Issue #22](https://github.com/LeonEthan/Geon/issues/22),
 on the shared [Pi hooks](../../implemented/architecture/2026-09-11-pi-design-hooks.md)
 and [explicit-attempt contract](../simplification/2026-09-11-design-workflow-convergence.zh.md).
 The [Spec](../../../../specs/graphic-design-platform.zh.md) remains draft. The
@@ -73,7 +73,7 @@ native events and model requests stay outside Git.
 Run after installing root dependencies and building `acp-extension-core`:
 
 ```sh
-FOLIO_PROBE_GROK=/absolute/path/to/official/grok \
+GEON_PROBE_GROK=/absolute/path/to/official/grok \
   node apps/cli/scripts/probe-grok-design-hooks.mjs
 ```
 
@@ -188,7 +188,7 @@ part of this supplement.
   responded at .553Z, then an explicit prompt successfully read the saved state.
   No OS kill was needed. This establishes native close as a smaller available
   resource-release operation for this scenario; it does not implement a new
-  Folio Stop policy.
+  Geon Stop policy.
 
 A2 evidence is
 `/var/folders/dn/56hdvtt50g19brtctz0c9c7w0000gn/T/folio-native-grok-stop-A-n8EErq`;
@@ -212,7 +212,7 @@ it is not claimed to reproduce the binary's embedded revision. B did not create
 background tasks, so their exact native termination behavior remains untested.
 Close must not be described as preserving the running background environment.
 
-Folio already exposes `AgentClient.closeSession` and explicit session restoration.
+Geon already exposes `AgentClient.closeSession` and explicit session restoration.
 A possible future correction can await native close before releasing the canvas
 and restore only on the next explicit user turn, without a runtime patch or a new
 scheduler. It must account for the closed resident session and the loss of its
@@ -255,7 +255,7 @@ replay of the stopped prompt.
 
 On successful Stop the ACP transport process remains available. The next explicit
 dispatch loads the same native session with its workdir, current MCP catalog and
-existing session metadata, reloads Folio's precise reminder plugin, then uses the
+existing session metadata, reloads Geon's precise reminder plugin, then uses the
 ordinary turn configuration and prompt path. Loading does not send a prompt by
 itself. A Stop arriving during restoration waits for that load to settle and
 closes the resulting resident before canvas release. Direct prompts against a

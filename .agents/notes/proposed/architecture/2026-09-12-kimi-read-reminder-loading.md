@@ -29,7 +29,7 @@ or an installation in the user's own home. Personal plugin installation is a
 separate opt-in setup decision, not a requirement to mutate global configuration
 to close T19/T28's technical verification. Original Issue 21 and the Spec explicitly
 preserve that configuration. The native TUI installer command remains unverified,
-and Folio does not claim that the reminder works before the plugin is registered.
+and Geon does not claim that the reminder works before the plugin is registered.
 The initial outcome below records the earlier gap, before this installed evidence.
 
 ## Revised responsibility
@@ -68,7 +68,7 @@ message before model execution. This public event is suitable for the reminder.
 Existing native Edit instructions already require Read before each edit and after
 an earlier edit changes the file; Write instructions require reading before
 replacement. These existing descriptions support the behavioral rule but do not
-constitute Folio hook loading or enforcement of successful prior reads.
+constitute Geon hook loading or enforcement of successful prior reads.
 
 The [external hook loader](https://github.com/LodyAI/acp-extension-kimi/blob/f255222661c9cc2842901858fd28e554d7796a51/packages/agent-core-v2/src/features/externalHooks/app/externalHooksRunnerService.ts)
 combines the app's `hooks` configuration with enabled installed-plugin hooks.
@@ -95,7 +95,7 @@ UserPromptSubmit. Both processes ran an initial prompt and an explicit continuat
 | ACP `session/set_config_option`, `configId: hooks` | Rejected with code `-32602`, `Unknown configId: hooks` |
 
 The source and native result agree on a configuration-loading gap. Successful
-home-config loading does not prove a Folio-scoped launch integration. These probes
+home-config loading does not prove a Geon-scoped launch integration. These probes
 do not claim model judgment, enforced read ordering, new-file/edit behavior,
 process-restart resume, Agent switching, cancellation or final design acceptance.
 The earlier native audit separately records hook error/timeout fail-open behavior;
@@ -108,10 +108,10 @@ committed transcripts or production integration code.
 ## Initial outcome and alternatives
 
 The Kimi reminder integration in T19 /
-[Issue #21](https://github.com/LeonEthan/Folio/issues/21) remains incomplete under
+[Issue #21](https://github.com/LeonEthan/Geon/issues/21) remains incomplete under
 the revised scope. This does not block Kimi native file tools, editor-owned PPTD
 saves, independent final validation or another Agent's reminder integration. There is a usable public event but no verified
-noninvasive loading path for the current managed executable. Folio does not add
+noninvasive loading path for the current managed executable. Geon does not add
 Session wiring that silently replaces Kimi's home, modifies its global hook/plugin
 configuration, or imports the isolated engine to reach a programmatic bootstrap
 option. Shadowing the home and copying or symlinking its credentials, sessions,

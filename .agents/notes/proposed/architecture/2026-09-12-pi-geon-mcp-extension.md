@@ -1,4 +1,4 @@
-# Pi tools through the existing Folio MCP host
+# Pi tools through the existing Geon MCP host
 
 Status: proposed
 Translation: pending
@@ -6,9 +6,9 @@ Translation: pending
 ## Abstract
 
 Pinned pi-acp 0.0.33 receives but does not use ACP MCP server configuration, so
-Pi cannot discover Folio image and render tools through that adapter. A public
+Pi cannot discover Geon image and render tools through that adapter. A public
 Pi extension can register tools without modifying Pi or ACP. The implementation
-uses the existing MCP SDK and daemon HTTP host for three Folio tools only; it
+uses the existing MCP SDK and daemon HTTP host for three Geon tools only; it
 retains their real catalog, session identity and provider behavior. Source tests and isolated real Pi/ACP transport tests pass. Installed image-service
 generation/editing and actual image reading remain unverified for this extension.
 
@@ -67,7 +67,7 @@ paid image quality or satisfy the entire five-Agent acceptance matrix.
 Local probes use actual Pi 0.85.1, pi-acp 0.0.33, the existing executable launcher
 and the new bundled extension, with a private HOME and Pi provider directory.
 The model and MCP endpoints are synthetic loopback services; returned text is
-protocol evidence, not generated imagery or actual Folio image-service output.
+protocol evidence, not generated imagery or actual Geon image-service output.
 
 The first two attempts (`WXCUmo`, `anJxqX`) fail during session startup. Pi’s public
 loader makes action methods unavailable during factory loading; moving active-tool

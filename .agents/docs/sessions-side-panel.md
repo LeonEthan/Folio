@@ -105,7 +105,7 @@ this page is the full text of the rules summarised there.
   Electron public-browser restoration only reattaches the existing `WebContentsView`; it must not
   issue another navigation to the cached URL, which would silently reload and lose page state.
 
-Folio P1 adds the closeable `design` fixed tab for Sessions with an artwork
+Geon P1 adds the closeable `design` fixed tab for Sessions with an artwork
 association. `DesignCanvas` places a sandboxed native view in that tab; the native
 view survives hiding and route changes, while explicit tab close saves and destroys
 it. Route blocking awaits the same save/discard decision as native close and quit.

@@ -46,8 +46,8 @@ Parent instructions apply.
   servers publish no Task tools, and a still-resident Agent whose next Turn disables the feature
   is rejected at every Task handler. Task-originated automation explicitly freezes `true` so it
   can update and comment on the Task it is executing.
-- INVARIANT: `folio_generate_image` and `folio_edit_image` are design-sessions-only; `folio_render_preview` needs a polling
-  Folio desktop. Both gates are the daemon's: send `ownerSessionId`, and treat a missing gate as
+- INVARIANT: `geon_generate_image` and `geon_edit_image` are design-sessions-only; `geon_render_preview` needs a polling
+  Geon desktop. Both gates are the daemon's: send `ownerSessionId`, and treat a missing gate as
   unregistered — absent from `tools/list`, never advertised-then-refused. Contract:
   `packages/shared/AGENTS.md`.
 

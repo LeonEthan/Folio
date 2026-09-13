@@ -1,7 +1,7 @@
 # Pinned Bento resources
 
-P0 loads a synthetic single-canvas design through Folio's Electron File menu.
-The CLI owns the current JSON at `<Folio data root>/chats/folio-p0/design.json`;
+P0 loads a synthetic single-canvas design through Geon's Electron File menu.
+The CLI owns the current JSON at `<Geon data root>/chats/geon-p0/design.json`;
 Electron owns a sandboxed, network-blocked Bento view and PNG/JPEG rendering.
 This fixed sample is not a new Session or a general document import API. P1 adds editable Session canvases; Agent generation remains P2.
 
@@ -41,7 +41,7 @@ workspace/relative path after durable save, without rolling back saved content.
 
 ## P1 manual designs
 
-`apps/cli/src/design/store.ts` owns `<Folio data root>/chats/<sessionId>/design.json`.
+`apps/cli/src/design/store.ts` owns `<Geon data root>/chats/<sessionId>/design.json`.
 The file atomically contains the canonical BentoDoc, referenced content-addressed
 asset bytes, and Session association. Assets are embedded so a confirmed save has
 no partially committed external asset table. The module is the single committer:
@@ -77,21 +77,21 @@ TypeScript adaptations. Original upstream identity and licenses remain unchanged
 
 ## PPTD projection contract
 
-`vendor/packages/contracts/src/pptd-v3.ts` is a Folio-authored source adaptation
+`vendor/packages/contracts/src/pptd-v3.ts` is a Geon-authored source adaptation
 of the pinned Bento v4 types for lossless authoring projection. It adds no editor
 capability and leaves the upstream frozen v1 capability matrix intact. The
-conversion and projection capability mapping belong to `@folio/design-authoring`;
+conversion and projection capability mapping belong to `@geon/design-authoring`;
 see its [README](../design-authoring/README.md#editable-projection-pptd-v3).
 The source manifest pins this additional file separately and records its origin.
 
 ## Serial canvas editing
 
-The desktop controls generic `folio.setReadonly`, `folio.flush` and `folio.state`.
+The desktop controls generic `geon.setReadonly`, `geon.flush` and `geon.state`.
 Bento does not observe Agent status: the bridge rejects semantic mutations while
 readonly, and the product overlay commits buffered input before freezing, then
 flushes accepted saves. An unfinished composition or save failure retains the draft.
 The product API reports its existing font-backed `ready` state and emits
-`folio:ready` at that boundary. Electron waits for both the complete generic API and
+`geon:ready` at that boundary. Electron waits for both the complete generic API and
 `state().ready` before an attach can complete; document load alone is insufficient.
 Views start readonly until the desktop confirms execution state. The daemon's
 existing visible-turn owner waits for all artwork instances and keeps them readonly
@@ -99,7 +99,7 @@ through provider completion and artifact processing; hiding a view changes no ow
 Unexpected dirty content blocks reload rather than being discarded. The original
 store CAS remains independent. See the [implementation note](../../.agents/notes/implemented/architecture/2026-09-11-canvas-serial-execution.zh.md), including the headless limitation.
 
-The generic `folio.selection()` bridge exposes the existing stable selection IDs.
+The generic `geon.selection()` bridge exposes the existing stable selection IDs.
 Electron captures those IDs, flushes, and pairs them with the saved canonical
 revision before inserting a normal composer mention. Bento has no conversation or
 reference lifecycle; source previews cannot supply element references.

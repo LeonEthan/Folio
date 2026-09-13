@@ -5,7 +5,7 @@ Translation: pending
 
 ## Abstract
 
-Codex's native file and shell hooks cannot currently satisfy Folio's required
+Codex's native file and shell hooks cannot currently satisfy Geon's required
 model-generation fence. The pinned runtime emits useful pre/post tool events,
 but does not provide an awaited boundary before each model request or associate
 those events with a sampling generation. A native synthetic-provider probe also
@@ -15,7 +15,7 @@ this record and its reproducible probe do not enable a partial production adapte
 
 ## Scope and ownership
 
-This records [Issue #20](https://github.com/LeonEthan/Folio/issues/20), following
+This records [Issue #20](https://github.com/LeonEthan/Geon/issues/20), following
 [shared read hooks](2026-09-10-design-sync-hooks.zh.md),
 [Pi's native integration](../../implemented/architecture/2026-09-11-pi-design-hooks.md)
 and [workflow convergence](../simplification/2026-09-11-design-workflow-convergence.zh.md).
@@ -134,7 +134,7 @@ acceptable replacement for the mandatory fence.
 
 The smallest missing runtime contract is an **awaited signal before each model
 sampling request**, including continuations, bound to a stable generation identity
-that accompanies its later tool calls/results. Folio must be able to freeze eligible
+that accompanies its later tool calls/results. Geon must be able to freeze eligible
 complete reads, exact draft digest and attempt epoch at that signal and reject
 unknown or stale identities. The signal must not be merely a best-effort notification
 after generation has started. A supported existing upstream extension point meeting
@@ -143,7 +143,7 @@ proposed here.
 
 Native result success/truncation metadata and interactive follow-up prechecks remain
 separate coverage requirements after that blocker. MCP can carry optional
-`folio_resubmit_draft` only once the real pre-generation fence binds its unchanged
+`geon_resubmit_draft` only once the real pre-generation fence binds its unchanged
 bytes; forwarding MCP alone cannot authorize it.
 
 Disposition: **BLOCKED**, preserving the shared contract. No upstream patch or

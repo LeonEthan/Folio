@@ -40,7 +40,7 @@ See [runtime and files](README.md) and the
 [replacement decision](../../../../.agents/notes/implemented/simplification/2026-09-12-editor-owned-pptd-save.md).
 
 Codex public UserPromptSubmit supplies context only. Preserve native user hook
-declarations and trust; trust only Folio’s exact bundled command in the per-session
+declarations and trust; trust only Geon’s exact bundled command in the per-session
 overlay. Never treat reminder delivery as read or commit evidence.
 
 Pi image/render tools use the existing Lody MCP catalog and session context through
@@ -62,4 +62,4 @@ parallel snapshot storage. See [history](README.md#design-history).
 
 Grok reminders use only the app-owned session plugin and native hook reload. Preserve
 user plugin trust; PreToolUse context arrives after the tool and establishes no read
-or commit evidence. Missing/disabled Folio hooks must not be reported as loaded.
+or commit evidence. Missing/disabled Geon hooks must not be reported as loaded.
