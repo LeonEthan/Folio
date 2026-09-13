@@ -51,6 +51,13 @@ export function createSyntheticReviewRepository(): SyntheticReviewRepository {
     git(rootPath, ['config', 'user.name', 'Lody E2E']);
     git(rootPath, ['config', 'user.email', 'e2e@invalid.example']);
     git(rootPath, ['config', 'commit.gpgsign', 'false']);
+    // The design session materializes its bundled skills alongside the fixture.
+    // Keep this Review journey scoped to its three deliberate source changes.
+    writeRepositoryFile(
+      rootPath,
+      '.git/info/exclude',
+      '/.claude/skills/graphic-design/\n/.agents/skills/graphic-design/\n'
+    );
 
     writeRepositoryFile(
       rootPath,

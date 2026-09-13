@@ -69,8 +69,10 @@ also applies.
   and Windows matrix per suite; the failure-issue reconciler treats the macOS
   artifact as canonical evidence until the other legs prove stable. The
   read-only runner only
-  uploads evidence; a trusted default-branch reconciler validates and attaches
-  every bounded WebM to an independently retryable Daily failure Issue comment.
+  uploads evidence; a trusted default-branch reconciler validates recordings and
+  posts independently retryable Daily comments linking to the Actions artifacts.
+  The Actions token must not be used for unsupported inline attachment uploads;
+  keep recordings in the bounded artifact without adding a personal token.
   Only a successful full Daily may close that Issue; smoke success never clears
   failure state that can include P1 coverage.
 - Pull-request regression also records scenarios and retains failed videos. Its

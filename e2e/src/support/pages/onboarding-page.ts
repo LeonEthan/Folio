@@ -65,7 +65,6 @@ export class OnboardingPage {
 
   async openAgentConfiguration(): Promise<void> {
     await this.page.getByRole('button', { name: /^(Skip intro|跳过介绍)$/u }).click();
-    await this.page.getByRole('button', { name: /^(Configure Geon|开始配置)$/u }).click();
     await expect(
       this.page.getByRole('heading', { name: /^(Connect your Agent|连接你的 Agent)$/u })
     ).toBeVisible();

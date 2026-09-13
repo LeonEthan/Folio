@@ -17,7 +17,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { _electron, type CDPSession, type ElectronApplication, type Page } from '@playwright/test';
+import { _electron, expect, type CDPSession, type ElectronApplication, type Page } from '@playwright/test';
 import {
   assertNamedPipeReleased,
   assertTcpPortReleased,
@@ -448,7 +448,7 @@ export class ElectronHarness {
     }
     phase('directory-cleanup');
     try {
-      const survivors = ownedProcesses.filter(({ pid }) => {
+      const survivors = () => ownedProcesses.filter(({ pid }) => {
         try {
           process.kill(pid, 0);
           return true;
@@ -456,8 +456,15 @@ export class ElectronHarness {
           return (error as NodeJS.ErrnoException).code !== 'ESRCH';
         }
       });
-      if (survivors.length) {
-        phase('surviving-owned-processes', survivors);
+      try {
+        // Electron's root exit precedes descendant teardown on some platforms.
+        // Observe only the captured owned PIDs; never signal unrelated processes.
+        await expect.poll(() => survivors(), {
+          timeout: TEARDOWN_OPERATION_TIMEOUT_MS,
+          message: 'Owned processes must exit before isolated data cleanup',
+        }).toEqual([]);
+      } catch {
+        phase('surviving-owned-processes', survivors());
         throw new Error('Owned processes remain after Electron quit; isolated data retained');
       }
       if (this.tempRoot && !closeError && !preserveData) {

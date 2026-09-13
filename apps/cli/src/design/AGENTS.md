@@ -58,7 +58,8 @@ Do not retry paid requests automatically.
 Design history uses the artwork's independent local Git repository. Preserve exact
 embedded content and protect unversioned current work before restore; then use the
 ordinary canonical save/CAS and projection path. Never alter user Git state or add
-parallel snapshot storage. See [history](README.md#design-history).
+parallel snapshot storage. Recheck canonical revision after acquiring the history
+lock so queued operations cannot version a pre-restore snapshot. See [history](README.md#design-history).
 
 Grok reminders use only the app-owned session plugin and native hook reload. Preserve
 user plugin trust; PreToolUse context arrives after the tool and establishes no read

@@ -184,6 +184,26 @@ void test('creates a report for infrastructure failures without a failure index'
   });
 });
 
+void test('reports every recording through artifacts without requiring attachment authentication', async () => {
+  await withWorkspace(async (workspace) => {
+    const evidenceRoot = await writeFailures(workspace, ['LODY-WORK-001', 'LODY-REVIEW-001']);
+    const result = await prepareDailyFailureReport({
+      ...RUN,
+      evidenceRoot,
+      outputRoot: join(workspace, 'daily-report'),
+      workingDirectory: workspace,
+      videoDelivery: 'artifact',
+    });
+    assert.deepEqual(result.batches.map((batch) => batch.videos), [[], []]);
+    for (const batch of result.batches) {
+      const body = await readFile(join(workspace, batch.bodyPath), 'utf8');
+      assert.ok(body.includes(`${RUN.runUrl}#artifacts`));
+      assert.match(body, /failure\.webm/u);
+      assert.doesNotMatch(body, /!\[\]\(/u);
+    }
+  });
+});
+
 void test('builds PR-specific markers and failure copy', async () => {
   await withWorkspace(async (workspace) => {
     const evidenceRoot = await writeFailures(workspace, ['LODY-REVIEW-001']);

@@ -126,7 +126,8 @@ surviving CLI or occupied endpoint invalidates the next result.
 Daily regression additionally records each scenario and retains only failed
 WebMs. Its read-only runner uploads the complete artifact; a trusted
 default-branch reconciler creates or reopens one Daily failure Issue and appends
-every validated recording as its own independently retryable inline player. A
+every validated recording as its own independently retryable Actions artifact link.
+The Actions token cannot upload inline attachments; recordings remain in the run artifact. A
 later successful full Daily closes the Issue with the recovery run link; a
 successful manually dispatched smoke run cannot clear full-suite failure state.
 Pull-request failures follow the same evidence validation in a trusted
@@ -151,21 +152,15 @@ as `-c.extraMetadata.geonSourceCommit=<SHA>`; the harness verifies that exact
 value from the running application's own packaged manifest. CLI data and the daemon endpoint remain
 independently isolated through the existing harness.
 
-For example, after dependency setup, run the existing native Claude probe with
-`GEON_E2E_INSTALLED_EXECUTABLE` and `GEON_PROBE_CLAUDE` set to verified absolute
-paths:
-
-```sh
-corepack pnpm --filter @lody/e2e exec tsx ../apps/cli/scripts/probe-claude-design-desktop.mjs
-```
-
-The corresponding Pi probe is `probe-pi-design-desktop.mjs`, with
-`GEON_PROBE_PI` and `GEON_PROBE_RESUBMIT=1`. These manual probes simulate only
-the external model wire; successful synthetic protocol execution does not prove
-model quality. Their logs and captured synthetic conversations stay outside Git.
-Record package source commit/hash and runtime/ACP identity with each round, and
-repeat after relevant source changes. Do not infer one Agent's result from
-another or treat source-only runtime audits as installed-package evidence.
+Use the current suite with these variables set, for example `pnpm e2e:full`.
+Historical Claude/Pi manual probes are not present in this checkout; recover them
+from the source commits referenced by their owning Agent notes and adapt them to
+the current public contracts before running. Do not treat those historical commands
+as currently runnable entry points. Native probes simulate only the external model
+wire; synthetic protocol success does not prove model quality. Keep their logs
+outside Git, and record package source/hash and runtime/ACP identity for each round.
+Repeat relevant checks after source changes and do not infer one Agent's result
+from another.
 
 ## Geon design acceptance
 

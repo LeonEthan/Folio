@@ -55,6 +55,9 @@ jobs:
         run: pnpm --filter @lody/e2e check
 
       - name: Build OSS desktop and bundled CLI
+        env:
+          # CLI Vite SSR chunk rendering exceeds Node's default heap on macOS.
+          NODE_OPTIONS: --max-old-space-size=8192
         run: pnpm --dir apps/electron build
 
       - name: Run desktop journeys (Linux under Xvfb)
