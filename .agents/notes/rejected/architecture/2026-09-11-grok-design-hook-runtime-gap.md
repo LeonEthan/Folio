@@ -1,6 +1,6 @@
 # Grok Build design-hook runtime gap
 
-Status: proposed
+Status: rejected
 Translation: pending
 
 ## Abstract
@@ -19,7 +19,7 @@ adapter or support claim.
 
 This is the runtime audit for [Issue #22](https://github.com/LeonEthan/Geon/issues/22),
 on the shared [Pi hooks](../../implemented/architecture/2026-09-11-pi-design-hooks.md)
-and [explicit-attempt contract](../simplification/2026-09-11-design-workflow-convergence.zh.md).
+and [explicit-attempt contract](../../proposed/simplification/2026-09-11-design-workflow-convergence.zh.md).
 The [Spec](../../../../specs/graphic-design-platform.zh.md) remains draft. The
 [scope review](../../proposed/simplification/2026-09-11-design-result-feedback.zh.md)
 continues to bound migration. No shared service, Session lifecycle, Bento editing,
@@ -308,3 +308,12 @@ budget, then can return `notResident`. This corroborates the need to await the
 original load RPC before calling close; the public-source/binary correspondence
 limit above still applies. Full root check, format, docs check and diff check
 passed for this correction; the focused AgentClient suite now has 22 passing tests.
+
+## Verdict
+
+Status: rejected. The generation-frozen fence this runtime gap served was cancelled
+by the approved [editor-owned PPTD save](../../implemented/simplification/2026-09-12-editor-owned-pptd-save.md)
+and [noninvasive reminders](../../proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md)
+design. The native observations about missing pre-generation and last-tool boundaries
+remain valid, but they no longer need a production workaround. This record is kept
+as evidence against reintroducing the stronger contract without an upstream seam.

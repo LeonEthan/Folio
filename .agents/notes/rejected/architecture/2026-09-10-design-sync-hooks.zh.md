@@ -1,7 +1,9 @@
 # 当前画稿按需同步与 Agent 工具 hook
 
-Status: proposed
-Translation: pending
+Status: rejected
+Translation: current
+
+[English](2026-09-10-design-sync-hooks.md)
 
 ## 摘要
 
@@ -9,7 +11,7 @@ Translation: pending
 
 ## 决策范围与来源
 
-2026-09-12 最新裁定：用户确认[人工保存自动更新 PPTD](../simplification/2026-09-12-editor-owned-pptd-save.zh.md)，但要求保留[修改前先读提醒 hook](../simplification/2026-09-12-noninvasive-design-hooks.zh.md)。本文余下内容保留旧读取驱动同步及严格基线方案，已被新目标部分替代；不再要求 runtime 补丁或逐次模型生成证明。实现迁移同时收敛写入和最终采集的旧依赖，保留结构、素材、来源、版本检查和草稿。新规则以 Spec 为准，不把已有实现或失败记录自动改成新合同已通过。
+2026-09-12 最新裁定：用户确认[人工保存自动更新 PPTD](../../implemented/simplification/2026-09-12-editor-owned-pptd-save.zh.md)，但要求保留[修改前先读提醒 hook](../../proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md)。本文余下内容保留旧读取驱动同步及严格基线方案，已被新目标部分替代；不再要求 runtime 补丁或逐次模型生成证明。实现迁移同时收敛写入和最终采集的旧依赖，保留结构、素材、来源、版本检查和草稿。新规则以 Spec 为准，不把已有实现或失败记录自动改成新合同已通过。
 
 本记录补充并部分替代[迁移计划](../../implemented/architecture/2026-09-09-graphic-design-platform.zh.md)中尚未实施的 P3：新增当前画稿读取一致性，取消完整三方对比和元素/属性自动合并的迁移要求。P0–P2 的实施事实不改写；产品合同见 [Spec](../../../../specs/graphic-design-platform.zh.md)。本次只修改文档，不实现同步器、hook 或运行时 skill。
 
@@ -17,13 +19,13 @@ Translation: pending
 
 ## 文件变化预览的补充（2026-09-11）
 
-[实时预览决策](2026-09-11-pptd-live-preview.zh.md)新增独立的文件变化 → PPTD 正向转换 → 只读预览链路，与本记录的按需反向同步并存。文件监听按实际消费者启停，复用已有正向 intake 与 Bento 渲染，不依赖五种 Agent 的 Write hook，也不提交当前稿或改写读取基线。
+[实时预览决策](../../implemented/architecture/2026-09-11-pptd-live-preview.zh.md)新增独立的文件变化 → PPTD 正向转换 → 只读预览链路，与本记录的按需反向同步并存。文件监听按实际消费者启停，复用已有正向 intake 与 Bento 渲染，不依赖五种 Agent 的 Write hook，也不提交当前稿或改写读取基线。
 
 两条路径按来源分开：读取 hook 的输入始终是当前稿（Agent 执行及产物处理期间只读），输出是应用生成的 PPTD 投影；实时预览的输入是 Agent/外部编辑的创作草稿，输出是未提交的只读视图。投影及预览缓存不进入创作监听或产物采集，切换到预览不改变读取对象。预览不能证明创作完成，回合结束仍重新采集并执行正式校验和版本检查。执行及产物处理期间不导入；完成后安全提交直接成为当前稿，冲突交给 Agent，外部文件直接显式导入，见新记录。
 
 ## 串行编辑修订
 
-[串行编辑决策](2026-09-11-design-serial-editing.zh.md)取代此前“读取后允许继续手工改稿”的正常流程：派发前保存手工编辑，Agent 执行及采集/提交期间所属画布只读。按需同步仍由读取 hook 触发，提供运行前已保存的最新手工结果；只读不意味着 PPTD 自动更新。最终版本校验继续保护外部变化和陈旧请求。
+[串行编辑决策](../../implemented/architecture/2026-09-11-design-serial-editing.zh.md)取代此前“读取后允许继续手工改稿”的正常流程：派发前保存手工编辑，Agent 执行及采集/提交期间所属画布只读。按需同步仍由读取 hook 触发，提供运行前已保存的最新手工结果；只读不意味着 PPTD 自动更新。最终版本校验继续保护外部变化和陈旧请求。
 
 ## 职责与读取过程
 
@@ -99,7 +101,7 @@ hook 执行的是数据完整性条件，不是设计方法。它不强制 inspe
 
 ## Agent 自行处理冲突与重提交
 
-按[整体收敛记录](../simplification/2026-09-11-design-workflow-convergence.zh.md)，冲突通过已有工具/hook 返回原因及文件位置，由 Agent 读取最新投影、比较保留草稿并调整；不增加应用合并算法、候选面板或固定创作顺序。这里复用的是 coding-agent 的工具反馈范式，Lody 的普通 ACP 写文件本身没有统一 CAS 服务。不同接入的成功/失败事件和工具覆盖仍需验证。
+按[整体收敛记录](../../proposed/simplification/2026-09-11-design-workflow-convergence.zh.md)，冲突通过已有工具/hook 返回原因及文件位置，由 Agent 读取最新投影、比较保留草稿并调整；不增加应用合并算法、候选面板或固定创作顺序。这里复用的是 coding-agent 的工具反馈范式，Lody 的普通 ACP 写文件本身没有统一 CAS 服务。不同接入的成功/失败事件和工具覆盖仍需验证。
 
 原回合 manifest 保留派发事实；再次读取不自动改写草稿基线。Agent 明确重新提交时关联新尝试、读取版本及确切内容，再做原子检查；内容无需变化也应有合法路径，不强迫无意义编辑。仅重读、文件存在或底层事件不能证明主动重提交。该合同在首个 P3.1/P3.3 完整切片中落实，不另立空接口阶段或新增必经提交工具。
 
@@ -123,4 +125,8 @@ P3 的必要验收是手工改稿可被成功读取、往返语义一致、陈�
 
 提交前验证：`corepack pnpm format` 与 `corepack pnpm typecheck` 通过；静态检查中的 lint、i18n、代码协作导入和平台边界通过。公开边界检查首次指出方案中的外部 Web 实现路径，移除该路径引用后复查通过，调查结论及编排模块依据保留。已还原格式化产生的无关文件差异；沿用不运行测试的要求，未执行含测试的完整 `pnpm check`。
 
-2026-09-11 范围复核补充：按[结果反馈与迁移范围审查](../simplification/2026-09-11-design-result-feedback.zh.md)及后续整体收敛，结果卡、专用缩略图和新候选工作流退役；Agent 渲染/读图、旧内容和回执保留。P3.6 取消必经 finalize 及按单个工具缺席判定全部 review 失败的规则。P3.0d 删除旧文件自动提升，P3.3 区分明确重提交，P3.7 直接显式导入。hook 是已确认的适配，不扩成通用治理平台；运行时代码未改。
+2026-09-11 范围复核补充：按[结果反馈与迁移范围审查](../../proposed/simplification/2026-09-11-design-result-feedback.zh.md)及后续整体收敛，结果卡、专用缩略图和新候选工作流退役；Agent 渲染/读图、旧内容和回执保留。P3.6 取消必经 finalize 及按单个工具缺席判定全部 review 失败的规则。P3.0d 删除旧文件自动提升，P3.3 区分明确重提交，P3.7 直接显式导入。hook 是已确认的适配，不扩成通用治理平台；运行时代码未改。
+
+## Verdict / 裁定
+
+Status: rejected。读取同步 hook 方向已被 2026-09-12 的[人工编辑保存时自动更新 PPTD](../../implemented/simplification/2026-09-12-editor-owned-pptd-save.zh.md)明确取代：人工保存由编辑器能力独立更新当前稿 PPTD，不再需要 Agent 读取前触发同步；仅保留公开的先读文件提醒 hook。本记录保留旧读取驱动同步方案及其实施背景，以防重复尝试。

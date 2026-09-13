@@ -1,15 +1,17 @@
 # 当前稿自动保存与人工存为版本
 
-Status: proposed
-Translation: pending
+Status: implemented
+Translation: current
+
+[English](2026-09-12-design-version-history.md)
 
 ## 摘要
 
-用户已确认采用 Git 作为唯一设计历史存储，取消自建文件快照后端；当前稿自动保存与历史版本分开。“存为版本”记录人工确认的节点，画布右上角选择历史版本只读查看，“从此编辑”将其恢复为新的当前稿。Geon 继续复用当前稿校验、保存及草稿保护，不将 Git 引入 Agent 创作步骤，也不复用自动 commit/push 编排。已确认由 Geon 管理独立本地 Git 仓库，方案已纳入 Spec 和计划；运行时尚未实施，记录保持 proposed。
+用户已确认采用 Git 作为唯一设计历史存储，取消自建文件快照后端；当前稿自动保存与历史版本分开。“存为版本”记录人工确认的节点，画布右上角选择历史版本只读查看，“从此编辑”将其恢复为新的当前稿。Geon 继续复用当前稿校验、保存及草稿保护，不将 Git 引入 Agent 创作步骤，也不复用自动 commit/push 编排。已确认由 Geon 管理独立本地 Git 仓库，方案已纳入 Spec 和计划。（事实更正：Git 裸仓历史与画布版本 UI 随后已实现，证据与剩余限制见文末；原文“运行时尚未实施，记录保持 proposed”为 2026-09-12 裁定阶段状态。）
 
 ## 范围与依据
 
-2026-09-12 用户确认 Git 历史方案并授权更新文档，取代 [Spec](../../../../specs/graphic-design-platform.zh.md) 和[迁移计划](../../implemented/architecture/2026-09-09-graphic-design-platform.zh.md)原先不提供历史版本的范围。本记录不恢复候选审批、分支合并、素材库、逐轮结果卡或历史缩略图；用户随后确认由 Geon 管理独立本地 Git 仓库，与用户项目 Git 隔离。
+2026-09-12 用户确认 Git 历史方案并授权更新文档，取代 [Spec](../../../../specs/graphic-design-platform.zh.md) 和[迁移计划](../architecture/2026-09-09-graphic-design-platform.zh.md)原先不提供历史版本的范围。本记录不恢复候选审批、分支合并、素材库、逐轮结果卡或历史缩略图；用户随后确认由 Geon 管理独立本地 Git 仓库，与用户项目 Git 隔离。
 
 本方案与[人工编辑自动更新 PPTD](../simplification/2026-09-12-editor-owned-pptd-save.zh.md)衔接，后续已确认自动回写并保留公开的先读文件提醒 hook。自动保存维护工作状态；人工存为版本提供可返回的明确节点；编辑器撤销/重做继续沿用 Bento，不用版本列表代替每次操作的撤销。Git 历史不可编辑，不与当前稿争夺权威身份。
 
@@ -129,3 +131,21 @@ DMG 校验、只读挂载复制、签名校验均通过；私有安装目录为
 确认 `isPackaged: true`，installed-source 记录上述确切提交，关闭后 endpoint-release、
 directory-cleanup 和 finished 均完成。本轮没有模型调用；补齐正常安装包版本操作证据，
 多实例与真实多图负载、人工视觉/编辑评定仍分别待完成。
+
+## 证据与剩余限制
+
+**事实更正**：本文早期章节称“运行时尚未实施，记录保持 proposed”，该状态已更正为
+`Status: implemented`。实现证据包括：
+
+- Git 历史后端：`apps/cli/src/design/history.ts` 以每幅作品 `history.git` 独立裸仓保存
+  完整 `design.json` 及内嵌素材；`history.test.ts` 覆盖版本追加、恢复前保护、素材字节
+  留存、冲突拒绝、重定向拒绝与 PPTD 往返。
+- IPC/UI：`apps/electron/src/main/ipc/services/design-ipc.ts` 暴露 `versions` /
+  `saveVersion` / `restoreVersion` / `viewVersion`；
+  `packages/components/src/components/sessions/design-canvas.tsx` 在画布右上角提供
+  “存为版本”“从此编辑”与只读历史下拉。
+- 版本 UI 与自动 PPTD 保存的组合已在 built OSS 及正常安装包验证通过。
+
+剩余限制：跨实例并发竞争（如 A 实例存版本、B 实例同时恢复）的完整验证仍未执行，
+见 `specs/graphic-design-platform.zh.md` 待实施验证项；多实例实际交互、真实多图负载、
+人工视觉/编辑评定与普通目录/Windows/Linux 运行依赖供给仍待后续验收。

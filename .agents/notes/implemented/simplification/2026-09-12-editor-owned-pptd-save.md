@@ -1,7 +1,9 @@
 # Editor-owned current PPTD and noninvasive reminders
 
 Status: implemented
-Translation: pending
+Translation: current
+
+[中文](2026-09-12-editor-owned-pptd-save.zh.md)
 
 ## Abstract
 
@@ -17,7 +19,7 @@ partial failure is explicit and recoverable rather than reported as a complete s
 ## Decision and responsibilities
 
 This implements the approved continuation described by
-[editor-owned save](../../proposed/simplification/2026-09-12-editor-owned-pptd-save.zh.md)
+[editor-owned save](2026-09-12-editor-owned-pptd-save.zh.md)
 and [noninvasive hooks](../../proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md).
 It replaces the generation/read mechanism in the historical
 [Pi implementation](../architecture/2026-09-11-pi-design-hooks.md) and

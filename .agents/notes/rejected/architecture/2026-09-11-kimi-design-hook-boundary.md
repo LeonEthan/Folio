@@ -1,6 +1,6 @@
 # Kimi managed runtime design-hook boundary
 
-Status: proposed
+Status: rejected
 Translation: pending
 
 ## Abstract
@@ -127,3 +127,12 @@ because host ownership is restricted to the platform module. Replacing it with
 the configured-host reference preserves the artifact evidence without duplicating
 that constant. Formatting, documentation and final boundary checks passed. This evidence
 supports the blocking conclusion only; it does not mark Issue #21 complete.
+
+## Verdict
+
+Status: rejected. The complete-read and generation-frozen baseline this record
+demanded was retired when the product adopted [editor-owned PPTD save](../../implemented/simplification/2026-09-12-editor-owned-pptd-save.md)
+and [noninvasive reminders](../../proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md).
+The managed-runtime timing and truncation observations remain accurate, but they
+no longer block design support. This record is retained so the stronger contract
+is not reintroduced without a new artifact release.

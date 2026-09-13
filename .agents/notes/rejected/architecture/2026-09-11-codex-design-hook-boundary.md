@@ -1,6 +1,6 @@
 # Codex design hooks: verified runtime boundary
 
-Status: proposed
+Status: rejected
 Translation: pending
 
 ## Abstract
@@ -18,7 +18,7 @@ this record and its reproducible probe do not enable a partial production adapte
 This records [Issue #20](https://github.com/LeonEthan/Geon/issues/20), following
 [shared read hooks](2026-09-10-design-sync-hooks.zh.md),
 [Pi's native integration](../../implemented/architecture/2026-09-11-pi-design-hooks.md)
-and [workflow convergence](../simplification/2026-09-11-design-workflow-convergence.zh.md).
+and [workflow convergence](../../proposed/simplification/2026-09-11-design-workflow-convergence.zh.md).
 The existing `DesignSyncService` and `DesignSyncBaseline` remain the only owners
 of successful-read evidence, generation-frozen digest/attempt identity, prewrite
 checks and explicit resubmission. No production code, runtime pin, public contract,
@@ -162,3 +162,13 @@ full `corepack pnpm@10.20.0 check` also passed, including 2,611 CLI tests and
 inherited `ANTHROPIC_*` and `CLAUDE_CODE_USE_*` values without printing them.
 Native acceptance is macOS arm64 only. Linux/Windows, MCP execution, ACP/Electron
 lifecycle, conflict retries and final Codex commits remain unverified.
+
+## Verdict
+
+Status: rejected. The per-model-generation fence this record required was removed
+from the product contract by the approved [editor-owned PPTD save](../../implemented/simplification/2026-09-12-editor-owned-pptd-save.md)
+and [noninvasive reminders](../../proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md)
+decision. The native runtime gaps documented here remain accurate runtime evidence,
+but they no longer block a production adapter under the reminder-only design. This
+record is retained to prevent resurrecting the stronger hook contract without a
+new upstream runtime seam.

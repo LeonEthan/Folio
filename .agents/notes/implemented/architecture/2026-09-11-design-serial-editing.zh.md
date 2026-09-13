@@ -1,15 +1,17 @@
 # 同一作品的人工与 Agent 串行编辑
 
-Status: proposed
-Translation: pending
+Status: implemented
+Translation: current
+
+[English](2026-09-11-design-serial-editing.md)
 
 ## 摘要
 
-此前方案允许 Agent 创作期间继续手工编辑同一画布，需要把人机冲突作为常规用户流程。现按已确认方向改为串行编辑：派发前保存手工修改，所属画布只读至 Agent 执行和产物处理结束，再恢复编辑。应用复用 Lody 的执行状态并控制通用画布只读能力，Bento 不接入 Agent 生命周期；反向同步与版本保护保留，文件冲突由 Agent 处理。代价是用户不能在同一作品生成期间手工改稿；其他作品仍可编辑。本次只更新方案，运行时尚未实现，已有冲突另存暂留为非正常并发的保稿手段。
+此前方案允许 Agent 创作期间继续手工编辑同一画布，需要把人机冲突作为常规用户流程。现按已确认方向改为串行编辑：派发前保存手工修改，所属画布只读至 Agent 执行和产物处理结束，再恢复编辑。应用复用 Lody 的执行状态并控制通用画布只读能力，Bento 不接入 Agent 生命周期；反向同步与版本保护保留，文件冲突由 Agent 处理。代价是用户不能在同一作品生成期间手工改稿；其他作品仍可编辑。已有冲突另存暂留为非正常并发的保稿手段。（事实更正：串行编辑边界随后由 T02 实现，见文末 Outcome；原文“运行时尚未实现”为方案阶段状态。）
 
 ## 取代的约定
 
-本决定取代[主计划](../../implemented/architecture/2026-09-09-graphic-design-platform.zh.md)、[读取同步](2026-09-10-design-sync-hooks.zh.md)及[实时预览](2026-09-11-pptd-live-preview.zh.md)中允许人机同时修改同一稿的目标。产品合同更新到 [Spec](../../../../specs/graphic-design-platform.zh.md)，P1/P2 历史实施记录保留。它补充[范围复核](../simplification/2026-09-11-design-result-feedback.zh.md)，不恢复结果卡或专用缩略图。
+本决定取代[主计划](2026-09-09-graphic-design-platform.zh.md)、[读取同步](../../rejected/architecture/2026-09-10-design-sync-hooks.zh.md)及[实时预览](2026-09-11-pptd-live-preview.zh.md)中允许人机同时修改同一稿的目标。产品合同更新到 [Spec](../../../../specs/graphic-design-platform.zh.md)，P1/P2 历史实施记录保留。它补充[范围复核](../../proposed/simplification/2026-09-11-design-result-feedback.zh.md)，不恢复结果卡或专用缩略图。
 
 ## 最小执行边界
 
@@ -44,7 +46,7 @@ Translation: pending
 | 当前稿与创作预览 | 保留两个来源。运行期间两者都只读，前者已保存、后者未提交；可切换查看 |
 | Agent 渲染预览和读图 | 保留，不依赖用户画布是否可编辑 |
 
-2026-09-11 后续[整体收敛](../simplification/2026-09-11-design-workflow-convergence.zh.md)进一步删除候选流程和临时预览元素引用需求；这不改变只读生命周期，手工保存异常另存也不在本轮删除。
+2026-09-11 后续[整体收敛](../../proposed/simplification/2026-09-11-design-workflow-convergence.zh.md)进一步删除候选流程和临时预览元素引用需求；这不改变只读生命周期，手工保存异常另存也不在本轮删除。
 
 ## 实施与验收
 
@@ -53,3 +55,7 @@ P3.0e 承接串行边界；P3.1 仍实施反向转换与 hooks，P3.7 实施实�
 验收使用现有确定性设施，覆盖：派发前保存失败/在途保存/组合输入；文字、属性、拖拽、撤销等入口；多实例和另一作品不受影响；权限等待、取消、失败、提交失败；断连重开、迟到结束、后续回合；导入不能绕过只读；旧候选内容保持可读；异常外部修改仍被版本检查拒绝，且未保存内容保留。运行中可看预览并让 Agent 读图，结果处理后恢复编辑。若发现异常脏状态，保留内容并报错，不通过重载清空。
 
 本次不运行产品测试或模型调用，不宣称已解决现有运行时竞态。仅进行文档一致性、链接、大小和公开边界检查；Spec 保持 draft，阶段和本决定保持 proposed。
+
+## Outcome / 结局
+
+**更正**：本文末尾原先称“运行时尚未实现”“阶段和本决定保持 proposed”，该事实已被后续实现更正。T02 已实现本记录的串行编辑边界，证据见[画布保存握手与执行期间只读](2026-09-11-canvas-serial-execution.zh.md)及源码 `apps/cli/src/design/canvas-host.ts`、`apps/electron/src/main/services/design-canvas-access.ts`。原文其余设计约束、边界取舍与历史上下文保留，不删除。

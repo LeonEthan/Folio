@@ -1,6 +1,6 @@
 # Pi tools through the existing Geon MCP host
 
-Status: proposed
+Status: implemented
 Translation: pending
 
 ## Abstract
@@ -87,3 +87,13 @@ entry’s image gates were exercised. Both probes close the original ACP stdin a
 await its exit, clean the launch shim and close their hosts. No Electron or paid
 service runs. Evidence remains outside Git under `folio-pi-mcp-native-*` in the
 system temporary directory.
+
+## Outcome and evidence
+
+Status: implemented. The Pi MCP extension is committed in
+`apps/cli/src/design/pi-mcp-extension.ts` with tests in
+`apps/cli/src/design/pi-mcp-extension.test.ts`. It registers the allowed
+image/render tools through Pi's public extension API, reuses the existing MCP SDK
+and daemon HTTP host, and propagates native cancellation. Source tests and
+isolated native Pi/ACP transport probes pass. Installed image-service
+generation/editing and actual paid image reading remain separate unverified items.

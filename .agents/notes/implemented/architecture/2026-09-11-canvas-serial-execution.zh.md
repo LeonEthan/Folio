@@ -9,7 +9,7 @@ T02 将同一作品的人工修改与 Agent 执行串行化：已有可见回合
 
 ## 决定与边界
 
-本票实现[串行编辑决定](../../proposed/architecture/2026-09-11-design-serial-editing.zh.md)的 T02 边界，参照 [Spec](../../../../specs/graphic-design-platform.zh.md)；不修改其审批状态、不实施投影 hooks 或工作目录分离。
+本票实现[串行编辑决定](../../implemented/architecture/2026-09-11-design-serial-editing.zh.md)的 T02 边界，参照 [Spec](../../../../specs/graphic-design-platform.zh.md)；不修改其审批状态、不实施投影 hooks 或工作目录分离。
 
 CLI 的 `SessionExecutionService` 已有重复派发拒绝、权限等待、取消、steer 和最终处理。新增 `canvas-host` 是这个拥有者的临时桌面 flush 握手，不另建任务调度或持久锁。主进程沿既有机器本地控制 socket 拉取完整拥有者快照和准备请求；独立于可能耗时的图片渲染，所以慢预览不会阻塞执行状态确认。握手通过共享 `designCanvasSerialEditing` 能力版本确认；没有确认的版本保持只读。
 

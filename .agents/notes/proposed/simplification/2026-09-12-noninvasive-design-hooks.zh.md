@@ -1,7 +1,9 @@
 # 自动保存后的非侵入读取提醒 hook
 
 Status: proposed
-Translation: pending
+Translation: current
+
+[English](2026-09-12-noninvasive-design-hooks.md)
 
 ## 摘要
 
@@ -9,7 +11,7 @@ Translation: pending
 
 ## 已确认的边界
 
-- [人工自动保存](2026-09-12-editor-owned-pptd-save.zh.md)更新当前稿 PPTD 和素材；hook 不负责同步，也不要求 Agent 调用必经同步工具。
+- [人工自动保存](../../implemented/simplification/2026-09-12-editor-owned-pptd-save.zh.md)更新当前稿 PPTD 和素材；hook 不负责同步，也不要求 Agent 调用必经同步工具。
 - 保留薄提醒 hook，规则是：修改已有文件前先读取当前磁盘内容；覆盖整文件前读取完整内容；发生变化或冲突后重新读取并调整；新建文件不要求读取不存在的目标。续改已有作品时还需读取最新当前稿，不能只凭上轮记忆改遗留草稿。
 - 通过实际公开、能把规则送入 Agent 上下文的事件加载提醒，参考 Ponytail 的插件形式。优先复用原生读写检查和现有扩展加载，不增加独立读取台账、generation/attempt 证明服务、Shell 解析器、模型代理或 runtime 补丁。
 - “必须先读”是提醒中的行为要求；提醒本身不证明执行顺序。PreToolUse 触发时写参数通常已经生成；若事件只补上下文而继续执行，不能宣称它强制当前写入先等一次 Read。需要阻断时只能按原生接口的真实拒绝/重试语义说明，不能把提示输出当成阻断。原生支持与 Geon 新接入分别验收。
@@ -52,6 +54,6 @@ Translation: pending
 
 先前建议把同步放在派发前，用户否定；随后恢复读取 hook 同步，并尝试在工具事件上建立读取基线。最新确认改为独立的编辑器自动保存，但明确否定“删除所有 hook”。因此读取同步 hook 和逐次 generation 证明退出目标，先读文件的提醒保留；派发只等待已有保存队列，不新设设计准备流程。
 
-[旧按需同步记录](../architecture/2026-09-10-design-sync-hooks.zh.md)、[Codex](../architecture/2026-09-11-codex-design-hook-boundary.md)、[Kimi](../architecture/2026-09-11-kimi-design-hook-boundary.md)、[Grok](../architecture/2026-09-11-grok-design-hook-runtime-gap.md)保留旧合同与实测失败的历史事实。T18–T20 的新范围需按上述提醒合同重新验收，不能直接把旧阻塞改成完成。既有采集对 generation 证明的依赖也需一起收敛，不能只删写入检查导致最终采集仍永久拒绝。
+[旧按需同步记录](../../rejected/architecture/2026-09-10-design-sync-hooks.zh.md)、[Codex](../../rejected/architecture/2026-09-11-codex-design-hook-boundary.md)、[Kimi](../../rejected/architecture/2026-09-11-kimi-design-hook-boundary.md)、[Grok](../../rejected/architecture/2026-09-11-grok-design-hook-runtime-gap.md)保留旧合同与实测失败的历史事实。T18–T20 的新范围需按上述提醒合同重新验收，不能直接把旧阻塞改成完成。既有采集对 generation 证明的依赖也需一起收敛，不能只删写入检查导致最终采集仍永久拒绝。
 
 本次仅更新方案、阶段计划与规则；未修改运行时代码、发布票据、启用新 hook 或调用真实模型。PPTD 同版本保存、取消/恢复、正式提交与真实图片验收仍需要各自证据。

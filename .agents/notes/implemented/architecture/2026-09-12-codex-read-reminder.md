@@ -18,8 +18,8 @@ creation and process-restart resume; it does not claim enforced read ordering.
 This implements the revised reminder scope of
 [Issue #20](https://github.com/LeonEthan/Folio/issues/20), following the approved
 [noninvasive reminder decision](../../proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md)
-and [editor-owned save decision](../../proposed/simplification/2026-09-12-editor-owned-pptd-save.zh.md).
-The [prior runtime audit](../../proposed/architecture/2026-09-11-codex-design-hook-boundary.md)
+and [editor-owned save decision](../../implemented/simplification/2026-09-12-editor-owned-pptd-save.zh.md).
+The [prior runtime audit](../../rejected/architecture/2026-09-11-codex-design-hook-boundary.md)
 remains valid historical evidence about tool events; its generation-proof blocker
 no longer applies to this revised reminder-only task. This change does not
 implement or certify the separate save/projection and final-collector migration.

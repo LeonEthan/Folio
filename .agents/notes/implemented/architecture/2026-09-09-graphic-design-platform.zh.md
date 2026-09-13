@@ -40,9 +40,9 @@ Folio 将成熟的 Lody coding-agent 工作台与 PPTD + Bento 结合，形成 A
 
 ## Git 设计历史补充（2026-09-12）
 
-用户已确认[Git 版本方案](../../proposed/feature/2026-09-12-design-version-history.zh.md)：自动保存维护当前稿，“存为版本”创建历史节点，版本下拉支持只读查看及从旧版继续编辑。Git 是唯一历史后端，取消自建文件快照库及独立权威版本索引；当前稿保存、原子版本检查、素材完整性和 Agent 草稿保护保留。Git 仓库由 Folio 独立管理，与用户项目仓库隔离；不要求用户理解分支或配置远程，不复用自动提示 Agent commit/push 的流程。
+用户已确认[Git 版本方案](../../implemented/feature/2026-09-12-design-version-history.zh.md)：自动保存维护当前稿，“存为版本”创建历史节点，版本下拉支持只读查看及从旧版继续编辑。Git 是唯一历史后端，取消自建文件快照库及独立权威版本索引；当前稿保存、原子版本检查、素材完整性和 Agent 草稿保护保留。Git 仓库由 Folio 独立管理，与用户项目仓库隔离；不要求用户理解分支或配置远程，不复用自动提示 Agent commit/push 的流程。
 
-此新增范围由 P4.6/P6.6 承接，尚未拆为新 GitHub 票据，不计入既有 T01–T29 的实现/关闭数量，也不改写历史验收。用户另已确认[人工编辑自动更新 PPTD](../../proposed/simplification/2026-09-12-editor-owned-pptd-save.zh.md)，同时要求保留[先读文件提醒 hook](../../proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md)。读取时同步和逐次 generation 证明退出目标；以本修订及 Spec 为准，旧任务完成/失败证据不改写。
+此新增范围由 P4.6/P6.6 承接，尚未拆为新 GitHub 票据，不计入既有 T01–T29 的实现/关闭数量，也不改写历史验收。用户另已确认[人工编辑自动更新 PPTD](../../implemented/simplification/2026-09-12-editor-owned-pptd-save.zh.md)，同时要求保留[先读文件提醒 hook](../../proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md)。读取时同步和逐次 generation 证明退出目标；以本修订及 Spec 为准，旧任务完成/失败证据不改写。
 
 ## 素材库范围裁定（2026-09-10）
 
@@ -54,7 +54,7 @@ Folio 将成熟的 Lody coding-agent 工作台与 PPTD + Bento 结合，形成 A
 
 ## Agent-naive 范围复核（2026-09-10）
 
-本轮按确认的修改方向修订当前方案和 P3–P6；P0–P2 的已实施记录保留历史语义，不作为后续扩大迁移范围的授权。新增的[按需同步与 hook 决策](../../proposed/architecture/2026-09-10-design-sync-hooks.zh.md)负责说明反向转换、文件边界与五种接入的验证要求；产品意图同步到 [Spec](../../../../specs/graphic-design-platform.zh.md)。
+本轮按确认的修改方向修订当前方案和 P3–P6；P0–P2 的已实施记录保留历史语义，不作为后续扩大迁移范围的授权。新增的[按需同步与 hook 决策](../../rejected/architecture/2026-09-10-design-sync-hooks.zh.md)负责说明反向转换、文件边界与五种接入的验证要求；产品意图同步到 [Spec](../../../../specs/graphic-design-platform.zh.md)。
 
 核心边界是 Lody 管理 Agent、Bento 独立编辑渲染、设计服务管理转换与存储，Agent 自主创作。画布编辑不驱动 PPTD 回写；Agent 读取触发一致快照与同步，受控写入核对读取基线，最终提交仍独立核对版本。hook 只执行数据完整性前置条件，不强制创作顺序或语义审查。
 
@@ -62,7 +62,7 @@ Folio 将成熟的 Lody coding-agent 工作台与 PPTD + Bento 结合，形成 A
 
 ## 文件实时预览补充（2026-09-11）
 
-确认增加 Agent/外部编辑器实际文件变化驱动的 PPTD → BentoDoc 实时预览，按打开的消费者共享订阅，复用既有 intake/importer 和 Bento 渲染。文件变化只触发读取和展示，不提交当前稿、不判断回合完成、不改变 Agent 草稿基线；详细源码依据、快照限制和失败行为见[实时预览决策](../../proposed/architecture/2026-09-11-pptd-live-preview.zh.md)。
+确认增加 Agent/外部编辑器实际文件变化驱动的 PPTD → BentoDoc 实时预览，按打开的消费者共享订阅，复用既有 intake/importer 和 Bento 渲染。文件变化只触发读取和展示，不提交当前稿、不判断回合完成、不改变 Agent 草稿基线；详细源码依据、快照限制和失败行为见[实时预览决策](../../implemented/architecture/2026-09-11-pptd-live-preview.zh.md)。
 
 用户确认首期创作预览只读：运行中观看，正式提交后恢复当前稿编辑与元素引用；没有运行回合或待完成处理时，外部 PPTD 的所见快照可直接显式导入。当前稿在执行及处理期间也只读，切换视图不改变读取 hook 的对象或解除只读；不新增临时预览元素引用。应用投影不进入创作监听/产物采集，预览不触发提交循环。
 
@@ -70,7 +70,7 @@ Folio 将成熟的 Lody coding-agent 工作台与 PPTD + Bento 结合，形成 A
 
 ## 串行编辑修订（2026-09-11）
 
-已确认以“派发前保存 → 所属画布只读 → Agent 执行及产物处理 → 恢复编辑”取代人机同时修改同一稿。应用通过通用只读属性及人工写入入口检查实施，Bento 不感知 Agent；复用 Lody 状态而不新增调度器。反向同步、版本检查与草稿保留继续需要，版本冲突由 Agent 处理；已实现的手工冲突另存仅暂留异常保稿。完整边界见[串行编辑决策](../../proposed/architecture/2026-09-11-design-serial-editing.zh.md)，P1/P2 历史描述不恢复并行编辑目标。
+已确认以“派发前保存 → 所属画布只读 → Agent 执行及产物处理 → 恢复编辑”取代人机同时修改同一稿。应用通过通用只读属性及人工写入入口检查实施，Bento 不感知 Agent；复用 Lody 状态而不新增调度器。反向同步、版本检查与草稿保留继续需要，版本冲突由 Agent 处理；已实现的手工冲突另存仅暂留异常保稿。完整边界见[串行编辑决策](../../implemented/architecture/2026-09-11-design-serial-editing.zh.md)，P1/P2 历史描述不恢复并行编辑目标。
 
 ## 整体审查收敛（2026-09-11）
 
@@ -241,7 +241,7 @@ P0–P2 是第一个可演示闭环，P3–P4 构成可日常使用的测试版�
 
 **2026-09-12 当前目标修订**：P3.1b/P3.1c/P3.3 按自动保存与提醒合同收敛；下方历史切片和已完成记录中的“读取同步”“generation/attempt 证明”说明旧范围。后续执行应重列替换工作与验收，不能继续按旧范围补 runtime，也不能直接将 T18–T20 标为完成。保留草稿、CAS、真实执行失败/取消与来源隔离。
 
-P3.1 负责双向转换、保存时更新 PPTD 和先读提醒，P3.7 复用正向转换提供实时结果与直接导入，P3.3/P3.4 将旧候选流程收敛为文件冲突和继续。职责见[同步](../../proposed/architecture/2026-09-10-design-sync-hooks.zh.md)、[预览](../../proposed/architecture/2026-09-11-pptd-live-preview.zh.md)和[最终范围决定](../../proposed/simplification/2026-09-11-design-workflow-convergence.zh.md)。文件来源合同对齐后，转换、预览与各接入可分别推进；不迁入上游编排服务。
+P3.1 负责双向转换、保存时更新 PPTD 和先读提醒，P3.7 复用正向转换提供实时结果与直接导入，P3.3/P3.4 将旧候选流程收敛为文件冲突和继续。职责见[同步](../../rejected/architecture/2026-09-10-design-sync-hooks.zh.md)、[预览](../../implemented/architecture/2026-09-11-pptd-live-preview.zh.md)和[最终范围决定](../../proposed/simplification/2026-09-11-design-workflow-convergence.zh.md)。文件来源合同对齐后，转换、预览与各接入可分别推进；不迁入上游编排服务。
 
 **工作项**
 
@@ -385,8 +385,8 @@ P2-A3 已列为 T10，在参考图完整旅程前完成。非 PNG 分析副本�
 | T18 Codex 提醒 | `7df62fa`：公开 UserPromptSubmit 在模型请求前及恢复时送达，保留用户配置/信任；[原生证据](../../implemented/architecture/2026-09-12-codex-read-reminder.md) | bb7a424c 安装包的公开提醒、人工当前稿读取、草稿写入与提交回执通过独立证据核对；整轮辅助请求失败及仅保留基线前缀的限制仍保留，不代表强制先读顺序 |
 | T19 Kimi 提醒 | `4ca6795`：[原生事件可用，但缺会话级加载入口](../../proposed/architecture/2026-09-12-kimi-read-reminder-loading.md) | [最小公开插件已准备并隔离验证](../../proposed/architecture/2026-09-12-kimi-reminder-plugin.md)，bb7a424c 安装包的隔离插件/当前稿读写/提交组合已通过；实际用户登记属自愿启用的配置操作，经用户批准后已于 2026-09-12 在真实 Kimi home 完成（见插件笔记），对新启动的 Kimi 进程生效；不作为该已验证组合的技术阻塞；未改 runtime |
 | T20 Grok 提醒与停止 | 主线 `e86a92a`：公开 session plugin + 原生 reload，实际首轮/恢复送达；[证据](../../implemented/architecture/2026-09-12-grok-read-reminder.md)，组合完整检查已通过 | 提醒到达当前工具之后的下一模型请求，不能保证已生成的写入先等 Read。用户已确认 Stop 完整关闭会话执行、后台及子任务，下一条显式消息恢复；bb7a424c 的公开关闭、HTTP 关闭、显式恢复/读取已补证；567741b 的提醒及当前稿读写/提交通过独立核对。原失败、辅助请求造成的整轮脚本失败及未执行的最终画布检查仍保留，详见安装包矩阵 |
-| T28 Pi 图像 MCP | `eccd540`：公开 Pi extension 复用现有三项图像/渲染工具，真实 HTTP/stdio 合成主机的目录、调用、取消与清理通过；[记录](../../proposed/architecture/2026-09-12-pi-geon-mcp-extension.md) | Pi 安装包的目录、调用、读图和取消回归已补证；真实 AruHub 调用及 Kimi 读图属于独立组合，不宣称五家逐一执行付费测试 |
-| P4.6 Git 版本 / P6.6 验收 | `c683038` 实现[独立 Git 历史](../../proposed/feature/2026-09-12-design-version-history.zh.md)，五项 Git 测试通过；`50ddd41` 正常安装包的版本 UI、自动 PPTD、多实例门禁和受控外部写 CAS 补验通过 | 567741b 的真实四素材海报、12 图长图保存/版本/导出及同 profile 重启、复制 profile 独立重开已通过；用户已确认该副本六项视觉/编辑检查可接受，更广范围验收仍按完整旅程记录保留；此新增功能不计入旧 29 票完成数 |
+| T28 Pi 图像 MCP | `eccd540`：公开 Pi extension 复用现有三项图像/渲染工具，真实 HTTP/stdio 合成主机的目录、调用、取消与清理通过；[记录](../../implemented/architecture/2026-09-12-pi-geon-mcp-extension.md) | Pi 安装包的目录、调用、读图和取消回归已补证；真实 AruHub 调用及 Kimi 读图属于独立组合，不宣称五家逐一执行付费测试 |
+| P4.6 Git 版本 / P6.6 验收 | `c683038` 实现[独立 Git 历史](../../implemented/feature/2026-09-12-design-version-history.zh.md)，五项 Git 测试通过；`50ddd41` 正常安装包的版本 UI、自动 PPTD、多实例门禁和受控外部写 CAS 补验通过 | 567741b 的真实四素材海报、12 图长图保存/版本/导出及同 profile 重启、复制 profile 独立重开已通过；用户已确认该副本六项视觉/编辑检查可接受，更广范围验收仍按完整旅程记录保留；此新增功能不计入旧 29 票完成数 |
 
 `c683038` 组合完整检查通过（CLI 2671、组件 3288 项测试），格式、文档和边界检查通过。
 独立 Git/UI/自动回写轮为 `/tmp/folio-history-ui-3hA6WO/result.json`，没有模型调用；
@@ -434,9 +434,9 @@ Pi/Claude 六路径为 `/tmp/folio-t05-new-contract-NSbuQU/result.json`，记录
 
 [安装包 Agent 矩阵](../testing/2026-09-11-installed-five-agent-matrix.md)记录实际版本与路径及各轮范围：Claude 的参考图、技能、权限和设计提交旅程已有通过证据；早期 Pi 原生操作及扩展权限轮次的退出清理失败继续保留。`dcc3c975` 正常包上的原 Pi cold/resubmit 和独立零 Bento worker 退出轮次均通过实际执行与清理检查，但未重复完整恢复旅程，不据此关闭 T28/T29。Codex/Kimi/Grok 的设计 hook 仍受下述运行时缺口阻塞，Grok 的参考附件输入已有 `5b21c6a` 诊断证据，独立 PNG 读图及文字读取、写入权限已在 `81d54b6` 正常包通过，底层模型连接取消仍有失败，其他能力必须逐项执行，不能由发现或认证准备推断。[完整设计验收记录](../testing/2026-09-11-complete-design-acceptance.md)继续按原产品身份汇总三场景、实测与剩余缺口；人工视觉和编辑体验尚无通过结论，未公开发布或执行 Developer ID 签名、公证。
 
-T18 的[原生 Codex 审查](../../proposed/architecture/2026-09-11-codex-design-hook-boundary.md)确认当前 CLI 0.153.4 / ACP 1.10.0 缺少可等待的生成前边界，交互式 Shell 续写与成功结果信息也存在覆盖缺口。该项为 BLOCKED，未接入生产 hook，未计入上述完成数；需要运行时提供所需边界后继续验证，不能以部分工具事件冒充完整合同。
+T18 的[原生 Codex 审查](../../rejected/architecture/2026-09-11-codex-design-hook-boundary.md)确认当前 CLI 0.153.4 / ACP 1.10.0 缺少可等待的生成前边界，交互式 Shell 续写与成功结果信息也存在覆盖缺口。该项为 BLOCKED，未接入生产 hook，未计入上述完成数；需要运行时提供所需边界后继续验证，不能以部分工具事件冒充完整合同。
 
-T19 的 [Kimi 托管运行时审查](../../proposed/architecture/2026-09-11-kimi-design-hook-boundary.md)与 T20 的 [Grok Build 原生审查](../../proposed/architecture/2026-09-11-grok-design-hook-runtime-gap.md)也已完成能力核对并保留为 BLOCKED。Kimi 的读取结果截断、通知时序及失败放行语义，Grok 的生成边界缺失及 SDK 通知语义，均不能满足当前完整读写合同；Grok 文件后置 hook 可等待，不能与 SDK 通知混为一谈。对应证据不计为接入完成，未启用两者的生产设计 hook，也未削减后续真实创作/冲突/重提交验收。
+T19 的 [Kimi 托管运行时审查](../../rejected/architecture/2026-09-11-kimi-design-hook-boundary.md)与 T20 的 [Grok Build 原生审查](../../rejected/architecture/2026-09-11-grok-design-hook-runtime-gap.md)也已完成能力核对并保留为 BLOCKED。Kimi 的读取结果截断、通知时序及失败放行语义，Grok 的生成边界缺失及 SDK 通知语义，均不能满足当前完整读写合同；Grok 文件后置 hook 可等待，不能与 SDK 通知混为一谈。对应证据不计为接入完成，未启用两者的生产设计 hook，也未削减后续真实创作/冲突/重提交验收。
 
 此前二十三项组合（以 `c3ec872` 为基线，合入 T21 源 `01ac4f9` 及 T22/T28/T29 验收准备）已通过完整 `pnpm check`、格式、文档及独立 E2E 检查，包括类型、lint、测试及公开/平台边界检查；另通过实际 Electron 构建与桌面烟测，3 个场景、18 个步骤及退出清理均通过，外部 ACP 为合成服务。联合检查修正了验收测量脚本的七处变量遮蔽，不改变测量逻辑；当时测量仍待安装包实测。`d37ebf8` 的验收工具另通过同类全量检查、构建及 3 场景/18 步烟测。T12 集成时冻结依赖安装通过。这些检查不替代最终安装包、五种 Agent 或人工完整旅程验收。前一批联合检查修正了新增 Electron 多实例探针的两处变量遮蔽；该修正不改变探针行为。T07 集成保留了 onboarding 与普通文件回执两组翻译键；T05 合并保留了历史文件入口和 T08 已删除缩略图的采集流程。T14/T25 集成保留预览与当前画稿入口，并将合并后的规则控制在既定文件大小内，不删除权限隔离、关闭保存或历史 worktree 保护。T08 真实读图证据与其主分支集成的运行时代码一致，仅根计划进度不同；其他单项真实运行证据仍限于各自记录的源码组合，不据此宣称最终安装包或全部 Agent 已验收。
 

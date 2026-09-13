@@ -1,7 +1,9 @@
 # 设计迁移范围复核与结果卡退役
 
 Status: proposed
-Translation: pending
+Translation: current
+
+[English](2026-09-11-design-result-feedback.md)
 
 ## 摘要
 
@@ -59,7 +61,7 @@ Translation: pending
 
 ## P0–P6 复核与处置
 
-2026-09-12 修订：原读取同步 hook 改为[人工保存自动回写](2026-09-12-editor-owned-pptd-save.zh.md)，同时保留[先读文件提醒 hook](2026-09-12-noninvasive-design-hooks.zh.md)；不建立逐次模型生成证明或修改 runtime。下表旧名称依此理解，历史实现不改写。
+2026-09-12 修订：原读取同步 hook 改为[人工保存自动回写](../../implemented/simplification/2026-09-12-editor-owned-pptd-save.zh.md)，同时保留[先读文件提醒 hook](2026-09-12-noninvasive-design-hooks.zh.md)；不建立逐次模型生成证明或修改 runtime。下表旧名称依此理解，历史实现不改写。
 
 来源项目本次核对版本为 `7fd3c06`。以下区分已决定删减、建议待裁定和保留理由；这是产品范围审查，不把冗余称为 P0/P1 运行时缺陷，也不以“已完成”豁免范围审查。
 
@@ -80,7 +82,7 @@ Translation: pending
 
 ## 退役边界及设计原则来源
 
-2026-09-12 范围更新：用户已确认[Git 设计版本](../feature/2026-09-12-design-version-history.zh.md)，取代本记录此前排除所有历史版本的范围。只增加人工存版本、历史查看和从旧版编辑；Git 是唯一历史后端，自建文件快照库不实施。结果卡、历史缩略图、候选审批和跨作品素材库仍保持退役，原 P0–P2 历史判断不改写。
+2026-09-12 范围更新：用户已确认[Git 设计版本](../../implemented/feature/2026-09-12-design-version-history.zh.md)，取代本记录此前排除所有历史版本的范围。只增加人工存版本、历史查看和从旧版编辑；Git 是唯一历史后端，自建文件快照库不实施。结果卡、历史缩略图、候选审批和跨作品素材库仍保持退役，原 P0–P2 历史判断不改写。
 
 Agent 看图与结果卡分属不同消费者：[skill 的 Review 用法](../../../../packages/design-authoring/skills/graphic-design/SKILL.md)调用 `geon_render_preview` 后用可用图片工具打开 PNG；[thumbnail.ts](https://github.com/LeonEthan/Geon/blob/baed947b6f16263cb6a2f8f37e10f1695d146fe0/apps/cli/src/design/thumbnail.ts)则在产物已分类后生成给 UI 的小图。删除后仍需保留工具注册、预览队列/宿主和读图用法；渲染成功、模型说看过和成功读取图片是不同事实。旧内容预览按需复用渲染，不建立候选面板或持久缩略图服务。
 
@@ -90,7 +92,7 @@ P3.0 删除范围必须贯穿卡片挂载、专用修复动作、采集缩略图
 
 文档更新覆盖根规则、Spec、阶段计划、相关同步/预览决策与概念图说明。产品代码及 runtime skill 本次不改；后续实施仍需按 P3.0/P3.6 验证，不能将本文档检查当成产品验收。
 
-2026-09-11 后续决定：[串行编辑](../architecture/2026-09-11-design-serial-editing.zh.md)已确认 Agent 执行及结果处理期间所属 Bento 画布禁止人工修改，取代人机并行编辑目标。读取同步、最终版本校验与草稿保留；后续收敛删除候选工作流，手工冲突另存暂作异常保稿，不因只读而假定所有外部竞争消失。运行时尚未修改。
+2026-09-11 后续决定：[串行编辑](../../implemented/architecture/2026-09-11-design-serial-editing.zh.md)已确认 Agent 执行及结果处理期间所属 Bento 画布禁止人工修改，取代人机并行编辑目标。读取同步、最终版本校验与草稿保留；后续收敛删除候选工作流，手工冲突另存暂作异常保稿，不因只读而假定所有外部竞争消失。运行时尚未修改。
 
 ## Lody 常规能力复核（2026-09-11）
 

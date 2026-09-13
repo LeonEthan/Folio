@@ -1,7 +1,9 @@
 # PPTD 文件变化驱动的实时预览
 
-Status: proposed
-Translation: pending
+Status: implemented
+Translation: current
+
+[English](2026-09-11-pptd-live-preview.md)
 
 ## 摘要
 
@@ -9,7 +11,7 @@ Translation: pending
 
 ## 结论与既有方案的关系
 
-方向合理，可纳入 P3；本次只修订设计文档和阶段计划，没有运行时代码实现。它补充[同步与 hook 决策](2026-09-10-design-sync-hooks.zh.md)，不替代读取基线、草稿隔离或 canonical 原子提交。产品合同由 [Spec](../../../../specs/graphic-design-platform.zh.md)表达，工作拆分见[阶段计划](../../implemented/architecture/2026-09-09-graphic-design-platform.zh.md)。
+方向合理，可纳入 P3；本次只修订设计文档和阶段计划，没有运行时代码实现。它补充[同步与 hook 决策](../../rejected/architecture/2026-09-10-design-sync-hooks.zh.md)，不替代读取基线、草稿隔离或 canonical 原子提交。产品合同由 [Spec](../../../../specs/graphic-design-platform.zh.md)表达，工作拆分见[阶段计划](2026-09-09-graphic-design-platform.zh.md)。
 
 | 边界 | 唯一职责 |
 | --- | --- |
@@ -52,7 +54,7 @@ Translation: pending
 
 ## 已确认的 UI 和直接导入边界
 
-本节结合[串行编辑](2026-09-11-design-serial-editing.zh.md)与[整体收敛](../simplification/2026-09-11-design-workflow-convergence.zh.md)修订；旧的候选创建/采用流程不再是实现目标，运行时代码尚未改变。
+本节结合[串行编辑](2026-09-11-design-serial-editing.zh.md)与[整体收敛](../../proposed/simplification/2026-09-11-design-workflow-convergence.zh.md)修订；旧的候选创建/采用流程不再是实现目标，运行时代码尚未改变。
 
 - 在既有画布区域区分“已保存当前稿”与“创作中只读结果”，不另建预览管理页面或另一套编辑器。只在来源可核实时标注 Agent/外部编辑，不根据文件事件猜作者。切换保留当前稿编辑实例、未保存内容与撤销状态。
 - 执行及产物处理期间允许观看、缩放、切换和取消，所属所有实例禁止人工变更及导入；其他作品不受影响。首期不扩运行中引用临时预览的交互，正式提交后再选中当前稿元素继续修改。只读不等于禁止 Agent 自身读图或处理文件。
@@ -79,4 +81,8 @@ P3.7 实现按需订阅、稳定字节采集、转换调度、只读呈现和外
 
 提交前验证：`corepack pnpm format`、`corepack pnpm typecheck` 和 `corepack pnpm check:quick` 通过；格式化产生的无关测试文件差异已还原。遵照本轮不运行产品测试的要求，未执行含测试的完整 `pnpm check`，也未进行实际预览/监听验收。
 
-2026-09-11 范围复核补充：通用结果卡和逐轮缩略图的退役不影响本链路，也不影响 Agent 主动渲染与读图。候选工作流已由整体收敛决定退役，本链路直接复用原子保存；不建设候选面板或持久预览历史。P2.7 #2b 的旧文件自动候选已确认按 P3.0d 删除；该删除无需等待本预览链上线，旧文件及已有候选保留。本方案承接显式文件预览/导入，尚未实现。见[迁移范围审查](../simplification/2026-09-11-design-result-feedback.zh.md)。
+2026-09-11 范围复核补充：通用结果卡和逐轮缩略图的退役不影响本链路，也不影响 Agent 主动渲染与读图。候选工作流已由整体收敛决定退役，本链路直接复用原子保存；不建设候选面板或持久预览历史。P2.7 #2b 的旧文件自动候选已确认按 P3.0d 删除；该删除无需等待本预览链上线，旧文件及已有候选保留。本方案承接显式文件预览/导入，尚未实现。见[迁移范围审查](../../proposed/simplification/2026-09-11-design-result-feedback.zh.md)。
+
+## Outcome / 结局
+
+**更正**：本文多处称“没有运行时代码实现”“持续预览本身尚未实现”“本方案承接显式文件预览/导入，尚未实现”，该事实已被后续实现更正。实时预览及显式导入已分别由 [automatic PPTD preview](../feature/2026-09-11-automatic-pptd-preview.md)、[manual PPTD preview](../feature/2026-09-11-manual-pptd-preview.md) 与 [direct preview import](../feature/2026-09-11-direct-preview-import.md) 实现，并接入画布版本 UI。原文其余设计约束与源码复用边界保留，不删除。

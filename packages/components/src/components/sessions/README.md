@@ -141,4 +141,4 @@ the service preserves unversioned current content in the same Git history first.
 Version mutations use the existing execution/processing gate, and history cannot supply
 current-artwork selections or enter the external-file import path. Git errors remain
 visible without replacing the current editor. See the
-[implementation and acceptance limits](../../../../../.agents/notes/proposed/feature/2026-09-12-design-version-history.zh.md).
+[implementation and acceptance limits](../../../../../.agents/notes/implemented/feature/2026-09-12-design-version-history.zh.md).

@@ -199,7 +199,7 @@ it uses the existing bundled stdio MCP entry with the same owned Session context
 HTTP calls have independent SDK connections so aborting one closes its request
 without interrupting another; the stdio client uses ordinary MCP cancellation. Image configuration/model and render-host availability remain the daemon's
 gates. Installed Pi validation is pending; see the
-[implementation record](../../../../.agents/notes/proposed/architecture/2026-09-12-pi-geon-mcp-extension.md).
+[implementation record](../../../../.agents/notes/implemented/architecture/2026-09-12-pi-geon-mcp-extension.md).
 
 ## Design history
 
@@ -216,4 +216,4 @@ the normal store save/CAS and current-PPTD publication. A failed protective writ
 cannot replace the current artwork; a canonical save followed by projection or
 canvas-reload failure remains a saved state with a recovery error. User repositories,
 branches, index, global configuration and remote operations are not involved.
-See the [decision and acceptance limits](../../../../.agents/notes/proposed/feature/2026-09-12-design-version-history.zh.md).
+See the [decision and acceptance limits](../../../../.agents/notes/implemented/feature/2026-09-12-design-version-history.zh.md).

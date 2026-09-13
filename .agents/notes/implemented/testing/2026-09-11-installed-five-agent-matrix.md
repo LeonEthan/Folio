@@ -23,9 +23,9 @@ This is the package-combination follow-up to
 The [Spec](../../../../specs/graphic-design-platform.zh.md) and
 [scope review](../../proposed/simplification/2026-09-11-design-result-feedback.zh.md) retain
 the latest [automatic-save/reminder target](../../proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md). Earlier runtime-specific hook evidence remains owned by
-[Codex](../../proposed/architecture/2026-09-11-codex-design-hook-boundary.md),
-[Kimi](../../proposed/architecture/2026-09-11-kimi-design-hook-boundary.md), and
-[Grok](../../proposed/architecture/2026-09-11-grok-design-hook-runtime-gap.md).
+[Codex](../../rejected/architecture/2026-09-11-codex-design-hook-boundary.md),
+[Kimi](../../rejected/architecture/2026-09-11-kimi-design-hook-boundary.md), and
+[Grok](../../rejected/architecture/2026-09-11-grok-design-hook-runtime-gap.md).
 
 The Issue was freshly read with its body, comments and state on 2026-09-11; it
 was open with no comments. Its seven criteria are retained:

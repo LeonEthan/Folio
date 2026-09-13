@@ -15,7 +15,7 @@ shell/custom tools; explicit conflict resubmission remains a separate slice.
 
 ## Ownership and decision
 
-This implements the Pi slice of [read hooks](../../proposed/architecture/2026-09-10-design-sync-hooks.zh.md)
+This implements the Pi slice of [read hooks](../../rejected/architecture/2026-09-10-design-sync-hooks.zh.md)
 on top of [serial editing](2026-09-11-canvas-serial-execution.zh.md),
 [trusted workspace paths](2026-09-11-design-workspace-paths.md) and
 [lossless PPTD projection](2026-09-11-pptd-editable-roundtrip.zh.md).

@@ -35,8 +35,8 @@ The initial outcome below records the earlier gap, before this installed evidenc
 ## Revised responsibility
 
 This follows the approved [noninvasive hook decision](../simplification/2026-09-12-noninvasive-design-hooks.zh.md)
-and [editor-owned PPTD save decision](../simplification/2026-09-12-editor-owned-pptd-save.zh.md).
-The [earlier native audit](2026-09-11-kimi-design-hook-boundary.md) remains evidence
+and [editor-owned PPTD save decision](../../implemented/simplification/2026-09-12-editor-owned-pptd-save.zh.md).
+The [earlier native audit](../../rejected/architecture/2026-09-11-kimi-design-hook-boundary.md) remains evidence
 about runtime behavior, but its complete-read/generation requirements have been
 superseded. Its recommendation to require a runtime release for those proofs is
 not the current plan. This note does not implement editor-owned saves or change
