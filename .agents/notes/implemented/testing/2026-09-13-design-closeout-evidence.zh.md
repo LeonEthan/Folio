@@ -78,3 +78,8 @@ Claude 与 Pi 的修订合约成功/失败/取消继续，复用五 Agent owning
 ### 干净检出中的文档证据链接
 
 PR 静态检查发现此前停止追踪 output 后，14 处历史证据本地链接在干净 CI 检出中失效。本地未追踪文件掩盖了该问题。将这些链接指向删除前、已发布的固定提交 `8bac4b433a3c7ac38ddd5be14b315363c75a8f92`，逐项用 Git 对象确认目标存在；不重新追踪生成产物、不改变历史验收结论或 Spec 的批准含义。以源码归档和精确固定的四个 submodule Git 对象重建干净递归检出后，docs check 通过；同时通过 PR base 检查。
+
+
+### Windows 原生测试 Agent 命令
+
+第二轮 Daily `34764016494` 的 macOS/Linux 通过，Windows 引导通过，另外三个场景在测试 Agent 探测失败。截图显示未加引号的 Windows 路径；确定性 round-trip 测试复现反斜杠被产品 POSIX 风格解析器移除。夹具改用已有的 `formatCustomAcpCommandLine`，与实际解析器共享合约，不改变产品解析规则或就绪断言。修复前回归失败，修复后通过；此前引号修复也保持有效。
