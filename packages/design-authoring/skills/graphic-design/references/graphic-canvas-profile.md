@@ -6,7 +6,7 @@ platform's machine-readable Active Profile and its conformance tests.
 
 ## Product boundary
 
-Folio creates and edits one **static visual canvas** through a Bento-derived editor
+Geon creates and edits one **static visual canvas** through a Bento-derived editor
 and renderer. Graphic-PPTD is the Agent-facing authoring format; after a successful
 import, the platform visual document remains the single editable truth. PPTD v3 can
 project its editable state losslessly; the projection and Agent drafts are not a

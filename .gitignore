@@ -9,6 +9,9 @@ dist/
 dist-dev/
 *.tsbuildinfo
 
+# Local working artifacts and review evidence (not part of the source record)
+output/
+
 # Runtime data
 pids
 *.pid

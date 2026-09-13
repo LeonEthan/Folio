@@ -17,7 +17,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { _electron, type CDPSession, type ElectronApplication, type Page } from '@playwright/test';
+import { _electron, expect, type CDPSession, type ElectronApplication, type Page } from '@playwright/test';
 import {
   assertNamedPipeReleased,
   assertTcpPortReleased,
@@ -119,8 +119,8 @@ export class ElectronHarness {
   async launch(): Promise<void> {
     if (this.app || this.tempRoot) throw new Error('Electron harness already owns a launch');
     this.launchTarget = {
-      installedExecutable: process.env.FOLIO_E2E_INSTALLED_EXECUTABLE,
-      expectedSourceCommit: process.env.FOLIO_E2E_EXPECTED_SOURCE_COMMIT,
+      installedExecutable: process.env.GEON_E2E_INSTALLED_EXECUTABLE,
+      expectedSourceCommit: process.env.GEON_E2E_EXPECTED_SOURCE_COMMIT,
     };
     await this.start(false);
   }
@@ -158,7 +158,7 @@ export class ElectronHarness {
     if (!this.launchTarget) throw new Error('Electron launch target is missing');
     const { installedExecutable, expectedSourceCommit } = this.launchTarget;
     if (installedExecutable && !/^[a-f0-9]{40}$/.test(expectedSourceCommit ?? '')) {
-      throw new Error('Installed acceptance requires FOLIO_E2E_EXPECTED_SOURCE_COMMIT (full SHA)');
+      throw new Error('Installed acceptance requires GEON_E2E_EXPECTED_SOURCE_COMMIT (full SHA)');
     }
     if (installedExecutable && !existsSync(installedExecutable)) {
       throw new Error(`Installed Electron executable does not exist: ${installedExecutable}`);
@@ -249,8 +249,8 @@ export class ElectronHarness {
         const manifest: unknown = JSON.parse(
           fs.readFileSync(path.join(app.getAppPath(), 'package.json'), 'utf8')
         );
-        return manifest && typeof manifest === 'object' && 'folioSourceCommit' in manifest
-          ? manifest.folioSourceCommit
+        return manifest && typeof manifest === 'object' && 'geonSourceCommit' in manifest
+          ? manifest.geonSourceCommit
           : null;
       });
       this.record('electron-main', 'installed-source', JSON.stringify({ sourceCommit }));
@@ -448,7 +448,7 @@ export class ElectronHarness {
     }
     phase('directory-cleanup');
     try {
-      const survivors = ownedProcesses.filter(({ pid }) => {
+      const survivors = () => ownedProcesses.filter(({ pid }) => {
         try {
           process.kill(pid, 0);
           return true;
@@ -456,8 +456,15 @@ export class ElectronHarness {
           return (error as NodeJS.ErrnoException).code !== 'ESRCH';
         }
       });
-      if (survivors.length) {
-        phase('surviving-owned-processes', survivors);
+      try {
+        // Electron's root exit precedes descendant teardown on some platforms.
+        // Observe only the captured owned PIDs; never signal unrelated processes.
+        await expect.poll(() => survivors(), {
+          timeout: TEARDOWN_OPERATION_TIMEOUT_MS,
+          message: 'Owned processes must exit before isolated data cleanup',
+        }).toEqual([]);
+      } catch {
+        phase('surviving-owned-processes', survivors());
         throw new Error('Owned processes remain after Electron quit; isolated data retained');
       }
       if (this.tempRoot && !closeError && !preserveData) {

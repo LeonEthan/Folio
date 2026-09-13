@@ -1,4 +1,4 @@
-import lodyLogo from '@/assets/lody-icon.png';
+import lodyLogo from '@/assets/geon-icon.png';
 
 /**
  * Resolve the product-level workspace identity without changing the generic

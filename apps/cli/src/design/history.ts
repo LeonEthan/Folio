@@ -5,7 +5,7 @@ import { lstat, mkdir } from 'node:fs/promises';
 import { devNull } from 'node:os';
 import path from 'node:path';
 import { z } from 'zod';
-import { withDesignLock } from './lock';
+import { withDesignLock, type DesignLockTiming } from './lock';
 import {
   acceptsDesignContent,
   canonicalContentBytes,
@@ -62,10 +62,10 @@ function git(repository: string, args: string[], input?: string | Uint8Array): P
           GIT_CONFIG_NOSYSTEM: '1',
           GIT_CONFIG_GLOBAL: devNull,
           GIT_TERMINAL_PROMPT: '0',
-          GIT_AUTHOR_NAME: 'Folio',
-          GIT_AUTHOR_EMAIL: 'folio@localhost',
-          GIT_COMMITTER_NAME: 'Folio',
-          GIT_COMMITTER_EMAIL: 'folio@localhost',
+          GIT_AUTHOR_NAME: 'Geon',
+          GIT_AUTHOR_EMAIL: 'geon@localhost',
+          GIT_COMMITTER_NAME: 'Geon',
+          GIT_COMMITTER_EMAIL: 'geon@localhost',
         },
       },
       (error, stdout) => {
@@ -171,7 +171,11 @@ async function append(
 }
 
 /** Restore uses canonical CAS after preserving the current content in the same Git history. */
-export async function designHistoryOperation(dataRoot: string, raw: unknown) {
+export async function designHistoryOperation(
+  dataRoot: string,
+  raw: unknown,
+  options: { lock?: DesignLockTiming } = {}
+) {
   const request = designHistoryRequest.parse(raw);
   const current = await designOperation(dataRoot, {
     operation: 'read',
@@ -210,7 +214,14 @@ export async function designHistoryOperation(dataRoot: string, raw: unknown) {
       if (!(error instanceof Error && 'code' in error && error.code === 'EEXIST')) throw error;
       await exists(repository);
     });
-  return withDesignLock(repository, {}, async (assertHeld) => {
+  return withDesignLock(repository, options.lock ?? {}, async (assertHeld) => {
+    // Another instance may restore or save while this operation waits for Git.
+    // Never publish a stale snapshot as a successful current-version save.
+    const lockedCurrent = await designOperation(dataRoot, {
+      operation: 'read',
+      sessionId: request.sessionId,
+    });
+    if (lockedCurrent.revisionId !== current.revisionId) throw Error('DESIGN_CONFLICT');
     if (!(await exists(path.join(repository, 'objects'))))
       await git(repository, ['init', '--bare', '--template=', '--object-format=sha1', repository]);
     if (request.operation === 'history-create')

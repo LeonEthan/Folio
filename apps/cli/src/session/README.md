@@ -204,6 +204,6 @@ the old owner and preparing the new turn; there is no automatic retry or prompt 
 
 Successful closure keeps the ACP process connection available. The next explicit dispatch
 loads the same native session with the existing workdir, current MCP catalog, session metadata
-and Folio reminder reload, then reapplies the normal turn configuration. Stop during that load
+and Geon reminder reload, then reapplies the normal turn configuration. Stop during that load
 waits for restoration to settle and closes it before releasing the canvas. No file rollback,
-runtime patch or OS kill is added. See the [Grok cancellation record](../../../../.agents/notes/proposed/architecture/2026-09-11-grok-design-hook-runtime-gap.md).
+runtime patch or OS kill is added. See the [Grok cancellation record](../../../../.agents/notes/rejected/architecture/2026-09-11-grok-design-hook-runtime-gap.md).

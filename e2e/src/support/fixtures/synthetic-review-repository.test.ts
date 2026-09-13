@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import test from 'node:test';
 import {
   createSyntheticReviewRepository,
@@ -11,6 +12,11 @@ import {
 void test('creates and removes a deterministic dirty review repository', () => {
   const fixture = createSyntheticReviewRepository();
   try {
+    for (const base of ['.claude', '.agents']) {
+      const skill = join(fixture.rootPath, base, 'skills', 'graphic-design');
+      mkdirSync(skill, { recursive: true });
+      writeFileSync(join(skill, 'SKILL.md'), '# Synthetic materialized skill\n');
+    }
     const status = execFileSync('git', ['status', '--short'], {
       cwd: fixture.rootPath,
       encoding: 'utf8',

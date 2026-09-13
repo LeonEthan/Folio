@@ -31,7 +31,7 @@
  *   unverifiable render is refused rather than retried.
  */
 
-import { AuthoringSnapshotError, collectAuthoring, intakeAuthoring } from '@folio/design-authoring';
+import { AuthoringSnapshotError, collectAuthoring, intakeAuthoring } from '@geon/design-authoring';
 import { createHash, randomUUID } from 'node:crypto';
 import { lstat, mkdir, readdir, unlink } from 'node:fs/promises';
 import path from 'node:path';

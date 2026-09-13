@@ -13,7 +13,7 @@ describe('Grok reminder native reload', () => {
             hooks: [
               { sourceDir: '/user/plugin/hooks', event: 'pre_tool_use', disabled: false },
               {
-                sourceDir: path.join('/folio/plugin', 'hooks'),
+                sourceDir: path.join('/geon/plugin', 'hooks'),
                 event: 'pre_tool_use',
                 disabled: false,
               },
@@ -22,7 +22,7 @@ describe('Grok reminder native reload', () => {
         };
       },
       'session',
-      '/folio/plugin'
+      '/geon/plugin'
     );
     expect(methods).toEqual(['x.ai/hooks/action', 'x.ai/hooks/list']);
   });
@@ -31,13 +31,13 @@ describe('Grok reminder native reload', () => {
     [
       [],
       [{ sourceDir: '/user/plugin/hooks', event: 'pre_tool_use', disabled: false }],
-      [{ sourceDir: path.join('/folio/plugin', 'hooks'), event: 'pre_tool_use', disabled: true }],
+      [{ sourceDir: path.join('/geon/plugin', 'hooks'), event: 'pre_tool_use', disabled: true }],
     ].map((hooks) => ({ hooks }))
   )(
     'does not mistake absent, unrelated or disabled hooks for a loaded reminder',
     async ({ hooks }) => {
       await expect(
-        reloadGrokDesignReminder(async () => ({ result: { hooks } }), 'session', '/folio/plugin')
+        reloadGrokDesignReminder(async () => ({ result: { hooks } }), 'session', '/geon/plugin')
       ).rejects.toThrow('was not loaded');
     }
   );

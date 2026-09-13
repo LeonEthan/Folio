@@ -53,6 +53,8 @@ never pushed to renderers as local room health.
 
 ## Sessions and turns
 
+- PTY close is idempotent until native exit; failed close retains its record for explicit retry.
+
 - `session-gc-manager.ts`: `evaluateMemoryPressure` returns TWO verdicts, `evict` and
   `block`, which must not share a threshold. Every probe fails OPEN, and `null`
   (UNDETERMINED) Windows commit growth must never collapse to `0`. Do not let the

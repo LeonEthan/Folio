@@ -198,8 +198,8 @@ async function showUnresponsiveDialog(window: BrowserWindow): Promise<void> {
       buttons: ['Wait', 'Reload window', 'Force quit'],
       defaultId: 0,
       cancelId: 0,
-      title: 'Folio is unresponsive',
-      message: 'Lody is not responding.',
+      title: 'Geon is unresponsive',
+      message: 'Geon is not responding.',
       detail:
         'You can keep waiting, reload the window (your in-progress edits in this window will be lost), or force-quit the app.'
     })
@@ -270,7 +270,7 @@ function attachMainWindowDiagnostics(window: BrowserWindow, recoveryTarget: Relo
     if (details.errorCode === -3) return
     if (isInRecovery(window)) return
     showRecovery({
-      message: 'Lody could not load its window.',
+      message: 'Geon could not load its window.',
       details: formatLoadFailure(details),
       source: 'did-fail-load'
     })
@@ -287,7 +287,7 @@ function attachMainWindowDiagnostics(window: BrowserWindow, recoveryTarget: Relo
     console.error('[Electron] Main window preload failed', { preloadPath, error: formatted })
     if (isInRecovery(window)) return
     showRecovery({
-      message: 'Lody preload script failed to initialize.',
+      message: 'Geon preload script failed to initialize.',
       details: `Preload: ${preloadPath}\n${formatted}`,
       source: 'preload-error'
     })
@@ -310,7 +310,7 @@ function attachMainWindowDiagnostics(window: BrowserWindow, recoveryTarget: Relo
     if (details.reason === 'clean-exit') return
     if (isInRecovery(window)) return
     showRecovery({
-      message: 'The Lody window crashed.',
+      message: 'The Geon window crashed.',
       details: `Reason: ${details.reason}\nExit code: ${details.exitCode}`,
       source: 'render-process-gone'
     })

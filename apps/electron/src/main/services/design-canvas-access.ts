@@ -15,9 +15,10 @@ export class DesignCanvasAccess {
   private readonly permits = new Map<string, string>()
   private readonly writes = new Map<string, Set<Promise<unknown>>>()
   private readonly reported = new Set<string>()
+  private updating = false
 
   isReadonly(id: string): boolean {
-    return !this.known || this.active.has(id) || this.permits.has(id)
+    return this.updating || !this.known || this.active.has(id) || this.permits.has(id)
   }
   isActive(id: string): boolean {
     return this.active.has(id)
@@ -59,6 +60,7 @@ export class DesignCanvasAccess {
     for (const state of states) {
       if (!state.preparing || this.reported.has(state.turnId)) continue
       try {
+        if (this.updating) throw Error('Geon is preparing an update; try again after updating')
         await this.flush(state.artworkId)
         reports.push({ artworkId: state.artworkId, turnId: state.turnId, ok: true })
       } catch (error) {
@@ -95,10 +97,39 @@ export class DesignCanvasAccess {
 
   /** Frontend preflight preserves composer errors; real dispatch repeats this after claiming. */
   async prepareForSend(id: string): Promise<void> {
+    if (this.updating) throw Error('Geon is preparing an update; try again after updating')
     if (this.known && this.isActive(id)) return // Existing queue/steer owns routing.
     if (this.isReadonly(id))
       throw Error('Canvas execution state is unknown or saving; retry when connected')
     await this.flush(id)
+  }
+
+  /** Freeze new edits/dispatch while a verified update is installed; failed installs release it. */
+  async prepareApplicationUpdate(queryState: () => Promise<void>): Promise<() => Promise<void>> {
+    if (this.updating) throw Error('An update installation is already in progress')
+    this.updating = true
+    const release = async () => {
+      this.updating = false
+      await this.refresh()
+    }
+    try {
+      await this.refresh()
+      await queryState()
+      const assertIdle = () => {
+        if (!this.known || this.active.size > 0)
+          throw Error('Wait for Agent execution and design processing to finish before updating')
+      }
+      assertIdle()
+      const ids = new Set([...this.instances].map((instance) => instance.artworkId))
+      for (const id of this.writes.keys()) ids.add(id)
+      for (const id of ids) await this.flush(id)
+      await queryState()
+      assertIdle()
+      return release
+    } catch (error) {
+      await release()
+      throw error
+    }
   }
 
   /** Explicit replacement keeps every editor frozen from flush through save/reload. */
@@ -107,6 +138,7 @@ export class DesignCanvasAccess {
     action: (assertIdle: () => void) => Promise<T>
   ): Promise<T> {
     const assertIdle = () => {
+      if (this.updating) throw Error('Geon is preparing an update; import refused')
       if (!this.known || this.active.has(id))
         throw Error('Canvas execution or artifact processing is active or unknown; import refused')
     }

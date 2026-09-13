@@ -1,7 +1,9 @@
 # 设计工作流收敛与实施边界
 
 Status: proposed
-Translation: pending
+Translation: current
+
+[English](2026-09-11-design-workflow-convergence.md)
 
 ## 摘要
 
@@ -9,7 +11,7 @@ Translation: pending
 
 ## 已确认决定
 
-本记录补充[范围复核](2026-09-11-design-result-feedback.zh.md)，取代其中继续建设最小候选 UI 的目标；同时修订[同步](../architecture/2026-09-10-design-sync-hooks.zh.md)、[预览](../architecture/2026-09-11-pptd-live-preview.zh.md)和[串行编辑](../architecture/2026-09-11-design-serial-editing.zh.md)的相关边界。产品合同以 [Spec](../../../../specs/graphic-design-platform.zh.md) 为准，交付拆分位于[主计划](../../implemented/architecture/2026-09-09-graphic-design-platform.zh.md#下一步实施切片2026-09-11)。本轮范围已确认，实施证据与发布验收仍未完成；不将整份 Spec 自动标为 approved。
+本记录补充[范围复核](2026-09-11-design-result-feedback.zh.md)，取代其中继续建设最小候选 UI 的目标；同时修订[同步](../../rejected/architecture/2026-09-10-design-sync-hooks.zh.md)、[预览](../../implemented/architecture/2026-09-11-pptd-live-preview.zh.md)和[串行编辑](../../implemented/architecture/2026-09-11-design-serial-editing.zh.md)的相关边界。产品合同以 [Spec](../../../../specs/graphic-design-platform.zh.md) 为准，交付拆分位于[主计划](../../implemented/architecture/2026-09-09-graphic-design-platform.zh.md#下一步实施切片2026-09-11)。本轮范围已确认，实施证据与发布验收仍未完成；不将整份 Spec 自动标为 approved。
 
 | 决定 | 最终行为 | 代价与删减 |
 | --- | --- | --- |

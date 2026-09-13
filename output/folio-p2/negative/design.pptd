@@ -1,5 +1,0 @@
-version: v2
-title: Spring Book Sale poster
-size: [800, 600]
-pages:
-  - pages/poster.page

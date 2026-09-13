@@ -1,6 +1,6 @@
 name: Release Electron
 
-# Builds and publishes the public Lody OSS desktop app for macOS, Windows and
+# Builds and publishes the public Folio desktop app for macOS, Windows and
 # Linux. Windows/Linux in-app updates use electron-updater metadata (latest*.yml).
 # macOS updates use Sparkle appcast.xml produced after packaging.
 #
@@ -95,7 +95,7 @@ jobs:
           fi
 
           echo "LODY_OSS_RELEASE_VERSION=${version}" >> "$GITHUB_ENV"
-          echo "Packaging Lody OSS ${version}"
+          echo "Packaging Folio ${version}"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -238,7 +238,7 @@ jobs:
       - name: Upload release assets
         uses: actions/upload-artifact@v4
         with:
-          name: lody-oss-release-${{ matrix.target }}
+          name: geon-release-${{ matrix.target }}
           path: release-assets/*
           if-no-files-found: error
 
@@ -253,7 +253,7 @@ jobs:
       - name: Download release assets
         uses: actions/download-artifact@v4
         with:
-          pattern: lody-oss-release-*
+          pattern: geon-release-*
           path: release-assets
           merge-multiple: true
 
@@ -281,6 +281,6 @@ jobs:
             gh release upload "${tag}" release-assets/* --clobber
           else
             gh release create "${tag}" release-assets/* \
-              --title "Lody OSS ${tag#v}" \
+              --title "Folio ${tag#v}" \
               --generate-notes
           fi

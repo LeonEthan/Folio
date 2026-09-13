@@ -1,7 +1,7 @@
 import path from 'node:path'
 
 export const DEFAULT_SPARKLE_APPCAST_URL =
-  'https://github.com/LodyAI/Lody/releases/latest/download/appcast.xml'
+  'https://github.com/LeonEthan/Geon/releases/latest/download/appcast.xml'
 
 const SPARKLE_ADDON_RELATIVE_PATH = path.join('native', 'build', 'Release', 'sparkle_bridge.node')
 
@@ -14,10 +14,11 @@ function readNonEmptyString(value: unknown): string | undefined {
 export function shouldConstructUpdaterEnabled(input: {
   localPlatform: boolean
   forceEnable: boolean
+  platform?: string
+  arch?: string
 }): boolean {
-  // Folio local packages must never consume the inherited Lody release feed.
-  // Keep accepting the legacy flag for callers, but it cannot override identity.
-  return !input.localPlatform
+  // The first supported Geon release is macOS arm64. A force flag cannot expand it.
+  return !input.localPlatform || (input.platform === 'darwin' && input.arch === 'arm64')
 }
 
 export function shouldUseSparkleUpdater(input: {

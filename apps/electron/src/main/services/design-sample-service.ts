@@ -5,7 +5,7 @@ import { open, readFile, rename, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 
-const origin = 'folio-design://sample'
+const origin = 'geon-design://sample'
 const run = promisify(execFile)
 const resourceRoot = () =>
   app.isPackaged
@@ -15,7 +15,7 @@ const resourceDirectory = () => join(resourceRoot(), 'design')
 
 export function registerDesignSampleScheme() {
   protocol.registerSchemesAsPrivileged([
-    { scheme: 'folio-design', privileges: { standard: true, secure: true, supportFetchAPI: true } }
+    { scheme: 'geon-design', privileges: { standard: true, secure: true, supportFetchAPI: true } }
   ])
 }
 
@@ -72,7 +72,7 @@ async function createSampleWindow(show: boolean) {
   if (createHash('sha256').update(shell).digest('hex') !== manifest.shellSha256) {
     throw new Error('Bento resource integrity failure')
   }
-  const isolated = session.fromPartition(`folio-design-${randomUUID()}`)
+  const isolated = session.fromPartition(`geon-design-${randomUUID()}`)
   isolated.setPermissionRequestHandler((_contents, _permission, callback) => callback(false))
   isolated.setPermissionCheckHandler(() => false)
   isolated.webRequest.onBeforeRequest((details, callback) => {
@@ -80,7 +80,7 @@ async function createSampleWindow(show: boolean) {
       cancel: !details.url.startsWith(`${origin}/`) && !/^(data|blob):/.test(details.url)
     })
   })
-  await isolated.protocol.handle('folio-design', (request) => {
+  await isolated.protocol.handle('geon-design', (request) => {
     const url = new URL(request.url)
     if (request.method !== 'GET' || url.host !== 'sample')
       return new Response(null, { status: 403 })
@@ -91,7 +91,7 @@ async function createSampleWindow(show: boolean) {
     }
     if (url.pathname === '/editor.html')
       return new Response(shell, { headers: { ...headers, 'Content-Type': 'text/html' } })
-    if (url.pathname === '/ws/folio-p0') return Response.json(payload, { headers })
+    if (url.pathname === '/ws/geon-p0') return Response.json(payload, { headers })
     return new Response(null, { status: 404 })
   })
   const window = new BrowserWindow({
@@ -99,7 +99,7 @@ async function createSampleWindow(show: boolean) {
     height: 600,
     useContentSize: true,
     show: false,
-    title: 'Folio — Sample',
+    title: 'Geon — Sample',
     backgroundColor: '#00000000',
     transparent: true,
     resizable: false,
@@ -114,10 +114,10 @@ async function createSampleWindow(show: boolean) {
   window.webContents.on('will-navigate', (event) => event.preventDefault())
   window.webContents.on('will-redirect', (event) => event.preventDefault())
   window.on('closed', () => {
-    isolated.protocol.unhandle('folio-design')
+    isolated.protocol.unhandle('geon-design')
   })
   try {
-    await window.loadURL(`${origin}/editor.html?ws=folio-p0`)
+    await window.loadURL(`${origin}/editor.html?ws=geon-p0`)
     await window.webContents.executeJavaScript(prepareStage)
     if (show) window.show()
     return window
@@ -149,7 +149,7 @@ export async function renderDesignSample(format: 'png' | 'jpeg'): Promise<Buffer
 
 export async function exportDesignSample(format: 'png' | 'jpeg') {
   const result = await dialog.showSaveDialog({
-    defaultPath: `Folio-sample.${format === 'jpeg' ? 'jpg' : 'png'}`,
+    defaultPath: `Geon-sample.${format === 'jpeg' ? 'jpg' : 'png'}`,
     filters: [{ name: format.toUpperCase(), extensions: [format === 'jpeg' ? 'jpg' : 'png'] }]
   })
   if (result.canceled || !result.filePath) return
@@ -170,5 +170,5 @@ export async function exportDesignSample(format: 'png' | 'jpeg') {
 }
 
 export function reportDesignSampleError(error: unknown) {
-  dialog.showErrorBox('Folio', error instanceof Error ? error.message : String(error))
+  dialog.showErrorBox('Geon', error instanceof Error ? error.message : String(error))
 }

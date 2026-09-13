@@ -100,7 +100,11 @@ export async function prepareDailyFailureReport({
   maxVideoBytes = MAX_VIDEO_BYTES,
   channel = 'daily',
   suite = 'full',
+  videoDelivery = 'inline',
 }) {
+  if (videoDelivery !== 'inline' && videoDelivery !== 'artifact') {
+    throw new Error('videoDelivery must be inline or artifact');
+  }
   if (!/^\d+$/u.test(String(runId))) throw new Error('runId must be numeric');
   if (
     !/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/actions\/runs\/\d+$/u.test(runUrl)
@@ -201,7 +205,12 @@ export async function prepareDailyFailureReport({
       `- Recording: ${batchNumber}/${groups.length}`,
     ];
     for (const video of groups[index]) {
-      lines.push('', `### \`${markdownText(video.stableId)}\``, '', `![](${video.path})`);
+      lines.push('', `### \`${markdownText(video.stableId)}\``, '');
+      lines.push(
+        videoDelivery === 'inline'
+          ? `![](${video.path})`
+          : `Recording retained in [Actions artifacts](${runUrl}#artifacts): \`${markdownText(video.path)}\`.`
+      );
     }
     if (index === 0 && omitted.length > 0) {
       lines.push('', '### Recordings not attached');
@@ -219,7 +228,7 @@ export async function prepareDailyFailureReport({
       number: batchNumber,
       marker,
       bodyPath: portablePath(relative(workspace, bodyPath)),
-      videos: groups[index].map((video) => video.path),
+      videos: videoDelivery === 'inline' ? groups[index].map((video) => video.path) : [],
     });
   }
 
@@ -230,6 +239,7 @@ export async function prepareDailyFailureReport({
     headSha,
     channel,
     suite,
+    videoDelivery,
     failures,
     videos,
     omitted,
@@ -250,6 +260,7 @@ async function main() {
     headSha: options['head-sha'],
     channel: options.channel,
     suite: options.suite,
+    videoDelivery: options['video-delivery'],
   });
   process.stdout.write(`${report.manifestPath}\n`);
 }

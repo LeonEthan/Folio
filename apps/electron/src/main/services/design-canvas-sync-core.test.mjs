@@ -408,3 +408,70 @@ void test('flush or save failure retains draft and restores idle editing', async
     saved: 'keep this draft'
   })
 })
+
+void test('update preparation saves edits and blocks a new design turn until released', async () => {
+  const access = new DesignCanvasAccess()
+  let readonly = false
+  let saved = ''
+  await access.register({
+    artworkId: 'poster',
+    setReadonly: async (value) => {
+      readonly = value
+    },
+    flush: async (permit) =>
+      access.write('poster', permit, async () => {
+        saved = 'latest draft'
+      })
+  })
+  const query = async () => {
+    await access.update([])
+  }
+  const release = await access.prepareApplicationUpdate(query)
+  assert.equal(saved, 'latest draft')
+  assert.equal(readonly, true)
+  await assert.rejects(access.prepareForSend('poster'), /preparing an update/)
+  await assert.rejects(
+    access.replaceAfterFlush('poster', async () => {
+      saved = 'replacement'
+    }),
+    /preparing an update/
+  )
+  assert.equal(saved, 'latest draft')
+  const reports = await access.update([{ artworkId: 'another', turnId: 'next', preparing: true }])
+  assert.equal(reports[0].ok, false)
+  await access.update([])
+  await release()
+  assert.equal(readonly, false)
+})
+
+void test('an executing Agent prevents update installation without losing editor access state', async () => {
+  const access = new DesignCanvasAccess()
+  await assert.rejects(
+    access.prepareApplicationUpdate(async () => {
+      await access.update([{ artworkId: 'poster', turnId: 'running', preparing: false }])
+    }),
+    /Wait for Agent/
+  )
+  assert.equal(access.isReadonly('poster'), true)
+  await access.update([])
+  assert.equal(access.isReadonly('poster'), false)
+})
+
+void test('failed save releases the update gate and keeps edits retryable', async () => {
+  const access = new DesignCanvasAccess()
+  await access.register({
+    artworkId: 'poster',
+    setReadonly: async () => {},
+    flush: async () => {
+      throw new Error('disk full')
+    }
+  })
+  await assert.rejects(
+    access.prepareApplicationUpdate(async () => {
+      await access.update([])
+    }),
+    /disk full/
+  )
+  assert.equal(access.isReadonly('poster'), false)
+  await access.write('poster', undefined, async () => {})
+})

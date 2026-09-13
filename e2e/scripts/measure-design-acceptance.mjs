@@ -11,8 +11,8 @@ import { OnboardingPage } from '../src/support/pages/onboarding-page.ts';
 import { collectAuthoring, intakeAuthoring } from '../../packages/design-authoring/src/index.ts';
 import { designOperation } from '../../apps/cli/src/design/store.ts';
 
-assert(process.env.FOLIO_E2E_INSTALLED_EXECUTABLE, 'Set the final installed executable');
-assert(process.env.FOLIO_E2E_EXPECTED_SOURCE_COMMIT, 'Set its sealed source commit');
+assert(process.env.GEON_E2E_INSTALLED_EXECUTABLE, 'Set the final installed executable');
+assert(process.env.GEON_E2E_EXPECTED_SOURCE_COMMIT, 'Set its sealed source commit');
 const root = fileURLToPath(new URL('../artifacts/acceptance/', import.meta.url));
 await mkdir(root, { recursive: true });
 const round = await mkdtemp(path.join(root, 'design-measurement-'));
@@ -27,7 +27,7 @@ const report = {
   humanEditingVerdict: 'pending',
   scope:
     'Seeded synthetic canvas operations; excludes Agent creation/continuation and physical human interaction',
-  expectedSourceCommit: process.env.FOLIO_E2E_EXPECTED_SOURCE_COMMIT,
+  expectedSourceCommit: process.env.GEON_E2E_EXPECTED_SOURCE_COMMIT,
   machine: {
     platform: platform(),
     arch: arch(),
@@ -56,7 +56,7 @@ try {
     );
     return {
       version: nativeApp.getVersion(),
-      sourceCommit: manifest.folioSourceCommit,
+      sourceCommit: manifest.geonSourceCommit,
       versions: process.versions,
       dataRoot: process.env.LODY_DATA_DIR,
       display: screen.getPrimaryDisplay(),
@@ -83,7 +83,7 @@ try {
     const timeout = setTimeout(() => { observer.disconnect(); reject(Error('Bento readiness timeout')); }, 30000);
     const observer = new MutationObserver(check);
     observer.observe(document, { childList: true, subtree: true });
-    function check() { if (window.folio && window.bento?.doc && document.querySelector('[data-c2a-kind="shape"]')) { clearTimeout(timeout); observer.disconnect(); resolve(true); } }
+    function check() { if (window.geon && window.bento?.doc && document.querySelector('[data-c2a-kind="shape"]')) { clearTimeout(timeout); observer.disconnect(); resolve(true); } }
     check();
   })`);
   for (const scene of ['poster', 'infographic', 'long-image']) {
@@ -169,7 +169,7 @@ try {
       for (const format of ['png', 'jpeg']) {
         const output = path.join(round, `${scene}-${iteration}.${format}`);
         await app.evaluate(({ dialog }, selectedPath) => {
-          globalThis.__folioAcceptanceSaveDialog = dialog.showSaveDialog;
+          globalThis.__geonAcceptanceSaveDialog = dialog.showSaveDialog;
           dialog.showSaveDialog = async () => ({ canceled: false, filePath: selectedPath });
         }, output);
         try {
@@ -183,8 +183,8 @@ try {
           });
         } finally {
           await app.evaluate(({ dialog }) => {
-            dialog.showSaveDialog = globalThis.__folioAcceptanceSaveDialog;
-            delete globalThis.__folioAcceptanceSaveDialog;
+            dialog.showSaveDialog = globalThis.__geonAcceptanceSaveDialog;
+            delete globalThis.__geonAcceptanceSaveDialog;
           });
         }
         const bytes = await readFile(output);
@@ -203,7 +203,7 @@ try {
     // Real filesystem export failure, after measurements so it cannot skew timings.
     const missingParent = path.join(round, `absent-${randomUUID()}`, 'failed.png');
     await app.evaluate(({ dialog }, output) => {
-      globalThis.__folioAcceptanceSaveDialog = dialog.showSaveDialog;
+      globalThis.__geonAcceptanceSaveDialog = dialog.showSaveDialog;
       dialog.showSaveDialog = async () => ({ canceled: false, filePath: output });
     }, missingParent);
     try {
@@ -212,8 +212,8 @@ try {
       report.samples.at(-1).exportWriteFailurePreservedSave = true;
     } finally {
       await app.evaluate(({ dialog }) => {
-        dialog.showSaveDialog = globalThis.__folioAcceptanceSaveDialog;
-        delete globalThis.__folioAcceptanceSaveDialog;
+        dialog.showSaveDialog = globalThis.__geonAcceptanceSaveDialog;
+        delete globalThis.__geonAcceptanceSaveDialog;
       });
     }
   }

@@ -10,8 +10,8 @@ export const DesignElementReferenceSchema = z
   .strict();
 export type DesignElementReference = z.infer<typeof DesignElementReferenceSchema>;
 
-const PREFIX = '<folio-elements>';
-const SUFFIX = '</folio-elements>';
+const PREFIX = '<geon-elements>';
+const SUFFIX = '</geon-elements>';
 export function formatDesignElementReference(reference: DesignElementReference): string {
   return (
     PREFIX +

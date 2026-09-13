@@ -1,6 +1,6 @@
 ---
 name: graphic-design
-description: "Create or reconstruct editable posters, infographics, social graphics, banners, covers, flyers, and other static single-canvas designs as a self-contained graphic-PPTD project for Folio's Bento-derived editor and renderer."
+description: "Create or reconstruct editable posters, infographics, social graphics, banners, covers, flyers, and other static single-canvas designs as a self-contained graphic-PPTD project for Geon's Bento-derived editor and renderer."
 metadata:
   short-description: Create editable static single-canvas graphic designs
 ---
@@ -8,14 +8,14 @@ metadata:
 # Graphic Design
 
 Create one static graphic canvas as editable source. The source is a self-contained
-graphic-PPTD project that Folio imports into its Bento-derived editor and renderer; it
+graphic-PPTD project that Geon imports into its Bento-derived editor and renderer; it
 is not a slide deck and the source image must never be used as a flattened substitute
 for the design.
 
 Write the project in the design authoring directory supplied with the turn:
 the manifest as `design.pptd`, pages under `pages/`, and local assets under
 `media/`. This directory may differ from Agent cwd in a local project; ordinary
-chat workspaces retain their root. Folio collects exactly these draft files,
+chat workspaces retain their root. Geon collects exactly these draft files,
 validates them, and imports the result as the editable document. The separate
 `design-current/` path is application input, never a submitted draft; it may be
 absent until synchronized. You do not write `design.json` yourself.
@@ -54,17 +54,17 @@ helpers, not prerequisites for creation, rendering, submission, or turn completi
   [replication.md](references/replication.md) for this script's format limits;
   use available image tools or other analysis methods as appropriate.
 - `node scripts/finalize.mjs <project>/design.pptd[.tmp]` checks structure and can
-  promote a clean `.tmp` manifest. You may write `design.pptd` directly. Folio
+  promote a clean `.tmp` manifest. You may write `design.pptd` directly. Geon
   independently validates structure, assets, and versions at intake; it does not
   require evidence that you ran this helper or completed a creative checklist.
 - `node scripts/render-preview.mjs <project>/design.pptd` checks intake locally.
   This script does not render an image or perform visual review.
 
-When using `folio_render_preview`, open the returned PNG with an actual
+When using `geon_render_preview`, open the returned PNG with an actual
 image-reading tool, inspect what was rendered, and continue modifying the project
 as useful. Render and view updated images when you need to judge changes. A prior
 image shows the prior file state; structural validation does not judge composition.
-If `folio_render_preview` is absent, only that tool is unavailable; assess other
+If `geon_render_preview` is absent, only that tool is unavailable; assess other
 image-reading and rendering capabilities actually available to your Agent. Report
 what you could and could not inspect without claiming a review you did not perform.
 Agent review is advisory and its method and extent are your decision. Human
@@ -95,6 +95,6 @@ assumptions honestly.
 - Presentation narrative, multiple slides, masters, speaker notes, transitions,
   animations, and PPT/PPTX import, export, or round-trip.
 - Business-vertical dimensions, copy rules, and compliance policies.
-- Image generation and editing. The imagegen skill describes `folio_generate_image`
-  and `folio_edit_image` when available. Place image assets under `media/`. A materialized
+- Image generation and editing. The imagegen skill describes `geon_generate_image`
+  and `geon_edit_image` when available. Place image assets under `media/`. A materialized
   skill does not itself establish tool availability; use the actual tool list.

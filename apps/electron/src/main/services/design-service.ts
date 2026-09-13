@@ -24,7 +24,7 @@ import { DesignCanvasAccess, type CanvasInstance } from './design-canvas-access'
 import { drainRelevantLoads } from './design-leave-drain-core'
 import { waitForCanvasReady } from './design-canvas-ready-core'
 
-/** P2.5 candidate handling rides the existing design worker channel. */
+/** Historical candidate files are read back through the existing design worker channel; new candidate production is retired. */
 type DesignCandidateRequest = { sessionId: string; candidateId: string }
 
 const resources = () =>
@@ -43,6 +43,10 @@ export const designCanvasAccess = new DesignCanvasAccess()
 let queryCanvasState: (() => Promise<void>) | undefined
 export function setDesignCanvasStateQuery(query: () => Promise<void>) {
   queryCanvasState = query
+}
+export async function prepareDesignUpdate(): Promise<() => Promise<void>> {
+  if (!queryCanvasState) throw Error('Reconnect the Geon background service before updating')
+  return designCanvasAccess.prepareApplicationUpdate(queryCanvasState)
 }
 const records = new Map<string, RecordEntry>()
 const recordsFor = (id: string) => [...records.values()].filter((record) => record.artworkId === id)
@@ -81,23 +85,23 @@ export async function surface(
   const manifest = JSON.parse(await readFile(join(resources(), 'design/build.json'), 'utf8'))
   if (createHash('sha256').update(shell).digest('hex') !== manifest.shellSha256)
     throw Error('Bento resource integrity failure')
-  const isolated = session.fromPartition('folio-canvas-' + randomUUID())
+  const isolated = session.fromPartition('geon-canvas-' + randomUUID())
   const host = 'canvas-' + randomUUID()
-  const origin = 'folio-design://' + host
+  const origin = 'geon-design://' + host
   const id = payload.association.sessionId
   isolated.setPermissionRequestHandler((_c, _p, done) => done(false))
   isolated.setPermissionCheckHandler(() => false)
   isolated.webRequest.onBeforeRequest((details, done) =>
     done({ cancel: !details.url.startsWith(origin + '/') && !/^(data|blob):/.test(details.url) })
   )
-  await isolated.protocol.handle('folio-design', async (request) => {
+  await isolated.protocol.handle('geon-design', async (request) => {
     const url = new URL(request.url)
     const headers = {
       'Cache-Control': 'no-store',
       'Content-Security-Policy':
         "default-src 'none'; script-src 'self' 'unsafe-inline' blob:; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'self' data:; worker-src blob:; base-uri 'none'; form-action 'none'"
     }
-    if (url.protocol !== 'folio-design:' || url.host !== host)
+    if (url.protocol !== 'geon-design:' || url.host !== host)
       return new Response(null, { status: 403 })
     if (request.method === 'GET' && url.pathname === '/editor.html')
       return new Response(shell, { headers: { ...headers, 'Content-Type': 'text/html' } })
@@ -132,8 +136,8 @@ export async function surface(
   })
   return {
     isolated,
-    url: origin + '/editor.html?ws=' + id + (editable || preview ? '&autosave=1&folio=1' : ''),
-    dispose: () => isolated.protocol.unhandle('folio-design')
+    url: origin + '/editor.html?ws=' + id + (editable || preview ? '&autosave=1&geon=1' : ''),
+    dispose: () => isolated.protocol.unhandle('geon-design')
   }
 }
 
@@ -149,13 +153,13 @@ async function waitForDesignCanvasReady(webContents: Electron.WebContents): Prom
   await waitForCanvasReady(
     () =>
       webContents.executeJavaScript(`new Promise((resolve, reject) => {
-    const event = 'folio:ready';
+    const event = 'geon:ready';
     const cleanup = () => {
       window.removeEventListener(event, check);
     };
     const check = () => {
       try {
-        const api = window.folio;
+        const api = window.geon;
         if (!api || typeof api.state !== 'function' || typeof api.snapshot !== 'function' ||
             typeof api.flush !== 'function' || typeof api.setReadonly !== 'function') return;
         if (api.state()?.ready !== true) return;
@@ -200,7 +204,7 @@ export async function attachDesign(
           artworkId: id,
           setReadonly: async (value, reason) => {
             await view.webContents.executeJavaScript(
-              'window.folio.setReadonly(' +
+              'window.geon.setReadonly(' +
                 JSON.stringify(value) +
                 ',' +
                 JSON.stringify(reason) +
@@ -209,7 +213,7 @@ export async function attachDesign(
           },
           flush: async (permit) => {
             const result = await view.webContents.executeJavaScript(
-              'window.folio.flush(' + JSON.stringify(permit) + ')'
+              'window.geon.flush(' + JSON.stringify(permit) + ')'
             )
             if (!result?.ok) throw Error(result?.error ?? 'Canvas is not ready; edits are retained')
           }
@@ -344,15 +348,14 @@ export async function getDesignSelection(id: string, hostId: string, kind?: 'ima
   const record = records.get(hostId)
   if (!record || record.artworkId !== id || !hosts.has(hostId))
     throw Error('Current artwork is not visible')
-  const selection: unknown = await record.view.webContents.executeJavaScript(
-    'window.folio.selection()'
-  )
+  const selection: unknown =
+    await record.view.webContents.executeJavaScript('window.geon.selection()')
   if (!Array.isArray(selection) || selection.length === 0)
     throw Error('Select an element in the current artwork first')
   await saveDesign(id)
   if (designCanvasAccess.isReadonly(id) || records.get(hostId) !== record || !hosts.has(hostId))
     throw Error('Artwork changed while selecting; select the current elements again')
-  const state = await record.view.webContents.executeJavaScript('window.folio.state()')
+  const state = await record.view.webContents.executeJavaScript('window.geon.state()')
   const saved = await designRequest({ operation: 'read', sessionId: id })
   const reference = DesignElementReferenceSchema.parse({
     artworkId: id,
@@ -466,7 +469,7 @@ async function reloadDesignCanvas(id: string) {
   const entries = [...records].filter(([, record]) => record.artworkId === id)
   // Check every instance before destroying any: exceptional dirty content is never discarded.
   for (const [, record] of entries) {
-    const state = await record.view.webContents.executeJavaScript('window.folio?.state()')
+    const state = await record.view.webContents.executeJavaScript('window.geon?.state()')
     if (!state || state.dirty || state.saving || state.composing)
       throw Error('Canvas has unsaved edits; preserve or save them before reloading')
   }
@@ -480,7 +483,7 @@ async function reloadDesignCanvas(id: string) {
 
 export async function leaveDesign(id: string, hostId?: string): Promise<boolean> {
   // An attach that is still loading already owns a record whose webContents
-  // has no window.folio yet. Reading its state now misreports a clean loading
+  // has no window.geon yet. Reading its state now misreports a clean loading
   // canvas as unsaved edits, so drain relevant loads first (see
   // `design-leave-drain-core.ts` for the selection semantics and its tests).
   await drainRelevantLoads(loading, hosts, id, hostId)
@@ -490,12 +493,12 @@ export async function leaveDesign(id: string, hostId?: string): Promise<boolean>
   for (const [key, record] of entries) {
     try {
       if (!designCanvasAccess.isReadonly(id)) await saveDesign(id)
-      const state = await record.view.webContents.executeJavaScript('window.folio?.state()')
+      const state = await record.view.webContents.executeJavaScript('window.geon?.state()')
       if (!state || state.dirty || state.saving || state.composing)
         throw Error('Canvas still has unsaved edits')
     } catch (error) {
       // A different instance's failed flush is not permission to discard this one.
-      const state = await record.view.webContents.executeJavaScript('window.folio?.state()')
+      const state = await record.view.webContents.executeJavaScript('window.geon?.state()')
       if (state && !state.dirty && !state.saving && !state.composing) continue
       const answer = await dialog.showMessageBox(record.owner, {
         type: 'warning',
@@ -527,7 +530,7 @@ export async function copyDesign(
 ) {
   const record = selectCanvasInstance(records, id, hostId)?.[1]
   if (!record) throw Error('Canvas is not open')
-  const copy = await record.view.webContents.executeJavaScript('window.folio.snapshot()')
+  const copy = await record.view.webContents.executeJavaScript('window.geon.snapshot()')
   return designRequest({
     operation: 'create',
     association,
@@ -563,7 +566,7 @@ function installCloseGuard(owner: BrowserWindow) {
       allowed = true
       owner.close()
     })()
-      .catch((error) => dialog.showErrorBox('Folio', String(error)))
+      .catch((error) => dialog.showErrorBox('Geon', String(error)))
       .finally(() => {
         leaving = false
       })
@@ -704,7 +707,7 @@ export async function finishDesignCopy(sourceId: string, targetId: string, hostI
   const selected = selectCanvasInstance(records, sourceId, hostId)
   if (!selected) return
   const [key, record] = selected
-  const current = await record.view.webContents.executeJavaScript('window.folio.snapshot()')
+  const current = await record.view.webContents.executeJavaScript('window.geon.snapshot()')
   const saved = await designRequest({ operation: 'read', sessionId: targetId })
   if (!isDeepStrictEqual(current.doc, saved.doc))
     throw Error('Drawing changed during copy; save the newer edits before leaving')
@@ -725,7 +728,7 @@ export async function renameDesign(id: string, name: string) {
   for (const record of recordsFor(id)) {
     if (record.revisionId !== saved.revisionId) continue
     await record.view.webContents.executeJavaScript(
-      'window.folio.rebase(' +
+      'window.geon.rebase(' +
         JSON.stringify(saved.revisionId) +
         ',' +
         JSON.stringify(renamed.revisionId) +

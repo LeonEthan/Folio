@@ -313,7 +313,7 @@ export function FirstTaskScreen({
       title={
         primaryAction.kind === 'run'
           ? t('onboarding.firstTask.title', 'Start your first design session')
-          : t('onboarding.firstTask.continueTitle', 'Continue to Folio')
+          : t('onboarding.firstTask.continueTitle', 'Continue to Geon')
       }
       description={
         primaryAction.kind === 'run'
@@ -361,7 +361,7 @@ export function FirstTaskScreen({
             label={
               primaryAction.kind === 'run'
                 ? t('onboarding.firstTask.run', 'Start design session')
-                : t('onboarding.firstTask.enter', 'Enter Folio')
+                : t('onboarding.firstTask.enter', 'Enter Geon')
             }
           />
         </div>

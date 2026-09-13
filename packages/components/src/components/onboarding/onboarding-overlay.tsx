@@ -285,7 +285,7 @@ export function OnboardingOverlay({
     }
     if (audioHandoffStoppedRef.current) return undefined;
     audioHandoffStoppedRef.current = true;
-    stopOnboardingAudio(3.2);
+    stopOnboardingAudio();
     return undefined;
   }, [phase, stopOnboardingAudio]);
 

@@ -1,5 +1,5 @@
 /**
- * @folio/design-authoring — PPTD intake for the Folio design platform.
+ * @geon/design-authoring — PPTD intake for the Geon design platform.
  *
  * Migrated from the pinned upstream authoring package (see source-manifest.json
  * and README.md). Scope: PPTD snapshot validation, PPTD → BentoDoc v4 import,

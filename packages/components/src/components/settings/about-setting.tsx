@@ -12,7 +12,7 @@ import { useElectronUpdaterState } from '@/hooks/use-electron-updater-state';
 import { OpenSourceAttributionsDialog } from './open-source-attributions-dialog';
 import { openExternalUrl } from '@/lib/native-browser';
 import { getIpcServices } from '@/lib/electron-ipc-client';
-import { getFolioDocumentationUrl, FOLIO_REPOSITORY_URL, FOLIO_ISSUES_URL } from '@/lib/lody-urls';
+import { getGeonDocumentationUrl, GEON_REPOSITORY_URL, GEON_ISSUES_URL } from '@/lib/lody-urls';
 import { developerModeEnabledAtom } from '@/atoms/settings';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileAboutSettings } from '@/components/mobile/mobile-about-settings';
@@ -91,12 +91,12 @@ export function AboutSettingsComponent() {
   const isMobile = useIsMobile();
 
   const handleOpenDownloadPage = useCallback(() => {
-    const url = getFolioDocumentationUrl(i18n.resolvedLanguage);
+    const url = getGeonDocumentationUrl(i18n.resolvedLanguage);
     void openExternalUrl(url);
   }, [i18n.resolvedLanguage]);
 
   const handleOpenWebsite = useCallback(() => {
-    const url = FOLIO_REPOSITORY_URL;
+    const url = GEON_REPOSITORY_URL;
     void openExternalUrl(url);
   }, []);
 
@@ -128,7 +128,7 @@ export function AboutSettingsComponent() {
 
   return (
     <div className={settingContainerClass}>
-      <p className="text-sm text-muted-foreground">{t('settings.about.folioDescription')}</p>
+      <p className="text-sm text-muted-foreground">{t('settings.about.geonDescription')}</p>
       <CompactSection>
         {displayVersion && (
           <CompactRow label={t('settings.about.version')}>
@@ -147,7 +147,7 @@ export function AboutSettingsComponent() {
           <Button
             size="sm"
             className="h-7 px-2.5"
-            onClick={() => void openExternalUrl(FOLIO_ISSUES_URL)}
+            onClick={() => void openExternalUrl(GEON_ISSUES_URL)}
           >
             {t('sidebar.feedback')}
           </Button>

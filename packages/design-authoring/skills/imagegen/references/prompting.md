@@ -63,7 +63,7 @@
 ## Quality vs latency
 
 - For latency-sensitive runs, start at the lowest quality the connection offers and only raise it if needed; put text-heavy or detail-critical requirements in the prompt text.
-- The parameters actually accepted are whatever the configured image connection supports; the `folio_generate_image` / `folio_edit_image` tool schemas is the honest surface.
+- The parameters actually accepted are whatever the configured image connection supports; the `geon_generate_image` / `geon_edit_image` tool schemas is the honest surface.
 
 ## Use-case tips
 

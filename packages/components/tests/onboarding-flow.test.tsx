@@ -54,7 +54,6 @@ import {
   OnboardingOverlay,
   resolveDesktopOnboardingPhase,
 } from '../src/components/onboarding/onboarding-overlay';
-import { OnboardingLoadingView } from '../src/components/onboarding/onboarding-loading';
 import { getDesktopOnboardingSteps } from '../src/components/onboarding/onboarding-steps';
 import {
   ProjectsScreen,
@@ -152,18 +151,10 @@ describe('desktop onboarding flow', () => {
       );
     });
 
-    expect(container.textContent).toContain('Stay in the flow.');
+    expect(container.textContent).toContain('Make an impression.');
     expect(container.querySelector('img')).not.toBeNull();
     expect(container.textContent).not.toContain('Preparing your workspace');
     expect(mocks.getCliState).not.toHaveBeenCalled();
-  });
-
-  it('marks the stalled startup step as a spring probe after the bypass', async () => {
-    await act(async () => {
-      root?.render(<OnboardingLoadingView phase="starting" stage="fleet-start" bypassed />);
-    });
-
-    expect(container.querySelector('[data-onboarding-stalled-probe]')).not.toBeNull();
   });
 
   it('derives steps and repairs stale phases from platform capabilities', () => {
@@ -459,7 +450,7 @@ describe('desktop onboarding flow', () => {
     });
 
     expect(container.textContent).toContain(
-      'Folio could not download the Agent runtime. Check your connection and try again.'
+      'Geon could not download the Agent runtime. Check your connection and try again.'
     );
     expect(container.textContent).not.toContain('runtime-install-failed');
     await act(async () => {

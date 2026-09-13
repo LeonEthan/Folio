@@ -135,13 +135,13 @@ unmodified R2-managed runtime in `GROK_PATH`; the submodule owns the private-wir
 and minimum official version. Kimi is different: `packages/acp-extension-kimi` owns the
 Lody-maintained runtime source and implements the shared `acp-extension-core` contract.
 Its pinned `0.39.1-lody.f255222661c9` artifact has a working public UserPromptSubmit
-reminder event, but Folio has no verified session-scoped hook loading path that
+reminder event, but Geon has no verified session-scoped hook loading path that
 preserves Kimi's home configuration and state. See the
 [reminder loading audit](../../../../.agents/notes/proposed/architecture/2026-09-12-kimi-read-reminder-loading.md).
 The earlier generation-proof limitation no longer blocks the revised reminder
 scope; ordinary native tool instructions alone do not complete hook integration. A
 [prepared native plugin](../../../../.agents/notes/proposed/architecture/2026-09-12-kimi-reminder-plugin.md)
-can emit the shared reminder only for Folio-marked design launches; real-user
+can emit the shared reminder only for Geon-marked design launches; real-user
 registration remains unapproved and has not been performed.
 
 Grok design sessions load a process-owned plugin through native session metadata and reload its hooks with the existing plugin-management API. Its public PreToolUse reminder reaches the next model request after tool execution; it does not enforce a preceding read for already-generated writes. See the [1.0.13 reminder verification](../../../../.agents/notes/implemented/architecture/2026-09-12-grok-read-reminder.md).

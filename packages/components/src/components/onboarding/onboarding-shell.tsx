@@ -1,3 +1,4 @@
+import { GeonPaperComposition } from './ceremony/intro-sequence';
 import {
   createContext,
   useCallback,
@@ -441,7 +442,10 @@ function OnboardingShellSurface({
 }: OnboardingShellProps & { previewEnabled?: boolean }) {
   const platform = useContext(PlatformContext);
   const showsSession =
-    previewEnabled && platform !== null && (STEP_SHOWS_SESSION[stepKey] ?? false);
+    previewEnabled &&
+    platform !== null &&
+    platform.kind !== 'local' &&
+    (STEP_SHOWS_SESSION[stepKey] ?? false);
   const identity = useMemo(
     () => ({ ...DEFAULT_TOUR_IDENTITY, ...previewIdentity }),
     [previewIdentity]
@@ -477,6 +481,15 @@ function OnboardingShellSurface({
           backgroundSize: '44px 44px, 44px 44px, 100% 100%',
         }}
       />
+
+      {platform?.kind === 'local' ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute right-[8%] top-[22%] hidden w-[30%] max-w-[360px] opacity-60 lg:block"
+        >
+          <GeonPaperComposition />
+        </div>
+      ) : null}
 
       {showsSession ? (
         <>

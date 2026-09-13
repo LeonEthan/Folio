@@ -93,7 +93,7 @@ What each file in this directory is responsible for. Binding rules live in
 - [Stories and Storybook fidelity](../../../../../.agents/docs/sessions-stories.md)
 
 PR/CI actions, live GitHub review comments and automatic review settings/engines are
-retired from Folio. Generic file/diff viewers and send-to-chat references remain.
+retired from Geon. Generic file/diff viewers and send-to-chat references remain.
 
 ### Authoring preview in the canvas
 
@@ -141,4 +141,4 @@ the service preserves unversioned current content in the same Git history first.
 Version mutations use the existing execution/processing gate, and history cannot supply
 current-artwork selections or enter the external-file import path. Git errors remain
 visible without replacing the current editor. See the
-[implementation and acceptance limits](../../../../../.agents/notes/proposed/feature/2026-09-12-design-version-history.zh.md).
+[implementation and acceptance limits](../../../../../.agents/notes/implemented/feature/2026-09-12-design-version-history.zh.md).

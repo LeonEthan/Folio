@@ -37,7 +37,7 @@ afterEach(() => {
 });
 
 function makeSource(skillFiles: Record<string, string>, skill = 'graphic-design'): string {
-  const root = mkdtempSync(path.join(tmpdir(), 'folio-skill-src-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'geon-skill-src-'));
   workdirs.push(root);
   const dir = path.join(root, skill);
   for (const [rel, content] of Object.entries(skillFiles)) {
@@ -49,7 +49,7 @@ function makeSource(skillFiles: Record<string, string>, skill = 'graphic-design'
 }
 
 function makeWorkdir(): string {
-  const dir = mkdtempSync(path.join(tmpdir(), 'folio-skill-dst-'));
+  const dir = mkdtempSync(path.join(tmpdir(), 'geon-skill-dst-'));
   workdirs.push(dir);
   return dir;
 }
@@ -193,7 +193,7 @@ describe('designSkillPointerLine', () => {
 });
 
 describe('designSkillsForImageCapability', () => {
-  /* The imagegen skill instructs the agent to call `folio_generate_image`, so it
+  /* The imagegen skill instructs the agent to call `geon_generate_image`, so it
      is delivered exactly when that tool will be registered — never on its own. */
   it('adds the imagegen skill only when the machine has image capability', () => {
     expect(designSkillsForImageCapability(false)).toEqual(['graphic-design']);
@@ -259,8 +259,8 @@ describe('packaged design materials', () => {
     expect(text).toContain('You may write `design.pptd` directly');
     expect(text).toContain('actual image-reading tool');
     expect(text).toContain('version: v3');
-    expect(text).toContain('folio_edit_image');
-    expect(text).toContain('Folio has no default model');
+    expect(text).toContain('geon_edit_image');
+    expect(text).toContain('Geon has no default model');
     expect(text).toContain('Files are uploaded as multipart data');
 
     // Directly authored final files are valid without running finalize, and the

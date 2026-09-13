@@ -39,6 +39,7 @@ import { formatErrorWithCauses } from '@/utils/format-error';
 import { getCliHttpFetch, resolveCliHttpTransportConfig } from '@/utils/http-transport';
 import { resolveProxyUrl } from '@/utils/proxy';
 import { getLodyDataDir } from '@lody/shared/node/installation-profile';
+import { resolveRuntimeArtifactUrl } from '@lody/platform';
 
 const COMPLETE_MARKER = '.lody-complete';
 
@@ -654,9 +655,7 @@ export class ManagedAgentRuntimeManager {
         'Managed runtime downloads are not configured; assemble RuntimeArtifactsPort before downloading'
       );
     }
-    return `${this.runtimeBaseUrl}/api/runtimes/${encodeURIComponent(name)}/${encodeURIComponent(
-      version
-    )}/${encodeURIComponent(platformArch)}/${encodeURIComponent(fileName)}`;
+    return resolveRuntimeArtifactUrl(this.runtimeBaseUrl, name, version, platformArch, fileName);
   }
 
   private async readInstallation(

@@ -624,20 +624,18 @@ describe('Grok design reminder session startup', () => {
       }
       return {
         result: {
-          hooks: [
-            { sourceDir: '/folio/grok-plugin/hooks', event: 'pre_tool_use', disabled: false },
-          ],
+          hooks: [{ sourceDir: '/geon/grok-plugin/hooks', event: 'pre_tool_use', disabled: false }],
         },
       };
     });
     const client = new AgentClient({
       logger: createLogger(),
-      sessionId: 'folio-grok' as SessionId,
+      sessionId: 'geon-grok' as SessionId,
       terminalManager: {} as never,
       onUpdateMessage: vi.fn(),
       onRequestPermission: vi.fn(),
       agentConfig: { cliType: 'builtin', agentType: 'grok' },
-      grokDesignReminderPluginDir: '/folio/grok-plugin',
+      grokDesignReminderPluginDir: '/geon/grok-plugin',
     });
     let exposed = false;
     const started = client.startSession({} as never, '/workdir').then((result) => {
@@ -649,8 +647,8 @@ describe('Grok design reminder session startup', () => {
     expect(connectionMocks.newSession).toHaveBeenCalledWith(
       expect.objectContaining({
         _meta: expect.objectContaining({
-          pluginDirs: ['/folio/grok-plugin'],
-          clientIdentifier: 'lody:folio-grok',
+          pluginDirs: ['/geon/grok-plugin'],
+          clientIdentifier: 'lody:geon-grok',
         }),
       })
     );

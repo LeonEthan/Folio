@@ -207,7 +207,7 @@ export function buildImageGenerationRequest(
 ): ImageHttpRequest {
   if (!isImageConnectionReady(options.settings)) {
     throw new ImageGenerationError(
-      'Image connection is incomplete or disabled: configure URL, API key and an explicit model in Folio settings.'
+      'Image connection is incomplete or disabled: configure URL, API key and an explicit model in Geon settings.'
     );
   }
   if (options.prompt.trim().length === 0)

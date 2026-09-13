@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import { appendFileSync, existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
@@ -94,8 +94,16 @@ export class AppUpdaterService {
   private downloadedFile: string | undefined
   private errorCount = 0
   private installInFlight = false
+  private preparationInFlight = false
+  private configurationUnavailable = false
 
-  constructor(private readonly options: { enabled?: boolean } = {}) {}
+  constructor(
+    private readonly options: {
+      enabled?: boolean
+      requireSparkle?: boolean
+      prepareInstall?: () => Promise<() => Promise<void>>
+    } = {}
+  ) {}
 
   getState(): ElectronUpdaterState {
     return this.state
@@ -118,6 +126,11 @@ export class AppUpdaterService {
       this.sparkleBridge = sparkleBridge
       this.attachSparkleEventHandler(sparkleBridge)
       sparkleBridge.setAutomaticChecks(true)
+      return
+    }
+    if (this.options.requireSparkle) {
+      this.configurationUnavailable = true
+      this.setState({ phase: 'disabled', disabledReason: 'geon_update_configuration_unavailable' })
       return
     }
 
@@ -218,6 +231,26 @@ export class AppUpdaterService {
 
   async quitAndInstall(): Promise<QuitAndInstallElectronUpdateResult> {
     if (!this.isUpdaterEnabled()) return { ok: false, error: 'updater_disabled' }
+    if (this.state.phase !== 'downloaded') return { ok: false, error: 'update_not_downloaded' }
+    if (this.preparationInFlight) return { ok: false, error: 'update_install_in_progress' }
+    this.preparationInFlight = true
+    let release: (() => Promise<void>) | undefined
+    try {
+      release = await this.options.prepareInstall?.()
+      const result = await this.installDownloadedUpdate()
+      if (!result.ok) await release?.()
+      return result
+    } catch (error) {
+      await release?.()
+      const message = formatUnknownError(error)
+      this.recordError(message)
+      return { ok: false, error: message }
+    } finally {
+      this.preparationInFlight = false
+    }
+  }
+
+  private async installDownloadedUpdate(): Promise<QuitAndInstallElectronUpdateResult> {
     if (this.sparkleBridge) {
       try {
         setAppQuitting(true)
@@ -226,10 +259,7 @@ export class AppUpdaterService {
       } catch (error) {
         setAppQuitting(false)
         const message = formatUnknownError(error)
-        this.setState({
-          phase: 'error',
-          error: message
-        })
+        this.recordError(message)
         return {
           ok: false,
           error: message
@@ -334,7 +364,7 @@ export class AppUpdaterService {
   private recordError(message: string): void {
     this.errorCount += 1
     this.setState({
-      phase: this.downloadedFile ? 'downloaded' : 'error',
+      phase: this.downloadedFile || this.state.phase === 'downloaded' ? 'downloaded' : 'error',
       error: message,
       checkedAtMs: Date.now()
     })
@@ -349,6 +379,29 @@ export class AppUpdaterService {
       })
     ) {
       return null
+    }
+
+    // In a signed package Info.plist is authoritative; an inherited shell key/feed
+    // must not redirect a Geon installation or downgrade its verification.
+    if (this.options.requireSparkle) {
+      try {
+        const plist = join(app.getAppPath(), '..', '..', 'Info.plist')
+        const read = (key: string) =>
+          execFileSync('/usr/bin/plutil', ['-extract', key, 'raw', '-o', '-', plist], {
+            encoding: 'utf8'
+          }).trim()
+        const expectedFeed = resolveSparkleAppcastUrl({
+          configuredAppcastUrl: process.env.SPARKLE_APPCAST_URL
+        })
+        if (
+          read('CFBundleIdentifier') !== 'dev.geon.app' ||
+          read('SUFeedURL') !== expectedFeed ||
+          !/^[A-Za-z0-9+/]{43}=$/.test(read('SUPublicEDKey'))
+        )
+          return null
+      } catch {
+        return null
+      }
     }
 
     const log = (message: string): void => {
@@ -413,6 +466,7 @@ export class AppUpdaterService {
   }
 
   private isUpdaterEnabled(): boolean {
+    if (this.configurationUnavailable) return false
     if (this.options.enabled === false) return false
     if (app.isPackaged) return true
     return process.env.LODY_ELECTRON_ENABLE_DEV_UPDATER === '1'

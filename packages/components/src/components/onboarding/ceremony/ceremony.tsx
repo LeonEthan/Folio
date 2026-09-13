@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IntroSequence } from './intro-sequence';
 import type { OnboardingAudio } from './use-onboarding-audio';
-import { unlockSound } from './ui-sounds';
+import { unlockSound, setOnboardingSoundMuted } from './ui-sounds';
 
 // The onboarding ceremony: the opening title sequence, and nothing else.
 //
@@ -19,9 +20,14 @@ export function OnboardingCeremony({
 }: {
   playing?: boolean;
   onFinish: () => void;
-  audio: Pick<OnboardingAudio, 'start' | 'setEnergy' | 'setLayers'>;
+  audio: Pick<OnboardingAudio, 'start' | 'muted' | 'toggleMuted' | 'needsGesture'>;
 }): React.JSX.Element {
-  const { start: startAudio, setEnergy, setLayers } = audio;
+  const { t } = useTranslation();
+  const { start: startAudio } = audio;
+
+  useEffect(() => {
+    setOnboardingSoundMuted(audio.muted);
+  }, [audio.muted]);
 
   // The score comes up with the opening title, not with the onboarding, so the
   // ceremony has a beginning rather than just appearing.
@@ -46,12 +52,18 @@ export function OnboardingCeremony({
 
   return (
     <div className="fixed inset-0 z-10 overflow-hidden text-slate-950">
-      <IntroSequence
-        playing={playing}
-        onStart={onFinish}
-        setEnergy={setEnergy}
-        setLayers={setLayers}
-      />
+      <IntroSequence playing={playing} onStart={onFinish} />
+      <button
+        type="button"
+        aria-pressed={audio.muted}
+        className="app-region-no-drag absolute right-8 top-10 z-20 border-b border-[#aaa998] px-2 py-2 text-sm text-[#555b4c]"
+        onClick={() => {
+          if (audio.needsGesture && !audio.muted) startAudio();
+          else audio.toggleMuted();
+        }}
+      >
+        {t(audio.needsGesture || audio.muted ? 'onboarding.audio.enable' : 'onboarding.audio.mute')}
+      </button>
     </div>
   );
 }

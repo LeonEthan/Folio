@@ -1,9 +1,9 @@
-appId: dev.folio.app
-productName: Folio
+appId: dev.geon.app
+productName: Geon
 protocols:
-  - name: Folio Desktop
+  - name: Geon Desktop
     schemes:
-      - folio
+      - geon
 directories:
   buildResources: build
 # Embedded-CLI native deps: swap Electron-ABI bindings per packaging target,
@@ -77,15 +77,15 @@ electronLanguages:
   - en_US
   - en-US
 win:
-  executableName: folio
+  executableName: geon
   icon: build/icon.ico
 nsis:
   # GitHub Releases rewrites spaces in uploaded asset names to periods, which would
   # desynchronize the file names electron-builder records in latest*.yml from the
   # ones electron-updater can actually download on Windows/Linux. productName is
-  # "Folio", so every artifact name here uses a space-free token instead of
+  # "Geon", so every artifact name here uses a space-free token instead of
   # ${productName}. macOS updates use Sparkle appcast.xml, not latest-mac.yml.
-  artifactName: Folio-${version}-${arch}-setup.${ext}
+  artifactName: Geon-${version}-${arch}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
@@ -102,7 +102,7 @@ mac:
     NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
     NSUserNotificationAlertStyle: banner
-    SUFeedURL: https://github.com/LodyAI/Lody/releases/latest/download/appcast.xml
+    SUFeedURL: https://github.com/LeonEthan/Geon/releases/latest/download/appcast.xml
     SUPublicEDKey: SPARKLE_ED_PUBLIC_KEY_PLACEHOLDER
     SUEnableInstallerLauncherService: false
     SUScheduledCheckInterval: 3600
@@ -114,26 +114,26 @@ mac:
   # Local builds without Apple credentials are still fine: electron-builder skips
   # signing (and therefore notarization) with a warning rather than failing.
   notarize: true
-  artifactName: Folio-${version}-${arch}.${ext}
+  artifactName: Geon-${version}-${arch}.${ext}
 dmg:
-  artifactName: Folio-${version}-${arch}.${ext}
+  artifactName: Geon-${version}-${arch}.${ext}
   writeUpdateInfo: false
 linux:
   icon: build/icon.png
-  executableName: folioDesktop
+  executableName: geonDesktop
   syncDesktopName: true
   target:
     - AppImage
     - snap
     - deb
-  maintainer: LodyAI
+  maintainer: Geon contributors
   category: Utility
 appImage:
-  artifactName: Folio-${version}-${arch}.${ext}
+  artifactName: Geon-${version}-${arch}.${ext}
 snap:
-  artifactName: Folio-${version}-${arch}.${ext}
+  artifactName: Geon-${version}-${arch}.${ext}
 deb:
-  artifactName: Folio-${version}-${arch}.${ext}
+  artifactName: Geon-${version}-${arch}.${ext}
 includePdb: false
 npmRebuild: false
 # The public build has no VITE_ELECTRON_UPDATE_URL to inject: electron.vite.config.ts
@@ -143,5 +143,5 @@ npmRebuild: false
 # latest*.yml for non-mac targets still depends on this block being present.
 publish:
   provider: github
-  owner: LodyAI
-  repo: Lody
+  owner: LeonEthan
+  repo: Geon

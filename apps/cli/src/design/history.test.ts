@@ -5,14 +5,15 @@ import { randomUUID } from 'node:crypto';
 import { afterEach, expect, test } from 'vitest';
 import { designHistoryOperation } from './history';
 import { designOperation } from './store';
-import { collectAuthoring, intakeAuthoring } from '@folio/design-authoring';
+import { withDesignLock } from './lock';
+import { collectAuthoring, intakeAuthoring } from '@geon/design-authoring';
 
 const roots: string[] = [];
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 async function fixture() {
-  const root = await mkdtemp(path.join(tmpdir(), 'folio-history-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'geon-history-'));
   roots.push(root);
   const sessionId = randomUUID();
   const initial = await designOperation(root, {
@@ -219,7 +220,7 @@ test('stale restore and another artwork version cannot overwrite current work', 
 
 test('history cannot be redirected into an unrelated repository', async () => {
   const { root, sessionId, initial } = await fixture();
-  const unrelated = await mkdtemp(path.join(tmpdir(), 'folio-unrelated-'));
+  const unrelated = await mkdtemp(path.join(tmpdir(), 'geon-unrelated-'));
   roots.push(unrelated);
   await symlink(unrelated, path.join(root, 'chats', sessionId, 'history.git'), 'dir');
   await expect(
@@ -229,4 +230,77 @@ test('history cannot be redirected into an unrelated repository', async () => {
       baseRevisionId: initial.revisionId,
     })
   ).rejects.toThrow('redirected');
+});
+
+test('a queued version save rejects a snapshot superseded by another instance restoring history', async () => {
+  const { root, sessionId, initial, save } = await fixture();
+  const version = await designHistoryOperation(root, {
+    operation: 'history-create',
+    sessionId,
+    baseRevisionId: initial.revisionId,
+  });
+  if (Array.isArray(version) || !('commitId' in version)) throw Error('Expected version');
+  const red = await save('#ff0000');
+  const held = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  const waiting = Promise.withResolvers<void>();
+  const resume = Promise.withResolvers<void>();
+  const holder = withDesignLock(
+    path.join(root, 'chats', sessionId, 'history.git'),
+    {},
+    async () => {
+      held.resolve();
+      await release.promise;
+    }
+  );
+  await held.promise;
+  const queued = designHistoryOperation(
+    root,
+    {
+      operation: 'history-create',
+      sessionId,
+      baseRevisionId: red.revisionId,
+    },
+    {
+      lock: {
+        now: () => 0,
+        sleep: () => {
+          waiting.resolve();
+          return resume.promise;
+        },
+      },
+    }
+  );
+  const verdict = queued.then(
+    () => 'unexpected success',
+    (error: unknown) => (error instanceof Error ? error.message : 'unknown error')
+  );
+  try {
+    await waiting.promise;
+    release.resolve();
+    await holder;
+    await designHistoryOperation(root, {
+      operation: 'history-restore',
+      sessionId,
+      commitId: version.commitId,
+      baseRevisionId: red.revisionId,
+    });
+  } finally {
+    release.resolve();
+    resume.resolve();
+    await holder;
+  }
+  expect(await verdict).toBe('DESIGN_CONFLICT');
+  expect((await designOperation(root, { operation: 'read', sessionId })).doc).toEqual(initial.doc);
+  const versions = await designHistoryOperation(root, { operation: 'history-list', sessionId });
+  if (!Array.isArray(versions)) throw Error('Expected versions');
+  expect(versions.map((v) => v.kind)).toEqual(['saved', 'before-restore']);
+  const protectedVersion = versions[1];
+  if (!protectedVersion) throw Error('Expected protected current work');
+  const retained = await designHistoryOperation(root, {
+    operation: 'history-read',
+    sessionId,
+    commitId: protectedVersion.commitId,
+  });
+  expect(retained).toMatchObject({ doc: red.doc });
 });

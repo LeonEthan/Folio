@@ -16,7 +16,7 @@ bytes, not a producer transaction or Agent completion.
 
 This implements [T15 / Issue #17](https://github.com/LeonEthan/Folio/issues/17), extending
 [manual previews](2026-09-11-manual-pptd-preview.md) under the existing
-[live preview proposal](../../proposed/architecture/2026-09-11-pptd-live-preview.zh.md).
+[live preview proposal](../../implemented/architecture/2026-09-11-pptd-live-preview.zh.md).
 The existing native watcher was unsuitable unchanged: it recursively discovers
 non-ignored directories and keeps its discovered watches until removal. Its explicit
 `trackedOnly` mode reuses the native error, debounce and close paths while disabling

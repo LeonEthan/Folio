@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, realpathSync } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -11,6 +10,7 @@ import {
   type TurnDiffStoreStats,
 } from '@lody/turn-diff-store';
 import { getServerNow, type FileDiff, type SessionId, type WorkspaceId } from '@lody/shared';
+import { getLodyDataDir } from '@lody/shared/node/installation-profile';
 
 import { getLogger } from '@/utils/logger';
 
@@ -271,8 +271,7 @@ function resolveWorkerOptions(options: {
 
 export function getCodeCollabV2DiffStoreDbPath(workspaceId: string): string {
   return path.join(
-    os.homedir(),
-    '.lody',
+    getLodyDataDir('local'),
     'code-collab-v2',
     safeWorkspaceSegment(workspaceId),
     'diff-store.sqlite3'

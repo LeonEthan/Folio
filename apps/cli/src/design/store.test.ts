@@ -31,7 +31,7 @@ const UNUSED_PNG_BYTES = Buffer.from(
 const UNUSED_ASSET_KEY = createHash('sha256').update(UNUSED_PNG_BYTES).digest('hex');
 const UNUSED_ASSET_URI = `data:image/png;base64,${UNUSED_PNG_BYTES.toString('base64')}`;
 test('durable save, stale writer, retry, independent copy and malformed input preserve the current drawing', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'folio-design-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'geon-design-'));
   roots.push(root);
   const association = {
     sessionId: randomUUID(),
@@ -153,7 +153,7 @@ test('durable save, stale writer, retry, independent copy and malformed input pr
 });
 
 test('two writers that read the same revision cannot both land', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'folio-design-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'geon-design-'));
   roots.push(root);
   const association = {
     sessionId: randomUUID(),
@@ -187,7 +187,7 @@ test('two writers that read the same revision cannot both land', async () => {
 });
 
 test('a read is not blocked by a writer holding the lock', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'folio-design-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'geon-design-'));
   roots.push(root);
   const association = {
     sessionId: randomUUID(),
@@ -209,7 +209,7 @@ test('a read is not blocked by a writer holding the lock', async () => {
 });
 
 test('a document is the canvas even when its table carries assets the document does not use', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'folio-design-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'geon-design-'));
   roots.push(root);
   const association = {
     sessionId: randomUUID(),
@@ -262,7 +262,7 @@ test('a document is the canvas even when its table carries assets the document d
 });
 
 test('reading a missing drawing never creates its session directory', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'folio-missing-design-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'geon-missing-design-'));
   roots.push(root);
   const id = randomUUID();
   await expect(designOperation(root, { operation: 'read', sessionId: id })).rejects.toMatchObject({

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Build script for @folio/design-authoring.
+ * Build script for @geon/design-authoring.
  *
  * 1. Verifies source-manifest.json: every verbatim-migrated file must exist and
  *    match its recorded sha256 (adapted files record upstream provenance only).
@@ -11,7 +11,7 @@
  *    (FROZEN_MATRIX_SHA256) — the vendored kernel snapshot stays the single
  *    truth — and the v1.json bytes must match it, fail-closed.
  * 3. Bundles the skill script support library with esbuild into
- *    skills/graphic-design/scripts/lib/folio-pptd.mjs so the materialized
+ *    skills/graphic-design/scripts/lib/geon-pptd.mjs so the materialized
  *    skill directory is self-contained (no repo checkout, no node_modules).
  *
  * Run before typecheck/test (package scripts do this) and before the CLI
@@ -88,7 +88,7 @@ writeFileSync(
 const { build } = await import('esbuild');
 await build({
   entryPoints: [path.join(packageRoot, 'src', 'index.ts')],
-  outfile: path.join(packageRoot, 'skills', 'graphic-design', 'scripts', 'lib', 'folio-pptd.mjs'),
+  outfile: path.join(packageRoot, 'skills', 'graphic-design', 'scripts', 'lib', 'geon-pptd.mjs'),
   bundle: true,
   platform: 'node',
   format: 'esm',
@@ -99,7 +99,7 @@ await build({
   // Bundled CJS deps (yaml) keep dynamic require calls; provide a real
   // require in the ESM output.
   banner: {
-    js: "import { createRequire as __folioCreateRequire } from 'node:module'; const require = __folioCreateRequire(import.meta.url);",
+    js: "import { createRequire as __geonCreateRequire } from 'node:module'; const require = __geonCreateRequire(import.meta.url);",
   },
   logLevel: 'warning',
 });

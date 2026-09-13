@@ -126,7 +126,8 @@ surviving CLI or occupied endpoint invalidates the next result.
 Daily regression additionally records each scenario and retains only failed
 WebMs. Its read-only runner uploads the complete artifact; a trusted
 default-branch reconciler creates or reopens one Daily failure Issue and appends
-every validated recording as its own independently retryable inline player. A
+every validated recording as its own independently retryable Actions artifact link.
+The Actions token cannot upload inline attachments; recordings remain in the run artifact. A
 later successful full Daily closes the Issue with the recovery run link; a
 successful manually dispatched smoke run cannot clear full-suite failure state.
 Pull-request failures follow the same evidence validation in a trusted
@@ -137,37 +138,31 @@ The current active coverage is tracked in [the coverage matrix](./COVERAGE.md).
 The suite checker parses Gherkin and enforces IDs, priorities, runtime ownership,
 documentation indexes, and P0 matrix entries before any application build.
 
-## Installed Folio acceptance
+## Installed Geon acceptance
 
-Set `FOLIO_E2E_INSTALLED_EXECUTABLE` to the executable in a private installed
+Set `GEON_E2E_INSTALLED_EXECUTABLE` to the executable in a private installed
 application copy to run the same Electron harness and manual desktop probes
-against package bytes. For macOS this is `Folio.app/Contents/MacOS/Folio` inside
+against package bytes. For macOS this is `Geon.app/Contents/MacOS/Geon` inside
 the copy extracted from the verified DMG. The executable loads its own packaged
 entry; the harness supplies no development application path and verifies
 `app.isPackaged` and its isolated user-data directory. It records executable and
 application paths in the boot evidence. Also set
-`FOLIO_E2E_EXPECTED_SOURCE_COMMIT` to the full source SHA supplied during packaging
-as `-c.extraMetadata.folioSourceCommit=<SHA>`; the harness verifies that exact
+`GEON_E2E_EXPECTED_SOURCE_COMMIT` to the full source SHA supplied during packaging
+as `-c.extraMetadata.geonSourceCommit=<SHA>`; the harness verifies that exact
 value from the running application's own packaged manifest. CLI data and the daemon endpoint remain
 independently isolated through the existing harness.
 
-For example, after dependency setup, run the existing native Claude probe with
-`FOLIO_E2E_INSTALLED_EXECUTABLE` and `FOLIO_PROBE_CLAUDE` set to verified absolute
-paths:
+Use the current suite with these variables set, for example `pnpm e2e:full`.
+Historical Claude/Pi manual probes are not present in this checkout; recover them
+from the source commits referenced by their owning Agent notes and adapt them to
+the current public contracts before running. Do not treat those historical commands
+as currently runnable entry points. Native probes simulate only the external model
+wire; synthetic protocol success does not prove model quality. Keep their logs
+outside Git, and record package source/hash and runtime/ACP identity for each round.
+Repeat relevant checks after source changes and do not infer one Agent's result
+from another.
 
-```sh
-corepack pnpm --filter @lody/e2e exec tsx ../apps/cli/scripts/probe-claude-design-desktop.mjs
-```
-
-The corresponding Pi probe is `probe-pi-design-desktop.mjs`, with
-`FOLIO_PROBE_PI` and `FOLIO_PROBE_RESUBMIT=1`. These manual probes simulate only
-the external model wire; successful synthetic protocol execution does not prove
-model quality. Their logs and captured synthetic conversations stay outside Git.
-Record package source commit/hash and runtime/ACP identity with each round, and
-repeat after relevant source changes. Do not infer one Agent's result from
-another or treat source-only runtime audits as installed-package evidence.
-
-## Folio design acceptance
+## Geon design acceptance
 
 [The design acceptance procedure](DESIGN-ACCEPTANCE.md) supplies synthetic poster,
 infographic and long-image inputs, cross-behavior coverage and measurement
@@ -183,3 +178,5 @@ Copy failure retains the source evidence; success uses normal temporary cleanup.
 Use a short stable data path on macOS because local Unix sockets have path limits.
 Reopen the exported profile and check its sessions, saves and source previews before
 calling it ready for human use; copying files alone is insufficient.
+
+Windows Daily also runs `node e2e/scripts/probe-windows-pty.mjs` before building. It exercises the real CLI terminal service under Node and Electron, closes the same Session through overlapping cleanup paths, and requires the native terminal exit receipt and a successful host exit. This catches native double-close crashes independently of the desktop journey.

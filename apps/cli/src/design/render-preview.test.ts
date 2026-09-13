@@ -112,7 +112,7 @@ type Harness = {
 };
 
 function createHarness(options: { artifact?: boolean; page?: string } = {}): Harness {
-  const dataRoot = mkdtempSync(path.join(tmpdir(), 'folio-render-preview-'));
+  const dataRoot = mkdtempSync(path.join(tmpdir(), 'geon-render-preview-'));
   roots.push(dataRoot);
   const sessionId = 'artwork-1';
   const workdir = path.join(dataRoot, 'chats', sessionId);
@@ -251,7 +251,7 @@ describe('renderDesignPreview', () => {
 
   it('refuses a rendering that lands outside the session workspace', async () => {
     const { ctx } = createHarness();
-    const outside = await mkdtemp(path.join(tmpdir(), 'folio-render-outside-'));
+    const outside = await mkdtemp(path.join(tmpdir(), 'geon-render-outside-'));
     const escaped = path.join(outside, 'escaped.png');
     const queue = queueThat(async () => {
       await writeFile(escaped, syntheticPng(4, 4, [0, 0, 0]));
@@ -273,11 +273,11 @@ describe('renderDesignPreview', () => {
     const { ctx } = createHarness();
     const queue = queueThat(async () => ({
       status: 'refused',
-      error: 'the Folio desktop is not running',
+      error: 'the Geon desktop is not running',
     }));
     await expect(renderDesignPreview(ctx, queue)).resolves.toEqual({
       status: 'refused',
-      error: 'the Folio desktop is not running',
+      error: 'the Geon desktop is not running',
     });
   });
 
@@ -348,7 +348,7 @@ describe('manual source snapshots', () => {
 
   it('refuses mixed observations and incomplete references without modifying the draft', async () => {
     const { workdir } = createHarness();
-    const { collectAuthoring } = await import('@folio/design-authoring');
+    const { collectAuthoring } = await import('@geon/design-authoring');
     const first = collectAuthoring(workdir, { referencedOnly: true });
     writeFileSync(path.join(workdir, 'pages', 'main.page'), PAGE.replace('Hello', 'Intermediate'));
     const second = collectAuthoring(workdir, { referencedOnly: true });

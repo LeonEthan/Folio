@@ -2,7 +2,7 @@
 
 This is a compact format guide. Read
 [graphic-canvas-profile.md](graphic-canvas-profile.md) first. Write from the
-version-specific guidance below; Folio's intake validator enforces it after your turn.
+version-specific guidance below; Geon's intake validator enforces it after your turn.
 
 Do not invent fields or combine syntax from different versions. No upstream PPTD
 catalogue is bundled with this skill; such catalogues describe future Candidate work,
@@ -114,8 +114,8 @@ Two geometry habits the editor rewards:
 `node scripts/finalize.mjs <project>/design.pptd[.tmp]` (from the skill directory)
 is an optional structural self-check. It can promote a clean `.tmp`, but writing
 `design.pptd` directly is supported. Neither this helper nor a review sequence is
-a completion or commit requirement. Folio independently checks the collected
-project and versions. When rendering through `folio_render_preview`, open the
+a completion or commit requirement. Geon independently checks the collected
+project and versions. When rendering through `geon_render_preview`, open the
 PNG with an actual image-reading tool to judge composition and decide on edits.
 
 Any silent drop, placeholder, reset after reopen, or mismatch between preview and export

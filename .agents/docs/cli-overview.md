@@ -41,7 +41,7 @@ composition.
 
 ## Retired developer workflows
 
-Folio no longer runs PR discovery/status reconciliation or automatic review/merge.
+Geon no longer runs PR discovery/status reconciliation or automatic review/merge.
 The CLI review command, viewer download and review submission MCP tool are removed.
 Existing scheduling caches, review records, working files and session history are
 not deleted. Generic task automation, workspace watchers and Agent tools remain.

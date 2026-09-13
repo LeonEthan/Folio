@@ -112,7 +112,7 @@ test.each([
   'archived-project',
   'archived-chat',
 ] as const)('unloaded %s draft reopens original bytes without creating a Session', async (kind) => {
-  const root = await mkdtemp(path.join(tmpdir(), 'folio-source-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'geon-source-'));
   roots.push(root);
   vi.stubEnv('LODY_DATA_DIR', root);
   const sessionId = randomUUID() as SessionId;

@@ -79,7 +79,7 @@ import {
  *   turn's artifact. It cannot touch the canvas, another turn, or another artwork.
  */
 
-import { intakeAuthoring } from '@folio/design-authoring';
+import { intakeAuthoring } from '@geon/design-authoring';
 import {
   DESIGN_TURN_OUTCOME_VERSION,
   sanitizeDesignTurnOutcome,

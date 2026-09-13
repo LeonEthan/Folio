@@ -33,7 +33,7 @@ describe('resolveSessionGitIdentity', () => {
     });
   });
 
-  it('falls back to the LodyAI identity when neither requested nor host email is usable', () => {
+  it('falls back to the Geon identity when neither requested nor host email is usable', () => {
     expect(
       resolveSessionGitIdentity(
         { name: 'github-user', email: buildMissingEmail('github', '123') },

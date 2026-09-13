@@ -346,7 +346,7 @@ describe('MessageHandler design turn-input wiring', () => {
         const manifest = JSON.parse(fs.readFileSync(path.join(inputDir, 'manifest.json'), 'utf8'));
         const artifactWorkdir = path.join(
           workspaceRoot,
-          '.folio',
+          '.geon',
           'artworks',
           sessionId,
           sessionId

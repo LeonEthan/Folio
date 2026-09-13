@@ -74,8 +74,9 @@ contracts, and window/renderer integration rules live in
 
 ## Release packaging and auto-update
 
-- Folio local packages never enable the inherited Lody updater, including when
-  `LODY_ELECTRON_ENABLE_UPDATER=1`; startup and IPC update/install paths stay disabled.
+- Geon updates must use its independent release feed and trusted signing identity.
+  Never enable an inherited Lody feed or bypass verification. Installation must wait
+  for saved edits and idle Agent execution; unavailable prerequisites stay explicit.
 
 - Always package through `scripts/package-electron.mjs` (`pnpm run package -- <args>`),
   never `electron-builder` directly. It injects the released version via

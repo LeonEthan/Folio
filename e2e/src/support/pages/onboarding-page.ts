@@ -56,16 +56,15 @@ export class OnboardingPage {
     await this.openAgentConfiguration();
     await this.page.getByRole('button', { name: /^(Skip for now|稍后再配置)$/u }).click();
     await expect(
-      this.page.getByRole('heading', { name: /^(Explore Folio|探索 Folio)$/u })
+      this.page.getByRole('heading', { name: /^(Explore Geon|探索 Geon)$/u })
     ).toBeVisible();
-    await this.page.getByRole('button', { name: /^(Enter Folio|进入 Folio)$/u }).click();
+    await this.page.getByRole('button', { name: /^(Enter Geon|进入 Geon)$/u }).click();
     await expect(this.page.locator('#chat-prompt')).toBeVisible({ timeout: 60_000 });
     await expect(this.page).toHaveURL(/#\/local\/chat(?:\?.*)?$/u);
   }
 
   async openAgentConfiguration(): Promise<void> {
     await this.page.getByRole('button', { name: /^(Skip intro|跳过介绍)$/u }).click();
-    await this.page.getByRole('button', { name: /^(Configure Folio|开始配置)$/u }).click();
     await expect(
       this.page.getByRole('heading', { name: /^(Connect your Agent|连接你的 Agent)$/u })
     ).toBeVisible();

@@ -18,6 +18,7 @@ export const DEFAULT_IGNORED_DIRECTORY_NAMES: ReadonlySet<string> = new Set([
   // Lody's own workspace state (e.g. .lody/attachments); must not appear in
   // code-collab change tracking even when the workspace is not a git repo.
   '.lody',
+  '.folio',
   'node_modules',
 ]);
 

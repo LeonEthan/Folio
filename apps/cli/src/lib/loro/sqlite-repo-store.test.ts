@@ -129,7 +129,7 @@ describe('SQLite Loro repo store', () => {
       const cliStore = await createCliSqliteRepoStore(workspaceId);
       openStores.add(cliStore.sqliteStore);
 
-      expect(cliStore.baseDir).toBe(path.join(tempHome, '.folio', 'loro-repo', 'workspace-1'));
+      expect(cliStore.baseDir).toBe(path.join(tempHome, '.geon', 'loro-repo', 'workspace-1'));
       expect(cliStore.dbPath).toBe(path.join(cliStore.baseDir, 'repo.sqlite3'));
       expect(getLoroRepoStorageBaseDir(workspaceId)).toBe(cliStore.baseDir);
       expect(getLoroRepoSqliteDbPath(workspaceId)).toBe(cliStore.dbPath);

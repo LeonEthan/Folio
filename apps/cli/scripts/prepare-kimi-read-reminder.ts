@@ -14,9 +14,9 @@ const quote = (value: string) =>
     ? `"${value.replaceAll('"', '""')}"`
     : `'${value.replaceAll("'", "'\\''")}'`;
 const manifest = {
-  name: 'folio-read-before-edit',
+  name: 'geon-read-before-edit',
   version: '0.1.0',
-  description: 'Read-before-edit reminders in Folio design launches only.',
+  description: 'Read-before-edit reminders in Geon design launches only.',
   hooks: [
     {
       event: 'UserPromptSubmit',
@@ -32,8 +32,8 @@ await writeFile(
 );
 await writeFile(
   path.join(destination, 'reminder.mjs'),
-  '// Generated from Folio DESIGN_READ_BEFORE_EDIT_REMINDER. No installation side effects.\n' +
-    `if (process.env.FOLIO_DESIGN_LAUNCH_ID?.trim()) {\n` +
+  '// Generated from Geon DESIGN_READ_BEFORE_EDIT_REMINDER. No installation side effects.\n' +
+    `if (process.env.GEON_DESIGN_LAUNCH_ID?.trim()) {\n` +
     `  process.stdout.write(${JSON.stringify(DESIGN_READ_BEFORE_EDIT_REMINDER + '\n')});\n` +
     '}\n',
   { flag: 'wx' }

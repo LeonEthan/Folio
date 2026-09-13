@@ -22,7 +22,7 @@ import {
 } from './design-tools';
 import { buildLodyMcpServer, runWithMcpSessionContext } from './lody-mcp-server';
 
-const TOOL_NAME = 'folio_generate_image';
+const TOOL_NAME = 'geon_generate_image';
 const SECRET_KEY = 'sk-live-super-secret-value';
 
 /** A real, decodable PNG of the requested size. */
@@ -153,7 +153,7 @@ const callGenerate = async (
 const textOf = (result: CallToolResult): string =>
   result.content.map((part) => (part.type === 'text' ? part.text : '')).join('\n');
 
-describe('folio_generate_image gate', () => {
+describe('geon_generate_image gate', () => {
   it('publishes autonomous image guidance while preserving paid-call disclosure', async () => {
     await withServer({ designGate: readyGate }, async (client) => {
       const tool = (await client.listTools()).tools.find((entry) => entry.name === TOOL_NAME);
@@ -301,7 +301,7 @@ describe('the daemon answer decides registration', () => {
   });
 
   it('publishes and calls the tool for a design session the daemon answered ready for', async () => {
-    const workdir = await mkdtemp(path.join(os.tmpdir(), 'folio-design-image-'));
+    const workdir = await mkdtemp(path.join(os.tmpdir(), 'geon-design-image-'));
     const png = pngFixture(4, 4);
     const { calls, transport } = recordedTransport(() =>
       jsonResponse(200, { data: [{ b64_json: png.toString('base64') }] })
@@ -332,9 +332,9 @@ describe('the daemon answer decides registration', () => {
   });
 });
 
-describe('folio_generate_image call', () => {
+describe('geon_generate_image call', () => {
   it('generates through the configured upstream and returns the landed asset', async () => {
-    const workdir = await mkdtemp(path.join(os.tmpdir(), 'folio-design-image-'));
+    const workdir = await mkdtemp(path.join(os.tmpdir(), 'geon-design-image-'));
     const png = pngFixture(64, 48);
     const { calls, transport } = recordedTransport(() =>
       jsonResponse(200, { data: [{ b64_json: png.toString('base64') }] })
@@ -367,7 +367,7 @@ describe('folio_generate_image call', () => {
   });
 
   it('surfaces an upstream failure as a tool error, with no secret in it', async () => {
-    const workdir = await mkdtemp(path.join(os.tmpdir(), 'folio-design-image-'));
+    const workdir = await mkdtemp(path.join(os.tmpdir(), 'geon-design-image-'));
     const { transport } = recordedTransport(() =>
       jsonResponse(400, { error: { message: 'prompt violates content policy' } })
     );
@@ -384,7 +384,7 @@ describe('folio_generate_image call', () => {
   });
 
   it('re-checks the gate before spending, and refuses a connection revoked mid-session', async () => {
-    const workdir = await mkdtemp(path.join(os.tmpdir(), 'folio-design-image-'));
+    const workdir = await mkdtemp(path.join(os.tmpdir(), 'geon-design-image-'));
     const { calls, transport } = recordedTransport(() =>
       jsonResponse(200, { data: [{ b64_json: pngFixture(2, 2).toString('base64') }] })
     );
@@ -413,13 +413,13 @@ describe('folio_generate_image call', () => {
   });
 
   it.each([
-    { name: 'folio_generate_image', args: { prompt: 'synthetic generation' } },
+    { name: 'geon_generate_image', args: { prompt: 'synthetic generation' } },
     {
-      name: 'folio_edit_image',
+      name: 'geon_edit_image',
       args: { prompt: 'synthetic edit', images: ['source.png'] },
     },
   ])('propagates SDK cancellation into a pending $name request', async ({ name, args }) => {
-    const workdir = await mkdtemp(path.join(os.tmpdir(), 'folio-image-cancel-'));
+    const workdir = await mkdtemp(path.join(os.tmpdir(), 'geon-image-cancel-'));
     const png = pngFixture(4, 4);
     await writeFile(path.join(workdir, 'source.png'), png);
     let markStarted = () => {};
@@ -479,20 +479,20 @@ describe('folio_generate_image call', () => {
   });
 });
 
-describe('folio_edit_image', () => {
+describe('geon_edit_image', () => {
   it('shares the generation gate including an explicitly empty model', async () => {
-    expect(await listToolNames()).not.toContain('folio_edit_image');
-    expect(await listToolNames(readyGate)).toContain('folio_edit_image');
+    expect(await listToolNames()).not.toContain('geon_edit_image');
+    expect(await listToolNames(readyGate)).toContain('geon_edit_image');
     const connection = readyGate.imageConnection;
     if (!connection) throw new Error('missing fixture connection');
     const gate = { imageConnection: { ...connection, model: '' } };
     const names = await listToolNames(gate);
-    expect(names).not.toContain('folio_generate_image');
-    expect(names).not.toContain('folio_edit_image');
+    expect(names).not.toContain('geon_generate_image');
+    expect(names).not.toContain('geon_edit_image');
   });
 
   it('validates edit inputs and returns a workspace asset from actual uploaded files', async () => {
-    const workdir = await mkdtemp(path.join(os.tmpdir(), 'folio-edit-mcp-'));
+    const workdir = await mkdtemp(path.join(os.tmpdir(), 'geon-edit-mcp-'));
     const png = pngFixture(4, 3);
     await writeFile(path.join(workdir, 'source.png'), png);
     const uploaded: string[] = [];
@@ -505,12 +505,12 @@ describe('folio_edit_image', () => {
       { designGate: readyGate, imageTransport: transport, workdir },
       async (client) => {
         const invalid = await client.callTool({
-          name: 'folio_edit_image',
+          name: 'geon_edit_image',
           arguments: { prompt: 'edit', images: [] },
         });
         expect(invalid.isError).toBe(true);
         const result = (await client.callTool({
-          name: 'folio_edit_image',
+          name: 'geon_edit_image',
           arguments: { prompt: 'edit', images: ['source.png'] },
         })) as CallToolResult;
         expect(result.isError).toBeFalsy();
@@ -525,8 +525,8 @@ describe('folio_edit_image', () => {
 
 describe('resolved artwork asset directory', () => {
   it('uses the daemon artwork directory for generation and accepts workspace attachments for edits', async () => {
-    const workdir = await mkdtemp(path.join(os.tmpdir(), 'folio-artwork-image-'));
-    const artworkWorkdir = path.join(workdir, '.folio', 'artworks', 'synthetic');
+    const workdir = await mkdtemp(path.join(os.tmpdir(), 'geon-artwork-image-'));
+    const artworkWorkdir = path.join(workdir, '.geon', 'artworks', 'synthetic');
     const png = pngFixture(4, 4);
     const { transport } = recordedTransport(() =>
       jsonResponse(200, { data: [{ b64_json: png.toString('base64') }] })
@@ -541,7 +541,7 @@ describe('resolved artwork asset directory', () => {
       await writeFile(attachment, png);
       await withServer({ workdir, designGate, imageTransport: transport }, async (client) => {
         const edited = (await client.callTool({
-          name: 'folio_edit_image',
+          name: 'geon_edit_image',
           arguments: { prompt: 'Synthetic edit', images: [attachment] },
         })) as CallToolResult;
         expect(edited.isError).toBeFalsy();

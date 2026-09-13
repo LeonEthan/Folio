@@ -53,7 +53,7 @@ and retire candidate workflows. Never auto-restart completed turns. External imp
 validates and saves the viewed snapshot directly. Image MCP supports generate/edit
 with a user-required model and no product default.
 
-Design history uses a Folio-managed local Git repository only, isolated from user
+Design history uses a Geon-managed local Git repository only, isolated from user
 repositories. No parallel snapshot store; retain current saves, CAS and drafts.
 
 ## Context and documentation
@@ -86,7 +86,7 @@ repositories. No parallel snapshot store; retain current saves, CAS and drafts.
   Optional-cloud names/DTOs belong in `packages/cloud-api`; shared product code
   uses `packages/platform` capabilities/ports and remains platform-neutral.
 - OSS desktop is local-only: no authenticated product-cloud requests or telemetry.
-  Public managed-runtime downloads are the exception.
+  Public runtime and Geon update downloads are exceptions.
 - Before composition, capability-gated settings, telemetry or runtime download
   changes, read [platform contracts](packages/platform/AGENTS.md).
 - Before daemon negotiation, MCP/Role catalogs or their UI consumers, per-turn MCP
@@ -128,7 +128,7 @@ Details: [.github/codex-review.md](.github/codex-review.md).
 
 ## Agent skills
 
-- Issues: `LeonEthan/Folio` via `gh`; see [issue tracker](.agents/agent-skills/issue-tracker.md).
+- Issues: `LeonEthan/Geon` via `gh`; see [issue tracker](.agents/agent-skills/issue-tracker.md).
 - Triage labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`,
   `wontfix`; see [triage rules](.agents/agent-skills/triage-labels.md).
 - Domain: one root `CONTEXT.md` glossary and `.agents/docs/adr/`; top-level `docs/`

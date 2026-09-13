@@ -15,7 +15,7 @@ watching and direct import remain separate work.
 ## Responsibilities and scope
 
 This implements [T14 / Issue #16](https://github.com/LeonEthan/Folio/issues/16), the
-manual-open part of the [live preview proposal](../../proposed/architecture/2026-09-11-pptd-live-preview.zh.md).
+manual-open part of the [live preview proposal](../../implemented/architecture/2026-09-11-pptd-live-preview.zh.md).
 The existing `design/source-path` resolver accepts an absent turn ID only to resolve
 today's source from trusted Session metadata. Supplied turn IDs keep the historical
 frozen-input/root checks; failed historical lookups never fall back to today's draft.

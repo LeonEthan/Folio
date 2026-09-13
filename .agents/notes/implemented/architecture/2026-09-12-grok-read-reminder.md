@@ -18,10 +18,10 @@ already-generated write to wait for a read.
 
 This implements the revised scope of [Issue #22](https://github.com/LeonEthan/Folio/issues/22)
 after the [noninvasive reminder decision](../../proposed/simplification/2026-09-12-noninvasive-design-hooks.zh.md).
-The earlier [runtime gap](../../proposed/architecture/2026-09-11-grok-design-hook-runtime-gap.md)
+The earlier [runtime gap](../../rejected/architecture/2026-09-11-grok-design-hook-runtime-gap.md)
 remains evidence about the retired generation-proof proposal, not a blocker for
 this reminder. Automatic PPTD publication, final collection and resubmission are
-owned by the separate [editor-save migration](../../proposed/simplification/2026-09-12-editor-owned-pptd-save.zh.md).
+owned by the separate [editor-save migration](../../implemented/simplification/2026-09-12-editor-owned-pptd-save.zh.md).
 This slice does not implement or revalidate those shared responsibilities.
 
 A built-in Grok design Session materializes only an application-owned plugin

@@ -1,8 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
-import os from 'node:os';
 import path from 'node:path';
 import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { z } from 'zod';
+import { getLodyDataDir } from '@lody/shared/node/installation-profile';
 import { AgentConfigCliTypeSchema, ProjectRefSchema, type SessionId } from '@lody/shared';
 
 /**
@@ -54,7 +54,7 @@ import { AgentConfigCliTypeSchema, ProjectRefSchema, type SessionId } from '@lod
  * them safely needs owner confirmation we don't have locally.
  *
  * Storage follows the speculative-worktree marker conventions: one JSON file
- * per target session under `~/.lody/session-fork-operations/` (dir 0o700),
+ * per target session under `<dataDir>/session-fork-operations/` (dir 0o700),
  * atomic tmp+rename writes (0o600), strict schema, unreadable entries skipped.
  */
 
@@ -104,7 +104,7 @@ export type SessionForkOperationStore = {
 };
 
 function getStoreRoot(): string {
-  return path.join(os.homedir(), '.lody', 'session-fork-operations');
+  return path.join(getLodyDataDir('local'), 'session-fork-operations');
 }
 
 function getMarkerPath(targetSessionId: SessionId): string {

@@ -9,7 +9,7 @@ export async function openDesignSample(dataRoot: string, resources: string) {
   const manifest = JSON.parse(await readFile(path.join(resources, 'build.json'), 'utf8'));
   const digest = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
   if (digest(fixture) !== manifest.sampleSha256) throw new Error('Design sample integrity failure');
-  const directory = path.join(dataRoot, 'chats', 'folio-p0');
+  const directory = path.join(dataRoot, 'chats', 'geon-p0');
   await mkdir(directory, { recursive: true });
   const current = path.join(directory, 'design.json');
   const temporary = path.join(directory, `.${randomUUID()}.tmp`);

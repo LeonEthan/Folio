@@ -29,6 +29,7 @@ import {
   applyLocalPlatformEnv,
   getCliPlatformKind,
   loadOrCreateLocalIdentity,
+  migrateLegacyLocalDataDir,
 } from '@/lib/cli-platform';
 import { normalizeCurrentProcessResourceProfile } from '@/utils/process-resource-profile';
 import { startEventLoopLagMonitor } from '@/utils/event-loop-lag-monitor';
@@ -191,6 +192,7 @@ export const startCommand = new Command('start')
       // Zero-cloud-I/O invariant (specs/platform-providers.md): blank the
       // cloud endpoints before anything reads them.
       applyLocalPlatformEnv();
+      await migrateLegacyLocalDataDir(logger);
       logger.info('Starting in local platform mode (no account, no cloud services).');
     }
 
@@ -545,7 +547,8 @@ async function startAgentService(
     cloudPort = createLocalCloudPort({
       identity: { userId },
       workspaces: [],
-      runtimeArtifactsBaseUrl: process.env.LODY_RUNTIME_BASE_URL,
+      runtimeArtifactsBaseUrl:
+        process.env.GEON_RUNTIME_BASE_URL ?? process.env.LODY_RUNTIME_BASE_URL,
     });
   } else {
     if (!LODY_AUTH_URL) {
@@ -561,7 +564,8 @@ async function startAgentService(
       authSiteUrl: LODY_AUTH_SITE_URL,
       serverBaseUrl: LODY_SERVER_URL,
       previewGatewayUrl: process.env.LODY_PREVIEW_GATEWAY_URL,
-      runtimeArtifactsBaseUrl: process.env.LODY_RUNTIME_BASE_URL,
+      runtimeArtifactsBaseUrl:
+        process.env.GEON_RUNTIME_BASE_URL ?? process.env.LODY_RUNTIME_BASE_URL,
       logger,
     });
   }

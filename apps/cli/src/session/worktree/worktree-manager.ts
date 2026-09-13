@@ -914,8 +914,8 @@ export class WorktreeManager {
       const commitEnv: Record<string, string | undefined> = {
         ...process.env,
       };
-      const commitName = name || 'LodyAI';
-      const commitEmail = email || 'agent@lody.ai';
+      const commitName = name || 'Geon';
+      const commitEmail = email || 'geon@localhost';
       commitEnv.GIT_AUTHOR_NAME = commitName;
       commitEnv.GIT_COMMITTER_NAME = commitName;
       commitEnv.GIT_AUTHOR_EMAIL = commitEmail;

@@ -33,7 +33,7 @@ export const SKILL_MANIFEST_FILENAME = '.folio-managed-files.json';
 export const DEFAULT_DESIGN_SKILLS = ['graphic-design'] as const;
 
 /**
- * The skill that only makes sense next to `folio_generate_image` and `folio_edit_image`.
+ * The skill that only makes sense next to `geon_generate_image` and `geon_edit_image`.
  *
  * Delivered exactly when the tool is: this function is only ever reached for a
  * session whose meta carries `design` (see `prepareDesignTurn`), the machine

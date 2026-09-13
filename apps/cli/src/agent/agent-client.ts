@@ -850,7 +850,7 @@ export class AgentClient implements acp.Client {
     ];
 
     if (this.options.designHookLaunchId)
-      env.push({ name: 'FOLIO_DESIGN_LAUNCH_ID', value: this.options.designHookLaunchId });
+      env.push({ name: 'GEON_DESIGN_LAUNCH_ID', value: this.options.designHookLaunchId });
 
     // ACP MCP config is an explicit environment allowlist. The MCP subprocess
     // invokes normal CLI services, so forward their public deployment endpoints
