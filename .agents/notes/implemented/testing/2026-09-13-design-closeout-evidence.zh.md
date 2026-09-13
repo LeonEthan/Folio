@@ -94,7 +94,7 @@ PR smoke `34764848785` 在 CLI Vite 构建阶段复现约 2 GB 默认堆上限 O
 
 第三轮 Daily `34764854085` 的 Windows 已通过 3 场景、24/25 步，剩余 Work 归档后报 `terminal_socket_closed`，同时数据同步断开、CLI 控制管道消失。单次原生 PTY 关闭在 Windows Node/Electron 下均通过；归档路径会先调用 closeSession，Session terminated 回调又调用一次。确定性测试复现原生退出通知到来前的重复 kill。服务增加关闭中标记，保留记录至原生退出；调用失败则保留记录并允许显式重试。Windows 原生双关闭探针 `34765909003` 已确认：单次关闭的 Node/Electron 宿主均返回 0；Electron 双关闭宿主以 `3221226356` 退出，未发出终端退出回执。修复后的真实服务原生探针与完整场景验证另行记录。
 
-同时将 Work 的终端输出标记拆分在 shell 表达式中，避免命令回显提前满足就绪断言；Windows 显式启动 PowerShell 执行表达式，兼容宿主终端为 cmd.exe。更严格的信号在 `5e070c0` 安装包上完整 4 场景、25 步通过。PTY 运行时修复将另行生成带新源提交身份的包，旧包证据不会被覆盖。
+同时将 Work 的终端输出标记拆分在 shell 表达式中，避免命令回显提前满足就绪断言；Windows 使用显式 cmd.exe 内建 echo，以 caret 分隔标记，使宿主为 cmd.exe 或 PowerShell 时输入都不含完整标记。更严格的信号在 `5e070c0` 安装包上完整 4 场景、25 步通过。PTY 运行时修复将另行生成带新源提交身份的包，旧包证据不会被覆盖。
 
 
 ## 当前收口安装包（替代前轮）
@@ -112,3 +112,5 @@ PR smoke `34764848785` 在 CLI Vite 构建阶段复现约 2 GB 默认堆上限 O
 本机交付目录：`/Users/macmini/GeonReview-ffe0e91-20260913`，保存 DMG、校验值及当前包验收证据。公开分发仍归 #32，不把本地安装包通过等同于正式签名、公证和更新发布通过。
 
 `34766275797` 的 macOS/Linux 通过，Windows 原生 PTY 服务探针通过；完整场景停在新加入的真实输出断言，因为宿主为 cmd.exe，不能直接执行 PowerShell 表达式。明确启动 PowerShell 修正此夹具假设，保留该失败；不放宽输出或资源释放断言。
+
+`34766828689` 的 macOS/Linux 和 PR checks 通过；Windows 接受嵌套 PowerShell 命令后 30 秒未输出，仍停在终端就绪断言。该场景仅验证命令执行和清理，改用显式 cmd.exe 内建 echo，保留失败记录，不推导任意嵌套 Shell 支持。原生服务探针使用相同的 caret 标记构造，继续要求真实退出。

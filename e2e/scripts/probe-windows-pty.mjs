@@ -22,7 +22,7 @@ if (process.argv.includes('--child')) {
       output += event.data;
       if (!sent) {
         sent = true;
-        service.input(event.terminalId, "Write-Output ('geon-pty-probe-' + 'ready')\r");
+        service.input(event.terminalId, 'cmd.exe /d /c echo geon-pty-probe-rea^dy\r');
       }
       if (!closing && output.includes('geon-pty-probe-ready')) {
         closing = true;

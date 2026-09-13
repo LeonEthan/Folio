@@ -74,7 +74,7 @@ When('用户打开已有 worktree Session 并启动 Terminal', async function (t
   const completed = await this.workFixture!.waitForAcpEvent('prompt-end', promptEnds + 1);
   this.activeAcpEvent = completed.at(-1)!;
   const terminalCommand = process.platform === 'win32'
-    ? 'powershell.exe -NoProfile -Command "Write-Output (\'lody-terminal-\' + \'ready\')"'
+    ? 'cmd.exe /d /c echo lody-terminal-rea^dy'
     : "printf 'lody-terminal-%s\\n' ready";
   await this.workPage!.openTerminalAndRun(terminalCommand, 'lody-terminal-ready');
   this.workResources = await this.workPage!.captureResources();
