@@ -16,6 +16,7 @@ import { MessageHandler } from '../src/lib/message-handler';
 import { getDefaultSessionWorkdir } from '../src/session/session';
 import { designTurnInputDir, DESIGN_TURN_MANIFEST_FILENAME } from '../src/design/turn-input';
 import { resolveDesignWorkspace } from '../src/design/workspace';
+import { ARTWORK_ENTRY, ARTWORK_PAGE } from '@geon/design-authoring';
 import type { SessionManager } from '../src/session/session-manager';
 import type { LoroDocumentManager } from '../src/lib/loro/doc';
 import type { Logger } from '../src/utils/logger';
@@ -132,15 +133,16 @@ test.each([
   await mkdir(input, { recursive: true });
   await mkdir(path.join(draftRoot, 'pages'), { recursive: true });
   await mkdir(path.join(draftRoot, 'media'), { recursive: true });
-  const original = 'version: v2\nsize: [800, 600]\npages: [pages/main.page]\n';
+  const original = `size: [800, 600]\npages: [${ARTWORK_PAGE}]\n`;
   const page = 'background: {type: solid, color: "#ff0000"}\nelements: []\n';
   const asset = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGM4IScHAAK2AQU0pnWqAAAAAElFTkSuQmCC',
     'base64'
   );
-  await writeFile(path.join(draftRoot, 'design.pptd'), original);
-  await writeFile(path.join(draftRoot, 'pages/main.page'), page);
+  await writeFile(path.join(draftRoot, ARTWORK_ENTRY), original);
+  await writeFile(path.join(draftRoot, ARTWORK_PAGE), page);
   await writeFile(path.join(draftRoot, 'media/original.png'), asset);
+  await writeFile(path.join(draftRoot, 'design.pptd'), 'version: v2\nsize: [800, 600]\n');
   await writeFile(
     path.join(input, DESIGN_TURN_MANIFEST_FILENAME),
     JSON.stringify({
@@ -165,10 +167,11 @@ test.each([
   expect(source.ok).toBe(true);
   if (!source.ok || source.result.type !== 'design/source-path' || !source.result.ok)
     throw Error(JSON.stringify(source));
-  expect(source.result.path).toBe(path.join(draftRoot, 'design.pptd'));
+  expect(source.result.path).toBe(path.join(draftRoot, ARTWORK_ENTRY));
+  expect(source.result.path).not.toMatch(/design\.pptd$/);
   for (const [relative, expected] of [
-    ['design.pptd', Buffer.from(original)],
-    ['pages/main.page', Buffer.from(page)],
+    [ARTWORK_ENTRY, Buffer.from(original)],
+    [ARTWORK_PAGE, Buffer.from(page)],
     ['media/original.png', asset],
   ] as const) {
     const resolved = await request(handler, sessionId, 'file/resolve-local', {
@@ -209,9 +212,12 @@ test.each([
     // Explicit current-source reads do not need historical dispatch facts.
     expect(await request(handler, sessionId, 'design/source-path', {})).toMatchObject({
       ok: true,
-      result: { ok: true, path: path.join(draftRoot, 'design.pptd') },
+      result: { ok: true, path: path.join(draftRoot, ARTWORK_ENTRY) },
     });
-    expect(await readFile(path.join(draftRoot, 'design.pptd'), 'utf8')).toBe(original);
+    expect(await readFile(path.join(draftRoot, ARTWORK_ENTRY), 'utf8')).toBe(original);
+    expect(await readFile(path.join(draftRoot, 'design.pptd'), 'utf8')).toBe(
+      'version: v2\nsize: [800, 600]\n'
+    );
     await writeFile(manifestPath, frozenBytes);
   }
   const missing = await request(
@@ -227,10 +233,10 @@ test.each([
     result: { ok: false },
   });
   expect(missing).toMatchObject({ ok: true, result: { type: 'design/source-path', ok: false } });
-  await rm(path.join(draftRoot, 'design.pptd'));
+  await rm(path.join(draftRoot, ARTWORK_ENTRY));
   expect(await request(handler, sessionId, 'design/source-path', {})).toMatchObject({
     ok: true,
-    result: { ok: true, path: path.join(workspace.artifactWorkdir, 'design.pptd') },
+    result: { ok: true, path: path.join(workspace.artifactWorkdir, ARTWORK_ENTRY) },
   });
   expect(await request(handler, sessionId, 'design/source-path', { turnId })).toMatchObject({
     ok: true,

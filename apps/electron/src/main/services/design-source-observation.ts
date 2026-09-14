@@ -13,12 +13,15 @@ export class SourceObservation {
   >()
   private readonly observe: (previous?: string) => Promise<ObservedPreviewResult>
   private readonly dependencies: (paths: string[], valid: boolean) => boolean
+  private readonly fallbackDependencies: readonly string[]
   constructor(
     observe: (previous?: string) => Promise<ObservedPreviewResult>,
-    dependencies: (paths: string[], valid: boolean) => boolean
+    dependencies: (paths: string[], valid: boolean) => boolean,
+    fallbackDependencies: readonly string[] = ['design.yaml']
   ) {
     this.observe = observe
     this.dependencies = dependencies
+    this.fallbackDependencies = fallbackDependencies
   }
   invalidate() {
     this.generation++
@@ -47,7 +50,12 @@ export class SourceObservation {
       }
       if (!current()) continue
       if (result.status === 'unchanged' && this.last) result = this.last
-      if (this.dependencies(result.dependencies ?? ['design.pptd'], result.status !== 'refused')) {
+      if (
+        this.dependencies(
+          result.dependencies ?? [...this.fallbackDependencies],
+          result.status !== 'refused'
+        )
+      ) {
         if (++dependencyRetries <= 2) {
           this.invalidate()
           continue

@@ -112,7 +112,7 @@ test('cancelled working files resolve the historical session and turn through or
     });
     return {
       ok: true,
-      result: { type: 'design/source-path', ok: true, path: '/synthetic/original/design.pptd' },
+      result: { type: 'design/source-path', ok: true, path: '/synthetic/original/design.yaml' },
     };
   });
   await act(async () =>
@@ -131,9 +131,9 @@ test('cancelled working files resolve the historical session and turn through or
   );
   expect(element.textContent).toContain('may have changed');
   expect(element.textContent).not.toContain('Cancelled');
-  expect(element.querySelector('button')?.textContent).toBe('design.pptd');
+  expect(element.querySelector('button')?.textContent).toBe('design.yaml');
   await act(async () => element.querySelector('button')?.click());
-  expect(opened).toBe('/synthetic/original/design.pptd');
+  expect(opened).toBe('/synthetic/original/design.yaml');
   opened = undefined;
   sourcePath.mockResolvedValue({
     ok: true,

@@ -12,8 +12,9 @@ Source previews never register for save/flush; preserve
 canonical instances and reject late results after consumer/source changes.
 Source previews share exact dependency watches and serialized conversion only
 while consumers exist; release both with the last consumer. Re-observe new
-dependencies after installing watches. Reject old source/view generations;
-previews never commit or update Agent baselines.
+dependencies after installing watches. Watch `design.yaml`, `pages/canvas.yaml`
+and needed `media/`; leftover `.pptd` is not a watch or import source. Reject
+old source/view generations; previews never commit or update Agent baselines.
 
 Explicit import retains the clicked document/assets snapshot, flushes under the
 artwork mutation gate, rechecks execution before save, and uses canonical CAS.

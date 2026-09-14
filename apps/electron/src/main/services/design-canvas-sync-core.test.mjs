@@ -287,6 +287,25 @@ void test('source observation shares work and suppresses dirty and closed public
   ])
 })
 
+void test('source observation fallback watches the YAML entry, not leftover PPTD', async () => {
+  const seen = []
+  const observation = new SourceObservation(
+    async () => ({ status: 'refused', error: 'missing' }),
+    (paths) => {
+      seen.push(paths)
+      return false
+    }
+  )
+  observation.consumers.set('one', async () => {})
+  await observation.refresh()
+  assert.deepEqual(seen, [['design.yaml']])
+  assert.equal(
+    seen.some((paths) => paths.includes('design.pptd')),
+    false
+  )
+  observation.close()
+})
+
 void test('source observation reconciles new dependencies before publishing and retains content identity', async () => {
   const results = []
   let dependenciesChanged = true

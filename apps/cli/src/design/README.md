@@ -48,6 +48,11 @@ The design worker returns a checksum/identity-verified original path, and ordina
 file preview supplies its bytes. No candidate approval, deletion, export-copy or
 history catalogue is needed. New candidate production is retired; final conflicts preserve the existing draft and receipt diagnostics.
 
+Live authoring preview and idle explicit import watch `design.yaml`,
+`pages/canvas.yaml` and needed `media/` in the draft directory. Leftover
+Kimi/open-kimi `.pptd` is not a preview or import source. Invalid or unstable
+files keep the last valid preview and do not clear the current artwork.
+
 Agent previews continue through `render-preview.ts` and the shared desktop render
 host, at the canvas's actual dimensions. The returned PNG path is available to
 ordinary image-reading tools; rendering alone does not prove model image input.

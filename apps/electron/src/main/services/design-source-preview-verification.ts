@@ -30,7 +30,7 @@ export async function verifySourcePreview(
   const root = join(directory, 'authoring')
   await mkdir(join(root, 'pages'), { recursive: true })
   await mkdir(join(root, 'media'), { recursive: true })
-  const source = join(root, 'design.pptd')
+  const source = join(root, 'design.yaml')
   const host = randomUUID()
   const bounds = { x: 0, y: 0, width: 1200, height: 800 }
   const saved = await designRequest({ operation: 'read', sessionId: artworkId })
@@ -44,12 +44,12 @@ export async function verifySourcePreview(
   assert.equal(missing.status, 'waiting')
   assert.equal(canonical.webContents.isDestroyed(), false)
   const page =
-    'background: {type: solid, color: "#FFFFFF"}\nelements:\n  - elementId: photo\n    elementType: image\n    bounds: [0, 0, 100, 100]\n    src: media/pic.png\n    fit: {mode: cover}\n'
+    'background: {type: solid, color: "#FFFFFF"}\nelements:\n  - id: photo\n    kind: image\n    bounds: [0, 0, 100, 100]\n    src: media/pic.png\n    fit: cover\n'
   await writeFile(
     source,
-    'version: v2\ntitle: Synthetic source preview\nsize: [320, 200]\npages: [pages/main.page]\n'
+    'title: Synthetic source preview\nsize: [320, 200]\npages: [pages/canvas.yaml]\n'
   )
-  await writeFile(join(root, 'pages/main.page'), page)
+  await writeFile(join(root, 'pages/canvas.yaml'), page)
   const writeImage = async (color: number) =>
     writeFile(
       join(root, 'media/pic.png'),
@@ -91,11 +91,11 @@ export async function verifySourcePreview(
     await canonical.webContents.executeJavaScript('window.bento.visual.snapshot()'),
     before
   )
-  await writeFile(join(root, 'pages/main.page'), 'invalid: [')
+  await writeFile(join(root, 'pages/canvas.yaml'), 'invalid: [')
   const invalid = await refreshSourcePreview(owner, artworkId, host, async () => source)
   assert.equal(invalid.status, 'waiting')
   assert.equal(getPreview(), preview, 'Invalid source retains the last rendered instance')
-  await writeFile(join(root, 'pages/main.page'), page)
+  await writeFile(join(root, 'pages/canvas.yaml'), page)
   await writeImage(100)
   const replacement = await refreshSourcePreview(owner, artworkId, host, async () => source)
   assert.equal(replacement.status, 'ready')
@@ -139,7 +139,7 @@ export async function verifySourcePreview(
   try {
     const invalidSurface = getPreview()
     await automatic('waiting', () =>
-      writeFile(join(root, 'pages/main.page'), page.replace('media/pic.png', 'media/new.png'))
+      writeFile(join(root, 'pages/canvas.yaml'), page.replace('media/pic.png', 'media/new.png'))
     )
     assert.equal(getPreview(), invalidSurface)
     const discovered = await automatic('ready', () =>
@@ -152,7 +152,7 @@ export async function verifySourcePreview(
     await writeFile(join(root, 'pages/replacement.tmp'), page)
     const renamed = await automatic(
       'ready',
-      () => rename(join(root, 'pages/replacement.tmp'), join(root, 'pages/main.page')),
+      () => rename(join(root, 'pages/replacement.tmp'), join(root, 'pages/canvas.yaml')),
       discovered.sourceIdentity
     )
     assert.notEqual(getPreview(), beforeRename)
@@ -241,14 +241,11 @@ export async function verifySourceImport(owner: BrowserWindow, directory: string
   const root = join(directory, 'import-authoring')
   await mkdir(join(root, 'pages'), { recursive: true })
   await mkdir(join(root, 'media'), { recursive: true })
-  const source = join(root, 'design.pptd')
+  const source = join(root, 'design.yaml')
   const page =
-    'background: {type: solid, color: "#FFFFFF"}\nelements:\n  - elementId: photo\n    elementType: image\n    bounds: [0, 0, 100, 100]\n    src: media/pic.png\n    fit: {mode: cover}\n'
-  await writeFile(
-    source,
-    'version: v2\ntitle: Synthetic import\nsize: [320, 200]\npages: [pages/main.page]\n'
-  )
-  await writeFile(join(root, 'pages/main.page'), page)
+    'background: {type: solid, color: "#FFFFFF"}\nelements:\n  - id: photo\n    kind: image\n    bounds: [0, 0, 100, 100]\n    src: media/pic.png\n    fit: cover\n'
+  await writeFile(source, 'title: Synthetic import\nsize: [320, 200]\npages: [pages/canvas.yaml]\n')
+  await writeFile(join(root, 'pages/canvas.yaml'), page)
   const firstAsset = nativeImage
     .createFromBitmap(Buffer.from([100, 0, 0, 255]), { width: 1, height: 1 })
     .toPNG()
@@ -323,7 +320,7 @@ export async function verifySourceImport(owner: BrowserWindow, directory: string
   await assert.rejects(importDesignSnapshot(artworkId, retry), /draft retained/)
   designCanvasAccess.unregister(failure)
   assert.deepEqual(await designRequest({ operation: 'read', sessionId: artworkId }), imported)
-  assert.equal(await readFile(join(root, 'pages/main.page'), 'utf8'), page)
+  assert.equal(await readFile(join(root, 'pages/canvas.yaml'), 'utf8'), page)
   closeSourcePreview(host)
   await assert.rejects(
     importSourcePreview(owner, artworkId, host, latest.sourceIdentity!),
