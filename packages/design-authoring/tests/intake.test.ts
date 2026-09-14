@@ -3,7 +3,7 @@
  */
 
 import { deflateSync } from 'node:zlib';
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -236,7 +236,19 @@ describe('bundled minimal example', () => {
       'examples',
       'minimal'
     );
-    const snapshot = collectAuthoring(exampleRoot);
+    const dir = mkdtempSync(path.join(tmpdir(), 'geon-example-'));
+    mkdirSync(path.join(dir, 'pages'));
+    mkdirSync(path.join(dir, 'media'));
+    copyFileSync(path.join(exampleRoot, 'design.yaml'), path.join(dir, 'design.yaml'));
+    copyFileSync(
+      path.join(exampleRoot, 'pages', 'canvas.yaml'),
+      path.join(dir, 'pages', 'canvas.yaml')
+    );
+    copyFileSync(
+      path.join(exampleRoot, 'media', 'swatch.png'),
+      path.join(dir, 'media', 'swatch.png')
+    );
+    const snapshot = collectAuthoring(dir);
     expect([...snapshot.keys()].sort()).toEqual([
       'design.yaml',
       'media/swatch.png',

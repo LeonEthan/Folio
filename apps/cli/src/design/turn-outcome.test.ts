@@ -889,7 +889,7 @@ describe('collectDesignTurnOutcome', () => {
     expect(attempt.status).toBe('recorded');
     if (attempt.status !== 'recorded') return;
     expect(attempt.outcome.status).toBe('invalid');
-    expect(attempt.outcome.diagnostics?.some(({ code }) => code === 'PPTD-E005')).toBe(true);
+    expect(attempt.outcome.diagnostics?.some(({ code }) => code === 'GEON-E005')).toBe(true);
     const stored = await designOperation(harness.root, {
       operation: 'read',
       sessionId: harness.sessionId,

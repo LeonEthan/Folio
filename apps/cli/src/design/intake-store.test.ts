@@ -156,6 +156,6 @@ elements:
     const intake = intakeAuthoring('design.yaml', snapshot);
     expect(intake.status).toBe('invalid');
     if (intake.status !== 'invalid') return;
-    expect(intake.diagnostics.some((d) => d.code === 'PPTD-E005')).toBe(true);
+    expect(intake.diagnostics.some((d) => d.code === 'GEON-E005')).toBe(true);
   });
 });
