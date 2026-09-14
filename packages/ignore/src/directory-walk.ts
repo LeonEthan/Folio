@@ -15,10 +15,12 @@ export const DEFAULT_IGNORED_DIRECTORY_NAMES: ReadonlySet<string> = new Set([
   '.git',
   '.hg',
   '.svn',
-  // Lody's own workspace state (e.g. .lody/attachments); must not appear in
-  // code-collab change tracking even when the workspace is not a git repo.
+  // Geon's own workspace state (e.g. .geon/attachments) plus the pre-rename
+  // .lody/.folio equivalents; must not appear in code-collab change tracking
+  // even when the workspace is not a git repo.
   '.lody',
   '.folio',
+  '.geon',
   'node_modules',
 ]);
 

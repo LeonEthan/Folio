@@ -78,7 +78,7 @@ Translation: pending
 
 - 已接入 Geon 原创矢量纸张图标及 PNG/ICNS/ICO 导出；四段式排版开场复用现有引导入口，本地配置背景退出代码任务 tour。静音和跳过已接线，最终视觉/听觉仍待检查。
 - 品牌标记经用户评审更换：四个手工矢量候选（活版套印、对折纸、版式基线、手写 f）中选定“版式基线 C1”——横线纸面上由文字线构成的 F，行尾带赭色编辑光标，呼应文本可编辑的产品事实。已替换 `geon-mark.svg` 并重新导出全部平台图标（PNG/ICNS/ICO、Dock 加边母版、组件内 `geon-icon.png`）；候选稿与预览留在 `output/logo-candidates/`，非产品源码。
-- 后台包设为 private 并移除公开 bin；保留内部包名和启动机制。已修正部分错误、分享、发布和帮助入口。新附件写入 `.folio/attachments`，原消息中已保存的路径保持不变；旧附件不移动或删除。
+- 后台包设为 private 并移除公开 bin；保留内部包名和启动机制。已修正部分错误、分享、发布和帮助入口。新附件写入 `.geon/attachments`（更正：随 9a34d67 重命名从 `.folio` 改出，本节原记录过期；见 2026-09-14 修正），原消息中已保存的路径保持不变；旧附件不移动或删除。
 - 自动更新使用 Geon feed，首发仅 macOS arm64。未配置有效包内公钥或原生更新桥时保持不可用，不回退到其他产品或未经验证的更新机制。更新安装通过既有画布主机状态和保存入口冻结新编辑/派发，忙碌或保存失败时拒绝安装并保留工作。
 - 公共运行时 URL 改为 Geon GitHub Releases 的扁平版本化资源名，显式 API mirror 仍兼容；首发四个资源已本地暂存并通过原有 manifest 的大小及 SHA-256 校验，公开上传等待用户确认，当前默认目标尚不能宣称在线可用。
 - 音乐请求准备使用 MiniMax `music-3.0` 生成一次无歌词开场音乐；密钥不进入仓库或记录。API 调用等待单次生成确认，现有合成音乐尚未被新配乐替代。
@@ -118,3 +118,15 @@ Translation: pending
 v3 四幕为夜间植物展海报、饮食文化编辑出版、绿色声景音乐节视觉系统、便携咖啡机 A+ 商品详情图。题材、命名、配色、构图均重新制定；统一的是 Geon 开场框架及表达、编排、视觉系统、商品叙事的递进。品牌图补做一次修正背景，共使用本轮 9 / 10 次（此前另有 6 次）。最终候选及完整提示词存入 assets 的 v3 文件，退出使用的 v1/v2 场景资产移除；音乐与应用标志保留。
 
 四张已用于本地预览，文案与图片对应，组件 450 个测试文件、3296 项测试通过。图片仍待用户视觉验收；文字生成和差异化设计不等于已完成权利审查。Spec 保持 draft，本记录不表示首发完成。
+
+### 文档滞后修正与旧品牌清理（2026-09-14）
+
+对照实际代码逐条核查本记录与相关文档后发现三处滞后，本轮修正；另发现一处重命名遗漏的运行时缺陷，一并修复。
+
+- **附件路径更正**：附件目录随 9a34d67 重命名已从 `.folio/attachments` 改为 `.geon/attachments`（`session-file-attachments.ts` 的 `ATTACHMENTS_DIR_RELATIVE`），本记录此前描述过期；同文件注释遗留的 `.folio` 已一并修正。原消息已保存路径不改动，旧附件不迁移或删除。
+- **内部标记文件名保留**：设计工作区标记 `.folio-current.json`（当前投影）与 `.folio-managed-files.json`（技能清单）作为重命名前兼容名保留；消费者为 `current-projection.ts`、`skills.ts` 及 `workspace.ts` 的 Agent 提示文本（文本与真实文件名一致）。改名须为既有工作区提供读回兼容，首发前如需用户可见打磨再裁定。约束已写入 `apps/cli/src/design/AGENTS.md`。
+- **旧场景与资产清理**：删除无消费者的 `underwater-scene.tsx`（其 24 个雪碧图在开场重写时已先行删除，文件引用悬空）与 `aurora-background.tsx`（`@paper-design/shaders-react` 的唯一消费者，该依赖一并从 components 移除并更新锁文件）；删除 `src/assets/onboarding/` 下四张旧插画（0 消费者）与无消费者的 `lody-icon.png`。保留仍有消费者的 `lody.svg`（设置用量页）与 `icon-transparent.png`（两个邀请页），其入口可达性随剩余品牌文案审查一并进行；`worktree.svg` 无消费者但与品牌无关，未处理。旧组件历史保留在 Git 中。
+- **旧路径现状**：`session-fork-operation-store.ts` 与 `speculative-worktree.ts` 经共享安装档案解析到 `~/.geon`（local profile，`getLodyDataDir`）；规划轮“硬编码 `~/.lody`”的证据不再描述当前代码。遗留缺口不变：Folio 时期写入旧路径的标记没有迁移或读回策略（本机核查：旧分叉操作目录不存在，旧预备 worktree 标记目录为空）。
+- **重命名遗漏修复**：`packages/ignore` 的目录遍历忽略集只有 `.lody`/`.folio`，没有 `.geon`；非 Git 工作区中 `.geon/attachments` 会进入 code-collab 变更追踪。已把 `.geon` 加入 `DEFAULT_IGNORED_DIRECTORY_NAMES`（保留两个旧名以覆盖旧工作区），并在 `directory-walk.test.ts` 断言三个产品状态目录均被跳过。
+
+验证：ignore 包遍历测试通过；components 类型检查与 onboarding 流程/音频测试通过；`docs check` 通过。本轮为文档修正与已确认无消费者资源的清理，不涉及设计行为合同变更；Spec 保持 draft。

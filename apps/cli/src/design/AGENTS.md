@@ -13,6 +13,10 @@ Root and CLI instructions apply. `CLAUDE.md` links to this file.
 - Healthy canonical reads retain lockless coherent payload behavior; only projection
   repair acquires the lock and re-reads latest canonical. Missing canonical reads
   must not create artwork directories.
+- Workspace marker files keep their pre-rename names (`.folio-current.json`,
+  `.folio-managed-files.json`). Renaming them requires read-back compatibility
+  for existing workspaces; see the
+  [independent-release note](../../../../.agents/notes/proposed/feature/2026-09-13-geon-independent-brand-release.zh.md).
 - Public read-before-edit reminders and native tool behavior belong to adapters.
   Do not restore generation/read-proof ledgers, intercept ordinary tools, patch
   runtimes or infer a shell/custom-tool sandbox. Reminders confer no commit authority.

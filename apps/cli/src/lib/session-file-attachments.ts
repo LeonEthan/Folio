@@ -60,7 +60,7 @@ export const sanitizeAttachmentFileName = (rawName: string): string => {
 
 /**
  * Build the workspace-relative destination path for a materialized attachment:
- * `.folio/attachments/<fileId first 8 chars>-<sanitized name>`. If that name is
+ * `.geon/attachments/<fileId first 8 chars>-<sanitized name>`. If that name is
  * already taken (collision), a numeric suffix is added before the extension.
  *
  * `existingNames` is the set of basenames already present in the attachments
