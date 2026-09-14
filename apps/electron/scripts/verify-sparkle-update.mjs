@@ -67,6 +67,10 @@ function ensureKeys() {
 
 function findPackagedApp() {
   const distDir = path.join(electronDir, 'dist')
+  // Prefer the standard electron-builder output over any stale fixture layout
+  // that may also contain a .app (find order is filesystem-dependent).
+  const standard = path.join(distDir, 'mac-arm64', 'Geon.app')
+  if (existsSync(standard)) return standard
   const matches = spawnSync('find', [distDir, '-maxdepth', '3', '-name', '*.app', '-type', 'd'], {
     encoding: 'utf8'
   })
@@ -79,6 +83,37 @@ function findPackagedApp() {
     throw new Error(`No packaged .app found under ${distDir}`)
   }
   return apps[0]
+}
+
+function bundleVersion(appPath) {
+  const plistPath = path.join(appPath, 'Contents', 'Info.plist')
+  const result = spawnSync(
+    'plutil',
+    ['-extract', 'CFBundleShortVersionString', 'raw', '-o', '-', plistPath],
+    { encoding: 'utf8' }
+  )
+  return (result.stdout ?? '').trim()
+}
+
+function packageVersion(version) {
+  // A full electron-builder run per version: Sparkle compares Info.plist while
+  // Electron's app.getVersion() reads the asar package.json, and only a real
+  // package bumps both. Anything less produces a bundle whose in-app version
+  // disagrees with what Sparkle installed.
+  run('pnpm', ['run', 'package', '--', '--mac', '--dir'], {
+    env: {
+      LODY_OSS_RELEASE_VERSION: version,
+      SPARKLE_ED_PUBLIC_KEY: publicEdKey,
+      SPARKLE_APPCAST_URL: feedUrl,
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    }
+  })
+  const packaged = findPackagedApp()
+  const actual = bundleVersion(packaged)
+  if (actual !== version) {
+    throw new Error(`packaged bundle version ${actual} does not match requested ${version}`)
+  }
+  return packaged
 }
 
 function copyApp(fromPath, toPath) {
@@ -135,24 +170,22 @@ const oldApp = path.join(workDir, 'old', 'Geon.app')
 const newApp = path.join(workDir, 'new', 'Geon.app')
 const newZip = path.join(archiveDir, `Geon-${newVersion}-arm64.zip`)
 
-if (!skipPackage) {
-  run(process.execPath, [path.join(electronDir, 'scripts/build-app.mjs')])
-  run('pnpm', ['run', 'package', '--', '--mac', '--dir'], {
-    env: {
-      LODY_OSS_RELEASE_VERSION: oldVersion,
-      SPARKLE_ED_PUBLIC_KEY: publicEdKey,
-      SPARKLE_APPCAST_URL: feedUrl,
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-    }
-  })
-}
-
-const packagedApp = findPackagedApp()
 rmSync(workDir, { recursive: true, force: true })
 mkdirSync(archiveDir, { recursive: true })
-copyApp(packagedApp, oldApp)
-copyApp(packagedApp, newApp)
-setBundleVersion(newApp, newVersion)
+
+if (skipPackage) {
+  // Fast rebuild from the current dist output. Both copies then share one
+  // asar version, so this is only for harness smoke iteration, never for an
+  // acceptance round: the installed bundle's in-app version would not change.
+  const packagedApp = findPackagedApp()
+  copyApp(packagedApp, oldApp)
+  copyApp(packagedApp, newApp)
+  setBundleVersion(newApp, newVersion)
+} else {
+  run(process.execPath, [path.join(electronDir, 'scripts/build-app.mjs')])
+  copyApp(packageVersion(oldVersion), oldApp)
+  copyApp(packageVersion(newVersion), newApp)
+}
 // Prove the post-update bundle really came from the served zip: the marker
 // exists only in the "new" app, so finding it after relaunch rules out a
 // stale or untouched install.
