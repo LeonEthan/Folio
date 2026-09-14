@@ -86,3 +86,5 @@ P3.7 实现按需订阅、稳定字节采集、转换调度、只读呈现和外
 ## Outcome / 结局
 
 **更正**：本文多处称“没有运行时代码实现”“持续预览本身尚未实现”“本方案承接显式文件预览/导入，尚未实现”，该事实已被后续实现更正。实时预览及显式导入已分别由 [automatic PPTD preview](../feature/2026-09-11-automatic-pptd-preview.md)、[manual PPTD preview](../feature/2026-09-11-manual-pptd-preview.md) 与 [direct preview import](../feature/2026-09-11-direct-preview-import.md) 实现，并接入画布版本 UI。原文其余设计约束与源码复用边界保留，不删除。
+
+**后续变化**：预览订阅与空闲显式导入现已跟随 YAML 入口，见 [YAML 创作预览](../feature/2026-09-14-yaml-authoring-preview.zh.md)（[#39](https://github.com/LeonEthan/Geon/issues/39)）。本文仍是 PPTD 时期的实时预览决策，不改写成相反结论。

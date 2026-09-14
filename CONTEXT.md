@@ -36,11 +36,11 @@ _Avoid_：当前画稿、历史版本库
 因版本检查未能提交、仍保留在工作区的创作文件；Agent 重读最新当前稿后自行处理差异，不是需要用户采用/拒绝的独立候选作品。
 _Avoid_：候选审批、应用自动合并
 
-**创作预览（意图见 specs/graphic-design-platform.zh.md「创作文件实时预览」，运行时尚未改）**：
+**创作预览（已实现，指向 specs/graphic-design-platform.zh.md「创作文件实时预览」）**：
 根据 YAML 画稿投影变化更新的只读、未提交视图；可停留在上一份有效结果，不改变当前画稿或 Agent 草稿基线。Agent 执行及产物处理期间，当前画稿也只读；运行中观看进展，提交完成后再引用当前稿元素继续修改。
 _Avoid_：当前画稿、已完成产物、读取 hook 生成的画稿投影
 
-**显式导入（意图见 specs/graphic-design-platform.zh.md「创作文件实时预览」，运行时尚未改）**：
+**显式导入（已实现，指向 specs/graphic-design-platform.zh.md「创作文件实时预览」）**：
 空闲时将用户已预览的 YAML 画稿投影与素材快照，经校验和版本检查直接保存为当前稿；不先创建待采用候选。不导入 Kimi/open-kimi `.pptd`。
 _Avoid_：作品目录导入、候选审批、PPTD 互通
 

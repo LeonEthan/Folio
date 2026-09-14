@@ -15,7 +15,7 @@ import path from 'node:path';
 import { deflateSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { DesignRenderHostWork } from '@lody/shared';
-import { DESIGN_ARTIFACT_ENTRY } from './artifact';
+import { ARTWORK_ENTRY, ARTWORK_PAGE } from '@geon/design-authoring';
 import { canonicalContentBytes } from './store';
 import {
   DESIGN_PREVIEW_DIRNAME,
@@ -75,7 +75,7 @@ function syntheticPng(width: number, height: number, rgb: [number, number, numbe
 const MANIFEST = `title: Preview test
 size: [320, 200]
 pages:
-  - pages/canvas.yaml
+  - ${ARTWORK_PAGE}
 `;
 
 const PAGE = `background:
@@ -98,6 +98,12 @@ elements:
 `;
 
 const BROKEN_PAGE = PAGE.replace('media/pic.png', 'media/missing.png');
+const LEFTOVER_PPTD = `version: v2
+title: Leftover Kimi PPTD
+size: [320, 200]
+pages:
+  - pages/main.page
+`;
 
 const roots: string[] = [];
 afterEach(() => {
@@ -119,8 +125,8 @@ function createHarness(options: { artifact?: boolean; page?: string } = {}): Har
   mkdirSync(path.join(workdir, 'pages'), { recursive: true });
   mkdirSync(path.join(workdir, 'media'), { recursive: true });
   if (options.artifact !== false) {
-    writeFileSync(path.join(workdir, DESIGN_ARTIFACT_ENTRY), MANIFEST);
-    writeFileSync(path.join(workdir, 'pages', 'canvas.yaml'), options.page ?? PAGE);
+    writeFileSync(path.join(workdir, ARTWORK_ENTRY), MANIFEST);
+    writeFileSync(path.join(workdir, ARTWORK_PAGE), options.page ?? PAGE);
     writeFileSync(path.join(workdir, 'media', 'pic.png'), syntheticPng(8, 8, [31, 107, 138]));
   }
   return {
@@ -324,14 +330,15 @@ describe('renderDesignPreview', () => {
 });
 
 describe('manual source snapshots', () => {
-  it('freezes only the referenced closure and notices same-path asset bytes', async () => {
+  it('freezes only the referenced YAML closure and notices same-path asset bytes', async () => {
     const { workdir } = createHarness();
-    writeFileSync(path.join(workdir, 'pages', 'unreferenced.page'), 'invalid: [');
+    writeFileSync(path.join(workdir, 'notes.txt'), 'invalid: [');
     writeFileSync(path.join(workdir, 'media', 'unreferenced.bin'), Buffer.alloc(17 * 1024 * 1024));
     const first = await buildPreviewPayload(workdir, {});
     expect(first.status).toBe('ok');
     if (first.status !== 'ok') throw Error(JSON.stringify(first));
-    expect(first.dependencies).toEqual(['design.yaml', 'pages/canvas.yaml', 'media/pic.png']);
+    expect(first.dependencies).toEqual([ARTWORK_ENTRY, ARTWORK_PAGE, 'media/pic.png']);
+    expect(first.dependencies).not.toContain('design.pptd');
     expect(
       await buildPreviewPayload(workdir, { previousSourceIdentity: first.sourceIdentity })
     ).toMatchObject({ status: 'unchanged', sourceIdentity: first.sourceIdentity });
@@ -350,10 +357,7 @@ describe('manual source snapshots', () => {
     const { workdir } = createHarness();
     const { collectAuthoring } = await import('@geon/design-authoring');
     const first = collectAuthoring(workdir, { referencedOnly: true });
-    writeFileSync(
-      path.join(workdir, 'pages', 'canvas.yaml'),
-      PAGE.replace('Hello', 'Intermediate')
-    );
+    writeFileSync(path.join(workdir, ARTWORK_PAGE), PAGE.replace('Hello', 'Intermediate'));
     const second = collectAuthoring(workdir, { referencedOnly: true });
     const reads = [first, second];
     const unstable = await buildPreviewPayload(workdir, { collect: () => reads.shift()! });
@@ -361,13 +365,37 @@ describe('manual source snapshots', () => {
       status: 'refused',
       error: expect.stringContaining('changed during observation'),
     });
-    expect(readFileSync(path.join(workdir, 'pages', 'canvas.yaml'), 'utf8')).toContain(
-      'Intermediate'
-    );
-    writeFileSync(path.join(workdir, 'pages', 'canvas.yaml'), BROKEN_PAGE);
+    expect(unstable.sourceIdentity).toBeUndefined();
+    expect(readFileSync(path.join(workdir, ARTWORK_PAGE), 'utf8')).toContain('Intermediate');
+    writeFileSync(path.join(workdir, ARTWORK_PAGE), BROKEN_PAGE);
     expect(await buildPreviewPayload(workdir, {})).toMatchObject({
       status: 'refused',
-      dependencies: ['design.yaml', 'pages/canvas.yaml', 'media/missing.png'],
+      dependencies: [ARTWORK_ENTRY, ARTWORK_PAGE, 'media/missing.png'],
     });
+  });
+
+  it('does not preview or import leftover Kimi PPTD', async () => {
+    const { workdir } = createHarness({ artifact: false });
+    writeFileSync(path.join(workdir, 'design.pptd'), LEFTOVER_PPTD);
+    const leftoverOnly = await buildPreviewPayload(workdir, {});
+    expect(leftoverOnly.status).toBe('refused');
+    expect(leftoverOnly.error).toMatch(ARTWORK_ENTRY);
+    expect(leftoverOnly.dependencies).toEqual([ARTWORK_ENTRY]);
+    expect(leftoverOnly.dependencies).not.toContain('design.pptd');
+    expect(leftoverOnly.sourceIdentity).toBeUndefined();
+
+    const { workdir: mixed } = createHarness();
+    const valid = await buildPreviewPayload(mixed, {});
+    expect(valid.status).toBe('ok');
+    if (valid.status !== 'ok') throw Error(JSON.stringify(valid));
+    writeFileSync(path.join(mixed, 'design.pptd'), LEFTOVER_PPTD);
+    const afterLeftover = await buildPreviewPayload(mixed, {
+      previousSourceIdentity: valid.sourceIdentity,
+    });
+    expect(afterLeftover.status).toBe('refused');
+    expect(afterLeftover.error).toMatch(/GEON-E-PPTD/);
+    expect(afterLeftover.sourceIdentity).toBeUndefined();
+    expect(afterLeftover.dependencies).toEqual([ARTWORK_ENTRY]);
+    expect(afterLeftover.dependencies).not.toContain('design.pptd');
   });
 });

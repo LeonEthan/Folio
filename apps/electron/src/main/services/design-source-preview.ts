@@ -207,7 +207,10 @@ export async function refreshSourcePreview(
           watchRoot = dirname(watchRoot)
         }
       }
-      const paths = new Set(['design.pptd'])
+      const sourceEntry = relative(workdir, source).split('\\').join('/')
+      if (!sourceEntry || sourceEntry.endsWith('.pptd'))
+        throw Error('Leftover PPTD is not a preview source')
+      const paths = new Set([sourceEntry])
       const validPaths = new Set(paths)
       const files = () =>
         [...paths].map((path) => ({
@@ -232,7 +235,8 @@ export async function refreshSourcePreview(
           for (const path of dependencies) paths.add(path)
           watcher.update({ textFiles: files() })
           return before !== [...paths].sort().join('\0')
-        }
+        },
+        [sourceEntry]
       )
       let watchError: string | undefined
       const watcher = startWorkspaceFileWatcher({

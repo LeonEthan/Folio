@@ -16,7 +16,8 @@
  *   post-turn collection uses and stages the result directly; `design.json` is
  *   never read, never compared, and never written. Previewing mid-turn is
  *   therefore free of side effects: a preview cannot commit, cannot overwrite,
- *   and cannot turn into a candidate.
+ *   and cannot turn into a candidate. Leftover Kimi/open-kimi `.pptd` is not
+ *   a preview or import source.
  * - **Validation is storage-layer structure only.** Schema, snapshot integrity,
  *   and asset MIME/digest are re-checked because the desktop that renders this
  *   must never be handed bytes the platform would refuse to commit. Whether the
@@ -31,7 +32,12 @@
  *   unverifiable render is refused rather than retried.
  */
 
-import { AuthoringSnapshotError, collectAuthoring, intakeAuthoring } from '@geon/design-authoring';
+import {
+  ARTWORK_ENTRY,
+  AuthoringSnapshotError,
+  collectAuthoring,
+  intakeAuthoring,
+} from '@geon/design-authoring';
 import { createHash, randomUUID } from 'node:crypto';
 import { lstat, mkdir, readdir, unlink } from 'node:fs/promises';
 import path from 'node:path';
@@ -45,7 +51,6 @@ import {
   verifyRenderedPng,
   type DesignRenderQueue,
 } from './render-output';
-import { DESIGN_ARTIFACT_ENTRY } from './artifact';
 import { canonicalContentBytes, type DesignPayload } from './store';
 
 /** Where rendered previews live, relative to the session workdir. */
@@ -107,7 +112,7 @@ type Observation = {
 };
 
 /**
- * Import the workdir's PPTD project into the payload the desktop renders.
+ * Import the workdir's YAML artwork into the payload the desktop renders.
  *
  * Deliberately the same intake the post-turn collection runs, minus the commit:
  * the same validation, the same asset table, the same `DesignPayload` shape the
@@ -124,7 +129,7 @@ export async function buildPreviewPayload(
   workdir: string,
   observation?: Observation
 ): Promise<ObservedPreviewResult> {
-  let dependencies = [DESIGN_ARTIFACT_ENTRY];
+  let dependencies = [ARTWORK_ENTRY];
   let observedIdentity: string | undefined;
   const result = await buildObserved();
   return observation
@@ -132,16 +137,16 @@ export async function buildPreviewPayload(
     : result;
   async function buildObserved(): Promise<ObservedPreviewResult> {
     const root = path.resolve(workdir);
-    const entry = path.join(root, DESIGN_ARTIFACT_ENTRY);
+    const entry = path.join(root, ARTWORK_ENTRY);
     try {
       const stat = await lstat(entry);
       if (stat.isSymbolicLink() || !stat.isFile()) {
-        return refused(`${DESIGN_ARTIFACT_ENTRY} is not a regular file`);
+        return refused(`${ARTWORK_ENTRY} is not a regular file`);
       }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return refused(
-          `this session workspace has no ${DESIGN_ARTIFACT_ENTRY} yet, so there is nothing to preview. Write the project first.`
+          `this session workspace has no ${ARTWORK_ENTRY} yet, so there is nothing to preview. Write the project first.`
         );
       }
       return refused(errorMessage(error));
@@ -172,7 +177,7 @@ export async function buildPreviewPayload(
     observedIdentity = snapshotIdentity(snapshot);
     if (observation?.previousSourceIdentity === observedIdentity)
       return { status: 'unchanged', sourceIdentity: observation.previousSourceIdentity };
-    const intake = intakeAuthoring(DESIGN_ARTIFACT_ENTRY, snapshot);
+    const intake = intakeAuthoring(ARTWORK_ENTRY, snapshot);
     if (intake.status === 'invalid') {
       return refused(
         describeDiagnostics(intake.diagnostics.map(({ code, message }) => ({ code, message })))

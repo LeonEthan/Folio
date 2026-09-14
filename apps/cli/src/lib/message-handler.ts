@@ -3,6 +3,7 @@ import {
   ensureDesignDirectory,
   designWorkspacePointer,
 } from '@/design/workspace';
+import { ARTWORK_ENTRY } from '@geon/design-authoring';
 import os from 'os';
 import fs from 'fs';
 import path from 'path';
@@ -6941,7 +6942,7 @@ export class MessageHandler {
             turnId: request.params.turnId,
             requireTurnManifest: request.params.turnId !== undefined,
           });
-          const sourcePath = path.join(workspace.artifactWorkdir, 'design.pptd');
+          const sourcePath = path.join(workspace.artifactWorkdir, ARTWORK_ENTRY);
           try {
             const stat = await fs.promises.lstat(sourcePath);
             if (!stat.isFile() || stat.isSymbolicLink())

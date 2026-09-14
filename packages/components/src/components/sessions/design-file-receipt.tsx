@@ -100,7 +100,7 @@ export function DesignFileReceipt({
             disabled={!onOpenFile || !workspaceId}
             onClick={() => void openDraft()}
           >
-            design.pptd
+            design.yaml
           </button>
         </p>
       ) : null}

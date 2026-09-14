@@ -249,3 +249,8 @@ implementation. Live preview and explicit import were implemented by
 [direct preview import](../feature/2026-09-11-direct-preview-import.md), and wired into the
 canvas version UI. The rest of the original design constraints and source reuse boundaries
 are kept and not deleted.
+
+**Later change:** Preview subscriptions and idle explicit import now follow the YAML
+entry in [YAML authoring preview](../feature/2026-09-14-yaml-authoring-preview.md)
+([#39](https://github.com/LeonEthan/Geon/issues/39)). This note remains the PPTD-era
+live-preview decision and is not rewritten into its opposite.
