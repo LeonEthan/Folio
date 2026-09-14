@@ -19,4 +19,4 @@ Translation: current
 
 ## 验证与限制
 
-确定性测试覆盖 YAML 观察依赖、遗留 PPTD 拒绝且无可导入身份、存在遗留 `.pptd` 时 source-path 仍解析 `design.yaml`、观察回退监听、无效/不稳定预览保留，以及导入已显示快照。原生核验夹具改为写入 YAML。回合采集、人工保存发布、无产物判定、技能重写、PPTD-E\* 改名与 source-manifest 解钉仍留给 [#38](https://github.com/LeonEthan/Geon/issues/38)–[#41](https://github.com/LeonEthan/Geon/issues/41)。盲测见 [#42](https://github.com/LeonEthan/Geon/issues/42)。
+确定性测试覆盖 YAML 观察依赖、遗留 PPTD 拒绝且无可导入身份、存在遗留 `.pptd` 时 source-path 仍解析 `design.yaml`、观察回退监听、无效/不稳定预览保留，以及导入已显示快照。原生核验夹具改为写入 YAML。回合采集、人工保存发布、无产物判定、技能重写、PPTD-E\* 改名与 source-manifest 解钉仍留给 [#38](https://github.com/LeonEthan/Geon/issues/38)–[#41](https://github.com/LeonEthan/Geon/issues/41)。盲测见 [#42](https://github.com/LeonEthan/Geon/issues/42)。PR：[LeonEthan/Geon#43](https://github.com/LeonEthan/Geon/pull/43)。
