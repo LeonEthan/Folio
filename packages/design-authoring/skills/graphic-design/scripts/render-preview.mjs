@@ -40,7 +40,7 @@ if (intake.status === 'invalid') {
   process.exit(1);
 }
 if (intake.status === 'unsupported') {
-  console.error(`render-preview: PPTD import unsupported: ${JSON.stringify(intake.issues)}`);
+  console.error(`render-preview: artwork import unsupported: ${JSON.stringify(intake.issues)}`);
   process.exit(1);
 }
 

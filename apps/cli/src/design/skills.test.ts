@@ -238,6 +238,7 @@ describe('packaged design materials', () => {
     const skills = designSkillsForImageCapability(true);
     const first = materializeDesignSkills({ workdir, sourceDir, skills });
     const materials: string[] = [];
+    const graphicMaterials: string[] = [];
     for (const target of first.targets) {
       const manifest = JSON.parse(
         readFileSync(path.join(target.dir, SKILL_MANIFEST_FILENAME), 'utf8')
@@ -248,38 +249,61 @@ describe('packaged design materials', () => {
         expect(
           bytes.equals(readFileSync(path.join(sourceDir, path.basename(target.dir), rel)))
         ).toBe(true);
-        if (rel.endsWith('.md')) materials.push(bytes.toString('utf8'));
+        if (rel.endsWith('.md')) {
+          const text = bytes.toString('utf8');
+          materials.push(text);
+          if (path.basename(target.dir) === 'graphic-design') graphicMaterials.push(text);
+        }
       }
     }
     const text = materials.join('\n');
+    const graphicText = graphicMaterials.join('\n');
     expect(text).not.toMatch(
       /inspect → draft|inspect once|inspect in one pass|verify in two loops|never script pixel|do not write pixel-probing|rerun until|done check is executable|review is incomplete|never substitute another renderer/i
     );
     expect(text).toContain('Choose your own analysis, drafting, and review methods');
-    expect(text).toContain('You may write `design.pptd` directly');
     expect(text).toContain('actual image-reading tool');
-    expect(text).toContain('version: v3');
     expect(text).toContain('geon_edit_image');
     expect(text).toContain('Geon has no default model');
     expect(text).toContain('Files are uploaded as multipart data');
 
+    expect(graphicText).toContain('design.yaml');
+    expect(graphicText).toContain('pages/canvas.yaml');
+    expect(graphicText).toContain('media/');
+    expect(graphicText).toContain('You may write `design.yaml` directly');
+    expect(graphicText).toMatch(/\bid\b/);
+    expect(graphicText).toMatch(/\bkind\b/);
+    expect(graphicText).toContain(
+      'If `geon_render_preview` is absent, only that tool is unavailable'
+    );
+    expect(graphicText).not.toMatch(/You may write `design\.pptd` directly/);
+    expect(graphicText).not.toMatch(/version:\s*v[23]/);
+    expect(graphicText).not.toMatch(/\belementId\b|\belementType\b/);
+    expect(graphicText).not.toMatch(/\| Relationship \| Useful forms \|/);
+    expect(graphicText).not.toMatch(/Time, stages, change/);
+    expect(graphicText).not.toMatch(/Path, propagation, migration/);
+    expect(graphicText).not.toMatch(/Process, mechanism, method/);
+    expect(graphicText).not.toMatch(/few-shot/i);
+    expect(graphicText).not.toMatch(/step0|Step 0|five-step/i);
+
     // Directly authored final files are valid without running finalize, and the
     // shipped helper executes from the materialized tree with its bundled library.
     const graphic = path.join(workdir, '.agents/skills/graphic-design');
+    expect(existsSync(path.join(graphic, 'examples/minimal/design.yaml'))).toBe(true);
+    expect(existsSync(path.join(graphic, 'examples/minimal/pages/canvas.yaml'))).toBe(true);
+    expect(existsSync(path.join(graphic, 'examples/minimal/poster.pptd'))).toBe(false);
+    expect(existsSync(path.join(graphic, 'examples/minimal/pages/poster.page'))).toBe(false);
     cpSync(path.join(graphic, 'examples/minimal'), workdir, { recursive: true });
-    writeFileSync(
-      path.join(workdir, 'design.pptd'),
-      readFileSync(path.join(workdir, 'poster.pptd'))
-    );
     const intake = spawnSync(
       process.execPath,
-      [path.join(graphic, 'scripts/render-preview.mjs'), path.join(workdir, 'design.pptd')],
+      [path.join(graphic, 'scripts/render-preview.mjs'), path.join(workdir, 'design.yaml')],
       { cwd: workdir, encoding: 'utf8' }
     );
     expect(intake.status, intake.stderr).toBe(0);
     expect(intake.stdout).toContain('intake OK');
     expect(intake.stdout).toContain('This script does not render or review images');
-    expect(readdirSync(workdir)).not.toContain('design.pptd.tmp');
+    expect(intake.stdout).toContain('geon_render_preview');
+    expect(readdirSync(workdir)).not.toContain('design.yaml.tmp');
 
     const edited = path.join(workdir, '.claude/skills/graphic-design/SKILL.md');
     writeFileSync(edited, '# Human-owned design instructions\n');

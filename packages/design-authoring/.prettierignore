@@ -12,7 +12,6 @@ src/validate.ts
 # Build outputs are regenerated, never hand-edited.
 src/generated/
 skills/graphic-design/scripts/lib/
-# Preserve upstream reference layouts; provenance is in source-manifest.json.
-skills/graphic-design/references/
+# Preserve upstream imagegen reference layouts; provenance is in source-manifest.json.
 skills/imagegen/references/
 node_modules/

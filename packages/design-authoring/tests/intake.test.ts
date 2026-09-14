@@ -3,7 +3,7 @@
  */
 
 import { deflateSync } from 'node:zlib';
-import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -227,7 +227,7 @@ describe('intakeAuthoring', () => {
 });
 
 describe('bundled minimal example', () => {
-  it('fails closed on leftover PPTD examples until skill rewrite (#40)', () => {
+  it('is valid YAML artwork that intakeAuthoring accepts', () => {
     const exampleRoot = path.join(
       path.dirname(fileURLToPath(import.meta.url)),
       '..',
@@ -236,21 +236,27 @@ describe('bundled minimal example', () => {
       'examples',
       'minimal'
     );
-    const snapshot = new Map<string, Uint8Array>([
-      ['poster.pptd', new Uint8Array(readFileSync(path.join(exampleRoot, 'poster.pptd')))],
-      [
-        'pages/poster.page',
-        new Uint8Array(readFileSync(path.join(exampleRoot, 'pages', 'poster.page'))),
-      ],
-      [
-        'media/swatch.png',
-        new Uint8Array(readFileSync(path.join(exampleRoot, 'media', 'swatch.png'))),
-      ],
+    const snapshot = collectAuthoring(exampleRoot);
+    expect([...snapshot.keys()].sort()).toEqual([
+      'design.yaml',
+      'media/swatch.png',
+      'pages/canvas.yaml',
     ]);
-    const result = intakeAuthoring('poster.pptd', snapshot);
-    expect(result.status).toBe('invalid');
-    if (result.status !== 'invalid') return;
-    expect(result.diagnostics.some((d) => d.message.includes('GEON-E-PPTD'))).toBe(true);
+    const manifest = new TextDecoder().decode(snapshot.get('design.yaml'));
+    const page = new TextDecoder().decode(snapshot.get('pages/canvas.yaml'));
+    expect(manifest).not.toMatch(/version:\s*v[23]/);
+    expect(page).not.toMatch(/\belementId\b|\belementType\b/);
+    expect(page).toMatch(/\bid:\s/);
+    expect(page).toMatch(/\bkind:\s/);
+    const result = intakeAuthoring('design.yaml', snapshot);
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') return;
+    expect(result.document.elements.length).toBeGreaterThan(0);
+    expect(
+      result.document.elements.every(
+        (el) => typeof el.id === 'string' && typeof el.kind === 'string'
+      )
+    ).toBe(true);
   });
 });
 

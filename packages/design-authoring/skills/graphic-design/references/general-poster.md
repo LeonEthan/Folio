@@ -1,97 +1,65 @@
-# General Poster and Single-Canvas Composition
+# Single-canvas composition
 
-Use this guide for posters, infographics, social graphics, covers, banners, and other
-highly visual single-canvas designs. It supplies design judgment, not runtime capability
-or DSL syntax.
+Use this guide for posters, infographics, social graphics, covers, banners, and
+other highly visual single-canvas work. It is design judgment, not runtime
+capability or YAML syntax.
 
-## Frame the communication problem
+## Decide what the canvas must do
 
-Useful context for composition includes:
+Useful context includes:
 
-- what the viewer should see, understand, remember, or do;
-- the audience, viewing distance, medium, and available reading time;
-- the requested size, orientation, content, tone, assets, and output format;
-- the relationship the material needs to express: time, space, process, contrast,
-  hierarchy, object structure, data, or atmosphere;
-- which images, data, and facts are supplied or can be verified.
+- what a viewer should notice first, then understand, then remember or do;
+- who is looking, from how far, for how long, and on which medium;
+- the requested size, orientation, tone, assets, and output format;
+- which images, numbers, names, and other facts are supplied or can be checked.
 
-If useful, form a short working brief with the core message, primary focus, reading
-order, visual concept, color roles, type hierarchy, image treatment, and the main failure mode to
-avoid. Keep it in working notes unless the user asks for a durable design brief; do not
-create a second source of truth for the finished design.
+If useful, keep a short working note of the core message, the largest object, the
+reading path, color roles, and the failure to avoid (illegible type, fake evidence,
+a crowded wall of equal boxes). Do not turn that note into a second source of truth
+for the finished files.
 
-## Composition alternatives
+## Size the canvas for the actual output
 
-Alternative directions can help clarify a broad brief. Possible dimensions include:
+An explicit user size, orientation, or ratio wins. Otherwise choose geometry from
+the output scenario and how much must stay readable. A social crop, a print sheet,
+a wide banner, and a long infographic are different canvases. Do not treat “poster”
+as a default portrait, and do not compose at one ratio then stretch into another.
 
-- primary medium: image, typography, object, data, relationship diagram, or abstraction;
-- information structure: sequence, comparison, hierarchy, local zoom, layered section,
-  matrix, or single scene;
-- spatial organization: full-bleed, off-axis, symmetric, dense, spacious, or zoned.
+If the material will not fit one readable field, distill it, raise contrast between
+primary and secondary, or ask which content to keep. Tiny type and extra pages are
+not solutions here: this product is one static canvas.
 
-Consider treating the whole canvas as one visual field rather than
-dividing every item into equal cards. Compare directions by subject recognition,
-thumbnail memorability, information capacity, coexistence with text, and attainable
-editability. Choose a direction because it carries the content, not because it is easy to
-implement.
+## Build one visual field
 
-## Choose the canvas deliberately
+Treat the whole surface as a single designed field:
 
-An explicit user size, orientation, or ratio wins. Otherwise derive the canvas from the
-output scenario, information density, primary reading order, and core relationship. Do
-not equate “poster” with portrait or default to 16:9. Compose directly at the chosen size;
-never build at one ratio and stretch into another.
+- Give one object the largest scale. Secondary items should serve it, not compete
+  with it at the same size.
+- Make the reading path obvious with scale, contrast, alignment, grouping, and
+  leftover space. Labels and boxes are tools, not a default grid.
+- Put type on the canvas as objects with room to edit, not as captions glued to
+  equal cards.
+- Let a strong photograph or graphic occupy real area when it carries the message.
+  Shrinking useful evidence into decorative thumbnails to protect a layout usually
+  fails both recognition and editability.
+- Derive color from this subject. Reusing a previous palette or a fashionable
+  chrome set by reflex hides the current content.
 
-If the material does not fit one readable canvas, distill it, strengthen hierarchy, or
-ask the user which content to prioritize. Do not solve overload with tiny type or turn the
-project into a multi-page deck.
+Compare directions by whether a thumbnail still names the subject, whether the
+facts remain readable at the real output size, and whether the result stays
+editable in Geon. Choose a direction because it carries the content.
 
-## Map relationships to visual form
+## Keep facts and images honest
 
-State the core message in one sentence, then select the form that expresses it most
-directly:
-
-| Relationship | Useful forms |
-|---|---|
-| Time, stages, change | timeline, milestones, before/after states |
-| Path, propagation, migration | map, route, flow, network |
-| Process, mechanism, method | process diagram, swimlane, input–process–output |
-| Difference or comparison | juxtaposition, matrix, scale axis |
-| Hierarchy, composition, system | tree, architecture, layered section |
-| Physical object or detail | object annotation, local zoom, visual anatomy |
-| Multiple facts or samples | image matrix, taxonomy, data field |
-| Emotion, idea, attitude | one strong image, typography, abstract form |
-
-A requested map needs a geographic base. A chart needs real data. A structure diagram
-must make grouping, direction, and interfaces legible before decoration. Parallel facts
-do not automatically require cards; consider spatial adjacency, scale, color bands,
-rules, object groups, or typographic rhythm first.
-
-## Compose for recognition and reading
-
-- Establish one dominant visual grammar and let secondary elements serve it.
-- Create at least one memory point that survives at thumbnail size: a hero object, large
-  type, a strong image crop, a color field, a scene, or the core relationship itself.
-- Use scale, contrast, alignment, whitespace, and grouping to make the reading path
-  apparent without explanatory chrome.
-- Use containers only when the container has meaning. Avoid equal rounded-card walls,
-  decorative dashboards, and button-like labels as a default composition.
-- Keep body text, annotations, legends, and sources readable at the actual output size.
-- Derive color, imagery, and graphic language from the current subject. Do not reuse a
-  previous composition or fashionable trope by reflex.
-
-## Use imagery and facts honestly
-
-- Prefer images with a clear subject, cropping room, and genuine semantic relevance.
-  Inspect actual candidates before deciding placement, crop lines, and text-safe areas.
-- Let strong imagery occupy meaningful space. Do not reduce useful evidence to tiny
-  decorative thumbnails merely to preserve a layout.
-- Let raster imagery carry photographs, materials, people, and environments; let
-  editable vectors and text carry relationships, annotations, labels, and data.
-- Use self-owned, licensed, officially citable, or generated images. Do not forge real
-  logos, institutions, issue numbers, watermarks, archives, or scientific evidence.
-- Keep dates, labels, units, places, data, and sources faithful to supplied or verifiable
-  material. Omit unverified precision instead of fabricating detail.
+- Prefer images with a clear subject, cropping room, and genuine relevance. Look
+  at the actual pixels before choosing crop lines and text-safe areas.
+- Let raster imagery carry photographs, materials, people, and environments. Let
+  editable text and geometry carry labels, quantities, and structure.
+- Use self-owned, licensed, officially citable, or generated images. Do not forge
+  real logos, institutions, issue numbers, watermarks, archives, or scientific
+  evidence.
+- Keep dates, labels, units, places, data, and sources faithful to supplied or
+  verifiable material. Drop unverified precision instead of inventing it.
 
 ## Review the rendered canvas
 
@@ -102,8 +70,8 @@ An overview and details at actual output size can reveal different issues:
 - Are text, annotations, legends, and sources readable?
 - Are images undistorted and cropped around the intended subject?
 - Do contrast, spacing, alignment, and density remain coherent?
-- Does any overlap obscure a key subject or fact?
-- Does the result look like one designed visual field rather than a generic content page?
+- Does any overlap hide a key subject or fact?
+- Does the result look like one designed field rather than a generic content page?
 
-Run platform validation separately for machine-checkable constraints. Visual judgment is
-not implied by a successful schema or import check.
+Run platform validation separately for machine-checkable constraints. Visual
+judgment is not implied by a successful schema or import check.
