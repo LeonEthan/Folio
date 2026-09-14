@@ -41,10 +41,10 @@ const pngBytes = (seed: number): Buffer => {
 async function writeProject(workdir: string, page: string): Promise<void> {
   await mkdir(path.join(workdir, 'pages'), { recursive: true });
   await writeFile(
-    path.join(workdir, 'design.pptd'),
-    'version: v2\ntitle: Frozen\nsize: [320, 200]\npages:\n  - pages/main.page\n'
+    path.join(workdir, 'design.yaml'),
+    'title: Frozen\nsize: [320, 200]\npages:\n  - pages/canvas.yaml\n'
   );
-  await writeFile(path.join(workdir, 'pages', 'main.page'), page);
+  await writeFile(path.join(workdir, 'pages', 'canvas.yaml'), page);
 }
 
 async function setupDesign(options: { width?: number; height?: number } = {}) {
@@ -315,13 +315,13 @@ describe('materializeDesignTurnInput', () => {
     expect((await send('turn-c')).artifactAtSend).toEqual({ status: 'present', digest });
 
     // One rewritten page is a different project.
-    await writeProject(workdir, 'elements:\n  - elementId: title\n');
+    await writeProject(workdir, 'elements:\n  - id: title\n    kind: text\n');
     expect((await send('turn-d')).artifactAtSend).not.toEqual({ status: 'present', digest });
 
     // A workspace we refuse to import is recorded as refused, without the
     // collector's message (the manifest is a file the agent can read).
-    await rm(path.join(workdir, 'design.pptd'));
-    await symlink(path.join(workdir, 'pages', 'main.page'), path.join(workdir, 'design.pptd'));
+    await rm(path.join(workdir, 'design.yaml'));
+    await symlink(path.join(workdir, 'pages', 'canvas.yaml'), path.join(workdir, 'design.yaml'));
     expect((await send('turn-e')).artifactAtSend).toEqual({ status: 'rejected' });
   });
 

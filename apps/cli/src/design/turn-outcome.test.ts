@@ -1,5 +1,5 @@
 /**
- * P2.3 classification matrix: a synthetic PPTD project left in a session
+ * P2.3 classification matrix: a synthetic YAML artwork left in a session
  * workdir is collected, classified, and committed through the single committer.
  * Every fixture is synthetic; no agent runs and no network is touched.
  */
@@ -87,56 +87,36 @@ function syntheticPng(width: number, height: number, rgb: [number, number, numbe
 
 const enc = new TextEncoder();
 
-const MANIFEST = `version: v2
-title: Turn outcome test
+const MANIFEST = `title: Turn outcome test
 size: [320, 200]
 pages:
-  - pages/main.page
-`;
-
-/**
- * The same project, with one table style nothing selects pointing at an image of
- * its own. The style lives in the manifest, so the image is captured with the
- * project but never reaches the imported document — the asymmetry a comparison
- * of whole asset tables gets wrong.
- */
-const THEMED_MANIFEST = `version: v2
-title: Turn outcome test
-size: [320, 200]
-theme:
-  tableStyles:
-    branded:
-      cellStyle:
-        fill:
-          type: image
-          src: media/extra.png
-pages:
-  - pages/main.page
+  - pages/canvas.yaml
 `;
 
 const PAGE = `background:
   type: solid
   color: "#FFFFFF"
 elements:
-  - elementId: title
-    elementType: text
+  - id: title
+    kind: text
     bounds: [10, 10, 200, 40]
-    content:
-      text: "Hello"
-      fontSize: 24
-  - elementId: band
-    elementType: shape
+    text:
+      paragraphs:
+        - runs:
+            - text: "Hello"
+              fontSize: 24
+  - id: band
+    kind: shape
     bounds: [10, 60, 100, 100]
     shapeName: rect
     fill:
       type: solid
       color: "#1F6B8A"
-  - elementId: photo
-    elementType: image
+  - id: photo
+    kind: image
     bounds: [120, 60, 64, 64]
     src: media/pic.png
-    fit:
-      mode: cover
+    fit: cover
 `;
 
 /** The page above, but pointing at a media file that was never written. */
@@ -151,19 +131,19 @@ const RESTYLED_PAGE = PAGE.replace('#1F6B8A', '#7B6B8A');
  * asks for a non-empty unique string). A project this far apart from the store
  * is one neither gate can turn into a canvas write.
  */
-const OVERLONG_ID_PAGE = PAGE.replace('elementId: title', `elementId: ${'t'.repeat(250)}`);
+const OVERLONG_ID_PAGE = PAGE.replace('id: title', `id: ${'t'.repeat(250)}`);
 
 interface ProjectFiles {
   /** The project's manifest; defaults to `MANIFEST`. */
   manifest?: string;
-  /** Also write `media/extra.png`, the image only `THEMED_MANIFEST` names. */
+  /** Also write an unreferenced `media/extra.png` so the digest differs. */
   extraMedia?: boolean;
 }
 
 const files = (page: string, options: ProjectFiles = {}): Map<string, Uint8Array> => {
   const entries: [string, Uint8Array][] = [
     [DESIGN_ARTIFACT_ENTRY, enc.encode(options.manifest ?? MANIFEST)],
-    ['pages/main.page', enc.encode(page)],
+    ['pages/canvas.yaml', enc.encode(page)],
     ['media/pic.png', syntheticPng(8, 8, [31, 107, 138])],
   ];
   if (options.extraMedia) entries.push(['media/extra.png', syntheticPng(4, 4, [123, 107, 138])]);
@@ -437,6 +417,52 @@ describe('collectDesignTurnOutcome', () => {
     expect(recordedOutcome(harness)).not.toHaveProperty('thumbnail');
   });
 
+  it('does not accept a leftover .pptd as this turn’s artifact', async () => {
+    const harness = createHarness();
+    const created = await createDesign(harness);
+    writeFileSync(
+      path.join(harness.workdir, 'design.pptd'),
+      'version: v2\ntitle: Leftover\nsize: [320, 200]\npages:\n  - pages/main.page\n'
+    );
+    mkdirSync(path.join(harness.workdir, 'pages'), { recursive: true });
+    writeFileSync(path.join(harness.workdir, 'pages', 'main.page'), PAGE);
+    await writeManifest(harness, created.revisionId);
+
+    expect(await collectDesignTurnOutcome(contextFor(harness))).toEqual({
+      status: 'recorded',
+      outcome: expect.objectContaining({ status: 'no_artifact' }),
+    });
+    const stored = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+    expect(stored.revisionId).toBe(created.revisionId);
+    expect(stored.doc.elements).toHaveLength(0);
+    expect(await readDesignArtifact(harness.workdir)).toEqual({ status: 'absent' });
+  });
+
+  it('rejects leftover .pptd even when a new design.yaml is also present', async () => {
+    const harness = createHarness();
+    const created = await createDesign(harness);
+    await writeArtifact(harness, PAGE);
+    writeFileSync(path.join(harness.workdir, 'design.pptd'), 'leftover PPTD is not admitted');
+    await writeManifest(harness, created.revisionId);
+
+    const attempt = await collectDesignTurnOutcome(contextFor(harness));
+    expect(attempt.status).toBe('recorded');
+    if (attempt.status !== 'recorded') return;
+    expect(attempt.outcome.status).toBe('invalid');
+    expect(attempt.outcome.diagnostics?.[0]).toMatchObject({
+      code: 'design_collect_rejected',
+      message: expect.stringContaining('leftover PPTD'),
+    });
+    const stored = await designOperation(harness.root, {
+      operation: 'read',
+      sessionId: harness.sessionId,
+    });
+    expect(stored.revisionId).toBe(created.revisionId);
+  });
+
   it('reports no_artifact and leaves an existing canvas untouched', async () => {
     const harness = createHarness();
     const created = await createDesign(harness, { width: 640, height: 480 });
@@ -458,7 +484,7 @@ describe('collectDesignTurnOutcome', () => {
   it('does not promote unchanged workspace contents that differ from the canvas', async () => {
     const harness = createHarness();
     const created = await createDesign(harness);
-    await writeArtifact(harness, PAGE, { manifest: THEMED_MANIFEST, extraMedia: true });
+    await writeArtifact(harness, PAGE, { extraMedia: true });
     await freezeTurnInput(harness);
     const before = await readDesignArtifact(harness.workdir);
 
@@ -913,7 +939,7 @@ describe('collectDesignTurnOutcome', () => {
         }),
         expect.objectContaining({
           code: 'design_continue_required',
-          message: expect.stringContaining('after the Agent ended'),
+          message: expect.stringMatching(/design-current\/design\.yaml/),
         }),
       ])
     );

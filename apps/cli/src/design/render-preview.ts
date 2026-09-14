@@ -5,14 +5,14 @@
  * and knows nothing about files; this module owns the artifact and the
  * filesystem, and knows nothing about the wire:
  *
- *   workdir/design.pptd  --collectAuthoring--> snapshot --intakeAuthoring--> doc
+ *   workdir/design.yaml  --collectAuthoring--> snapshot --intakeAuthoring--> doc
  *     --stage payload JSON--> desktop host --render--> workdir/design-preview/<n>.png
  *
  * Four rules shape it, and each one is a boundary rather than an implementation
  * choice:
  *
  * - **What is rendered is what the agent wrote, not what is on the canvas.** The
- *   preview imports the workdir's PPTD project through the same intake the
+ *   preview imports the workdir's YAML artwork through the same intake the
  *   post-turn collection uses and stages the result directly; `design.json` is
  *   never read, never compared, and never written. Previewing mid-turn is
  *   therefore free of side effects: a preview cannot commit, cannot overwrite,
@@ -24,8 +24,8 @@
  *   (agent-naive; root `AGENTS.md`).
  * - **The PNG lands in the session workdir**, so the agent that asked for it can
  *   open it with its own tools. `design-preview/` is outside the authoring
- *   allowlist (`design.pptd`, `pages/`, `media/`), so a preview can never be
- *   collected into a later commit as if it were an asset.
+ *   allowlist (`design.yaml`, `pages/canvas.yaml`, `media/`), so a preview can
+ *   never be collected into a later commit as if it were an asset.
  * - **A report is not a rendering.** The host's word that it wrote a file is
  *   checked against the bytes before the path reaches the agent, and a failed or
  *   unverifiable render is refused rather than retried.

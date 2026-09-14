@@ -3,7 +3,7 @@
 Root and CLI instructions apply. `CLAUDE.md` links to this file.
 
 - BentoDoc and embedded assets are the editable canonical truth. Create and save
-  publish a current PPTD representation independently of Agent execution at
+  publish a current YAML artwork projection independently of Agent execution at
   `<dataRoot>/chats/<artworkId>/design-current`. Drafts and immutable turn inputs
   are separate and never overwritten by publication. Do not add projection history.
 - Publish under the existing artwork mutation lock. Verify revision and exact file
@@ -40,8 +40,9 @@ Root and CLI instructions apply. `CLAUDE.md` links to this file.
   bind native session identity to its actual provider and retire callbacks under
   the existing turn guard. Never resume across providers.
 
-See [runtime and files](README.md) and the
-[replacement decision](../../../../.agents/notes/implemented/simplification/2026-09-12-editor-owned-pptd-save.md).
+See [runtime and files](README.md), the
+[replacement decision](../../../../.agents/notes/implemented/simplification/2026-09-12-editor-owned-pptd-save.md),
+and the [YAML turn/projection entry](../../../../.agents/notes/implemented/architecture/2026-09-14-yaml-turn-projection.md).
 
 Codex public UserPromptSubmit supplies context only. Preserve native user hook
 declarations and trust; trust only Geon’s exact bundled command in the per-session

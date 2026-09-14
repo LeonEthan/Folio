@@ -9,7 +9,7 @@ import { materializeDesignTurnInput } from './turn-input';
 import { readDesignArtifact } from './artifact';
 import { buildPreviewPayload } from './render-preview';
 import { collectDesignTurnOutcome } from './turn-outcome';
-import { exportPptd } from '@geon/design-authoring';
+import { ARTWORK_PAGE, exportAuthoring } from '@geon/design-authoring';
 import {
   resolveDesignContext,
   resolveDesignWorkspace,
@@ -56,7 +56,7 @@ describe('resolved design workspace', () => {
       const { root, sessionId, workspace, payload } = await setup(kind);
       // A synthetic application projection demonstrates the separate input path;
       // production projection synchronization belongs to the read-hook slice.
-      for (const [file, bytes] of exportPptd(payload.doc, new Map())) {
+      for (const [file, bytes] of exportAuthoring(payload.doc, new Map())) {
         await mkdir(path.dirname(path.join(workspace.projectionWorkdir, file)), {
           recursive: true,
         });
@@ -75,7 +75,7 @@ describe('resolved design workspace', () => {
       expect(manifest.artifactAtSend).toEqual({ status: 'absent' });
       // Synthetic Agent copies baseline then changes its own page, through the ordinary filesystem.
       await cp(workspace.projectionWorkdir, workspace.artifactWorkdir, { recursive: true });
-      const page = path.join(workspace.artifactWorkdir, 'pages/design.page');
+      const page = path.join(workspace.artifactWorkdir, ARTWORK_PAGE);
       await writeFile(page, (await readFile(page, 'utf8')).replace('#FFFFFF', '#112233'));
       const preview = await buildPreviewPayload(workspace.artifactWorkdir);
       expect(preview.status).toBe('ok');

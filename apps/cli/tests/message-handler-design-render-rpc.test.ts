@@ -148,23 +148,24 @@ const pngFixture = (width: number, height: number): Buffer => {
   return Buffer.concat([PNG_SIGNATURE, Buffer.from([0, 0, 0, 13]), Buffer.from('IHDR'), ihdr]);
 };
 
-const MANIFEST = `version: v2
-title: Render RPC test
+const MANIFEST = `title: Render RPC test
 size: [320, 200]
 pages:
-  - pages/main.page
+  - pages/canvas.yaml
 `;
 
 const PAGE = `background:
   type: solid
   color: "#FFFFFF"
 elements:
-  - elementId: title
-    elementType: text
+  - id: title
+    kind: text
     bounds: [10, 10, 200, 40]
-    content:
-      text: "Hello"
-      fontSize: 24
+    text:
+      paragraphs:
+        - runs:
+            - text: "Hello"
+              fontSize: 24
 `;
 
 let dataRoot: string;
@@ -189,8 +190,8 @@ const writeProject = (
   workdir = path.join(dataRoot, 'chats', sessionId)
 ): string => {
   mkdirSync(path.join(workdir, 'pages'), { recursive: true });
-  writeFileSync(path.join(workdir, 'design.pptd'), MANIFEST);
-  writeFileSync(path.join(workdir, 'pages', 'main.page'), PAGE);
+  writeFileSync(path.join(workdir, 'design.yaml'), MANIFEST);
+  writeFileSync(path.join(workdir, 'pages', 'canvas.yaml'), PAGE);
   return workdir;
 };
 

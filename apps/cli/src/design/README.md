@@ -6,8 +6,9 @@ IDs; Agent cwd remains Lody's resolved cwd. New project drafts live at
 `<cwd>/.folio/artworks/<artworkId>/<sessionId>/`. Ordinary chat workspaces retain
 `<dataRoot>/chats/<sessionId>/`. No Git operation is needed.
 
-Only the draft directory's `design.pptd`, `pages/` and `media/` are collectible
-Agent output. The saved current projection lives at
+Only the draft directory's `design.yaml`, `pages/canvas.yaml` and `media/` are
+collectible Agent output. A leftover `.pptd` is not this turn's artifact. The
+saved current projection lives at
 `<dataRoot>/chats/<artworkId>/design-current/`, next to canonical storage and
 separate from every session draft. Create and save publish it without any Agent.
 Healthy reads verify its revision marker and every exported file's bytes; reopen
@@ -212,7 +213,7 @@ missing Git reports an error without falling back to another store.
 
 Readonly history verifies reachable version identity and content before rendering.
 Restore protects unversioned current content in the same Git repository, then uses
-the normal store save/CAS and current-PPTD publication. A failed protective write
+the normal store save/CAS and current YAML projection publication. A failed protective write
 cannot replace the current artwork; a canonical save followed by projection or
 canvas-reload failure remains a saved state with a recovery error. User repositories,
 branches, index, global configuration and remote operations are not involved.

@@ -344,17 +344,11 @@ describe('MessageHandler design turn-input wiring', () => {
         );
         const inputDir = path.join(dataDir, 'chats', sessionId, 'design-input', 'project-turn');
         const manifest = JSON.parse(fs.readFileSync(path.join(inputDir, 'manifest.json'), 'utf8'));
-        const artifactWorkdir = path.join(
-          workspaceRoot,
-          '.geon',
-          'artworks',
-          sessionId,
-          sessionId
-        );
+        const artifactWorkdir = path.join(workspaceRoot, '.geon', 'artworks', sessionId, sessionId);
         expect(manifest.artifactWorkdir).toBe(artifactWorkdir);
         expect(manifest.artworkId).toBe(sessionId);
         expect(manifest.artifactAtSend).toEqual({ status: 'absent' });
-        expect(fs.existsSync(path.join(artifactWorkdir, 'design.pptd'))).toBe(false);
+        expect(fs.existsSync(path.join(artifactWorkdir, 'design.yaml'))).toBe(false);
         expect(
           fs.existsSync(path.join(workspaceRoot, '.claude/skills/graphic-design/SKILL.md'))
         ).toBe(true);

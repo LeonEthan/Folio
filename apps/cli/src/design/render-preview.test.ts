@@ -1,5 +1,5 @@
 /**
- * Preview rendering (P2.4b): a synthetic PPTD project in a session workdir is
+ * Preview rendering (P2.4b): a synthetic YAML artwork in a session workdir is
  * staged for the desktop, and the file the desktop writes back is verified
  * before its path is handed to any agent.
  *
@@ -72,29 +72,29 @@ function syntheticPng(width: number, height: number, rgb: [number, number, numbe
   );
 }
 
-const MANIFEST = `version: v2
-title: Preview test
+const MANIFEST = `title: Preview test
 size: [320, 200]
 pages:
-  - pages/main.page
+  - pages/canvas.yaml
 `;
 
 const PAGE = `background:
   type: solid
   color: "#FFFFFF"
 elements:
-  - elementId: title
-    elementType: text
+  - id: title
+    kind: text
     bounds: [10, 10, 200, 40]
-    content:
-      text: "Hello"
-      fontSize: 24
-  - elementId: photo
-    elementType: image
+    text:
+      paragraphs:
+        - runs:
+            - text: "Hello"
+              fontSize: 24
+  - id: photo
+    kind: image
     bounds: [120, 60, 64, 64]
     src: media/pic.png
-    fit:
-      mode: cover
+    fit: cover
 `;
 
 const BROKEN_PAGE = PAGE.replace('media/pic.png', 'media/missing.png');
@@ -120,7 +120,7 @@ function createHarness(options: { artifact?: boolean; page?: string } = {}): Har
   mkdirSync(path.join(workdir, 'media'), { recursive: true });
   if (options.artifact !== false) {
     writeFileSync(path.join(workdir, DESIGN_ARTIFACT_ENTRY), MANIFEST);
-    writeFileSync(path.join(workdir, 'pages', 'main.page'), options.page ?? PAGE);
+    writeFileSync(path.join(workdir, 'pages', 'canvas.yaml'), options.page ?? PAGE);
     writeFileSync(path.join(workdir, 'media', 'pic.png'), syntheticPng(8, 8, [31, 107, 138]));
   }
   return {
@@ -331,7 +331,7 @@ describe('manual source snapshots', () => {
     const first = await buildPreviewPayload(workdir, {});
     expect(first.status).toBe('ok');
     if (first.status !== 'ok') throw Error(JSON.stringify(first));
-    expect(first.dependencies).toEqual(['design.pptd', 'pages/main.page', 'media/pic.png']);
+    expect(first.dependencies).toEqual(['design.yaml', 'pages/canvas.yaml', 'media/pic.png']);
     expect(
       await buildPreviewPayload(workdir, { previousSourceIdentity: first.sourceIdentity })
     ).toMatchObject({ status: 'unchanged', sourceIdentity: first.sourceIdentity });
@@ -350,7 +350,10 @@ describe('manual source snapshots', () => {
     const { workdir } = createHarness();
     const { collectAuthoring } = await import('@geon/design-authoring');
     const first = collectAuthoring(workdir, { referencedOnly: true });
-    writeFileSync(path.join(workdir, 'pages', 'main.page'), PAGE.replace('Hello', 'Intermediate'));
+    writeFileSync(
+      path.join(workdir, 'pages', 'canvas.yaml'),
+      PAGE.replace('Hello', 'Intermediate')
+    );
     const second = collectAuthoring(workdir, { referencedOnly: true });
     const reads = [first, second];
     const unstable = await buildPreviewPayload(workdir, { collect: () => reads.shift()! });
@@ -358,13 +361,13 @@ describe('manual source snapshots', () => {
       status: 'refused',
       error: expect.stringContaining('changed during observation'),
     });
-    expect(readFileSync(path.join(workdir, 'pages', 'main.page'), 'utf8')).toContain(
+    expect(readFileSync(path.join(workdir, 'pages', 'canvas.yaml'), 'utf8')).toContain(
       'Intermediate'
     );
-    writeFileSync(path.join(workdir, 'pages', 'main.page'), BROKEN_PAGE);
+    writeFileSync(path.join(workdir, 'pages', 'canvas.yaml'), BROKEN_PAGE);
     expect(await buildPreviewPayload(workdir, {})).toMatchObject({
       status: 'refused',
-      dependencies: ['design.pptd', 'pages/main.page', 'media/missing.png'],
+      dependencies: ['design.yaml', 'pages/canvas.yaml', 'media/missing.png'],
     });
   });
 });

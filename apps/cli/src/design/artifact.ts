@@ -1,8 +1,8 @@
 /**
  * The session workspace's authoring artifact: where it is, and what it is.
  *
- * A design session's workspace (`chats/<artworkId>`) holds the agent's PPTD
- * project at its root — `design.pptd` beside `pages/` and `media/`;
+ * A design session's workspace (`chats/<artworkId>`) holds the agent's YAML
+ * artwork at its root — `design.yaml` beside `pages/canvas.yaml` and `media/`;
  * `@geon/design-authoring` owns the allowlist and the fail-closed snapshot
  * rules for it. Three stages need to talk about "the project that is there right
  * now", and they must agree on the answer:
@@ -16,23 +16,29 @@
  * One observation, three answers: `absent` when the workspace has no entry at
  * all, `present` with a content digest when it has one, and `rejected` with the
  * collector's own refusal message when it holds something we will not import
- * (symlink, hardlink, escape, non-regular entry). Nothing here writes, repairs,
- * or retries anything.
+ * (symlink, hardlink, escape, non-regular entry, leftover `.pptd`). Nothing here
+ * writes, repairs, or retries anything. A leftover `.pptd` without `design.yaml`
+ * is `absent`: it is not this turn's artifact.
  *
  * The digest covers the entry and every page and media file, so a turn that
  * rewrote one page counts as having produced something. It is the *conventional*
  * sha256 of a canonical encoding (sorted paths, length-prefixed bytes), not the
- * store's document digest: a PPTD project and the canvas document it imports are
+ * store's document digest: a YAML project and the canvas document it imports are
  * different things.
  */
 
-import { AuthoringSnapshotError, collectAuthoring, digestAuthoring } from '@geon/design-authoring';
+import {
+  ARTWORK_ENTRY,
+  AuthoringSnapshotError,
+  collectAuthoring,
+  digestAuthoring,
+} from '@geon/design-authoring';
 import { createHash } from 'node:crypto';
 import { lstat } from 'node:fs/promises';
 import path from 'node:path';
 
 /** The design artifact entry, at the workdir root (P2.1 contract). */
-export const DESIGN_ARTIFACT_ENTRY = 'design.pptd';
+export const DESIGN_ARTIFACT_ENTRY = ARTWORK_ENTRY;
 
 export type DesignArtifact =
   /** No entry: the workspace holds no project (yet). */

@@ -46,7 +46,7 @@ async function setup() {
 }
 it('binds only explicit exact draft/revision facts without any read or model generation proof', async () => {
   const { root, id, workspace, payload, service } = await setup();
-  for (const file of ['design.pptd', 'pages/design.page']) {
+  for (const file of ['design.yaml', 'pages/canvas.yaml']) {
     const target = path.join(workspace.artifactWorkdir, file);
     await mkdir(path.dirname(target), { recursive: true });
     await writeFile(target, await readFile(path.join(workspace.projectionWorkdir, file)));
