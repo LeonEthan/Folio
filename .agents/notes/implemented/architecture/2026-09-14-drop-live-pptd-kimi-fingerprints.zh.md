@@ -2,6 +2,7 @@
 
 Status: implemented
 Translation: current
+PR: https://github.com/LeonEthan/Geon/pull/44
 
 [English](2026-09-14-drop-live-pptd-kimi-fingerprints.md)
 
