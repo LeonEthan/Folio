@@ -389,7 +389,7 @@ function doc(es = elements): BentoDocV4 {
 function roundtrip(document: BentoDocV4) {
   const before = structuredClone(document);
   const snapshot = exportPptd(document, assets);
-  const result = intakeAuthoring('design.pptd', snapshot);
+  const result = intakeAuthoring('design.yaml', snapshot);
   expect(result.status, JSON.stringify(result)).toBe('ok');
   if (result.status !== 'ok') throw Error(JSON.stringify(result));
   expect(result.document).toEqual(before);
@@ -551,25 +551,24 @@ function mutateSnapshot(
   mutator: (manifest: Record<string, unknown>, page: Record<string, unknown>) => void
 ) {
   const snapshot = exportPptd(doc([...elements, chart(series[0]!)]), assets);
-  const manifest = parse(new TextDecoder().decode(snapshot.get('design.pptd')));
-  const page = parse(new TextDecoder().decode(snapshot.get('pages/design.page')));
+  const manifest = parse(new TextDecoder().decode(snapshot.get('design.yaml')));
+  const page = parse(new TextDecoder().decode(snapshot.get('pages/canvas.yaml')));
   mutator(manifest, page);
-  snapshot.set('design.pptd', encode(manifest));
-  snapshot.set('pages/design.page', encode(page));
+  snapshot.set('design.yaml', encode(manifest));
+  snapshot.set('pages/canvas.yaml', encode(page));
   return snapshot;
 }
 describe('version, compatibility and fail-closed inputs', () => {
-  it.each(['v1', 'v4', 'unknown', null, undefined])(
-    'rejects unknown/missing PPTD version %s',
+  it.each(['v1', 'v2', 'v3', 'v4', 'unknown', null])(
+    'rejects leftover PPTD version %s',
     (version) => {
       const snapshot = mutateSnapshot((manifest) => {
-        if (version === undefined) delete manifest.version;
-        else manifest.version = version;
+        manifest.version = version;
       });
-      expect(intakeAuthoring('design.pptd', snapshot).status).toBe('invalid');
+      expect(intakeAuthoring('design.yaml', snapshot).status).toBe('invalid');
     }
   );
-  it('imports legacy v2 theme/defaults and preserves subsequent edits and undo/redo', () => {
+  it('rejects leftover PPTD v2 theme, HTML content and seriesDefaults', () => {
     const snapshot = new Map([
       [
         'design.pptd',
@@ -612,44 +611,22 @@ describe('version, compatibility and fail-closed inputs', () => {
       ],
     ]);
     const imported = intakeAuthoring('design.pptd', snapshot);
-    expect(imported.status, JSON.stringify(imported)).toBe('ok');
-    if (imported.status !== 'ok') throw Error('fixture');
-    const oldChart = imported.document.elements[1];
-    if (oldChart?.kind !== 'chart') throw Error('fixture');
-    expect(oldChart.chart.seriesDefaults).toBeUndefined();
-    expect(oldChart.chart.palette).toEqual(['#112233', '#aabbcc']);
-    const kernel = createVisualDocumentKernel(imported.document);
-    expect(
-      kernel.apply({
-        batchId: 'edit-v2',
-        actor: 'human',
-        baseRevision: 0,
-        commands: [
-          { type: 'setGroupId', targetId: 'old-text', groupId: 'new group' },
-          { type: 'setShadow', targetId: 'old-text', shadow: base('unused').shadow },
-          { type: 'setChartPalette', targetId: 'old-chart', palette: ['#ff0000', '#00ff00'] },
-          { type: 'setZOrder', targetId: 'old-chart', index: 0 },
-        ],
-      }).ok
-    ).toBe(true);
-    roundtrip(JSON.parse(kernel.snapshot()));
-    expect(kernel.undo().ok).toBe(true);
-    roundtrip(JSON.parse(kernel.snapshot()));
-    expect(kernel.redo().ok).toBe(true);
-    roundtrip(JSON.parse(kernel.snapshot()));
+    expect(imported.status).toBe('invalid');
+    if (imported.status !== 'invalid') return;
+    expect(imported.diagnostics.some((d) => d.message.includes('GEON-E-PPTD'))).toBe(true);
   });
   it('keeps filesystem and snapshot intake consistent', () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'folio-roundtrip-'));
+    const root = mkdtempSync(path.join(tmpdir(), 'geon-roundtrip-'));
     try {
       const snapshot = roundtrip(doc());
       for (const [rel, bytes] of snapshot) {
         mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
         writeFileSync(path.join(root, rel), bytes);
       }
-      const result = validate(path.join(root, 'design.pptd'), { projectRoot: root });
+      const result = validate(path.join(root, 'design.yaml'), { projectRoot: root });
       expect(result.ok, JSON.stringify(result)).toBe(true);
-      expect(intakeAuthoring('design.pptd', collectAuthoring(root))).toEqual(
-        intakeAuthoring('design.pptd', snapshot)
+      expect(intakeAuthoring('design.yaml', collectAuthoring(root))).toEqual(
+        intakeAuthoring('design.yaml', snapshot)
       );
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -658,7 +635,6 @@ describe('version, compatibility and fail-closed inputs', () => {
   const invalidPaths = [
     ['background', 'unknown'],
     ['elements', 0, 'unknown'],
-    ['elements', 0, 'id'],
     ['elements', 0, 'kind'],
     ['elements', 0, 'text', 'unknown'],
     ['elements', 0, 'text', 'paragraphs', 0, 'unknown'],
@@ -686,7 +662,7 @@ describe('version, compatibility and fail-closed inputs', () => {
         for (const segment of segments.slice(0, -1)) target = target[segment];
         target[segments.at(-1)!] = 'unmodeled';
       });
-      expect(intakeAuthoring('design.pptd', snapshot).status).toBe('invalid');
+      expect(intakeAuthoring('design.yaml', snapshot).status).toBe('invalid');
     }
   );
   it.each([
@@ -699,14 +675,14 @@ describe('version, compatibility and fail-closed inputs', () => {
     const snapshot = mutateSnapshot((_m, p) => {
       (p.elements as any[])[3].src = src;
     });
-    expect(intakeAuthoring('design.pptd', snapshot).status).toBe('invalid');
+    expect(intakeAuthoring('design.yaml', snapshot).status).toBe('invalid');
   });
   it('rejects missing, corrupt and wrong-kind assets in both directions', () => {
     const snapshot = exportPptd(doc(), assets);
     snapshot.delete(`media/${digest}`);
-    expect(intakeAuthoring('design.pptd', snapshot).status).toBe('invalid');
+    expect(intakeAuthoring('design.yaml', snapshot).status).toBe('invalid');
     snapshot.set(`media/${digest}`, new Uint8Array([1, 2, 3]));
-    expect(intakeAuthoring('design.pptd', snapshot).status).toBe('invalid');
+    expect(intakeAuthoring('design.yaml', snapshot).status).toBe('invalid');
     expect(() => exportPptd(doc(), new Map())).toThrow(/Missing/);
     expect(() =>
       exportPptd(
@@ -720,12 +696,12 @@ describe('version, compatibility and fail-closed inputs', () => {
     const wrong = mutateSnapshot((m) => {
       (m.customFonts as any[])[0].src = `media/${digest}`;
     });
-    expect(intakeAuthoring('design.pptd', wrong).status).toBe('invalid');
+    expect(intakeAuthoring('design.yaml', wrong).status).toBe('invalid');
   });
   it('rejects duplicate IDs and invalid chart/crop/merge state', () => {
     for (const mutate of [
       (p: any) => {
-        p.elements[1].elementId = p.elements[0].elementId;
+        p.elements[1].id = p.elements[0].id;
       },
       (p: any) => {
         p.elements[3].crop = [1, 0, 1, 0];
@@ -739,7 +715,7 @@ describe('version, compatibility and fail-closed inputs', () => {
     ])
       expect(
         intakeAuthoring(
-          'design.pptd',
+          'design.yaml',
           mutateSnapshot((_m, p) => mutate(p))
         ).status
       ).toBe('invalid');
@@ -826,7 +802,7 @@ it('folds long unbroken text scalars for native bounded reads without changing t
     { ...base('long'), kind: 'text', text: { paragraphs: [{ runs: [{ text: longText }] }] } },
   ];
   const files = exportPptd(document, assets);
-  const page = new TextDecoder().decode(files.get('pages/design.page'));
+  const page = new TextDecoder().decode(files.get('pages/canvas.yaml'));
   expect(Math.max(...page.split('\n').map((line) => Buffer.byteLength(line)))).toBeLessThan(1024);
   roundtrip(document);
 });

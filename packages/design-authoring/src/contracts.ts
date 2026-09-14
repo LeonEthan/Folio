@@ -16,9 +16,26 @@ import type {
   ValidatedPptd as LegacyValidatedPptd,
   ValidationResult as LegacyValidationResult,
 } from '../../design-bento/vendor/packages/contracts/src/validation.ts';
+import type {
+  BentoDocV4,
+  BentoElementV4,
+} from '../../design-bento/vendor/packages/contracts/src/bentodoc-v4.ts';
 import type { ValidatedPptdV3 } from '../../design-bento/vendor/packages/contracts/src/pptd-v3.ts';
 export type ValidatedPptdV2 = LegacyValidatedPptd;
-export type ValidatedPptd = LegacyValidatedPptd | ValidatedPptdV3;
+export type ValidatedArtwork = {
+  manifest: {
+    title?: string;
+    size: [number, number];
+    pages: string[];
+    customFonts?: BentoDocV4['fonts'];
+  };
+  pages: {
+    background: BentoDocV4['background'];
+    elements: BentoElementV4[];
+    diagnostics?: BentoDocV4['diagnostics'];
+  }[];
+};
+export type ValidatedPptd = LegacyValidatedPptd | ValidatedPptdV3 | ValidatedArtwork;
 export type ValidationResult =
   | Exclude<LegacyValidationResult, { ok: true }>
   | {
@@ -27,5 +44,8 @@ export type ValidationResult =
       diagnostics: import('../../design-bento/vendor/packages/contracts/src/diagnostics.ts').Diagnostic[];
     };
 export function isPptdV3(project: ValidatedPptd): project is ValidatedPptdV3 {
-  return project.manifest.version === 'v3';
+  return 'version' in project.manifest && project.manifest.version === 'v3';
+}
+export function isArtworkProjection(project: ValidatedPptd): project is ValidatedArtwork {
+  return !('version' in project.manifest);
 }

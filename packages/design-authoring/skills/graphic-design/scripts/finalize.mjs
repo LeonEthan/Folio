@@ -1,28 +1,28 @@
 #!/usr/bin/env node
-// finalize.mjs — validate a PPTD draft with the shared Folio PPTD validator
-// (the same code the Folio daemon runs at intake after your turn) and promote
-// it to design.pptd when clean.
+// finalize.mjs — validate a YAML artwork draft with the shared Geon intake
+// validator (the same code the daemon runs at intake after your turn) and
+// promote it to design.yaml when clean.
 //
-// Usage: node finalize.mjs <path/to/design.pptd[.tmp]>
+// Usage: node finalize.mjs <path/to/design.yaml[.tmp]>
 //
-// Exit 0 (renaming a .tmp draft to design.pptd) on success; exit 1 with one
+// Exit 0 (renaming a .tmp draft to design.yaml) on success; exit 1 with one
 // "CODE path: message" line per diagnostic on failure. This is a self-check
-// convenience, not a gate: Folio re-validates at intake regardless, and you
-// may promote the draft yourself as long as the final entry is design.pptd.
+// convenience, not a gate: Geon re-validates at intake regardless, and you
+// may promote the draft yourself as long as the final entry is design.yaml.
 //
 // The validator ships pre-bundled in ./lib/geon-pptd.mjs (built from
-// @geon/design-authoring at the app's pinned upstream revision), so this
-// script runs anywhere Node 22+ is available, with no repo checkout.
+// @geon/design-authoring), so this script runs anywhere Node 22+ is
+// available, with no repo checkout.
 
 import { existsSync, renameSync } from 'node:fs';
 import path from 'node:path';
 import { validate } from './lib/geon-pptd.mjs';
 
 const draft = process.argv[2];
-const isTmpDraft = typeof draft === 'string' && draft.endsWith('.pptd.tmp');
-const isFinal = typeof draft === 'string' && path.basename(draft) === 'design.pptd';
+const isTmpDraft = typeof draft === 'string' && draft.endsWith('.yaml.tmp');
+const isFinal = typeof draft === 'string' && path.basename(draft) === 'design.yaml';
 if (!draft || (!isTmpDraft && !isFinal) || !existsSync(draft)) {
-  console.error('usage: node finalize.mjs <path/to/design.pptd[.tmp]> (file must exist)');
+  console.error('usage: node finalize.mjs <path/to/design.yaml[.tmp]> (file must exist)');
   process.exit(2);
 }
 

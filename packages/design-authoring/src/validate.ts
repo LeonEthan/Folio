@@ -2183,92 +2183,9 @@ function finishValidation(
     if (raw !== undefined) report(ctx, "PPTD-E001", manifestFile, "", "manifest 必须是 YAML 映射");
     return { ok: false, diagnostics: ctx.diagnostics };
   }
-  if (raw.version === "v3") {
-    return validateV3(raw, manifestFile, loadPage, (rel) => {
-      if (ctx.snapshot) return ctx.snapshot.get(rel);
-      try { return new Uint8Array(readFileSync(path.resolve(ctx.projectRoot!, rel))); }
-      catch { return undefined; }
-    });
-  }
-  // Page-level excluded aliases do not create manifest vocabulary.  The
-  // manifest's only excluded path is the matrix-derived pages cardinality
-  // check below (common.multiPage).
-  checkUnknownFields(ctx, raw, MANIFEST_FIELDS, manifestFile, "");
-
-  if (raw.version !== "v2") {
-    report(ctx, "PPTD-E001", manifestFile, "version", "version 必填且必须为 \"v2\" 或 \"v3\"");
-  }
-  if (raw.title !== undefined && typeof raw.title !== "string") {
-    report(ctx, "PPTD-E001", manifestFile, "title", "title 必须是字符串");
-  }
-
-  // customFonts 先于 theme/pages 校验：E012 需要登记表（font.registration 行）。
-  if (raw.customFonts !== undefined) checkCustomFonts(ctx, raw.customFonts, manifestFile);
-
-  // GD-2b：size 语义重定义——形态非法（非数组/非数字）仍 E001；
-  // 数值非法（非正/非整数/非有限）报 E002（画布尺寸必须为正有限整数对）。
-  if (
-    !Array.isArray(raw.size) ||
-    raw.size.length !== 2 ||
-    !raw.size.every((dim) => typeof dim === "number")
-  ) {
-    report(ctx, "PPTD-E001", manifestFile, "size", "size 必填且为 [width, height] 数字对");
-  } else {
-    const [width, height] = raw.size as [number, number];
-    ctx.canvas = { width, height };
-    if (
-      !Number.isFinite(width) ||
-      !Number.isFinite(height) ||
-      !Number.isInteger(width) ||
-      !Number.isInteger(height) ||
-      width <= 0 ||
-      height <= 0
-    ) {
-      report(ctx, "PPTD-E002", manifestFile, "size", `画布尺寸 ${width}×${height} 必须是正有限整数对`);
-    }
-  }
-
-  if (raw.theme !== undefined) checkTheme(ctx, raw.theme, manifestFile);
-
-  if (!Array.isArray(raw.pages) || !raw.pages.every((p) => typeof p === "string")) {
-    report(ctx, "PPTD-E001", manifestFile, "pages", "pages 必填且为页面文件相对路径字符串数组");
-  } else if (raw.pages.length !== 1) {
-    // common.multiPage 行（excluded）：单画布产品恰 1 页；具名拒绝后不再逐页校验（单错即止）。
-    if (MULTI_PAGE_CAPABILITY_ID === null || !EXCLUDED_CAPABILITY_IDS.has(MULTI_PAGE_CAPABILITY_ID)) {
-      report(ctx, "PPTD-E001", manifestFile, "pages", "matrix 未声明页面数量 excluded 能力");
-      return { ok: false, diagnostics: ctx.diagnostics };
-    }
-    const failureCode = EXCLUDED_FAILURE_CODES.get(MULTI_PAGE_CAPABILITY_ID);
-    if (failureCode === undefined) {
-      report(ctx, "PPTD-E001", manifestFile, "pages", "matrix excluded 页面数量能力缺少 failureCode");
-      return { ok: false, diagnostics: ctx.diagnostics };
-    }
-    report(
-      ctx,
-      failureCode,
-      manifestFile,
-      "pages",
-      `pages 必须恰为 1 页（单画布产品范围；${MULTI_PAGE_CAPABILITY_ID} 行 excluded，实际 ${raw.pages.length} 页）`,
-    );
-    return { ok: false, diagnostics: ctx.diagnostics };
-  }
-
-  const pages: PptdPage[] = [];
-  if (Array.isArray(raw.pages) && raw.pages.length === 1) {
-    const pageRel = raw.pages[0] as string;
-    const pageRaw = loadPage(pageRel);
-    if (isRecord(pageRaw)) {
-      checkPage(ctx, pageRaw, pageRel);
-      pages.push(pageRaw as unknown as PptdPage);
-    }
-  }
-
-  if (ctx.diagnostics.length > 0) {
-    return { ok: false, diagnostics: ctx.diagnostics };
-  }
-  const document = {
-    manifest: raw as unknown as PptdManifest,
-    pages,
-  };
-  return { ok: true, document: document as ValidatedPptd, diagnostics: [] };
+  return validateV3(raw, manifestFile, loadPage, (rel) => {
+    if (ctx.snapshot) return ctx.snapshot.get(rel);
+    try { return new Uint8Array(readFileSync(path.resolve(ctx.projectRoot!, rel))); }
+    catch { return undefined; }
+  });
 }

@@ -24,9 +24,9 @@ _Avoid_：设计版本库、画稿历史
 本地 workspace 中以 BentoDoc 保存的最新权威状态；从会话历史进入时打开这一状态。
 _Avoid_：历史快照、回合版本
 
-**画稿投影（已实现，指向 specs/graphic-design-platform.zh.md「当前画稿读取与文件一致性」）**：
-从当前画稿的一致快照按需生成的 PPTD 及素材，供 Agent 读取；不是 Agent 新产物。
-_Avoid_：第二份权威画稿、Agent 草稿
+**画稿投影（意图见 specs/graphic-design-platform.zh.md「当前画稿读取与文件一致性」，运行时尚未改）**：
+从当前画稿的一致快照按需生成的 YAML 文件（`design.yaml`、`pages/canvas.yaml`）及素材，供 Agent 读取；不是 Agent 新产物。不使用 PPTD。
+_Avoid_：第二份权威画稿、Agent 草稿、PPTD
 
 **Agent 创作草稿（已实现，指向 specs/graphic-design-platform.zh.md「当前画稿读取与文件一致性」）**：
 Agent 正在修改的创作文件，关联其成功读取的作品和版本基线；再次同步当前稿不覆盖草稿或静默改变其基线。
@@ -36,13 +36,13 @@ _Avoid_：当前画稿、历史版本库
 因版本检查未能提交、仍保留在工作区的创作文件；Agent 重读最新当前稿后自行处理差异，不是需要用户采用/拒绝的独立候选作品。
 _Avoid_：候选审批、应用自动合并
 
-**创作预览（已实现，指向 specs/graphic-design-platform.zh.md「创作文件实时预览」）**：
-根据 PPTD 创作文件变化更新的只读、未提交视图；可停留在上一份有效结果，不改变当前画稿或 Agent 草稿基线。Agent 执行及产物处理期间，当前画稿也只读；运行中观看进展，提交完成后再引用当前稿元素继续修改。
+**创作预览（意图见 specs/graphic-design-platform.zh.md「创作文件实时预览」，运行时尚未改）**：
+根据 YAML 画稿投影变化更新的只读、未提交视图；可停留在上一份有效结果，不改变当前画稿或 Agent 草稿基线。Agent 执行及产物处理期间，当前画稿也只读；运行中观看进展，提交完成后再引用当前稿元素继续修改。
 _Avoid_：当前画稿、已完成产物、读取 hook 生成的画稿投影
 
-**显式导入（已实现，指向 specs/graphic-design-platform.zh.md「创作文件实时预览」）**：
-空闲时将用户已预览的外部 PPTD 与素材快照，经校验和版本检查直接保存为当前稿；不先创建待采用候选。
-_Avoid_：作品目录导入、候选审批
+**显式导入（意图见 specs/graphic-design-platform.zh.md「创作文件实时预览」，运行时尚未改）**：
+空闲时将用户已预览的 YAML 画稿投影与素材快照，经校验和版本检查直接保存为当前稿；不先创建待采用候选。不导入 Kimi/open-kimi `.pptd`。
+_Avoid_：作品目录导入、候选审批、PPTD 互通
 
 **工作区（workspace）**：
 会话使用的本地文件空间，保留设计文件与素材，不是新增的作品目录管理功能。

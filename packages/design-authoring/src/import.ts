@@ -100,8 +100,8 @@ import {
   staticV1FontRegistrationFamilyError,
   staticV1UnregisteredFontFamilies,
 } from "./contracts.ts";
-import { isPptdV3 } from "./contracts.ts";
-import { importV3 } from "./pptd-v3.ts";
+import { isArtworkProjection, isPptdV3 } from "./contracts.ts";
+import { importYaml } from "./pptd-v3.ts";
 import { staticV1LatexSyntaxError } from "./latex.ts";
 import { parseRichText } from "./richtext.ts";
 import { listSemanticAssetRefs } from "./semantic-assets.ts";
@@ -126,7 +126,19 @@ function numericEncodeChannel(type: string, channel: string): boolean {
 }
 
 export function importPptd(validated: ValidatedPptd, assets: AssetIndex): ImportResult {
-  if (isPptdV3(validated)) return importV3(validated, assets);
+  if (isArtworkProjection(validated)) return importYaml(validated as Parameters<typeof importYaml>[0], assets);
+  if (isPptdV3(validated)) {
+    return {
+      status: "unsupported",
+      issues: [
+        {
+          code: "PPTD-E001",
+          path: "design.yaml#",
+          message: "leftover PPTD is not admitted (GEON-E-PPTD)",
+        },
+      ],
+    };
+  }
   return importV2(validated, assets);
 }
 

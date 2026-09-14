@@ -1,8 +1,8 @@
 /**
- * @geon/design-authoring — PPTD intake for the Geon design platform.
+ * @geon/design-authoring — YAML artwork intake for the Geon design platform.
  *
  * Migrated from the pinned upstream authoring package (see source-manifest.json
- * and README.md). Scope: PPTD snapshot validation, PPTD → BentoDoc v4 import,
+ * and README.md). Scope: YAML snapshot validation, YAML → BentoDoc v4 import,
  * BentoDoc schema migration, and secure authoring snapshot collection.
  * Explicitly not migrated: immutable revision CAS store, quality orchestration,
  * PPTD authoring generators.
@@ -34,5 +34,11 @@ export {
   CapabilityMatrixHashMismatchError,
 } from './capability-matrix.ts';
 
-export { exportPptd } from './pptd-v3.ts';
+export {
+  exportAuthoring,
+  exportPptd,
+  AUTHORING_DEFAULT_FONT_FAMILY,
+  ARTWORK_ENTRY,
+  ARTWORK_PAGE,
+} from './pptd-v3.ts';
 export { PPTD_PROJECTION_CAPABILITIES } from './projection-capabilities.ts';

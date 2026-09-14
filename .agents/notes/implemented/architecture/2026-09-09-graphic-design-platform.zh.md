@@ -819,6 +819,10 @@ Auto 修订验证：扩展存储检查覆盖省略宽高时的缺省初始化，
 
 **未决。** 具体适配切片和安排尚未确认，本轮未运行上传或 Agent 图片输入验收。若暂缓，只能按真实能力呈现暂不可用，不能把删除附件需求当成默认结论。实施前读 [平台合同](../../../../packages/platform/AGENTS.md)；不再按“从零建立本地存储”估算。
 
+## Spec 批准记录（2026-09-14）
+
+用户在收尾会话中显式回复「按这版批准」，批准 [Spec](../../../../specs/graphic-design-platform.zh.md) 2026-09-14 YAML 画稿投影修订为 approved。该修订取代 2026-09-12 批准中的 PPTD Agent 文件表示保证。完整记录与 SHA256 见 [退役笔记批准节](../../proposed/architecture/2026-09-14-retire-kimi-pptd-authoring.zh.md#spec-批准记录2026-09-14)。批准范围为 Spec 意图；不授权运行时已改、不授权发布。
+
 ## Spec 批准记录（2026-09-12）
 
 用户在本轮收尾会话中显式批准 [Spec](../../../../specs/graphic-design-platform.zh.md) 当前修订为 approved。批准问题为「是否批准 specs/graphic-design-platform.zh.md 当前修订为 approved？」，用户选择「批准当前修订」；批准对象的内容 SHA256 为 `f602caab2c513d57d76d5d3d60f0d951b4ce95e260d4001898bb6476e5733111`（`02a394d` 加当日平台范围与 Kimi 登记三处编辑，当时全部文档改动保持未提交）。批准范围为 Spec 文本表达的意图与行为条款定稿；不授权发布，不扩大到未验收的平台、参考图组合或付费服务行为，也不批准其他文档。同日随本记录，本笔记与三份验收记录（T28 矩阵、T29 完整验收、P6.7 真实图像 TODO）从 proposed 归档为 implemented；Spec 及各处对这四份笔记的链接路径更新属保留含义的编辑性修改，不影响批准。

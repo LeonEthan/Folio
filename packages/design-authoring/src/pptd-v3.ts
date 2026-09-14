@@ -1,7 +1,9 @@
-/** Geon's lossless projection profile. No embedded canonical document or edit log. */
+/** Geon's lossless YAML artwork projection. No embedded canonical document or edit log. */
 import { createHash } from 'node:crypto';
 import { stringify } from 'yaml';
 import {
+  BENTO_DOC_V4_FIELDS,
+  BENTO_ELEMENT_KINDS_V4,
   createVisualDocumentKernel,
   DIAGNOSTIC_CODES,
   sniffStaticV1FontMime,
@@ -12,11 +14,30 @@ import {
   type BentoElementV4,
   type Diagnostic,
   type ImportResult,
-  type PptdV3Project,
-  type PptdV3Element,
-  type ValidatedPptdV3,
   type ValidationResult,
 } from './contracts.ts';
+
+/** Bundled licensed default for omitted fontFamily (OFL Inter via @fontsource/inter). */
+export const AUTHORING_DEFAULT_FONT_FAMILY = 'Inter';
+
+export const ARTWORK_ENTRY = 'design.yaml';
+export const ARTWORK_PAGE = 'pages/canvas.yaml';
+
+export interface YamlArtworkProject {
+  manifest: {
+    title?: string;
+    size: [number, number];
+    pages: string[];
+    customFonts?: BentoDocV4['fonts'];
+  };
+  pages: {
+    background: BentoDocV4['background'];
+    elements: BentoElementV4[];
+    diagnostics?: BentoDocV4['diagnostics'];
+  }[];
+}
+declare const validatedYaml: unique symbol;
+export type ValidatedYamlArtwork = YamlArtworkProject & { readonly [validatedYaml]: true };
 
 type Raw = Record<string, unknown>;
 const record = (v: unknown): v is Raw => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -56,7 +77,8 @@ export function mapV3Assets<T>(
     page.elements.forEach((element, i) => {
       if (!record(element)) return;
       const elAt = `${at}elements[${i}]`;
-      if (element.elementType === 'image') source(element, 'image', `${elAt}.src`);
+      if (element.kind === 'image' || (element as Raw).elementType === 'image')
+        source(element, 'image', `${elAt}.src`);
       fill(element.fill, `${elAt}.fill`);
       if (record(element.chart)) fill(element.chart.fill, `${elAt}.chart.fill`);
       if (record(element.table)) {
@@ -86,24 +108,28 @@ export function mapV3Assets<T>(
   return out;
 }
 
-export function v3ToDocument(project: PptdV3Project): BentoDocV4 {
+export function artworkToDocument(project: YamlArtworkProject): BentoDocV4 {
   const {
     manifest,
     pages: [page],
   } = project;
   if (!page) throw Error('Exactly one page required');
+  const elements = page.elements.map((element, index) => ({
+    ...structuredClone(element),
+    zIndex: element.zIndex ?? index,
+  }));
   return {
     schemaVersion: 4,
     canvas: { width: manifest.size[0], height: manifest.size[1] },
-    background: structuredClone(page.background),
+    background: structuredClone(page.background) ?? { type: 'solid', color: '#FFFFFF' },
     ...(manifest.customFonts !== undefined ? { fonts: structuredClone(manifest.customFonts) } : {}),
-    elements: page.elements.map(
-      ({ elementId, elementType, ...fields }) =>
-        ({ ...structuredClone(fields), id: elementId, kind: elementType }) as BentoElementV4
-    ),
+    elements,
     diagnostics: structuredClone(page.diagnostics ?? []),
   };
 }
+
+/** @deprecated YAML artwork uses artworkToDocument. */
+export const v3ToDocument = artworkToDocument;
 
 /** Same acceptance domains as manual save; replay is validation, never output repair. */
 export function assertProjectionDocument(doc: BentoDocV4): void {
@@ -169,7 +195,7 @@ export function assertProjectionDocument(doc: BentoDocV4): void {
     diagnostics: [],
   });
   const result = kernel.apply({
-    batchId: 'pptd-v3-validation',
+    batchId: 'yaml-projection-validation',
     actor: 'authoring',
     baseRevision: 0,
     commands: [
@@ -188,14 +214,18 @@ export function assertProjectionDocument(doc: BentoDocV4): void {
     ],
   });
   if (!result.ok) throw Error(result.error.message);
-  const missing = staticV1UnregisteredFontFamilies(
-    doc.elements,
-    (doc.fonts ?? []).map((f) => f.family)
-  );
+  const missing = staticV1UnregisteredFontFamilies(doc.elements, [
+    ...(doc.fonts ?? []).map((f) => f.family),
+    AUTHORING_DEFAULT_FONT_FAMILY,
+  ]).filter((family) => family !== AUTHORING_DEFAULT_FONT_FAMILY);
   if (missing.length) throw Error(`Unregistered fonts: ${missing.join(', ')}`);
 }
 
-export function validateV3(
+const REMOTE_URL_RE = /^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|\/\/)/;
+const KIND_SET = new Set<string>(BENTO_ELEMENT_KINDS_V4);
+const PPTD_PAGE_FIELDS = new Set(['notes', 'animations', 'pageType']);
+
+export function validateYaml(
   manifest: Raw,
   manifestFile: string,
   loadPage: (rel: string) => unknown,
@@ -204,11 +234,19 @@ export function validateV3(
   const diagnostics: Diagnostic[] = [];
   const fail = (at: string, message: string, code: Diagnostic['code'] = 'PPTD-E001') =>
     diagnostics.push({ code, path: at, message });
+  if (manifestFile.endsWith('.pptd') || manifest.version === 'v2' || manifest.version === 'v3') {
+    fail(`${manifestFile}#`, 'leftover PPTD is not admitted (GEON-E-PPTD)', 'PPTD-E001');
+    return { ok: false, diagnostics };
+  }
+  if (manifest.theme !== undefined) {
+    fail(`${manifestFile}#theme`, 'PPTD theme/$ref is not admitted (GEON-E-PPTD)');
+    return { ok: false, diagnostics };
+  }
   const exact = (v: Raw, keys: string[], at: string) =>
     Object.keys(v).forEach((k) => {
-      if (!keys.includes(k)) fail(`${at}.${k}`, `Unknown v3 field: ${k}`);
+      if (!keys.includes(k)) fail(`${at}.${k}`, `Unknown artwork field: ${k}`);
     });
-  exact(manifest, ['version', 'title', 'size', 'pages', 'customFonts'], `${manifestFile}#`);
+  exact(manifest, ['title', 'size', 'pages', 'customFonts'], `${manifestFile}#`);
   if (manifest.title !== undefined && typeof manifest.title !== 'string')
     fail(`${manifestFile}#title`, 'title must be a string');
   if (
@@ -217,14 +255,16 @@ export function validateV3(
     !manifest.size.every((v) => typeof v === 'number' && Number.isInteger(v) && v > 0)
   )
     fail(`${manifestFile}#size`, 'size must be a positive integer pair', 'PPTD-E002');
-  if (
-    !Array.isArray(manifest.pages) ||
-    manifest.pages.length !== 1 ||
-    typeof manifest.pages[0] !== 'string' ||
-    !/^pages\/[^/\\]+\.page$/.test(manifest.pages[0]) ||
-    manifest.pages[0] === 'pages/..page'
-  ) {
-    fail(`${manifestFile}#pages`, 'Exactly one local pages/<name>.page is required');
+  if (!Array.isArray(manifest.pages) || manifest.pages.some((rel) => typeof rel !== 'string')) {
+    fail(`${manifestFile}#pages`, 'pages must be a string array');
+    return { ok: false, diagnostics };
+  }
+  if (manifest.pages.length !== 1 || manifest.pages[0] !== ARTWORK_PAGE) {
+    fail(
+      `${manifestFile}#pages`,
+      `pages 必须恰为 1 页（单画布产品范围；common.multiPage 行 excluded，实际 ${manifest.pages.length} 页）`,
+      'PPTD-E011'
+    );
     return { ok: false, diagnostics };
   }
   const pagePath = manifest.pages[0];
@@ -233,26 +273,55 @@ export function validateV3(
     fail(`${pagePath}#`, 'Page must be a mapping');
     return { ok: false, diagnostics };
   }
+  for (const key of Object.keys(page)) {
+    if (PPTD_PAGE_FIELDS.has(key))
+      fail(
+        `${pagePath}#${key}`,
+        `PPTD page field "${key}" is not admitted (GEON-E-PPTD)`,
+        'PPTD-E011'
+      );
+  }
   exact(page, ['background', 'elements', 'diagnostics'], `${pagePath}#`);
   if (!Array.isArray(page.elements)) fail(`${pagePath}#elements`, 'elements must be an array');
   else
     page.elements.forEach((element, index) => {
-      if (
-        !record(element) ||
-        'id' in element ||
-        'kind' in element ||
-        typeof element.elementId !== 'string' ||
-        typeof element.elementType !== 'string'
-      )
-        fail(
-          `${pagePath}#elements[${index}]`,
-          'Expected elementId/elementType; canonical id/kind aliases are not v3 fields'
-        );
+      const at = `${pagePath}#elements[${index}]`;
+      if (!record(element)) {
+        fail(at, 'Element must be a mapping');
+        return;
+      }
+      if ('elementId' in element || 'elementType' in element || 'content' in element) {
+        fail(at, 'PPTD elementId/elementType/HTML content is not admitted (GEON-E-PPTD)');
+        return;
+      }
+      if (typeof element.id !== 'string' || typeof element.kind !== 'string') {
+        fail(at, 'Expected Bento id/kind');
+        return;
+      }
+      if (!KIND_SET.has(element.kind))
+        fail(at, `kind "${element.kind}" is not in the element vocabulary`, 'PPTD-E003');
+      else {
+        const allowed = new Set<string>([
+          ...BENTO_DOC_V4_FIELDS.elements.common,
+          ...BENTO_DOC_V4_FIELDS.elements[
+            element.kind as keyof typeof BENTO_DOC_V4_FIELDS.elements
+          ],
+        ]);
+        for (const key of Object.keys(element)) {
+          if (!allowed.has(key)) fail(`${at}.${key}`, `Unknown artwork field: ${key}`);
+        }
+      }
+      if (record(element.chart) && element.chart.seriesDefaults !== undefined)
+        fail(`${at}.chart.seriesDefaults`, 'PPTD seriesDefaults is not admitted (GEON-E-PPTD)');
     });
   if (diagnostics.length) return { ok: false, diagnostics };
-  const project = { manifest, pages: [page] } as unknown as PptdV3Project;
+  const project = { manifest, pages: [page] } as unknown as YamlArtworkProject;
   try {
     const bound = mapV3Assets(project, (src, kind, at) => {
+      if (REMOTE_URL_RE.test(src)) {
+        fail(at, `Remote ${kind} URL is not admitted: ${src}`, 'PPTD-E004');
+        return src;
+      }
       if (!mediaPath(src)) {
         fail(at, 'Asset must be a local media/<name> path', 'PPTD-E005');
         return src;
@@ -266,16 +335,19 @@ export function validateV3(
         fail(at, `Invalid ${kind} bytes: ${src}`, 'PPTD-E005');
       return `asset:${hash(bytes)}`;
     });
-    assertProjectionDocument(v3ToDocument(bound));
+    assertProjectionDocument(artworkToDocument(bound));
   } catch (error) {
     fail(`${pagePath}#`, error instanceof Error ? error.message : String(error), 'PPTD-E013');
   }
   return diagnostics.length
     ? { ok: false, diagnostics }
-    : { ok: true, document: project as ValidatedPptdV3, diagnostics: [] };
+    : { ok: true, document: project as ValidatedYamlArtwork, diagnostics: [] };
 }
 
-export function importV3(project: ValidatedPptdV3, assets: AssetIndex): ImportResult {
+/** @deprecated YAML artwork uses validateYaml. */
+export const validateV3 = validateYaml;
+
+export function importYaml(project: ValidatedYamlArtwork, assets: AssetIndex): ImportResult {
   try {
     const bound = mapV3Assets(project, (src) => {
       const asset = Object.hasOwn(assets, src) ? assets[src] : undefined;
@@ -283,7 +355,7 @@ export function importV3(project: ValidatedPptdV3, assets: AssetIndex): ImportRe
         throw Error(`Missing or invalid asset index: ${src}`);
       return asset;
     });
-    const document = v3ToDocument(bound);
+    const document = artworkToDocument(bound);
     assertProjectionDocument(document);
     const sourceMap = Object.fromEntries(document.elements.map((e) => [e.id, [e.id]]));
     return { status: 'ok', document, sourceMap, profileVersion: 'v1', degradations: [] };
@@ -293,7 +365,7 @@ export function importV3(project: ValidatedPptdV3, assets: AssetIndex): ImportRe
       issues: [
         {
           code: 'PPTD-E013',
-          path: 'design.pptd#',
+          path: `${ARTWORK_ENTRY}#`,
           message: error instanceof Error ? error.message : String(error),
         },
       ],
@@ -301,27 +373,35 @@ export function importV3(project: ValidatedPptdV3, assets: AssetIndex): ImportRe
   }
 }
 
+/** @deprecated YAML artwork uses importYaml. */
+export const importV3 = importYaml;
+
+const yamlStringify = (value: unknown) =>
+  new TextEncoder().encode(
+    stringify(value, {
+      aliasDuplicateObjects: false,
+      defaultStringType: 'QUOTE_DOUBLE',
+      lineWidth: 80,
+    })
+  );
+
 /** Pure deterministic projection; caller owns any subsequent workspace writes. */
-export function exportPptd(
+export function exportAuthoring(
   document: BentoDocV4,
   assets: ReadonlyMap<string, Uint8Array>
 ): Map<string, Uint8Array> {
   assertProjectionDocument(document);
-  const project: PptdV3Project = {
+  const project: YamlArtworkProject = {
     manifest: {
-      version: 'v3',
       size: [document.canvas.width, document.canvas.height],
-      pages: ['pages/design.page'],
+      pages: [ARTWORK_PAGE],
       ...(document.fonts !== undefined ? { customFonts: structuredClone(document.fonts) } : {}),
     },
     pages: [
       {
         background: structuredClone(document.background),
         diagnostics: structuredClone(document.diagnostics),
-        elements: document.elements.map(
-          ({ id, kind, ...fields }) =>
-            ({ elementId: id, elementType: kind, ...structuredClone(fields) }) as PptdV3Element
-        ),
+        elements: structuredClone(document.elements),
       },
     ],
   };
@@ -337,25 +417,10 @@ export function exportPptd(
     snapshot.set(rel, new Uint8Array(bytes));
     return rel;
   });
-  snapshot.set(
-    'design.pptd',
-    new TextEncoder().encode(
-      stringify(projected.manifest, {
-        aliasDuplicateObjects: false,
-        defaultStringType: 'QUOTE_DOUBLE',
-        lineWidth: 80,
-      })
-    )
-  );
-  snapshot.set(
-    'pages/design.page',
-    new TextEncoder().encode(
-      stringify(projected.pages[0], {
-        aliasDuplicateObjects: false,
-        defaultStringType: 'QUOTE_DOUBLE',
-        lineWidth: 80,
-      })
-    )
-  );
+  snapshot.set(ARTWORK_ENTRY, yamlStringify(projected.manifest));
+  snapshot.set(ARTWORK_PAGE, yamlStringify(projected.pages[0]));
   return snapshot;
 }
+
+/** @deprecated Use exportAuthoring. The snapshot is YAML, not PPTD. */
+export const exportPptd = exportAuthoring;

@@ -152,10 +152,10 @@
     "skills/graphic-design/SKILL.md": "T04: supplied design authoring directory and separate fixed application projection path; Agent cwd remains Lody-owned",
     "skills/imagegen/SKILL.md": "T04: artwork-relative media output and absolute Session attachment inputs; T09: explicit user model, generation and multipart edit tools, source/mask and provider limits; retains autonomous creation guidance",
     "skills/imagegen/references/prompting.md": "T09: model-neutral prompting and generate/edit capability description",
-    "src/pptd-v3.ts": "Folio PPTD v3 bidirectional projection; uses pinned contracts and kernel through src/contracts.ts, no upstream serializer copied",
-    "src/projection-capabilities.ts": "Derived v3 representation mapping for every active row of the unchanged frozen v1 matrix",
-    "src/validate.ts": "Version dispatcher preserves pinned v2; v3 reuses kernel acceptance domains",
-    "src/import.ts": "Version dispatcher preserves pinned v2 import; v3 uses literal editable fields",
-    "src/semantic-assets.ts": "Version-aware semantic enumeration for v3 structured fields"
+    "src/pptd-v3.ts": "YAML artwork projection (design.yaml / pages/canvas.yaml / media); uses pinned contracts and kernel through src/contracts.ts, no upstream serializer copied",
+    "src/projection-capabilities.ts": "Derived YAML representation mapping for every active row of the unchanged frozen v1 matrix",
+    "src/validate.ts": "Snapshot dispatcher admits YAML artwork only; leftover PPTD fails closed",
+    "src/import.ts": "YAML artwork import uses literal Bento id/kind fields; leftover PPTD is not imported",
+    "src/semantic-assets.ts": "Version-aware semantic enumeration for YAML structured fields"
   }
 }

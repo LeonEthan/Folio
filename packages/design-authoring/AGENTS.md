@@ -21,12 +21,16 @@
 - `src/generated/` and `skills/graphic-design/scripts/lib/` are build outputs;
   never edit them by hand.
 
-- PPTD v2 admission remains frozen. v3 projection reuses the existing Bento v4
-  editable fields and kernel replay through `contracts.ts`; replay validates
-  but never repairs output. Keep exact run boundaries, optional values, IDs,
-  array/z order, flat groups and asset bytes. Only schema asset locations may
-  be rewritten. Update `projection-capabilities.ts` and roundtrip fixtures with
-  any supported field change; never add a second canonical blob to the format.
+- The snapshot contract admits only the YAML artwork projection (`design.yaml`,
+  `pages/canvas.yaml`, `media/`). Leftover `.pptd` and PPTD v2 syntax fail
+  closed. Projection reuses the existing Bento v4 editable fields (`id` /
+  `kind`) and kernel replay through `contracts.ts`; replay validates but never
+  repairs output. Keep exact run boundaries, optional values, IDs, array/z
+  order, flat groups and asset bytes. Only schema asset locations may be
+  rewritten. Omitted `fontFamily` does not become MiSans; Inter is the bundled
+  licensed default family name. Update `projection-capabilities.ts` and
+  roundtrip fixtures with any supported field change; never add a second
+  canonical blob to the format.
 
 - Read-only previews collect the entry, referenced pages and semantic assets only.
   Bound reads and compare exact document/asset bytes across observations; stability

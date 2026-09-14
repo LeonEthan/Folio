@@ -19,12 +19,12 @@ only for new changes, failures or unresolved concerns.
 Question requirements, delete unnecessary mechanisms, then simplify and optimize. Build only
 what is needed now; completed code and concept images do not establish necessity.
 
-- Reuse Lody's architecture, UI and agent lifecycle with agentic-listing-design's
-  PPTD + Bento. Migration only reduces scope; additions need explicit confirmation.
-  Reuse modules before adding protocols/storage.
-- Keep one editable truth: BentoDoc. PPTD projections and Agent drafts serve
+- Reuse Lody's architecture, UI and agent lifecycle with Bento. Migration only
+  reduces scope; additions need explicit confirmation. Reuse modules before adding
+  protocols/storage.
+- Keep one editable truth: BentoDoc. YAML projections and Agent drafts serve
   different purposes. Recompute derived views where feasible; justify persistence
-  by current use. Keep exposed Bento edits lossless in PPTD with minimal adaptation.
+  by current use. Keep exposed Bento edits lossless in YAML with minimal adaptation.
   Put scene knowledge in skills; base constraints on evidence.
 - Before design changes, read the [Spec](specs/graphic-design-platform.zh.md) and
   [scope review](.agents/notes/proposed/simplification/2026-09-11-design-result-feedback.zh.md).
@@ -38,7 +38,7 @@ review and completion. Expose honest capabilities; tool absence does not imply
 absence of other agent capabilities. Preserve rendering previews and image
 reading and commit receipts; retire per-turn result cards and dedicated thumbnails.
 
-Design saves update PPTD from human edits independently of Agent execution. Keep
+Design saves update YAML from human edits independently of Agent execution. Keep
 public read-before-edit reminder hooks and native tool guards; no runtime patches
 or generation-level read proofs. Final commits check schema, kernel replay, assets
 and versions. No creative-step enforcement, silent repair or automatic paid retries. Before Agent

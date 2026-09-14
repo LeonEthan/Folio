@@ -1,5 +1,5 @@
 /**
- * Intake tests: synthetic PPTD fixtures only (no captured content).
+ * Intake tests: synthetic YAML artwork fixtures only (no captured content).
  */
 
 import { deflateSync } from 'node:zlib';
@@ -9,12 +9,18 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { intakeAuthoring } from '../src/intake.ts';
+import { AUTHORING_DEFAULT_FONT_FAMILY } from '../src/pptd-v3.ts';
 import {
   loadBentoDocV4,
   BentoDocUnknownFieldError,
   UnsupportedSchemaVersionError,
 } from '../src/migrate.ts';
-import { collectAuthoring, AuthoringSnapshotError } from '../src/collect-authoring.ts';
+import {
+  collectAuthoring,
+  assertAuthoringEntry,
+  isAuthoringRelPath,
+  AuthoringSnapshotError,
+} from '../src/collect-authoring.ts';
 
 /** Minimal valid 8-bit RGB PNG encoder for synthetic fixtures. */
 function syntheticPng(width: number, height: number, rgb: [number, number, number]): Uint8Array {
@@ -69,35 +75,33 @@ const VALID_PAGE = `background:
   type: solid
   color: "#FFFFFF"
 elements:
-  - elementId: title
-    elementType: text
+  - id: title
+    kind: text
     bounds: [10, 10, 200, 40]
-    content:
-      text: "Hello"
-      fontSize: 24
-      bold: true
-  - elementId: band
-    elementType: shape
+    text:
+      paragraphs:
+        - runs:
+            - text: "Hello"
+              fontSize: 24
+              bold: true
+  - id: band
+    kind: shape
     bounds: [10, 60, 100, 100]
     shapeName: rect
     fill:
       type: solid
       color: "#1F6B8A"
-  - elementId: photo
-    elementType: image
+  - id: photo
+    kind: image
     bounds: [120, 60, 64, 64]
     src: media/pic.png
-    fit:
-      mode: cover
+    fit: cover
 `;
 
 function snapshotWith(overrides: Record<string, Uint8Array | undefined>): Map<string, Uint8Array> {
   const snapshot = new Map<string, Uint8Array>([
-    [
-      'design.pptd',
-      enc.encode('version: v2\ntitle: Test\nsize: [320, 200]\npages:\n  - pages/main.page\n'),
-    ],
-    ['pages/main.page', enc.encode(VALID_PAGE)],
+    ['design.yaml', enc.encode('title: Test\nsize: [320, 200]\npages:\n  - pages/canvas.yaml\n')],
+    ['pages/canvas.yaml', enc.encode(VALID_PAGE)],
     ['media/pic.png', syntheticPng(8, 8, [31, 107, 138])],
   ]);
   for (const [key, value] of Object.entries(overrides)) {
@@ -108,13 +112,14 @@ function snapshotWith(overrides: Record<string, Uint8Array | undefined>): Map<st
 }
 
 describe('intakeAuthoring', () => {
-  it('imports a minimal valid project (text, shape, image) into BentoDoc v4', () => {
-    const result = intakeAuthoring('design.pptd', snapshotWith({}));
+  it('imports a minimal valid YAML project (text, shape, image) into BentoDoc v4', () => {
+    const result = intakeAuthoring('design.yaml', snapshotWith({}));
     expect(result.status).toBe('ok');
     if (result.status !== 'ok') return;
     expect(result.document.schemaVersion).toBe(4);
     expect(result.document.canvas).toEqual({ width: 320, height: 200 });
     expect(result.document.elements.map((el) => el.kind)).toEqual(['text', 'shape', 'image']);
+    expect(result.document.elements.map((el) => el.id)).toEqual(['title', 'band', 'photo']);
     expect(result.assets.size).toBe(1);
     const [hash] = result.assets.keys();
     const image = result.document.elements[2];
@@ -127,8 +132,22 @@ describe('intakeAuthoring', () => {
     });
   });
 
+  it('does not default omitted fontFamily to MiSans', () => {
+    const result = intakeAuthoring('design.yaml', snapshotWith({}));
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') return;
+    const title = result.document.elements[0];
+    expect(title?.kind).toBe('text');
+    expect(JSON.stringify(result.document)).not.toMatch(/MiSans/);
+    if (title?.kind !== 'text') return;
+    expect(
+      title.text.fontFamily === undefined || title.text.fontFamily === AUTHORING_DEFAULT_FONT_FAMILY
+    ).toBe(true);
+    expect(AUTHORING_DEFAULT_FONT_FAMILY).toBe('Inter');
+  });
+
   it('rejects a missing media reference with PPTD-E005', () => {
-    const result = intakeAuthoring('design.pptd', snapshotWith({ 'media/pic.png': undefined }));
+    const result = intakeAuthoring('design.yaml', snapshotWith({ 'media/pic.png': undefined }));
     expect(result.status).toBe('invalid');
     if (result.status !== 'invalid') return;
     expect(
@@ -138,9 +157,9 @@ describe('intakeAuthoring', () => {
 
   it('rejects a remote image URL with PPTD-E004', () => {
     const result = intakeAuthoring(
-      'design.pptd',
+      'design.yaml',
       snapshotWith({
-        'pages/main.page': enc.encode(
+        'pages/canvas.yaml': enc.encode(
           VALID_PAGE.replace('media/pic.png', 'https://example.com/x.png')
         ),
       })
@@ -150,13 +169,11 @@ describe('intakeAuthoring', () => {
     expect(result.diagnostics.some((d) => d.code === 'PPTD-E004')).toBe(true);
   });
 
-  it('rejects an out-of-vocabulary elementType with PPTD-E003', () => {
+  it('rejects an out-of-vocabulary kind with PPTD-E003', () => {
     const result = intakeAuthoring(
-      'design.pptd',
+      'design.yaml',
       snapshotWith({
-        'pages/main.page': enc.encode(
-          VALID_PAGE.replace('elementType: shape', 'elementType: widget')
-        ),
+        'pages/canvas.yaml': enc.encode(VALID_PAGE.replace('kind: shape', 'kind: widget')),
       })
     );
     expect(result.status).toBe('invalid');
@@ -166,9 +183,9 @@ describe('intakeAuthoring', () => {
 
   it('rejects unknown fields with PPTD-E001', () => {
     const result = intakeAuthoring(
-      'design.pptd',
+      'design.yaml',
       snapshotWith({
-        'pages/main.page': enc.encode(
+        'pages/canvas.yaml': enc.encode(
           VALID_PAGE.replace('shapeName: rect', 'shapeName: rect\n    bogus: 1')
         ),
       })
@@ -180,12 +197,12 @@ describe('intakeAuthoring', () => {
     );
   });
 
-  it('rejects multi-page manifests with the matrix-derived excluded capability code', () => {
+  it('rejects extra pages with the matrix-derived excluded capability code', () => {
     const result = intakeAuthoring(
-      'design.pptd',
+      'design.yaml',
       snapshotWith({
-        'design.pptd': enc.encode(
-          'version: v2\nsize: [320, 200]\npages:\n  - pages/main.page\n  - pages/second.page\n'
+        'design.yaml': enc.encode(
+          'size: [320, 200]\npages:\n  - pages/canvas.yaml\n  - pages/second.yaml\n'
         ),
       })
     );
@@ -198,9 +215,9 @@ describe('intakeAuthoring', () => {
 
   it('rejects a media reference escaping media/ with PPTD-E005', () => {
     const result = intakeAuthoring(
-      'design.pptd',
+      'design.yaml',
       snapshotWith({
-        'pages/main.page': enc.encode(VALID_PAGE.replace('media/pic.png', '../escape.png')),
+        'pages/canvas.yaml': enc.encode(VALID_PAGE.replace('media/pic.png', '../escape.png')),
       })
     );
     expect(result.status).toBe('invalid');
@@ -210,7 +227,7 @@ describe('intakeAuthoring', () => {
 });
 
 describe('bundled minimal example', () => {
-  it('passes intake (the skill example cannot drift from the schema)', () => {
+  it('fails closed on leftover PPTD examples until skill rewrite (#40)', () => {
     const exampleRoot = path.join(
       path.dirname(fileURLToPath(import.meta.url)),
       '..',
@@ -231,16 +248,15 @@ describe('bundled minimal example', () => {
       ],
     ]);
     const result = intakeAuthoring('poster.pptd', snapshot);
-    expect(result.status).toBe('ok');
-    if (result.status !== 'ok') return;
-    expect(result.document.canvas).toEqual({ width: 720, height: 960 });
-    expect(result.document.elements).toHaveLength(4);
+    expect(result.status).toBe('invalid');
+    if (result.status !== 'invalid') return;
+    expect(result.diagnostics.some((d) => d.message.includes('GEON-E-PPTD'))).toBe(true);
   });
 });
 
 describe('loadBentoDocV4', () => {
   it('returns a v4 document unchanged', () => {
-    const result = intakeAuthoring('design.pptd', snapshotWith({}));
+    const result = intakeAuthoring('design.yaml', snapshotWith({}));
     expect(result.status).toBe('ok');
     if (result.status !== 'ok') return;
     expect(loadBentoDocV4(result.document)).toEqual(result.document);
@@ -255,24 +271,66 @@ describe('loadBentoDocV4', () => {
 });
 
 describe('collectAuthoring', () => {
-  it('collects only allowlisted relpaths and requires the design.pptd entry', () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'folio-collect-'));
+  it('collects design.yaml, pages/canvas.yaml and media, and ignores unrelated files', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'geon-collect-'));
     mkdirSync(path.join(dir, 'pages'));
-    writeFileSync(path.join(dir, 'design.pptd'), 'version: v2\n');
-    writeFileSync(path.join(dir, 'pages', 'a.page'), 'elements: []\n');
+    mkdirSync(path.join(dir, 'media'));
+    writeFileSync(
+      path.join(dir, 'design.yaml'),
+      'size: [320, 200]\npages:\n  - pages/canvas.yaml\n'
+    );
+    writeFileSync(path.join(dir, 'pages', 'canvas.yaml'), 'elements: []\n');
+    writeFileSync(path.join(dir, 'media', 'pic.png'), syntheticPng(8, 8, [31, 107, 138]));
     writeFileSync(path.join(dir, 'unrelated.txt'), 'ignored\n');
+    expect(isAuthoringRelPath('design.yaml')).toBe(true);
+    expect(isAuthoringRelPath('pages/canvas.yaml')).toBe(true);
+    expect(isAuthoringRelPath('media/pic.png')).toBe(true);
+    expect(isAuthoringRelPath('design.pptd')).toBe(false);
+    expect(isAuthoringRelPath('pages/other.yaml')).toBe(false);
     const snapshot = collectAuthoring(dir);
-    expect([...snapshot.keys()].sort()).toEqual(['design.pptd', 'pages/a.page']);
+    expect([...snapshot.keys()].sort()).toEqual([
+      'design.yaml',
+      'media/pic.png',
+      'pages/canvas.yaml',
+    ]);
+    expect(() => assertAuthoringEntry(snapshot.keys())).not.toThrow();
+    expect(() => assertAuthoringEntry(['pages/canvas.yaml'])).toThrow(AuthoringSnapshotError);
   });
 
-  it('refuses a missing entry and symlinked entries', () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'folio-collect-'));
-    expect(() => collectAuthoring(dir)).toThrow(AuthoringSnapshotError);
-    writeFileSync(path.join(dir, 'design.pptd'), 'version: v2\n');
-    symlinkSync('design.pptd', path.join(dir, 'linked.pptd'));
-    // non-allowlisted symlink in pages/ is rejected rather than silently skipped
+  it('refuses a leftover design.pptd with a named diagnostic', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'geon-collect-pptd-'));
     mkdirSync(path.join(dir, 'pages'));
-    symlinkSync('../design.pptd', path.join(dir, 'pages', 'evil.page'));
+    writeFileSync(
+      path.join(dir, 'design.yaml'),
+      'size: [320, 200]\npages:\n  - pages/canvas.yaml\n'
+    );
+    writeFileSync(path.join(dir, 'pages', 'canvas.yaml'), 'elements: []\n');
+    writeFileSync(path.join(dir, 'design.pptd'), 'version: v2\n');
+    expect(() => collectAuthoring(dir)).toThrow(/GEON-E-PPTD/);
+  });
+
+  it('refuses extra pages instead of collecting a second canvas', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'geon-collect-pages-'));
+    mkdirSync(path.join(dir, 'pages'));
+    writeFileSync(
+      path.join(dir, 'design.yaml'),
+      'size: [320, 200]\npages:\n  - pages/canvas.yaml\n'
+    );
+    writeFileSync(path.join(dir, 'pages', 'canvas.yaml'), 'elements: []\n');
+    writeFileSync(path.join(dir, 'pages', 'other.yaml'), 'elements: []\n');
+    expect(() => collectAuthoring(dir)).toThrow(/extra page is not admitted/);
+  });
+
+  it('refuses a missing entry and symlinked page entries', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'geon-collect-'));
+    expect(() => collectAuthoring(dir)).toThrow(AuthoringSnapshotError);
+    writeFileSync(
+      path.join(dir, 'design.yaml'),
+      'size: [320, 200]\npages:\n  - pages/canvas.yaml\n'
+    );
+    mkdirSync(path.join(dir, 'pages'));
+    writeFileSync(path.join(dir, 'pages', 'canvas.yaml'), 'elements: []\n');
+    symlinkSync('canvas.yaml', path.join(dir, 'pages', 'evil.yaml'));
     expect(() => collectAuthoring(dir)).toThrow(AuthoringSnapshotError);
   });
 });

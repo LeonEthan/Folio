@@ -1,70 +1,87 @@
 /**
- * PPTD authoring snapshot collection seam (adapted from the pinned upstream;
+ * Authoring snapshot collection seam (adapted from the pinned upstream;
  * see source-manifest.json). This is the trust boundary: allowlist + lstat
  * without following links. Consumers only receive the collected Map.
  *
- * Geon adaptation: the only authoring entry is `design.pptd` (upstream also
- * admitted the runner-era case.yaml / commands.json / prompt.txt roots).
- * Upstream's AuthoringSnapshotError is replaced by a local error class so
- * the CAS workspace module is not migrated.
+ * Geon adaptation: the only authoring entry is `design.yaml` with one page
+ * `pages/canvas.yaml` and local `media/` assets. Leftover `.pptd` is not
+ * admitted. Upstream's AuthoringSnapshotError is replaced by a local error
+ * class so the CAS workspace module is not migrated.
  */
 
-import { lstatSync, readdirSync, readFileSync, realpathSync, openSync, closeSync, fstatSync, readSync, constants, type Stats } from "node:fs";
-import { join, sep } from "node:path";
-import { createHash, type Hash } from "node:crypto";
-import { parse } from "yaml";
-import { listSemanticAssetRefs } from "./semantic-assets.ts";
-import type { ValidatedPptd } from "./contracts.ts";
+import {
+  lstatSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  openSync,
+  closeSync,
+  fstatSync,
+  readSync,
+  constants,
+  type Stats,
+} from 'node:fs';
+import { join, sep } from 'node:path';
+import { createHash, type Hash } from 'node:crypto';
+import { parse } from 'yaml';
+import { listSemanticAssetRefs } from './semantic-assets.ts';
+import type { ValidatedPptd } from './contracts.ts';
 
 /** Snapshot collection integrity failure (symlink/hardlink/escape/non-regular). */
 export class AuthoringSnapshotError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "AuthoringSnapshotError";
+    this.name = 'AuthoringSnapshotError';
   }
 }
 
-const ENTRY_PPTD = "design.pptd";
-const ROOT_FILES = new Set([ENTRY_PPTD]);
+const ENTRY_YAML = 'design.yaml';
+const PAGE_YAML = 'pages/canvas.yaml';
+const ROOT_FILES = new Set([ENTRY_YAML]);
 
 function lstatOptional(path: string, label: string): Stats | null {
   try {
     return lstatSync(path);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
     throw new AuthoringSnapshotError(`collectAuthoring: lstat failed: ${label}: ${String(error)}`);
   }
 }
 
-/** 唯一 relpath 语法：design.pptd | pages/<单段>.page | media/<单段>。intake 与守护进程采集共用。 */
+/** 唯一 relpath 语法：design.yaml | pages/canvas.yaml | media/<单段>。intake 与守护进程采集共用。 */
 export function isAuthoringRelPath(rel: string): boolean {
-  if (ROOT_FILES.has(rel)) return true;
-  const pages = /^pages\/([^/]+)\.page$/.exec(rel);
-  if (pages !== null && pages[1] !== "." && pages[1] !== "..") return true;
+  if (ROOT_FILES.has(rel) || rel === PAGE_YAML) return true;
   const media = /^media\/([^/]+)$/.exec(rel);
-  if (media !== null && media[1] !== "." && media[1] !== "..") return true;
+  if (media !== null && media[1] !== '.' && media[1] !== '..') return true;
   return false;
 }
 
-const posix = (p: string): string => p.split(sep).join("/");
+const posix = (p: string): string => p.split(sep).join('/');
 
 type CollectionOptions = { referencedOnly?: boolean; onDependencies?: (paths: string[]) => void };
 
-export function collectAuthoring(dir: string, options: CollectionOptions = {}): Map<string, Uint8Array> {
+export function collectAuthoring(
+  dir: string,
+  options: CollectionOptions = {}
+): Map<string, Uint8Array> {
   return scanAuthoring(dir, options);
 }
 
 /** Exact full authoring digest, using the same guarded scan without retaining file bytes. */
 export function digestAuthoring(dir: string): string {
-  const hash = createHash("sha256");
+  const hash = createHash('sha256');
   scanAuthoring(dir, {}, hash);
-  return hash.digest("hex");
+  return hash.digest('hex');
 }
 
-function scanAuthoring(dir: string, options: CollectionOptions, hash?: Hash): Map<string, Uint8Array> {
+function scanAuthoring(
+  dir: string,
+  options: CollectionOptions,
+  hash?: Hash
+): Map<string, Uint8Array> {
   let totalBytes = 0;
   const chunk = hash ? new Uint8Array(64 * 1024) : undefined;
-  options.onDependencies?.([ENTRY_PPTD]);
+  options.onDependencies?.([ENTRY_YAML]);
   let rootStat;
   try {
     rootStat = lstatSync(dir);
@@ -72,7 +89,9 @@ function scanAuthoring(dir: string, options: CollectionOptions, hash?: Hash): Ma
     throw new AuthoringSnapshotError(`collectAuthoring: dir unreadable: ${String(error)}`);
   }
   if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) {
-    throw new AuthoringSnapshotError("collectAuthoring: dir must be a real directory (not a symlink)");
+    throw new AuthoringSnapshotError(
+      'collectAuthoring: dir must be a real directory (not a symlink)'
+    );
   }
   const rootReal = realpathSync(dir);
   const out = new Map<string, Uint8Array>();
@@ -94,25 +113,36 @@ function scanAuthoring(dir: string, options: CollectionOptions, hash?: Hash): Ma
       throw new AuthoringSnapshotError(`collectAuthoring: not a regular file: ${rel}`);
     }
     if (st.nlink !== 1) {
-      throw new AuthoringSnapshotError(`collectAuthoring: hardlink rejected: ${rel} (nlink=${st.nlink})`);
+      throw new AuthoringSnapshotError(
+        `collectAuthoring: hardlink rejected: ${rel} (nlink=${st.nlink})`
+      );
     }
     const real = realpathSync(abs);
     const prefix = rootReal.endsWith(sep) ? rootReal : `${rootReal}${sep}`;
     if (real !== rootReal && !real.startsWith(prefix)) {
       throw new AuthoringSnapshotError(`collectAuthoring: path escapes dir: ${rel}`);
     }
-    if (options.referencedOnly && (st.size > 16 * 1024 * 1024 || totalBytes + st.size > 48 * 1024 * 1024))
-      throw new AuthoringSnapshotError("authoring snapshot exceeds resource limit");
+    if (
+      options.referencedOnly &&
+      (st.size > 16 * 1024 * 1024 || totalBytes + st.size > 48 * 1024 * 1024)
+    )
+      throw new AuthoringSnapshotError('authoring snapshot exceeds resource limit');
     const fd = openSync(abs, constants.O_RDONLY | constants.O_NOFOLLOW);
     try {
       const opened = fstatSync(fd);
-      const same = (a: Stats, b: Stats) => a.dev === b.dev && a.ino === b.ino && a.size === b.size && a.mtimeMs === b.mtimeMs && a.ctimeMs === b.ctimeMs && b.nlink === 1;
+      const same = (a: Stats, b: Stats) =>
+        a.dev === b.dev &&
+        a.ino === b.ino &&
+        a.size === b.size &&
+        a.mtimeMs === b.mtimeMs &&
+        a.ctimeMs === b.ctimeMs &&
+        b.nlink === 1;
       if (!same(st, opened)) throw new AuthoringSnapshotError(`file changed while opening: ${rel}`);
       if (hash && chunk) {
         hash.update(posix(rel));
-        hash.update("\0");
+        hash.update('\0');
         hash.update(String(st.size));
-        hash.update("\0");
+        hash.update('\0');
         let offset = 0;
         while (offset < st.size) {
           const count = readSync(fd, chunk, 0, Math.min(chunk.length, st.size - offset), offset);
@@ -120,59 +150,98 @@ function scanAuthoring(dir: string, options: CollectionOptions, hash?: Hash): Ma
           hash.update(chunk.subarray(0, count));
           offset += count;
         }
-        if (readSync(fd, chunk, 0, 1, offset) !== 0 || !same(st, fstatSync(fd)) || !same(st, lstatSync(abs)))
+        if (
+          readSync(fd, chunk, 0, 1, offset) !== 0 ||
+          !same(st, fstatSync(fd)) ||
+          !same(st, lstatSync(abs))
+        )
           throw new AuthoringSnapshotError(`file changed while reading: ${rel}`);
         // Keep only the path for the common required-entry check, never file bytes.
         out.set(posix(rel), new Uint8Array());
         return;
       }
       // Fixed-size reads also bound allocation if the file grows after lstat.
-      const bytes = options.referencedOnly ? (() => {
-        const buffer = new Uint8Array(st.size + 1);
-        let offset = 0;
-        while (offset < buffer.length) {
-          const count = readSync(fd, buffer, offset, buffer.length - offset, offset);
-          if (count === 0) break;
-          offset += count;
-        }
-        return buffer.slice(0, offset);
-      })() : new Uint8Array(readFileSync(fd));
+      const bytes = options.referencedOnly
+        ? (() => {
+            const buffer = new Uint8Array(st.size + 1);
+            let offset = 0;
+            while (offset < buffer.length) {
+              const count = readSync(fd, buffer, offset, buffer.length - offset, offset);
+              if (count === 0) break;
+              offset += count;
+            }
+            return buffer.slice(0, offset);
+          })()
+        : new Uint8Array(readFileSync(fd));
       if (bytes.length !== st.size || !same(st, fstatSync(fd)) || !same(st, lstatSync(abs)))
         throw new AuthoringSnapshotError(`file changed while reading: ${rel}`);
       totalBytes += bytes.length;
       out.set(posix(rel), bytes);
-    } finally { closeSync(fd); }
+    } finally {
+      closeSync(fd);
+    }
   };
 
   for (const rootFile of ROOT_FILES) takeFile(rootFile);
+  const leftoverPptd = lstatOptional(join(dir, 'design.pptd'), 'design.pptd');
+  if (leftoverPptd !== null) {
+    throw new AuthoringSnapshotError('leftover PPTD is not admitted (GEON-E-PPTD): design.pptd');
+  }
 
   if (options.referencedOnly) {
     assertAuthoringEntry(out.keys());
-    const decode = (rel: string) => parse(new TextDecoder().decode(out.get(rel)), { maxAliasCount: 100 });
-    const manifest = decode(ENTRY_PPTD);
-    if (!manifest || !Array.isArray(manifest.pages) || manifest.pages.length !== 1)
-      throw new AuthoringSnapshotError("authoring entry must reference exactly one page");
+    const decode = (rel: string) =>
+      parse(new TextDecoder().decode(out.get(rel)), { maxAliasCount: 100 });
+    const manifest = decode(ENTRY_YAML);
+    if (
+      !manifest ||
+      !Array.isArray(manifest.pages) ||
+      manifest.pages.length !== 1 ||
+      manifest.pages[0] !== PAGE_YAML
+    )
+      throw new AuthoringSnapshotError(
+        'authoring entry must reference exactly one page (pages/canvas.yaml)'
+      );
     for (const rel of manifest.pages) {
-      if (typeof rel !== "string" || !rel.startsWith("pages/") || !isAuthoringRelPath(rel) || rel.includes("\\"))
-        throw new AuthoringSnapshotError("invalid referenced page path");
-      options.onDependencies?.([ENTRY_PPTD, ...manifest.pages]);
-      const parent = lstatSync(join(dir, "pages"));
-      if (parent.isSymbolicLink() || !parent.isDirectory()) throw new AuthoringSnapshotError("pages directory is redirected");
+      if (
+        typeof rel !== 'string' ||
+        !rel.startsWith('pages/') ||
+        !isAuthoringRelPath(rel) ||
+        rel.includes('\\')
+      )
+        throw new AuthoringSnapshotError('invalid referenced page path');
+      options.onDependencies?.([ENTRY_YAML, ...manifest.pages]);
+      const parent = lstatSync(join(dir, 'pages'));
+      if (parent.isSymbolicLink() || !parent.isDirectory())
+        throw new AuthoringSnapshotError('pages directory is redirected');
       takeFile(rel, true);
     }
     // Discovery is not validation. Malformed schema shapes fail closed here or
     // at intake; only the existing semantic enumerator decides asset locations.
-    const project = { manifest, pages: manifest.pages.map((rel: string) => decode(rel)) } as ValidatedPptd;
+    const project = {
+      manifest,
+      pages: manifest.pages.map((rel: string) => decode(rel)),
+    } as ValidatedPptd;
     const refs = listSemanticAssetRefs(project, manifest.pages[0]);
     for (const { ref } of refs) {
-      if (typeof ref !== "string" || !ref.startsWith("media/") || !isAuthoringRelPath(ref) || ref.includes("\\"))
-        throw new AuthoringSnapshotError("invalid referenced asset path");
+      if (
+        typeof ref !== 'string' ||
+        !ref.startsWith('media/') ||
+        !isAuthoringRelPath(ref) ||
+        ref.includes('\\')
+      )
+        throw new AuthoringSnapshotError('invalid referenced asset path');
     }
-    options.onDependencies?.([ENTRY_PPTD, ...manifest.pages, ...new Set(refs.map(({ ref }) => ref))]);
+    options.onDependencies?.([
+      ENTRY_YAML,
+      ...manifest.pages,
+      ...new Set(refs.map(({ ref }) => ref)),
+    ]);
     for (const { ref } of refs) {
       if (out.has(ref)) continue;
-      const parent = lstatSync(join(dir, "media"));
-      if (parent.isSymbolicLink() || !parent.isDirectory()) throw new AuthoringSnapshotError("media directory is redirected");
+      const parent = lstatSync(join(dir, 'media'));
+      if (parent.isSymbolicLink() || !parent.isDirectory())
+        throw new AuthoringSnapshotError('media directory is redirected');
       takeFile(ref, true);
     }
     return out;
@@ -196,17 +265,31 @@ function scanAuthoring(dir: string, options: CollectionOptions, hash?: Hash): Ma
         // 非 allowlist 入口：若是非普通文件（symlink/FIFO）仍须拒绝，不能静默跳过后门。
         const child = join(abs, name);
         const childSt = lstatSync(child);
-        if (childSt.isSymbolicLink() || childSt.isFIFO() || childSt.isSocket() || childSt.isCharacterDevice() || childSt.isBlockDevice()) {
-          throw new AuthoringSnapshotError(`collectAuthoring: non-regular entry rejected: ${subdir}/${name}`);
+        if (
+          childSt.isSymbolicLink() ||
+          childSt.isFIFO() ||
+          childSt.isSocket() ||
+          childSt.isCharacterDevice() ||
+          childSt.isBlockDevice()
+        ) {
+          throw new AuthoringSnapshotError(
+            `collectAuthoring: non-regular entry rejected: ${subdir}/${name}`
+          );
         }
         if (childSt.isFile() && childSt.nlink !== 1) {
-          throw new AuthoringSnapshotError(`collectAuthoring: hardlink rejected: ${subdir}/${name} (nlink=${childSt.nlink})`);
+          throw new AuthoringSnapshotError(
+            `collectAuthoring: hardlink rejected: ${subdir}/${name} (nlink=${childSt.nlink})`
+          );
         }
-        // `pages/..page` 解析为 name=`.`，语法已拒；不得当普通非 allowlist 静默跳过。
+        // `pages/..yaml` 解析为 name=`.`，语法已拒；不得当普通非 allowlist 静默跳过。
         const attempted = `${subdir}/${name}`;
-        const component = (/^pages\/([^/]+)\.page$/.exec(attempted) ?? /^media\/([^/]+)$/.exec(attempted))?.[1];
-        if (component === ".") {
+        const component = (/^pages\/([^/]+)\.yaml$/.exec(attempted) ??
+          /^media\/([^/]+)$/.exec(attempted))?.[1];
+        if (component === '.') {
           throw new AuthoringSnapshotError(`collectAuthoring: relpath rejected: ${attempted}`);
+        }
+        if (subdir === 'pages' && childSt.isFile()) {
+          throw new AuthoringSnapshotError(`extra page is not admitted: ${attempted}`);
         }
         continue;
       }
@@ -216,15 +299,18 @@ function scanAuthoring(dir: string, options: CollectionOptions, hash?: Hash): Ma
 
   // Digest order must match the existing sorted path/length/bytes encoding.
   // Preserve ordinary snapshot insertion order for existing consumers.
-  for (const directory of hash ? ["media", "pages"] : ["pages", "media"])
-    takeDir(directory, (name) => (isAuthoringRelPath(`${directory}/${name}`) ? `${directory}/${name}` : undefined));
+  for (const directory of hash ? ['media', 'pages'] : ['pages', 'media'])
+    takeDir(directory, (name) =>
+      isAuthoringRelPath(`${directory}/${name}`) ? `${directory}/${name}` : undefined
+    );
 
   assertAuthoringEntry(out.keys());
   return out;
 }
 
-/** A collected authoring snapshot must contain exactly the design.pptd entry. */
+/** A collected authoring snapshot must contain exactly the design.yaml entry. */
 export function assertAuthoringEntry(paths: Iterable<string>): void {
   const keys = new Set(paths);
-  if (!keys.has(ENTRY_PPTD)) throw new AuthoringSnapshotError("authoring entry missing (design.pptd)");
+  if (!keys.has(ENTRY_YAML))
+    throw new AuthoringSnapshotError('authoring entry missing (design.yaml)');
 }

@@ -90,38 +90,42 @@ function writeProject(dir: string, page: string): void {
   mkdirSync(path.join(dir, 'pages'), { recursive: true });
   mkdirSync(path.join(dir, 'media'), { recursive: true });
   writeFileSync(
-    path.join(dir, 'design.pptd.tmp'),
-    'version: v2\ntitle: Test\nsize: [320, 200]\npages:\n  - pages/main.page\n'
+    path.join(dir, 'design.yaml.tmp'),
+    'title: Test\nsize: [320, 200]\npages:\n  - pages/canvas.yaml\n'
   );
-  writeFileSync(path.join(dir, 'pages', 'main.page'), page);
+  writeFileSync(path.join(dir, 'pages', 'canvas.yaml'), page);
   writeFileSync(path.join(dir, 'media', 'pic.png'), syntheticPng(8, 8, [200, 30, 30]));
 }
 
-const VALID_PAGE = `elements:
-  - elementId: photo
-    elementType: image
+const VALID_PAGE = `background:
+  type: solid
+  color: "#FFFFFF"
+elements:
+  - id: photo
+    kind: image
     bounds: [10, 10, 64, 64]
     src: media/pic.png
+    fit: cover
 `;
 
 describe('finalize.mjs', () => {
-  it('promotes a clean draft to design.pptd', () => {
+  it('promotes a clean draft to design.yaml', () => {
     const dir = workdir();
     writeProject(dir, VALID_PAGE);
-    const result = run('finalize.mjs', [path.join(dir, 'design.pptd.tmp')]);
+    const result = run('finalize.mjs', [path.join(dir, 'design.yaml.tmp')]);
     expect(result.status).toBe(0);
-    expect(existsSync(path.join(dir, 'design.pptd'))).toBe(true);
-    expect(existsSync(path.join(dir, 'design.pptd.tmp'))).toBe(false);
+    expect(existsSync(path.join(dir, 'design.yaml'))).toBe(true);
+    expect(existsSync(path.join(dir, 'design.yaml.tmp'))).toBe(false);
   });
 
   it('prints one line per diagnostic and leaves a broken draft in place', () => {
     const dir = workdir();
     writeProject(dir, VALID_PAGE.replace('media/pic.png', 'media/missing.png'));
-    const result = run('finalize.mjs', [path.join(dir, 'design.pptd.tmp')]);
+    const result = run('finalize.mjs', [path.join(dir, 'design.yaml.tmp')]);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('PPTD-E005');
-    expect(existsSync(path.join(dir, 'design.pptd'))).toBe(false);
-    expect(existsSync(path.join(dir, 'design.pptd.tmp'))).toBe(true);
+    expect(existsSync(path.join(dir, 'design.yaml'))).toBe(false);
+    expect(existsSync(path.join(dir, 'design.yaml.tmp'))).toBe(true);
   });
 });
 
@@ -129,19 +133,19 @@ describe('render-preview.mjs', () => {
   it('passes intake on a valid project and points at the MCP render tool', () => {
     const dir = workdir();
     writeProject(dir, VALID_PAGE);
-    const finalize = run('finalize.mjs', [path.join(dir, 'design.pptd.tmp')]);
+    const finalize = run('finalize.mjs', [path.join(dir, 'design.yaml.tmp')]);
     expect(finalize.status).toBe(0);
-    const result = run('render-preview.mjs', [path.join(dir, 'design.pptd')]);
+    const result = run('render-preview.mjs', [path.join(dir, 'design.yaml')]);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('intake OK');
-    expect(result.stdout).toContain('folio_render_preview');
+    expect(result.stdout).toContain('geon_render_preview');
   });
 
   it('fails intake on an invalid project', () => {
     const dir = workdir();
     writeProject(dir, VALID_PAGE.replace('media/pic.png', 'media/missing.png'));
-    writeFileSync(path.join(dir, 'design.pptd'), readFileSync(path.join(dir, 'design.pptd.tmp')));
-    const result = run('render-preview.mjs', [path.join(dir, 'design.pptd')]);
+    writeFileSync(path.join(dir, 'design.yaml'), readFileSync(path.join(dir, 'design.yaml.tmp')));
+    const result = run('render-preview.mjs', [path.join(dir, 'design.yaml')]);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('PPTD-E005');
   });
