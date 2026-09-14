@@ -9,7 +9,8 @@ Translation: pending
 
 ## 范围与归属
 
-本次验收覆盖 [Issue #32](https://github.com/LeonEthan/Geon/issues/32) 的 **应用内更新的真实验收** 项，以及 [独立品牌发布提案](.agents/notes/proposed/feature/2026-09-13-geon-independent-brand-release.zh.md)。它**不会**关闭 #32：剩余工作包括最终安装包的人工视觉身份验收、外部 GitHub App 注册、规范审批、提案迁移，以及发布时的公开 DMG/appcast 发布。
+本次验收覆盖 [Issue #32](https://github.com/LeonEthan/Geon/issues/32) 的 **应用内更新的真实验收** 项，以及 [独立品牌发布提案](../../proposed/feature/2026-09-13-geon-independent-brand-release.zh.md)。
+[Issue #32](https://github.com/LeonEthan/Geon/issues/32) 已关闭；剩余发布工作（安装包人工验收、GitHub App 注册、规范审批、提案迁移、公开 DMG/appcast 发布）迁移至 [Issue #34](https://github.com/LeonEthan/Geon/issues/34)。
 
 ## 驱动与证据
 
@@ -73,4 +74,4 @@ Translation: pending
 ## 相关决策
 
 - [品牌重制与发布页工作](2026-09-11-complete-design-acceptance.md)
-- [独立品牌发布提案](.agents/notes/proposed/feature/2026-09-13-geon-independent-brand-release.zh.md)
+- [独立品牌发布提案](../../proposed/feature/2026-09-13-geon-independent-brand-release.zh.md)

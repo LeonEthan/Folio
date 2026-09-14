@@ -6,8 +6,10 @@ Translation: pending
 ## Abstract
 
 The Geon 0.1.0 macOS arm64 release DMG has been built from the release packaging
-script for the final installed-package acceptance required by
-[Issue #32](https://github.com/LeonEthan/Geon/issues/32). This note records the
+script for the final installed-package acceptance originally required by
+[Issue #32](https://github.com/LeonEthan/Geon/issues/32). After #32 was closed,
+this checklist and the remaining release work moved to
+[Issue #34](https://github.com/LeonEthan/Geon/issues/34). This note records the
 artifact identity and checksums, the acceptance checklist, and the limits of what
 can be verified automatically. The visual identity verdict and the onboarding
 audio/video behavior checks require a human reviewer; no automated assertion can
@@ -82,7 +84,7 @@ and `~/.geon` state.
   and Sparkle public key placeholder.
 - The packaged app launches through the existing Playwright harness in an
   isolated environment and reaches the onboarding/product surface (see
-  [in-app update acceptance](2026-09-14-geon-in-app-update-acceptance.md)).
+  [in-app update acceptance](../../implemented/testing/2026-09-14-geon-in-app-update-acceptance.md)).
 
 ## Outcome
 
@@ -92,5 +94,5 @@ installed-package acceptance item of Issue #32 can be considered complete.
 
 ## Related decisions
 
-- [Geon in-app update acceptance](2026-09-14-geon-in-app-update-acceptance.md)
+- [Geon in-app update acceptance](../../implemented/testing/2026-09-14-geon-in-app-update-acceptance.md)
 - [Independent brand release proposal](../../proposed/feature/2026-09-13-geon-independent-brand-release.zh.md)

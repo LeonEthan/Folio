@@ -23,11 +23,12 @@ building an isolated, evidence-collecting driver.
 
 This acceptance covers the **应用内更新的真实验收** item of
 [Issue #32](https://github.com/LeonEthan/Geon/issues/32) and the
-[independent-brand-release proposal](.agents/notes/proposed/feature/2026-09-13-geon-independent-brand-release.zh.md).
-It does **not** close #32: remaining items include final installed-package human
-acceptance of the visual identity, external GitHub App registration, spec
-approval, proposal migration, and the actual public DMG/appcast publication at
-release time.
+[independent-brand-release proposal](../../proposed/feature/2026-09-13-geon-independent-brand-release.zh.md).
+[Issue #32](https://github.com/LeonEthan/Geon/issues/32) has since been closed;
+remaining release work (installed-package human acceptance, GitHub App
+registration, spec approval, proposal migration, and public DMG/appcast
+publication) is tracked in
+[Issue #34](https://github.com/LeonEthan/Geon/issues/34).
 
 ## Driver and evidence
 
@@ -119,4 +120,4 @@ old app with the runtime feed override.
 ## Related decisions
 
 - [Brand remake and release-page work](2026-09-11-complete-design-acceptance.md)
-- [Independent brand release proposal](.agents/notes/proposed/feature/2026-09-13-geon-independent-brand-release.zh.md)
+- [Independent brand release proposal](../../proposed/feature/2026-09-13-geon-independent-brand-release.zh.md)

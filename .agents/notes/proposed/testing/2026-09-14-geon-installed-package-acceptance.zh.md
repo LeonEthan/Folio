@@ -5,7 +5,7 @@ Translation: pending
 
 ## 摘要
 
-已使用发布打包脚本构建 Geon 0.1.0 macOS arm64 发布 DMG，用于 [Issue #32](https://github.com/LeonEthan/Geon/issues/32) 所需的最终安装包验收。本笔记记录制品身份与校验和、验收清单以及自动化验证的边界。视觉身份判定与引导演出音视频行为检查必须由人工审阅完成；自动化断言无法替代这些项目的人工判断。
+已使用发布打包脚本构建 Geon 0.1.0 macOS arm64 发布 DMG，用于 [Issue #32](https://github.com/LeonEthan/Geon/issues/32) 所需的最终安装包验收。#32 关闭后，本清单及剩余发布工作迁移至 [Issue #34](https://github.com/LeonEthan/Geon/issues/34)。本笔记记录制品身份与校验和、验收清单以及自动化验证的边界。视觉身份判定与引导演出音视频行为检查必须由人工审阅完成；自动化断言无法替代这些项目的人工判断。
 
 ## 制品
 
@@ -57,7 +57,7 @@ Translation: pending
 - DMG 可正常挂载，包含 `Geon.app` 和 `Applications` 快捷方式。
 - `Geon.app/Contents/Info.plist` 的 bundle id、版本、feed URL 和 Sparkle 公钥占位符正确。
 - 打包应用可在隔离环境下通过现有 Playwright harness 启动并到达引导/产品界面（参见
-  [应用内更新验收](2026-09-14-geon-in-app-update-acceptance.md)）。
+  [应用内更新验收](../../implemented/testing/2026-09-14-geon-in-app-update-acceptance.md)）。
 
 ## 结果
 
@@ -65,5 +65,5 @@ Translation: pending
 
 ## 相关决策
 
-- [Geon 应用内更新验收](2026-09-14-geon-in-app-update-acceptance.md)
+- [Geon 应用内更新验收](../../implemented/testing/2026-09-14-geon-in-app-update-acceptance.md)
 - [独立品牌发布提案](../../proposed/feature/2026-09-13-geon-independent-brand-release.zh.md)
