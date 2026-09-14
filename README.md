@@ -4,7 +4,7 @@
 
 Geon is a local desktop workspace for graphic design with an Agent and an editable
 single canvas. It reuses [Lody](https://github.com/LodyAI/Lody)'s interface and Agent
-execution, with PPTD authoring and the Bento editor.
+execution, with YAML artwork authoring and the Bento editor.
 
 ## Current development build
 
@@ -12,8 +12,8 @@ execution, with PPTD authoring and the Bento editor.
   save it, reopen it, and export PNG or JPEG.
 - Manual edits save automatically. Use Save version to retain a version in
   the artwork's local history, inspect earlier versions and continue editing from one.
-- Ask your configured Agent to create or revise a PPTD design. BentoDoc is the
-  editable canvas; PPTD is the Agent-facing authoring format. The Agent chooses its
+- Ask your configured Agent to create or revise a YAML design. BentoDoc is the
+  editable canvas; YAML is the Agent-facing authoring format. The Agent chooses its
   creative approach and can use available file and image tools to review its work.
 - Continue the conversation, grant permissions, cancel work, and use the existing
   session navigation. Visual quality remains your judgment.
@@ -22,7 +22,7 @@ execution, with PPTD authoring and the Bento editor.
   identifier in Settings. Geon does not recommend a product-default model.
 
 This is a development build, not a claim of release readiness. Agent-specific
-image input, public read-first reminders, live PPTD preview, and the remaining workflow
+image input, public read-first reminders, live authoring preview, and the remaining workflow
 cleanup are tracked in [Issues](https://github.com/LeonEthan/Geon/issues). An Agent
 being configurable does not prove every design operation works with that Agent.
 The [design specification](specs/graphic-design-platform.zh.md) describes the draft
@@ -45,7 +45,7 @@ images are optional; text and shape design does not require an image service.
 
 ## Continue, preview and recover
 
-Manual edits automatically update the saved canvas and its PPTD files. Geon waits
+Manual edits automatically update the saved canvas and its YAML artwork files. Geon waits
 for open-canvas saves before dispatch and keeps the artwork read-only while the Agent executes
 and its files are processed. A file preview shows the working source; it is not a
 saved canvas or proof that the Agent has finished. After a formal commit, edit the
@@ -77,7 +77,7 @@ real-machine acceptance is a separate future decision. See the
 [acceptance evidence](.agents/notes/implemented/testing/2026-09-11-complete-design-acceptance.md)
 and [review procedure](e2e/DESIGN-ACCEPTANCE.md).
 
-The current approach combines automatic PPTD saves with public read-first reminders,
+The current approach combines automatic YAML artwork saves with public read-first reminders,
 without patching Agent runtimes or requiring generation-by-generation read proofs.
 Pi, Claude, Codex and Grok reminders have scoped native evidence. Kimi's public
 plugin also passed in a normal installed package with explicit registration in an
@@ -137,7 +137,7 @@ upstream Lody website material and is not the Geon feature reference.
 - `apps/electron` — Geon desktop application
 - `packages/components` — Reused workspace interface
 - `packages/design-bento` — Pinned Bento editor and rendering resources
-- `packages/design-authoring` — PPTD conversion and Agent skills
+- `packages/design-authoring` — YAML artwork conversion and Agent skills
 - `packages/platform` — Platform capabilities and ports
 - `packages/shared` — Shared schemas and protocols
 - `packages/cloud-api` — Optional-cloud DTOs; no hosted backend is included
@@ -149,7 +149,7 @@ Geon builds on [Lody](https://github.com/LodyAI/Lody). Its upstream authorship,
 [Apache-2.0 license](LICENSE) and attribution notices remain intact. The current Geon mark — a G built from a rounded arc, a mid-rule crossbar, and a right vertical stem on a ruled-paper tile, with a terracotta caret at the upper right — and the typographic opening are authored for Geon;
 legacy upstream artwork retains its original attribution. Visual acceptance of
 the new identity is tracked with the independent-release work.
-PPTD and editor adapters come from
+Authoring and editor adapters come from
 `agentic-listing-design`;
 [Bento provenance and license details](packages/design-bento/README.md) and
 [authoring provenance](packages/design-authoring/README.md) identify their sources.

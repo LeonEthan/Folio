@@ -52,9 +52,6 @@
       "derivation": "adapted",
       "upstreamSha256": "05be0c2e37269422e9e0386564f6760efac8c65d8d0cdbf7c48d300c7e6df72b"
     },
-    "skills/graphic-design/SKILL.md": {
-      "derivation": "original"
-    },
     "skills/graphic-design/references/general-poster.md": {
       "derivation": "original"
     },
@@ -66,16 +63,6 @@
     },
     "skills/graphic-design/references/artwork-format.md": {
       "derivation": "original"
-    },
-    "skills/graphic-design/scripts/finalize.mjs": {
-      "upstreamPath": "skills/graphic-design/scripts/finalize.mjs",
-      "derivation": "rewritten",
-      "upstreamSha256": "e64f9a6dea910bd0b779999aa6753c1a199fbf22417fd6931ed410a40bde24ee"
-    },
-    "skills/graphic-design/scripts/render-preview.mjs": {
-      "upstreamPath": "skills/graphic-design/scripts/render-preview.mjs",
-      "derivation": "rewritten",
-      "upstreamSha256": "6c478af7297ec2da32902579dee2032572880de530cdd3b9285248d85c28fae7"
     },
     "skills/graphic-design/scripts/reference-pack.mjs": {
       "upstreamPath": "skills/graphic-design/scripts/reference-pack.py",
@@ -93,11 +80,6 @@
       "derivation": "verbatim",
       "upstreamSha256": "922bc87ec53020f538d101e622731de31eb835e4d3b8f14aecc6dca88cb06249",
       "sha256": "922bc87ec53020f538d101e622731de31eb835e4d3b8f14aecc6dca88cb06249"
-    },
-    "skills/imagegen/SKILL.md": {
-      "upstreamPath": "skills/imagegen/SKILL.md",
-      "derivation": "rewritten",
-      "upstreamSha256": "31490da61432c1ebcb50e07cba056631c1f3635725dfaeda3dab6fb09e6a43a3"
     },
     "skills/imagegen/LICENSE.txt": {
       "upstreamPath": "skills/imagegen/LICENSE.txt",
@@ -119,31 +101,28 @@
   },
   "derivations": {
     "verbatim": "byte-identical to the pinned upstream; build.mjs verifies the recorded sha256",
-    "adapted": "minimal Folio adaptations (imports, tool entry points); upstreamSha256 records provenance",
+    "adapted": "minimal Geon adaptations (imports, tool entry points); upstreamSha256 records provenance",
     "ported": "re-implemented dependency-free for Node (upstream was Python/Pillow)",
-    "rewritten": "rewritten for Folio (tool calls, completion model); method and structure preserved",
-    "original": "Geon-authored YAML canvas materials; not adapted from ALD/open-kimi"
+    "original": "Geon-authored YAML canvas materials; not a live upstream pin"
   },
   "excluded": [
     "packages/authoring/src/revisions.ts (immutable revision CAS store)",
     "packages/authoring/src/workspace.ts (CAS workspace persistence)",
-    "skills/graphic-design/references/pptd.md (2029-line upstream catalogue; not authoring permission)",
-    "skills/graphic-design/references/pptd-authoring.md superseded by original artwork-format.md",
-    "skills/graphic-design/examples/minimal/poster.pptd and pages/poster.page superseded by design.yaml / pages/canvas.yaml",
+    "skills/graphic-design/references/pptd.md (upstream PPTD catalogue; not a live pin)",
+    "skills/graphic-design/references/pptd-authoring.md and examples/minimal PPTD files (not live upstream pins)",
+    "rewritten graphic-design/imagegen SKILL.md and helper scripts (Geon-local; not live upstream pins)",
     "skills/graphic-design/scripts/reference-pack.py superseded by the ported .mjs",
     "skills/graphic-design/VENDOR.lock (runtime per-file freezing replaced by this build-time manifest)",
     "skills/imagegen/scripts/image_gen.py, references/cli.md, references/codex-network.md, references/image-api.md (old CLI/deployment specifics)",
     "skills/amazon-aplus (out of scope)"
   ],
   "localAdaptations": {
-    "skills/graphic-design/SKILL.md": "Original YAML canvas skill (#40); not an ALD/open-kimi adaptation",
-    "skills/graphic-design/references/general-poster.md": "Original composition guide; replaces the ALD poster relationship table",
+    "skills/graphic-design/references/general-poster.md": "Original composition guide for the YAML canvas",
     "skills/graphic-design/references/replication.md": "Original reconstruction guide for the YAML canvas",
     "skills/graphic-design/references/graphic-canvas-profile.md": "Original Active Profile discipline for YAML/Bento authoring",
-    "skills/graphic-design/references/artwork-format.md": "Original YAML artwork format guide; replaces pptd-authoring.md",
+    "skills/graphic-design/references/artwork-format.md": "Original YAML artwork format guide",
     "skills/graphic-design/examples/minimal/design.yaml": "Original YAML manifest example admitted by intake",
     "skills/graphic-design/examples/minimal/pages/canvas.yaml": "Original YAML canvas example using Bento id/kind",
-    "skills/imagegen/SKILL.md": "T04: artwork-relative media output and absolute Session attachment inputs; T09: explicit user model, generation and multipart edit tools, source/mask and provider limits; retains autonomous creation guidance",
     "skills/imagegen/references/prompting.md": "T09: model-neutral prompting and generate/edit capability description",
     "src/pptd-v3.ts": "YAML artwork projection (design.yaml / pages/canvas.yaml / media); uses pinned contracts and kernel through src/contracts.ts, no upstream serializer copied",
     "src/projection-capabilities.ts": "Derived YAML representation mapping for every active row of the unchanged frozen v1 matrix",

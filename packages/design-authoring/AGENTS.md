@@ -17,7 +17,7 @@
   fixed creative sequences, analysis methods, review counts or finalize gates.
   Missing tools do not imply the absence of other Agent visual capabilities.
 - Skill directories must be self-contained after materialization: scripts may
-  import only `node:*` builtins or the bundled `scripts/lib/geon-pptd.mjs`.
+  import only `node:*` builtins or the bundled `scripts/lib/geon-authoring.mjs`.
 - `src/generated/` and `skills/graphic-design/scripts/lib/` are build outputs;
   never edit them by hand.
 

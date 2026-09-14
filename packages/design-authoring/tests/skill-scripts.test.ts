@@ -78,7 +78,7 @@ function run(script: string, args: string[]) {
 
 const workdirs: string[] = [];
 function workdir(): string {
-  const dir = mkdtempSync(path.join(tmpdir(), 'folio-skill-test-'));
+  const dir = mkdtempSync(path.join(tmpdir(), 'geon-skill-test-'));
   workdirs.push(dir);
   return dir;
 }
@@ -123,7 +123,7 @@ describe('finalize.mjs', () => {
     writeProject(dir, VALID_PAGE.replace('media/pic.png', 'media/missing.png'));
     const result = run('finalize.mjs', [path.join(dir, 'design.yaml.tmp')]);
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain('PPTD-E005');
+    expect(result.stderr).toContain('GEON-E005');
     expect(existsSync(path.join(dir, 'design.yaml'))).toBe(false);
     expect(existsSync(path.join(dir, 'design.yaml.tmp'))).toBe(true);
   });
@@ -147,7 +147,7 @@ describe('render-preview.mjs', () => {
     writeFileSync(path.join(dir, 'design.yaml'), readFileSync(path.join(dir, 'design.yaml.tmp')));
     const result = run('render-preview.mjs', [path.join(dir, 'design.yaml')]);
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain('PPTD-E005');
+    expect(result.stderr).toContain('GEON-E005');
   });
 });
 

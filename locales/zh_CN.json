@@ -2261,7 +2261,7 @@
   "sessions.worktreeScript.cleanup": "worktree cleanup",
   "sessions.worktreeScript.setup": "worktree setup",
   "sessions.worktreeScript.waitingOutput": "等待脚本输出…",
-  "settings.about.geonDescription": "Geon 是本地平面设计工作台：单张可编辑画布、Agent 自主使用 PPTD 创作、Bento 编辑。图像生成可选；编辑画布不需要配置图像服务。",
+  "settings.about.geonDescription": "Geon 是本地平面设计工作台：单张可编辑画布、Agent 自主使用 YAML 创作、Bento 编辑。图像生成可选；编辑画布不需要配置图像服务。",
   "settings.about.buildDate": "构建日期",
   "settings.about.bundledAssets": "内置资源",
   "settings.about.checkForUpdates": "检查更新",

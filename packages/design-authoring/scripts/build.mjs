@@ -11,15 +11,17 @@
  *    (FROZEN_MATRIX_SHA256) — the vendored kernel snapshot stays the single
  *    truth — and the v1.json bytes must match it, fail-closed.
  * 3. Bundles the skill script support library with esbuild into
- *    skills/graphic-design/scripts/lib/geon-pptd.mjs so the materialized
+ *    skills/graphic-design/scripts/lib/geon-authoring.mjs so the materialized
  *    skill directory is self-contained (no repo checkout, no node_modules).
+ *    Live helper, Folio wording, rewritten skills, and PPTD catalogues must
+ *    not remain named PPTD/Kimi or pinned as live ALD/open-kimi upstream.
  *
  * Run before typecheck/test (package scripts do this) and before the CLI
  * stages skill directories (apps/cli prepare:design-authoring).
  */
 
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -38,9 +40,38 @@ function fail(message) {
 const manifestPath = path.join(packageRoot, 'source-manifest.json');
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 
+const manifestText = JSON.stringify(manifest);
+if (/\bFolio\b/.test(manifestText)) fail('source-manifest still contains Folio wording');
+if (/open-kimi/i.test(manifestText))
+  fail('source-manifest still treats open-kimi as live upstream');
+
+const unpinnedLiveRows = [
+  'skills/graphic-design/SKILL.md',
+  'skills/graphic-design/scripts/finalize.mjs',
+  'skills/graphic-design/scripts/render-preview.mjs',
+  'skills/graphic-design/references/pptd-authoring.md',
+  'skills/graphic-design/examples/minimal/poster.pptd',
+  'skills/graphic-design/examples/minimal/pages/poster.page',
+  'skills/imagegen/SKILL.md',
+];
+for (const relpath of unpinnedLiveRows) {
+  if (manifest.files[relpath] !== undefined) {
+    fail(`rewritten skill or PPTD catalogue still pinned as live upstream: ${relpath}`);
+  }
+}
+
 for (const [relpath, entry] of Object.entries(manifest.files)) {
   const abs = path.join(packageRoot, relpath);
   if (!existsSync(abs)) fail(`manifest file missing: ${relpath}`);
+  if (entry.derivation === 'rewritten') {
+    fail(`rewritten authoring skill still pinned as live upstream: ${relpath}`);
+  }
+  if (
+    String(relpath).toLowerCase().includes('pptd') &&
+    (entry.derivation === 'verbatim' || entry.derivation === 'adapted')
+  ) {
+    fail(`PPTD catalogue still pinned as live ALD/open-kimi upstream: ${relpath}`);
+  }
   if (entry.derivation === 'verbatim') {
     const actual = sha256Hex(readFileSync(abs));
     if (actual !== entry.sha256) {
@@ -85,10 +116,17 @@ writeFileSync(
 
 // ---- 3. skill script support bundle ----
 
+const helperDir = path.join(packageRoot, 'skills', 'graphic-design', 'scripts', 'lib');
+const helperOut = path.join(helperDir, 'geon-authoring.mjs');
+const staleHelper = path.join(helperDir, 'geon-pptd.mjs');
+if (path.basename(helperOut) === 'geon-pptd.mjs')
+  fail('live helper bundle must not be named geon-pptd.mjs');
+if (existsSync(staleHelper)) rmSync(staleHelper);
+
 const { build } = await import('esbuild');
 await build({
   entryPoints: [path.join(packageRoot, 'src', 'index.ts')],
-  outfile: path.join(packageRoot, 'skills', 'graphic-design', 'scripts', 'lib', 'geon-pptd.mjs'),
+  outfile: helperOut,
   bundle: true,
   platform: 'node',
   format: 'esm',

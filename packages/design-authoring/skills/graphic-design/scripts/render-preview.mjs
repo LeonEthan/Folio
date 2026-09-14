@@ -13,7 +13,7 @@
 
 import path from 'node:path';
 import { existsSync } from 'node:fs';
-import { collectAuthoring, intakeAuthoring } from './lib/geon-pptd.mjs';
+import { collectAuthoring, intakeAuthoring } from './lib/geon-authoring.mjs';
 
 const entry = process.argv[2];
 if (!entry || path.basename(entry) !== 'design.yaml' || !existsSync(entry)) {
