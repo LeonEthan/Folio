@@ -6,7 +6,7 @@ import { afterEach, expect, test } from 'vitest';
 import { designHistoryOperation } from './history';
 import { designOperation } from './store';
 import { withDesignLock } from './lock';
-import { collectAuthoring, intakeAuthoring } from '@geon/design-authoring';
+import { ARTWORK_ENTRY, collectAuthoring, intakeAuthoring } from '@geon/design-authoring';
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -158,8 +158,8 @@ test('Git retains exact embedded image and font bytes after current assets chang
   expect(
     JSON.parse(await readFile(path.join(projection, '.folio-current.json'), 'utf8')).revisionId
   ).toBe(restored.revisionId);
-  const imported = intakeAuthoring('design.pptd', collectAuthoring(projection));
-  if (imported.status !== 'ok') throw Error('Expected valid restored PPTD');
+  const imported = intakeAuthoring(ARTWORK_ENTRY, collectAuthoring(projection));
+  if (imported.status !== 'ok') throw Error('Expected valid restored YAML artwork');
   expect(imported.document).toEqual(artwork.doc);
 });
 

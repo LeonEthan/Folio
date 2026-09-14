@@ -57,7 +57,7 @@ Do not change the instrument. After implementation, two independent runs must sc
 
 1. Human approval of this Spec revision, then root `AGENTS.md` wording.
 2. Projection and intake admit only `design.yaml`; retire v2; `id`/`kind`. The snapshot seam is landed in the [YAML artwork snapshot contract](../../implemented/architecture/2026-09-14-yaml-authoring-snapshot.md) ([#37](https://github.com/LeonEthan/Geon/issues/37)).
-3. Watchers, finalize, no-artifact detection, preview paths.
+3. Watchers, finalize, no-artifact detection, preview paths. Turn collection, no-artifact detection, and human-save 画稿投影 now use `design.yaml`; leftover `.pptd` is not this turn’s artifact. See the [YAML turn/projection entry](../../implemented/architecture/2026-09-14-yaml-turn-projection.md) ([#38](https://github.com/LeonEthan/Geon/issues/38)). Preview subscriptions and explicit import remain [#39](https://github.com/LeonEthan/Geon/issues/39).
 4. Skills, example, default font, error codes.
 5. source-manifest and comments.
 6. Regression: open/save/export existing BentoDoc; new turns write the new files and preview.

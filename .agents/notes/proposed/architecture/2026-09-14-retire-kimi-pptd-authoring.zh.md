@@ -57,7 +57,7 @@ graphic-design 技能与 PPTD v2 经 ALD 从 open-kimi 抽取。`codex/independe
 
 1. 对本 Spec 修订的人类批准，以及根 `AGENTS.md` 用语。
 2. 投影与 intake 只收 `design.yaml`；停 v2；`id`/`kind`。快照缝已落地，见 [YAML 画稿投影快照合同](../../implemented/architecture/2026-09-14-yaml-authoring-snapshot.zh.md)（[#37](https://github.com/LeonEthan/Geon/issues/37)）。
-3. 监听、finalize、无产物判定、预览路径。
+3. 监听、finalize、无产物判定、预览路径。回合采集、无产物判定和人工保存画稿投影现已使用 `design.yaml`；遗留 `.pptd` 不是本回合产物。见 [YAML 回合/投影入口](../../implemented/architecture/2026-09-14-yaml-turn-projection.zh.md)（[#38](https://github.com/LeonEthan/Geon/issues/38)）。预览订阅与显式导入仍属 [#39](https://github.com/LeonEthan/Geon/issues/39)。
 4. 技能、示例、缺省字体、错误码。
 5. source-manifest 与注释。
 6. 现有 BentoDoc 打开/保存/导出回归；新回合写新文件并预览。

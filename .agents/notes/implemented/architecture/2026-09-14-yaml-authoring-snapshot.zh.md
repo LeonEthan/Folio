@@ -7,7 +7,7 @@ Translation: current
 
 ## 摘要
 
-`@geon/design-authoring` 的采集、校验、导入与导出只承认 YAML 画稿投影：`design.yaml`、一页 `pages/canvas.yaml`、本地 `media/`。元素使用 Bento `id` / `kind`。遗留 `.pptd`、PPTD v2 语法和 `elementId` / `elementType` 闭门拒绝。可编辑权威仍是 BentoDoc；YAML 不是第二份 canonical。省略的 `fontFamily` 不会写成 MiSans；产品缺省族名是已捆绑且有 OFL 授权的 Inter。本记录只覆盖快照缝（[#37](https://github.com/LeonEthan/Geon/issues/37)）。技能与捆绑示例见 [#40](https://github.com/LeonEthan/Geon/issues/40)。不宣称回合、预览或指纹清扫已落地。
+`@geon/design-authoring` 的采集、校验、导入与导出只承认 YAML 画稿投影：`design.yaml`、一页 `pages/canvas.yaml`、本地 `media/`。元素使用 Bento `id` / `kind`。遗留 `.pptd`、PPTD v2 语法和 `elementId` / `elementType` 闭门拒绝。可编辑权威仍是 BentoDoc；YAML 不是第二份 canonical。省略的 `fontFamily` 不会写成 MiSans；产品缺省族名是已捆绑且有 OFL 授权的 Inter。本记录只覆盖快照缝（[#37](https://github.com/LeonEthan/Geon/issues/37)）。回合采集与人工保存投影见 [YAML 回合/投影入口](2026-09-14-yaml-turn-projection.zh.md)（[#38](https://github.com/LeonEthan/Geon/issues/38)）。技能与捆绑示例见 [#40](https://github.com/LeonEthan/Geon/issues/40)。不宣称预览或指纹清扫已落地。
 
 ## 决定
 
@@ -19,4 +19,4 @@ Translation: current
 
 ## 验证与限制
 
-`packages/design-authoring` 的 intake、roundtrip 与 skill-script 测试覆盖 YAML 往返、PPTD 拒收和省略字体。技能指南与捆绑 YAML 示例见 [#40](https://github.com/LeonEthan/Geon/issues/40)。CLI/桌面监听、回合采集、PPTD-E\* 码名与 live ALD pin 仍留给 [#38](https://github.com/LeonEthan/Geon/issues/38)–[#41](https://github.com/LeonEthan/Geon/issues/41)。盲测见 [#42](https://github.com/LeonEthan/Geon/issues/42)。
+`packages/design-authoring` 的 intake、roundtrip 与 skill-script 测试覆盖 YAML 往返、PPTD 拒收和省略字体。回合采集与人工保存投影见 [#38](https://github.com/LeonEthan/Geon/issues/38)。技能指南与捆绑 YAML 示例见 [#40](https://github.com/LeonEthan/Geon/issues/40)。桌面监听、PPTD-E\* 码名与 live ALD pin 仍留给 [#39](https://github.com/LeonEthan/Geon/issues/39)–[#41](https://github.com/LeonEthan/Geon/issues/41)。盲测见 [#42](https://github.com/LeonEthan/Geon/issues/42)。

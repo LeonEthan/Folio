@@ -3,7 +3,12 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
-import { collectAuthoring, intakeAuthoring } from '@geon/design-authoring';
+import {
+  ARTWORK_ENTRY,
+  ARTWORK_PAGE,
+  collectAuthoring,
+  intakeAuthoring,
+} from '@geon/design-authoring';
 import { designOperation } from './store';
 import { resolveDesignWorkspace } from './workspace';
 
@@ -43,9 +48,10 @@ async function create() {
   const directory = path.join(root, 'chats', id);
   return { root, id, payload, directory, projection: path.join(directory, 'design-current') };
 }
-it('create and human saves publish same-version PPTD without an Agent and preserve drafts', async () => {
+it('create and human saves publish YAML artwork projection without an Agent and preserve drafts', async () => {
   const { root, id, payload, directory, projection } = await create();
-  await writeFile(path.join(directory, 'design.pptd'), 'unfinished old draft');
+  await writeFile(path.join(directory, ARTWORK_ENTRY), 'unfinished yaml draft');
+  await writeFile(path.join(directory, 'design.pptd'), 'leftover pptd draft');
   const content = {
     doc: { ...payload.doc, background: { type: 'solid', color: '#123456' } },
     assets: payload.assets,
@@ -59,8 +65,12 @@ it('create and human saves publish same-version PPTD without an Agent and preser
   expect(
     JSON.parse(await readFile(path.join(projection, '.folio-current.json'), 'utf8')).revisionId
   ).toBe(saved.revisionId);
-  expect(await readFile(path.join(projection, 'pages/design.page'), 'utf8')).toContain('#123456');
-  expect(await readFile(path.join(directory, 'design.pptd'), 'utf8')).toBe('unfinished old draft');
+  expect(await readFile(path.join(projection, ARTWORK_ENTRY), 'utf8')).toContain(
+    'pages/canvas.yaml'
+  );
+  expect(await readFile(path.join(projection, ARTWORK_PAGE), 'utf8')).toContain('#123456');
+  expect(await readFile(path.join(directory, ARTWORK_ENTRY), 'utf8')).toBe('unfinished yaml draft');
+  expect(await readFile(path.join(directory, 'design.pptd'), 'utf8')).toBe('leftover pptd draft');
   expect(
     resolveDesignWorkspace({
       workspaceRoot: '/project',
@@ -87,18 +97,18 @@ it('publication failure preserves canonical, blocks stale dispatch and is repair
   ).rejects.toThrow('DESIGN_PROJECTION_NOT_READY');
   const recovered = await designOperation(root, request);
   expect(recovered.revisionId).not.toBe(payload.revisionId);
-  expect(await readFile(path.join(projection, 'pages/design.page'), 'utf8')).toContain('#223344');
+  expect(await readFile(path.join(projection, ARTWORK_PAGE), 'utf8')).toContain('#223344');
 });
 it('reopen verifies actual files even with an intact marker, then repairs from canonical', async () => {
   const { root, id, payload, projection } = await create();
-  await writeFile(path.join(projection, 'pages/design.page'), 'replaced file');
+  await writeFile(path.join(projection, ARTWORK_PAGE), 'replaced file');
   await expect(
     designOperation(root, { operation: 'read', sessionId: id }, { projection: 'verify' })
   ).rejects.toThrow('DESIGN_PROJECTION_NOT_READY');
   const reopened = await designOperation(root, { operation: 'read', sessionId: id });
   expect(reopened.revisionId).toBe(payload.revisionId);
-  expect(await readFile(path.join(projection, 'pages/design.page'), 'utf8')).toContain('#ffffff');
-  await rm(path.join(projection, 'pages/design.page'));
+  expect(await readFile(path.join(projection, ARTWORK_PAGE), 'utf8')).toContain('#ffffff');
+  await rm(path.join(projection, ARTWORK_PAGE));
   expect((await designOperation(root, { operation: 'read', sessionId: id })).revisionId).toBe(
     payload.revisionId
   );
@@ -119,7 +129,7 @@ it('publishes lossless referenced assets from a self-contained human canvas save
     content: fixture,
   });
   const files = collectAuthoring(projection);
-  const imported = intakeAuthoring('design.pptd', files);
+  const imported = intakeAuthoring(ARTWORK_ENTRY, files);
   if (imported.status !== 'ok') throw Error(JSON.stringify(imported));
   expect(imported.document).toEqual(saved.doc);
   const exportedAssets = new Map([...files].filter(([file]) => file.startsWith('media/')));

@@ -2,7 +2,7 @@
  * What one design turn produced, recorded durably on the turn it belongs to.
  *
  * A design session's turn is collected and classified after the agent finishes
- * (P2.3, `apps/cli/src/design/turn-outcome.ts`): the PPTD project the agent left
+ * (P2.3, `apps/cli/src/design/turn-outcome.ts`): the YAML artwork the agent left
  * in the workspace either committed, was kept as a candidate, or never became an
  * editable design. That verdict is stamped as
  * this payload on the history entry whose `id` is the turn-input manifest's
@@ -12,8 +12,8 @@
  *
  * ## Vocabulary
  *
- * - `no_artifact` — the agent finished without producing `design.pptd`; the
- *   existing canvas is untouched.
+ * - `no_artifact` — the agent finished without producing `design.yaml`; the
+ *   existing canvas is untouched. A leftover `.pptd` is not this turn's artifact.
  * - `invalid` — the artifact exists but the storage-layer structure check
  *   failed (schema, kernel replay, asset integrity, secure collection). The
  *   `diagnostics` say why; nothing was repaired.

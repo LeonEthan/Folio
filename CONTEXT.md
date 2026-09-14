@@ -24,7 +24,7 @@ _Avoid_：设计版本库、画稿历史
 本地 workspace 中以 BentoDoc 保存的最新权威状态；从会话历史进入时打开这一状态。
 _Avoid_：历史快照、回合版本
 
-**画稿投影（意图见 specs/graphic-design-platform.zh.md「当前画稿读取与文件一致性」，运行时尚未改）**：
+**画稿投影（已实现，指向 specs/graphic-design-platform.zh.md「当前画稿读取与文件一致性」）**：
 从当前画稿的一致快照按需生成的 YAML 文件（`design.yaml`、`pages/canvas.yaml`）及素材，供 Agent 读取；不是 Agent 新产物。不使用 PPTD。
 _Avoid_：第二份权威画稿、Agent 草稿、PPTD
 

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { lstat, mkdir, mkdtemp, open, readdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { exportPptd, collectAuthoring } from '@geon/design-authoring';
+import { exportAuthoring, collectAuthoring } from '@geon/design-authoring';
 import type { DesignPayload } from './store';
 import { ensureDesignDirectory } from './workspace';
 
@@ -24,7 +24,10 @@ async function publishCurrentProjection(
       Buffer.from(uri.slice(uri.indexOf(',') + 1), 'base64'),
     ])
   );
-  const files = exportPptd(current.doc as unknown as Parameters<typeof exportPptd>[0], assets);
+  const files = exportAuthoring(
+    current.doc as unknown as Parameters<typeof exportAuthoring>[0],
+    assets
+  );
   const marker = JSON.stringify({
     revisionId: current.revisionId,
     files: [...files].map(([file, bytes]) => [file, checksum(bytes)]),

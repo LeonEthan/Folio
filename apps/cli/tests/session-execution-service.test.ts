@@ -1341,8 +1341,8 @@ describe('SessionExecutionService', () => {
   });
 
   /**
-   * A design session's workspace on disk: the real single committer, the PPTD
-   * project an agent turn would leave at the workdir root, and the turn-input
+   * A design session's workspace on disk: the real single committer, the YAML
+   * artwork an agent turn would leave at the workdir root, and the turn-input
    * manifest P2.2 freezes before dispatch. `LODY_DATA_DIR` is what the daemon's
    * workdir resolution reads, so the stage under test sees the same paths.
    */
@@ -1386,15 +1386,15 @@ describe('SessionExecutionService', () => {
     );
     if (options.pptd !== false) {
       fs.writeFileSync(
-        path.join(workdir, 'design.pptd'),
-        'version: v2\ntitle: Service test\nsize: [320, 200]\npages:\n  - pages/main.page\n'
+        path.join(workdir, 'design.yaml'),
+        'title: Service test\nsize: [320, 200]\npages:\n  - pages/canvas.yaml\n'
       );
       fs.mkdirSync(path.join(workdir, 'pages'), { recursive: true });
       fs.writeFileSync(
-        path.join(workdir, 'pages', 'main.page'),
+        path.join(workdir, 'pages', 'canvas.yaml'),
         'background:\n  type: solid\n  color: "#FFFFFF"\nelements:\n' +
-          '  - elementId: title\n    elementType: text\n    bounds: [10, 10, 200, 40]\n' +
-          '    content:\n      text: "Hello"\n      fontSize: 24\n'
+          '  - id: title\n    kind: text\n    bounds: [10, 10, 200, 40]\n' +
+          '    text:\n      paragraphs:\n        - runs:\n            - text: "Hello"\n              fontSize: 24\n'
       );
     }
     return {

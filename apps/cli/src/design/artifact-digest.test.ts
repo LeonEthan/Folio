@@ -20,10 +20,9 @@ async function createRoot() {
 it('streaming digest matches existing snapshot encoding despite file creation order and binary bytes', async () => {
   const directory = await createRoot();
   for (const [file, text] of [
-    ['pages/z.page', 'last'],
+    ['pages/canvas.yaml', 'last'],
     ['media/β.bin', '\0binary\xff'],
-    ['design.pptd', 'entry'],
-    ['pages/a.page', 'first'],
+    ['design.yaml', 'entry'],
     ['media/a.bin', 'asset'],
   ])
     await writeFile(path.join(directory, file), text);
@@ -42,13 +41,13 @@ it('streaming digest matches existing snapshot encoding despite file creation or
 
 it('hashes retained media beyond the canonical 64 MiB storage bound using fixed-size buffers', async () => {
   const directory = await createRoot();
-  await writeFile(path.join(directory, 'design.pptd'), 'entry');
+  await writeFile(path.join(directory, 'design.yaml'), 'entry');
   const media = path.join(directory, 'media/retained.bin');
   await writeFile(media, '');
   const length = 64 * 1024 * 1024 + 1;
   await truncate(media, length); // sparse fixture, no full-sized allocation
   const expected = createHash('sha256');
-  expected.update('design.pptd\u00005\u0000entry');
+  expected.update('design.yaml\u00005\u0000entry');
   expected.update('media/retained.bin\0' + String(length) + '\0');
   const chunk = new Uint8Array(64 * 1024);
   for (let remaining = length; remaining > 0; remaining -= chunk.length)
@@ -62,7 +61,7 @@ it('hashes retained media beyond the canonical 64 MiB storage bound using fixed-
 it('streaming observation preserves absence and the shared redirected-file refusal', async () => {
   const directory = await createRoot();
   expect(await readDesignArtifactDigest(directory)).toEqual({ status: 'absent' });
-  await writeFile(path.join(directory, 'design.pptd'), 'entry');
+  await writeFile(path.join(directory, 'design.yaml'), 'entry');
   await writeFile(path.join(directory, 'outside'), 'outside');
   await symlink(path.join(directory, 'outside'), path.join(directory, 'media/redirected'));
   expect(await readDesignArtifactDigest(directory)).toMatchObject({

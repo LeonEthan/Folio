@@ -1,5 +1,5 @@
 /**
- * Intake → store integration: a synthetic PPTD project must import through
+ * Intake → store integration: a synthetic YAML artwork must import through
  * @geon/design-authoring and pass the single-writer design store validation
  * (schema + kernel replay + asset integrity). Synthetic fixtures only.
  */
@@ -65,50 +65,49 @@ afterEach(() => {
   while (roots.length > 0) rmSync(roots.pop()!, { recursive: true, force: true });
 });
 
-describe('PPTD intake → design store', () => {
-  it('a synthetic PPTD project imports and saves through designOperation validation', async () => {
+describe('YAML intake → design store', () => {
+  it('a synthetic YAML artwork imports and saves through designOperation validation', async () => {
     const dataRoot = mkdtempSync(path.join(tmpdir(), 'geon-intake-store-'));
     roots.push(dataRoot);
 
     const snapshot = new Map<string, Uint8Array>([
       [
-        'design.pptd',
-        enc.encode(
-          'version: v2\ntitle: Store test\nsize: [320, 200]\npages:\n  - pages/main.page\n'
-        ),
+        'design.yaml',
+        enc.encode('title: Store test\nsize: [320, 200]\npages:\n  - pages/canvas.yaml\n'),
       ],
       [
-        'pages/main.page',
+        'pages/canvas.yaml',
         enc.encode(`background:
   type: solid
   color: "#FFFFFF"
 elements:
-  - elementId: title
-    elementType: text
+  - id: title
+    kind: text
     bounds: [10, 10, 200, 40]
-    content:
-      text: "Hello"
-      fontSize: 24
-      bold: true
-  - elementId: band
-    elementType: shape
+    text:
+      paragraphs:
+        - runs:
+            - text: "Hello"
+              fontSize: 24
+              bold: true
+  - id: band
+    kind: shape
     bounds: [10, 60, 100, 100]
     shapeName: rect
     fill:
       type: solid
       color: "#1F6B8A"
-  - elementId: photo
-    elementType: image
+  - id: photo
+    kind: image
     bounds: [120, 60, 64, 64]
     src: media/pic.png
-    fit:
-      mode: cover
+    fit: cover
 `),
       ],
       ['media/pic.png', syntheticPng(8, 8, [31, 107, 138])],
     ]);
 
-    const intake = intakeAuthoring('design.pptd', snapshot);
+    const intake = intakeAuthoring('design.yaml', snapshot);
     expect(intake.status).toBe('ok');
     if (intake.status !== 'ok') return;
 
@@ -144,17 +143,17 @@ elements:
     expect(reread.doc.canvas).toEqual({ width: 320, height: 200 });
   });
 
-  it('an invalid PPTD project never reaches the store (tri-state invalid)', () => {
+  it('an invalid YAML artwork never reaches the store (tri-state invalid)', () => {
     const snapshot = new Map<string, Uint8Array>([
-      ['design.pptd', enc.encode('version: v2\nsize: [320, 200]\npages:\n  - pages/main.page\n')],
+      ['design.yaml', enc.encode('size: [320, 200]\npages:\n  - pages/canvas.yaml\n')],
       [
-        'pages/main.page',
+        'pages/canvas.yaml',
         enc.encode(
-          'elements:\n  - elementId: x\n    elementType: image\n    bounds: [0, 0, 10, 10]\n    src: media/missing.png\n'
+          'elements:\n  - id: x\n    kind: image\n    bounds: [0, 0, 10, 10]\n    src: media/missing.png\n'
         ),
       ],
     ]);
-    const intake = intakeAuthoring('design.pptd', snapshot);
+    const intake = intakeAuthoring('design.yaml', snapshot);
     expect(intake.status).toBe('invalid');
     if (intake.status !== 'invalid') return;
     expect(intake.diagnostics.some((d) => d.code === 'PPTD-E005')).toBe(true);

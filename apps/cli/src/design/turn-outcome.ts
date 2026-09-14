@@ -9,7 +9,7 @@ import {
  * After a design-session turn finishes, the daemon looks at what the agent left
  * in the session workdir and classifies it into one durable verdict:
  *
- *   missing design.pptd            -> no_artifact (canvas untouched)
+ *   missing design.yaml            -> no_artifact (canvas untouched)
  *   unchanged since send          -> no_artifact (nothing this turn produced)
  *   structure/collection failure   -> invalid (+ bounded diagnostics)
  *   imported and saved             -> committed (revisionId)
@@ -512,7 +512,7 @@ export async function collectDesignTurnOutcome(
                 },
                 {
                   code: 'design_continue_required',
-                  message: `Final collection found this conflict after the Agent ended. On explicit continuation, read ${path.join(dataRoot, 'chats', artworkId, 'design-current', 'design.pptd')} and its pages, compare the draft, and explicitly resubmit or adjust it. No automatic Agent restart.`,
+                  message: `Final collection found this conflict after the Agent ended. On explicit continuation, read ${path.join(dataRoot, 'chats', artworkId, 'design-current', DESIGN_ARTIFACT_ENTRY)} and its pages, compare the draft, and explicitly resubmit or adjust it. No automatic Agent restart.`,
                 },
               ]
             : []),
