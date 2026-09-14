@@ -7,9 +7,11 @@ import { fileURLToPath } from 'node:url'
 
 const electronDir = fileURLToPath(new URL('../', import.meta.url))
 const localDir = path.join(electronDir, '.sparkle-local')
-const oldVersion = '0.0.1'
-const newVersion = '0.0.2'
-const feedPort = 4371
+// Realistic Geon-line versions keep the packaged evidence close to the release
+// feed; override only when a throwaway smoke run needs different numbers.
+const oldVersion = process.env.GEON_SPARKLE_OLD_VERSION ?? '0.1.0'
+const newVersion = process.env.GEON_SPARKLE_NEW_VERSION ?? '0.1.1'
+const feedPort = Number(process.env.GEON_SPARKLE_FEED_PORT ?? 4371)
 const feedUrl = `http://127.0.0.1:${feedPort}/appcast.xml`
 
 function run(command, args, options = {}) {
@@ -46,7 +48,7 @@ function ensureKeys() {
   }
 
   const generateKeys = resolveSparkleBin('generate_keys')
-  const account = 'lody-oss-sparkle-local'
+  const account = 'geon-sparkle-local'
   const printed = spawnSync(generateKeys, ['-p', '--account', account], { encoding: 'utf8' })
   if (printed.status !== 0) {
     run(generateKeys, ['--account', account])
@@ -129,9 +131,9 @@ const prepareOnly = process.argv.includes('--prepare-only')
 const { publicEdKey, privateKeyPath } = ensureKeys()
 const workDir = path.join(localDir, 'update-flow')
 const archiveDir = path.join(workDir, 'feed')
-const oldApp = path.join(workDir, 'old', 'Lody OSS.app')
-const newApp = path.join(workDir, 'new', 'Lody OSS.app')
-const newZip = path.join(archiveDir, `LodyOSS-${newVersion}-arm64.zip`)
+const oldApp = path.join(workDir, 'old', 'Geon.app')
+const newApp = path.join(workDir, 'new', 'Geon.app')
+const newZip = path.join(archiveDir, `Geon-${newVersion}-arm64.zip`)
 
 if (!skipPackage) {
   run(process.execPath, [path.join(electronDir, 'scripts/build-app.mjs')])
@@ -151,6 +153,13 @@ mkdirSync(archiveDir, { recursive: true })
 copyApp(packagedApp, oldApp)
 copyApp(packagedApp, newApp)
 setBundleVersion(newApp, newVersion)
+// Prove the post-update bundle really came from the served zip: the marker
+// exists only in the "new" app, so finding it after relaunch rules out a
+// stale or untouched install.
+writeFileSync(
+  path.join(newApp, 'Contents', 'Resources', 'update-verification-marker.txt'),
+  `Geon ${newVersion} update verification marker\n`
+)
 adHocSign(newApp)
 run('codesign', ['--verify', '--deep', '--strict', oldApp])
 run('ditto', ['-c', '-k', '--keepParent', newApp, newZip])
@@ -173,7 +182,7 @@ if (!appcast.includes(newVersion) || !appcast.includes('sparkle:edSignature')) {
 
 writeFileSync(
   path.join(workDir, 'launch.json'),
-  `${JSON.stringify({ feedUrl, oldApp, oldBinary: path.join(oldApp, 'Contents', 'MacOS', 'Lody OSS'), archiveDir }, null, 2)}\n`
+  `${JSON.stringify({ feedUrl, oldApp, oldBinary: path.join(oldApp, 'Contents', 'MacOS', 'Geon'), newApp, archiveDir, oldVersion, newVersion, publicEdKey }, null, 2)}\n`
 )
 
 if (prepareOnly) {
@@ -183,21 +192,25 @@ if (prepareOnly) {
 }
 
 const server = await startFeedServer(archiveDir)
-const oldBinary = path.join(oldApp, 'Contents', 'MacOS', 'Lody OSS')
+const oldBinary = path.join(oldApp, 'Contents', 'MacOS', 'Geon')
 if (!existsSync(oldBinary)) {
   throw new Error(`missing packaged binary: ${oldBinary}`)
 }
 
 console.log(`[verify-sparkle] serving ${feedUrl}`)
-console.log(`[verify-sparkle] launching ${oldVersion} with LODY_ELECTRON_ENABLE_UPDATER=1`)
+console.log(`[verify-sparkle] launching ${oldVersion} with SPARKLE_APPCAST_URL=${feedUrl}`)
 console.log(
-  '[verify-sparkle] Sparkle should offer 0.0.2. Use Check for Updates if the dialog does not appear.'
+  `[verify-sparkle] Sparkle should offer ${newVersion}. Use Check for Updates if the dialog does not appear.`
 )
 
+// requireSparkle compares the packaged Info.plist feed against the runtime
+// SPARKLE_APPCAST_URL (or the default): without this variable the local-feed
+// package disables its own updater as a configuration mismatch.
 const child = spawn(oldBinary, [], {
   env: {
     ...process.env,
-    LODY_ELECTRON_ENABLE_UPDATER: '1'
+    LODY_ELECTRON_ENABLE_UPDATER: '1',
+    SPARKLE_APPCAST_URL: feedUrl
   },
   stdio: 'inherit'
 })
