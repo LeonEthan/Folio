@@ -20,10 +20,12 @@ for the finished files.
 
 ## Size the canvas for the actual output
 
-An explicit user size, orientation, or ratio wins. Otherwise choose geometry from
-the output scenario and how much must stay readable. A social crop, a print sheet,
-a wide banner, and a long infographic are different canvases. Do not treat “poster”
-as a default portrait, and do not compose at one ratio then stretch into another.
+Honor the requested width, height, and orientation when the user gave them. If
+they did not, pick geometry from where the work will be seen and how much must
+remain readable. A feed crop, a printed sheet, a wide banner, and a tall
+infographic are different jobs. The word poster does not imply a vertical sheet.
+Design in the final geometry; fitting a finished composition onto a different
+ratio is a different design.
 
 If the material will not fit one readable field, distill it, raise contrast between
 primary and secondary, or ask which content to keep. Tiny type and extra pages are
@@ -51,15 +53,16 @@ editable in Geon. Choose a direction because it carries the content.
 
 ## Keep facts and images honest
 
-- Prefer images with a clear subject, cropping room, and genuine relevance. Look
-  at the actual pixels before choosing crop lines and text-safe areas.
-- Let raster imagery carry photographs, materials, people, and environments. Let
-  editable text and geometry carry labels, quantities, and structure.
-- Use self-owned, licensed, officially citable, or generated images. Do not forge
-  real logos, institutions, issue numbers, watermarks, archives, or scientific
-  evidence.
+- Choose pictures whose subject is obvious, whose edges leave room to crop, and
+  that actually belong to this brief. Inspect the pixels before locking crop and
+  type placement.
+- Photographs, materials, people, and places belong in raster assets. Names,
+  quantities, and structure belong in editable type and geometry.
+- Use images you own, have a license for, can cite, or generated for this task.
+  Do not invent official marks, institutions, issue numbering, watermarks,
+  archival stamps, or scientific proof.
 - Keep dates, labels, units, places, data, and sources faithful to supplied or
-  verifiable material. Drop unverified precision instead of inventing it.
+  checkable material. Prefer a coarser true claim over a precise invented one.
 
 ## Review the rendered canvas
 

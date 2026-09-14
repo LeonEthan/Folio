@@ -51,7 +51,7 @@ graphic-design 技能与 PPTD v2 经 ALD 从 open-kimi 抽取。`codex/independe
 
 ### 7. 用同一盲测收口
 
-仪器不变。改完后两次独立 run：A/B/C 均为 `否`。B 不得再认出海报关系表改编；C 不得再认为创作格式是 PPTD。只改名而 v2 仍收，不算过。
+仪器不变。改完后两次独立 run：A/B/C 均为 `否`。B 不得再认出海报关系表改编；C 不得再认为创作格式是 PPTD。只改名而 v2 仍收，不算过。[#42](https://github.com/LeonEthan/Geon/issues/42) 复测记在 [盲测笔记](../testing/2026-09-14-open-kimi-pptd-blind-eval.zh.md)：A、B 现为 `否`；C 仍为 `借鉴`，命中已批准的 Bento YAML 投影布局与字段名。
 
 ## 实施顺序（批准之后）
 

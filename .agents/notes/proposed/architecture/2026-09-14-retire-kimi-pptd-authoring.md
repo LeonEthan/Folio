@@ -51,7 +51,7 @@ Files that are rewritten or deleted must not stay listed as ALD/open-kimi adapte
 
 ### 7. Close with the same blind eval
 
-Do not change the instrument. After implementation, two independent runs must score A/B/C all `否`. B must not still see the poster relationship table as an adaptation; C must not still see the authoring format as PPTD. Renaming while still accepting v2 is not a pass.
+Do not change the instrument. After implementation, two independent runs must score A/B/C all `否`. B must not still see the poster relationship table as an adaptation; C must not still see the authoring format as PPTD. Renaming while still accepting v2 is not a pass. The [#42](https://github.com/LeonEthan/Geon/issues/42) re-eval is recorded in the [blind eval note](../testing/2026-09-14-open-kimi-pptd-blind-eval.md): A and B are now `否`; C remains `借鉴` on the approved Bento YAML projection layout and field names.
 
 ## Order after approval
 

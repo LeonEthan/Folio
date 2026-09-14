@@ -285,6 +285,13 @@ describe('packaged design materials', () => {
     expect(graphicText).not.toMatch(/Process, mechanism, method/);
     expect(graphicText).not.toMatch(/few-shot/i);
     expect(graphicText).not.toMatch(/step0|Step 0|five-step/i);
+    expect(graphicText).not.toMatch(/self-owned, licensed, officially citable/);
+    expect(graphicText).not.toMatch(/Do not forge real (magazines|logos)/);
+    expect(graphicText).not.toMatch(/crop lines and text[- ]safe areas/);
+    expect(graphicText).not.toMatch(/Do not treat [“"]poster[”"] as a default portrait/);
+    expect(graphicText).not.toMatch(/compose at one ratio then stretch/);
+    expect(text).not.toMatch(/design\.pptd/);
+    expect(text).not.toMatch(/use the result in PPTD/);
 
     // Directly authored final files are valid without running finalize, and the
     // shipped helper executes from the materialized tree with its bundled library.

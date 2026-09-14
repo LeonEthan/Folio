@@ -33,7 +33,7 @@ Choose your own prompting, inspection, and iteration approach for the task. Usef
 inputs include exact text, subject, composition, intended use, and constraints.
 `geon_generate_image` writes returned bytes under `media/` in the supplied
 design authoring directory and returns both the artwork-relative and absolute
-paths. Reference the relative path from that directory's `design.pptd`. Open outputs with an actual image-reading tool to
+paths. Reference the relative path from that directory's `design.yaml`. Open outputs with an actual image-reading tool to
 judge the result and decide whether further changes are useful. Report material
 limits and the resulting asset path.
 
@@ -53,7 +53,7 @@ creative sequence, number of reviews, or automatic paid retries.
   edit; match the first image’s dimensions and the configured provider’s rules.
   A mask guides the model; it is not a guarantee of exact pixel preservation.
 - Both tools save a new asset. They do not replace or commit the current artwork;
-  decide whether and how to use the result in PPTD.
+  decide whether and how to use the result in the YAML artwork.
 
 Provider/model support for editing, multiple images, masks, sizes and input formats
 varies. Failures are returned as errors; Geon never changes models, substitutes a
