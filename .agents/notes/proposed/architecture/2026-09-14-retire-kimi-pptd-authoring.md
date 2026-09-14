@@ -59,7 +59,7 @@ Do not change the instrument. After implementation, two independent runs must sc
 2. Projection and intake admit only `design.yaml`; retire v2; `id`/`kind`. The snapshot seam is landed in the [YAML artwork snapshot contract](../../implemented/architecture/2026-09-14-yaml-authoring-snapshot.md) ([#37](https://github.com/LeonEthan/Geon/issues/37)).
 3. Watchers, finalize, no-artifact detection, preview paths.
 4. Skills, example, default font, error codes.
-5. source-manifest and comments.
+5. source-manifest and comments. Live fingerprints landed in the [implemented note](../../implemented/architecture/2026-09-14-drop-live-pptd-kimi-fingerprints.md) ([#41](https://github.com/LeonEthan/Geon/issues/41)).
 6. Regression: open/save/export existing BentoDoc; new turns write the new files and preview.
 7. Re-run the blind eval.
 

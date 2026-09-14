@@ -102,6 +102,7 @@ import {
 } from "./contracts.ts";
 import { isArtworkProjection, isPptdV3 } from "./contracts.ts";
 import { importYaml } from "./pptd-v3.ts";
+import { liveImportIssues } from "./live-diagnostics.ts";
 import { staticV1LatexSyntaxError } from "./latex.ts";
 import { parseRichText } from "./richtext.ts";
 import { listSemanticAssetRefs } from "./semantic-assets.ts";
@@ -125,10 +126,18 @@ function numericEncodeChannel(type: string, channel: string): boolean {
     (channel === "x" && NUMERIC_POINT_SERIES_TYPES.has(type));
 }
 
+function liveImportResult(result: ImportResult): ImportResult {
+  return result.status === "unsupported"
+    ? { status: "unsupported", issues: liveImportIssues(result.issues) }
+    : result;
+}
+
 export function importPptd(validated: ValidatedPptd, assets: AssetIndex): ImportResult {
-  if (isArtworkProjection(validated)) return importYaml(validated as Parameters<typeof importYaml>[0], assets);
+  if (isArtworkProjection(validated)) {
+    return liveImportResult(importYaml(validated as Parameters<typeof importYaml>[0], assets));
+  }
   if (isPptdV3(validated)) {
-    return {
+    return liveImportResult({
       status: "unsupported",
       issues: [
         {
@@ -137,9 +146,9 @@ export function importPptd(validated: ValidatedPptd, assets: AssetIndex): Import
           message: "leftover PPTD is not admitted (GEON-E-PPTD)",
         },
       ],
-    };
+    });
   }
-  return importV2(validated, assets);
+  return liveImportResult(importV2(validated, assets));
 }
 
 function importV2(validated: ValidatedPptdV2, assets: AssetIndex): ImportResult {

@@ -29,6 +29,7 @@ import type {
   BentoTextParagraphV4,
   Diagnostic,
   DiagnosticCode,
+  FrozenAuthoringValidationResult,
   PptdManifest,
   PptdPage,
   ValidatedPptd,
@@ -65,6 +66,7 @@ import {
   staticV1SvgPathSyntaxError,
 } from "./contracts.ts";
 import { FROZEN_CAPABILITY_MATRIX } from "./capability-matrix.ts";
+import { liveValidationResult } from "./live-diagnostics.ts";
 import { validateV3 } from "./pptd-v3.ts";
 import { parseRichText } from "./richtext.ts";
 import { staticV1LatexSyntaxError } from "./latex.ts";
@@ -297,7 +299,7 @@ const CHART_COLOR_SCALE_TYPES = new Set(["linear", "diverging"]);
  * 不被伪输入冒充（fallback/measure = 栈与 1px=1pt 原样透传；image.pipeline =
  * crop/fit/cropShape 三字段无损入 canonical；measurement = 渲染期派生）。
  */
-export const PPTD_VALIDATE_BACKING = {
+export const AUTHORING_VALIDATE_BACKING = {
   manifest: ["canvas.size", "font.registration"],
   page: ["canvas.background", "common.zOrder", "common.createDelete"],
   elementBase: [
@@ -397,6 +399,9 @@ export const PPTD_VALIDATE_BACKING = {
     "chart.sankey",
   ],
 } as const;
+
+/** @deprecated Use AUTHORING_VALIDATE_BACKING. */
+export const PPTD_VALIDATE_BACKING = AUTHORING_VALIDATE_BACKING;
 
 function isRecord(v: unknown): v is Raw {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -2131,11 +2136,13 @@ export function validate(entryPath: string, opts: ValidateOptions): ValidationRe
   const manifestFile = path.basename(entryPath);
 
   const productBoundary = validateProductBoundaryFile(entryPath);
-  if (productBoundary !== null) return productBoundary;
+  if (productBoundary !== null) return liveValidationResult(productBoundary);
 
   const raw = loadYaml(ctx, entryPath, manifestFile);
-  return finishValidation(ctx, manifestFile, raw, (pageRel) =>
-    loadYaml(ctx, path.resolve(entryDir, pageRel), pageRel),
+  return liveValidationResult(
+    finishValidation(ctx, manifestFile, raw, (pageRel) =>
+      loadYaml(ctx, path.resolve(entryDir, pageRel), pageRel),
+    ),
   );
 }
 
@@ -2163,14 +2170,16 @@ export function validateSnapshot(entryRel: string, snapshot: ReadonlyMap<string,
   const manifestFile = normEntry.split("/").pop() ?? normEntry;
 
   const productBoundary = validateProductBoundarySnapshot(normEntry, snapshot);
-  if (productBoundary !== null) return productBoundary;
+  if (productBoundary !== null) return liveValidationResult(productBoundary);
 
   const raw = loadYamlBytes(ctx, snapshot.get(normEntry), manifestFile);
   const entryDir = path.posix.dirname(normEntry);
-  return finishValidation(ctx, manifestFile, raw, (pageRel) => {
-    const pageKey = path.posix.normalize(path.posix.join(entryDir, pageRel));
-    return loadYamlBytes(ctx, snapshot.get(pageKey), pageRel);
-  });
+  return liveValidationResult(
+    finishValidation(ctx, manifestFile, raw, (pageRel) => {
+      const pageKey = path.posix.normalize(path.posix.join(entryDir, pageRel));
+      return loadYamlBytes(ctx, snapshot.get(pageKey), pageRel);
+    }),
+  );
 }
 
 function finishValidation(
@@ -2178,7 +2187,7 @@ function finishValidation(
   manifestFile: string,
   raw: unknown,
   loadPage: (pageRel: string) => unknown,
-): ValidationResult {
+): FrozenAuthoringValidationResult {
   if (!isRecord(raw)) {
     if (raw !== undefined) report(ctx, "PPTD-E001", manifestFile, "", "manifest 必须是 YAML 映射");
     return { ok: false, diagnostics: ctx.diagnostics };

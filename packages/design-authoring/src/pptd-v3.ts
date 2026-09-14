@@ -12,9 +12,9 @@ import {
   type AssetIndex,
   type BentoDocV4,
   type BentoElementV4,
-  type Diagnostic,
+  type FrozenAuthoringValidationResult,
+  type FrozenDiagnostic,
   type ImportResult,
-  type ValidationResult,
 } from './contracts.ts';
 
 /** Bundled licensed default for omitted fontFamily (OFL Inter via @fontsource/inter). */
@@ -230,9 +230,9 @@ export function validateYaml(
   manifestFile: string,
   loadPage: (rel: string) => unknown,
   readMedia: (rel: string) => Uint8Array | undefined
-): ValidationResult {
-  const diagnostics: Diagnostic[] = [];
-  const fail = (at: string, message: string, code: Diagnostic['code'] = 'PPTD-E001') =>
+): FrozenAuthoringValidationResult {
+  const diagnostics: FrozenDiagnostic[] = [];
+  const fail = (at: string, message: string, code: FrozenDiagnostic['code'] = 'PPTD-E001') =>
     diagnostics.push({ code, path: at, message });
   if (manifestFile.endsWith('.pptd') || manifest.version === 'v2' || manifest.version === 'v3') {
     fail(`${manifestFile}#`, 'leftover PPTD is not admitted (GEON-E-PPTD)', 'PPTD-E001');

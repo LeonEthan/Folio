@@ -31,11 +31,12 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import type {
   BentoDocV4,
-  Diagnostic,
   ImportIssue,
+  LiveDiagnostic,
   ValidatedPptd,
 } from "./contracts.ts";
 import { importPptd } from "./import.ts";
+import { liveDiagnosticCode } from "./live-diagnostics.ts";
 import { listSemanticAssetRefs } from "./semantic-assets.ts";
 import { validateSnapshot } from "./validate.ts";
 
@@ -58,7 +59,7 @@ export type AuthoringIntakeResult =
     }
   | {
       status: "invalid";
-      diagnostics: Diagnostic[];
+      diagnostics: LiveDiagnostic[];
     }
   | {
       status: "unsupported";
@@ -98,7 +99,7 @@ export function intakeAuthoring(
         status: "invalid",
         diagnostics: [
           {
-            code: "PPTD-E005",
+            code: liveDiagnosticCode("PPTD-E005"),
             path: at !== undefined ? at.path : `${pagePath}#`,
             message: `引用媒体文件不存在：${ref}（相对 projectRoot）`,
           },

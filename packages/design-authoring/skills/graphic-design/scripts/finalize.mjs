@@ -10,13 +10,13 @@
 // convenience, not a gate: Geon re-validates at intake regardless, and you
 // may promote the draft yourself as long as the final entry is design.yaml.
 //
-// The validator ships pre-bundled in ./lib/geon-pptd.mjs (built from
+// The validator ships pre-bundled in ./lib/geon-authoring.mjs (built from
 // @geon/design-authoring), so this script runs anywhere Node 22+ is
 // available, with no repo checkout.
 
 import { existsSync, renameSync } from 'node:fs';
 import path from 'node:path';
-import { validate } from './lib/geon-pptd.mjs';
+import { validate } from './lib/geon-authoring.mjs';
 
 const draft = process.argv[2];
 const isTmpDraft = typeof draft === 'string' && draft.endsWith('.yaml.tmp');

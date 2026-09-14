@@ -12,6 +12,7 @@ export { intakeAuthoring, type AuthoringIntakeResult } from './intake.ts';
 export {
   validate,
   validateSnapshot,
+  AUTHORING_VALIDATE_BACKING,
   PPTD_VALIDATE_BACKING,
   type ValidateOptions,
 } from './validate.ts';
@@ -41,4 +42,7 @@ export {
   ARTWORK_ENTRY,
   ARTWORK_PAGE,
 } from './pptd-v3.ts';
-export { PPTD_PROJECTION_CAPABILITIES } from './projection-capabilities.ts';
+export {
+  AUTHORING_PROJECTION_CAPABILITIES,
+  PPTD_PROJECTION_CAPABILITIES,
+} from './projection-capabilities.ts';

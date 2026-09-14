@@ -7,7 +7,7 @@ Translation: current
 
 ## Abstract
 
-The `@geon/design-authoring` collect, validate, import and export seam now admits only the YAML artwork projection: `design.yaml`, one `pages/canvas.yaml` page, and local `media/`. Elements use Bento `id` / `kind`. Leftover `.pptd`, PPTD v2 syntax, and `elementId` / `elementType` fail closed. BentoDoc remains the editable canonical; YAML is not a second canonical blob. Omitted `fontFamily` is not written as MiSans; the product default family name is bundled, OFL-licensed Inter. This note covers the snapshot seam ([#37](https://github.com/LeonEthan/Geon/issues/37)) only. Turns, preview, skills, and fingerprint cleanup are not claimed done.
+The `@geon/design-authoring` collect, validate, import and export seam now admits only the YAML artwork projection: `design.yaml`, one `pages/canvas.yaml` page, and local `media/`. Elements use Bento `id` / `kind`. Leftover `.pptd`, PPTD v2 syntax, and `elementId` / `elementType` fail closed. BentoDoc remains the editable canonical; YAML is not a second canonical blob. Omitted `fontFamily` is not written as MiSans; the product default family name is bundled, OFL-licensed Inter. This note covers the snapshot seam ([#37](https://github.com/LeonEthan/Geon/issues/37)) only. Turns, preview, and original skill teaching are not claimed done. Live PPTD/Kimi fingerprint cleanup is the [follow-on note](2026-09-14-drop-live-pptd-kimi-fingerprints.md).
 
 ## Decision
 
@@ -19,4 +19,4 @@ A long-lived dual admission of PPTD plus YAML was rejected: leftover `.pptd` is 
 
 ## Verification and limits
 
-`packages/design-authoring` intake, roundtrip, and skill-script tests cover YAML roundtrip, PPTD rejection, and omitted fonts. CLI/desktop watchers, turn collection, skill guides, the bundled `poster.pptd` example, PPTD-E\* code names, and live ALD pins remain [#38](https://github.com/LeonEthan/Geon/issues/38)–[#41](https://github.com/LeonEthan/Geon/issues/41). Blind eval is [#42](https://github.com/LeonEthan/Geon/issues/42).
+`packages/design-authoring` intake, roundtrip, and skill-script tests cover YAML roundtrip, PPTD rejection, and omitted fonts. Live helper/error/manifest fingerprints are the [follow-on note](2026-09-14-drop-live-pptd-kimi-fingerprints.md) ([#41](https://github.com/LeonEthan/Geon/issues/41)). CLI/desktop watchers, turn collection, skill guides, and the bundled `poster.pptd` example remain [#38](https://github.com/LeonEthan/Geon/issues/38)–[#40](https://github.com/LeonEthan/Geon/issues/40). Blind eval is [#42](https://github.com/LeonEthan/Geon/issues/42).

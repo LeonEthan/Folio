@@ -1,5 +1,5 @@
 /**
- * Closed-world router for product inputs that are not PPTD v2 fields.
+ * Closed-world router for product inputs that are not YAML artwork fields.
  *
  * These requests are deliberately routed at the authoring input boundary,
  * before manifest parsing can reinterpret them as arbitrary YAML.  A valid
@@ -9,8 +9,9 @@
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import type { Diagnostic, DiagnosticCode, ValidationResult } from "./contracts.ts";
+import type { LiveDiagnostic, ValidationResult } from "./contracts.ts";
 import { FROZEN_CAPABILITY_MATRIX } from "./capability-matrix.ts";
+import { liveDiagnosticCode } from "./live-diagnostics.ts";
 
 type Raw = Record<string, unknown>;
 
@@ -39,25 +40,32 @@ interface ProductBoundaryMalformedInput {
 type ProductBoundaryRouteResult = ProductBoundaryRejection | ProductBoundaryMalformedInput;
 
 interface RouteContract {
+  /** Frozen matrix capabilityId; may remain common.kimiRuntime. */
   readonly capabilityId: string;
+  /** Geon-facing probe id; remote renderer is not named Kimi. */
+  readonly liveCapabilityId: string;
   readonly requiredPayload: readonly string[];
 }
 
 const ROUTES: Readonly<Record<ProductBoundaryInputKind, RouteContract>> = Object.freeze({
   "pptx-slide-transition": {
     capabilityId: "common.transitions",
+    liveCapabilityId: "common.transitions",
     requiredPayload: ["slideId", "transition"],
   },
   "media-timeline": {
     capabilityId: "common.audioVideo",
+    liveCapabilityId: "common.audioVideo",
     requiredPayload: ["media", "timeline"],
   },
   "pptx-document": {
     capabilityId: "common.pptxInterop",
+    liveCapabilityId: "common.pptxInterop",
     requiredPayload: ["format", "operation", "documentName"],
   },
   "renderer-runtime-request": {
     capabilityId: "common.kimiRuntime",
+    liveCapabilityId: "common.remoteRenderer",
     requiredPayload: ["renderer", "runtime", "operation"],
   },
 });
@@ -126,8 +134,8 @@ function payloadShapeError(inputKind: ProductBoundaryInputKind, payload: Raw): s
       if (!nonEmptyString(payload.documentName)) return "payload.documentName must be a non-empty string";
       return null;
     case "renderer-runtime-request":
-      if (payload.renderer !== "kimi") return "payload.renderer must be kimi";
-      if (payload.runtime !== "kimi") return "payload.runtime must be kimi";
+      if (payload.renderer !== "remote") return "payload.renderer must be remote";
+      if (payload.runtime !== "remote") return "payload.runtime must be remote";
       if (!nonEmptyString(payload.operation)) return "payload.operation must be a non-empty string";
       return null;
   }
@@ -150,36 +158,44 @@ function routeProductBoundaryInput(input: unknown): ProductBoundaryRouteResult {
   }
   const inputKind = input.inputKind as ProductBoundaryInputKind;
   const route = ROUTES[inputKind];
-  if (input.capabilityId !== route.capabilityId) {
+  if (input.capabilityId !== route.liveCapabilityId) {
     return malformed(`product-boundary input capabilityId does not match ${inputKind}`);
   }
   if (!isRecord(input.payload) || Object.keys(input.payload).length === 0) {
-    return malformed(`product-boundary input ${route.capabilityId} payload must be a non-empty object`);
+    return malformed(`product-boundary input ${route.liveCapabilityId} payload must be a non-empty object`);
   }
   const payloadError = exactKeys(input.payload, route.requiredPayload);
-  if (payloadError !== null) return malformed(`product-boundary input ${route.capabilityId} payload ${payloadError}`);
+  if (payloadError !== null) return malformed(`product-boundary input ${route.liveCapabilityId} payload ${payloadError}`);
   const valueError = payloadShapeError(inputKind, input.payload);
-  if (valueError !== null) return malformed(`product-boundary input ${route.capabilityId} ${valueError}`);
+  if (valueError !== null) return malformed(`product-boundary input ${route.liveCapabilityId} ${valueError}`);
+  const presented =
+    inputKind === "renderer-runtime-request" ? "remote renderer" : route.liveCapabilityId;
   return {
     accepted: false,
     canonicalProduced: false,
     failureCode: "PPTD-E011",
     capabilityId: route.capabilityId,
     inputKind,
-    message: `${route.capabilityId} is outside the single-canvas PPTD v2 product boundary (${inputKind})`,
+    message: `${presented} is outside the single-canvas YAML artwork product boundary (${inputKind})`,
   };
 }
 
-function diagnostic(file: string, result: ProductBoundaryRouteResult): Diagnostic {
-  const code: DiagnosticCode = result.failureCode;
-  return { code, path: `${file}#`, message: result.message };
+function diagnostic(file: string, result: ProductBoundaryRouteResult): LiveDiagnostic {
+  return { code: liveDiagnosticCode(result.failureCode), path: `${file}#`, message: result.message };
+}
+
+function unread(file: string, message: string): ValidationResult {
+  return {
+    ok: false,
+    diagnostics: [{ code: liveDiagnosticCode("PPTD-E001"), path: `${file}#`, message }],
+  };
 }
 
 /**
  * Read a JSON product-boundary request for validate().  A `.json` entry is an
  * explicit boundary input, so malformed JSON is E001 instead of being
  * reinterpreted as a legal YAML manifest.  Other extensions remain on the
- * existing PPTD/YAML validator path.
+ * existing YAML validator path.
  */
 export function validateProductBoundaryFile(entryPath: string): ValidationResult | null {
   if (path.extname(entryPath).toLowerCase() !== ".json") return null;
@@ -188,7 +204,7 @@ export function validateProductBoundaryFile(entryPath: string): ValidationResult
   try {
     text = readFileSync(entryPath, "utf8");
   } catch {
-    return { ok: false, diagnostics: [{ code: "PPTD-E001", path: `${file}#`, message: `文件不可读：${file}` }] };
+    return unread(file, `文件不可读：${file}`);
   }
   return validateProductBoundaryText(file, text);
 }
@@ -208,13 +224,13 @@ export function validateProductBoundarySnapshot(
   const file = entryRel.split("/").pop() ?? entryRel;
   const bytes = snapshot.get(entryRel);
   if (bytes === undefined) {
-    return { ok: false, diagnostics: [{ code: "PPTD-E001", path: `${file}#`, message: `文件不可读：${file}` }] };
+    return unread(file, `文件不可读：${file}`);
   }
   let text: string;
   try {
     text = new TextDecoder("utf-8").decode(bytes);
   } catch {
-    return { ok: false, diagnostics: [{ code: "PPTD-E001", path: `${file}#`, message: `文件不可读：${file}` }] };
+    return unread(file, `文件不可读：${file}`);
   }
   return validateProductBoundaryText(file, text);
 }
@@ -224,10 +240,10 @@ function validateProductBoundaryText(file: string, text: string): ValidationResu
   try {
     parsed = JSON.parse(text);
   } catch (error) {
-    return {
-      ok: false,
-      diagnostics: [{ code: "PPTD-E001", path: `${file}#`, message: `不是合法 product-boundary JSON：${error instanceof Error ? error.message.split("\n")[0] : String(error)}` }],
-    };
+    return unread(
+      file,
+      `不是合法 product-boundary JSON：${error instanceof Error ? error.message.split("\n")[0] : String(error)}`,
+    );
   }
   const routed = routeProductBoundaryInput(parsed);
   return { ok: false, diagnostics: [diagnostic(file, routed)] };

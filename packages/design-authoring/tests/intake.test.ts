@@ -146,16 +146,16 @@ describe('intakeAuthoring', () => {
     expect(AUTHORING_DEFAULT_FONT_FAMILY).toBe('Inter');
   });
 
-  it('rejects a missing media reference with PPTD-E005', () => {
+  it('rejects a missing media reference with GEON-E005', () => {
     const result = intakeAuthoring('design.yaml', snapshotWith({ 'media/pic.png': undefined }));
     expect(result.status).toBe('invalid');
     if (result.status !== 'invalid') return;
     expect(
-      result.diagnostics.some((d) => d.code === 'PPTD-E005' && d.message.includes('media/pic.png'))
+      result.diagnostics.some((d) => d.code === 'GEON-E005' && d.message.includes('media/pic.png'))
     ).toBe(true);
   });
 
-  it('rejects a remote image URL with PPTD-E004', () => {
+  it('rejects a remote image URL with GEON-E004', () => {
     const result = intakeAuthoring(
       'design.yaml',
       snapshotWith({
@@ -166,10 +166,10 @@ describe('intakeAuthoring', () => {
     );
     expect(result.status).toBe('invalid');
     if (result.status !== 'invalid') return;
-    expect(result.diagnostics.some((d) => d.code === 'PPTD-E004')).toBe(true);
+    expect(result.diagnostics.some((d) => d.code === 'GEON-E004')).toBe(true);
   });
 
-  it('rejects an out-of-vocabulary kind with PPTD-E003', () => {
+  it('rejects an out-of-vocabulary kind with GEON-E003', () => {
     const result = intakeAuthoring(
       'design.yaml',
       snapshotWith({
@@ -178,10 +178,10 @@ describe('intakeAuthoring', () => {
     );
     expect(result.status).toBe('invalid');
     if (result.status !== 'invalid') return;
-    expect(result.diagnostics.some((d) => d.code === 'PPTD-E003')).toBe(true);
+    expect(result.diagnostics.some((d) => d.code === 'GEON-E003')).toBe(true);
   });
 
-  it('rejects unknown fields with PPTD-E001', () => {
+  it('rejects unknown fields with GEON-E001', () => {
     const result = intakeAuthoring(
       'design.yaml',
       snapshotWith({
@@ -192,7 +192,7 @@ describe('intakeAuthoring', () => {
     );
     expect(result.status).toBe('invalid');
     if (result.status !== 'invalid') return;
-    expect(result.diagnostics.some((d) => d.code === 'PPTD-E001' && d.path.includes('bogus'))).toBe(
+    expect(result.diagnostics.some((d) => d.code === 'GEON-E001' && d.path.includes('bogus'))).toBe(
       true
     );
   });
@@ -209,11 +209,11 @@ describe('intakeAuthoring', () => {
     expect(result.status).toBe('invalid');
     if (result.status !== 'invalid') return;
     expect(
-      result.diagnostics.some((d) => d.code === 'PPTD-E011' && d.message.includes('multiPage'))
+      result.diagnostics.some((d) => d.code === 'GEON-E011' && d.message.includes('multiPage'))
     ).toBe(true);
   });
 
-  it('rejects a media reference escaping media/ with PPTD-E005', () => {
+  it('rejects a media reference escaping media/ with GEON-E005', () => {
     const result = intakeAuthoring(
       'design.yaml',
       snapshotWith({
@@ -222,7 +222,7 @@ describe('intakeAuthoring', () => {
     );
     expect(result.status).toBe('invalid');
     if (result.status !== 'invalid') return;
-    expect(result.diagnostics.some((d) => d.code === 'PPTD-E005')).toBe(true);
+    expect(result.diagnostics.some((d) => d.code === 'GEON-E005')).toBe(true);
   });
 });
 

@@ -13,7 +13,7 @@
 
 import path from 'node:path';
 import { existsSync } from 'node:fs';
-import { collectAuthoring, intakeAuthoring } from './lib/geon-pptd.mjs';
+import { collectAuthoring, intakeAuthoring } from './lib/geon-authoring.mjs';
 
 const entry = process.argv[2];
 if (!entry || path.basename(entry) !== 'design.yaml' || !existsSync(entry)) {
@@ -40,7 +40,7 @@ if (intake.status === 'invalid') {
   process.exit(1);
 }
 if (intake.status === 'unsupported') {
-  console.error(`render-preview: PPTD import unsupported: ${JSON.stringify(intake.issues)}`);
+  console.error(`render-preview: artwork import unsupported: ${JSON.stringify(intake.issues)}`);
   process.exit(1);
 }
 

@@ -2261,7 +2261,7 @@
   "sessions.worktreeScript.cleanup": "worktree cleanup",
   "sessions.worktreeScript.setup": "worktree setup",
   "sessions.worktreeScript.waitingOutput": "Waiting for script output…",
-  "settings.about.geonDescription": "Geon is a local graphic-design workspace with one editable canvas, Agent-led PPTD authoring and Bento editing. Image generation is optional; canvas editing does not require an image service.",
+  "settings.about.geonDescription": "Geon is a local graphic-design workspace with one editable canvas, Agent-led YAML authoring and Bento editing. Image generation is optional; canvas editing does not require an image service.",
   "settings.about.buildDate": "Build Date",
   "settings.about.bundledAssets": "Bundled assets",
   "settings.about.checkForUpdates": "Check for Updates",

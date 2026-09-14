@@ -10,7 +10,7 @@ import {
   intakeAuthoring,
   validate,
   collectAuthoring,
-  PPTD_PROJECTION_CAPABILITIES,
+  AUTHORING_PROJECTION_CAPABILITIES,
 } from '../src/index.ts';
 import {
   BENTO_DOC_V4_FIELDS,
@@ -734,7 +734,7 @@ chart.data chart.encode chart.seriesDefaults chart.typeMixing chart.axisBasic ch
 fill.solid fill.gradientLinear fill.gradientRadial fill.image`
     .split(/\s+/)
     .sort();
-  expect(PPTD_PROJECTION_CAPABILITIES.map((row) => row.capabilityId).sort()).toEqual(audited);
+  expect(AUTHORING_PROJECTION_CAPABILITIES.map((row) => row.capabilityId).sort()).toEqual(audited);
 });
 
 it('preserves and validates the legacy chart top-level fill field', () => {
