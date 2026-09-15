@@ -7,7 +7,7 @@ Translation: current
 
 ## Abstract
 
-An Agent with no memory of this conversation scores Geon's current tree against a pinned `open-kimi-ppt-skill` checkout on three layers: A product clone, B skill text, C format DSL. The main eval must not open `agentic-listing-design`, must not open this eval or the retirement notes, and must not search the web. The instrument is the [blind prompt](../../../eval/open-kimi-pptd-blind-prompt.md). Two independent baseline runs agreed A `否`, B `借鉴`, C `借鉴`. After YAML retirement and a leftover-phrasing rewrite, two further independent runs agree A `否`, B `否`, C `借鉴`. The post-retirement pass line A/B/C all `否` is therefore unmet on C. This is not a legal opinion and does not approve Spec or runtime changes.
+An Agent with no memory of this conversation scores Geon's current tree against a pinned `open-kimi-ppt-skill` checkout on three layers: A product clone, B skill text, C format DSL. The main eval must not open `agentic-listing-design`, must not open this eval or the retirement notes, and must not search the web. The instrument is the [blind prompt](../../../eval/open-kimi-pptd-blind-prompt.md). Two independent baseline runs agreed A `否`, B `借鉴`, C `借鉴`. After YAML retirement and a leftover-phrasing rewrite, two further independent runs agree A `否`, B `否`, C `借鉴`. That historical pair did not meet the C pass line. After the approved single-file redesign, two independent Grok 4.6 CLI runs score A/B/C all `否`, meeting the agreed score line within the sampling limits recorded below. This is not a legal opinion and does not approve Spec or runtime changes.
 
 ## Contract
 
@@ -112,3 +112,14 @@ Raw local outputs, tool logs, prompt and source hashes are retained outside Git 
 
 
 Subsequent human acceptance (2026-09-15): the user accepted the current single-file Kimi golden result and authorized committing this change. This supersedes the pending visual status above; the Grok sampling limits remain unchanged.
+
+## Closure review (2026-09-15)
+
+A read-only GitHub review found #37–#41 closed and #42/#36 open. The two Grok scores meet #42's agreed score line with the sampling/context-verification limits above. The baseline note is updated and the first-stage golden result has human acceptance. #36's former two-file layout was superseded by the approved single-file revision; close-out should explicitly record that change rather than silently claiming literal conformity to its older body.
+
+Local accepted commit is `ce5a9c1d636aa75ec9fbb8a900c7093ddb0b7129`. At review time the public `codex/independent-release` branch was still `9003c522b96fad9bd93c2cebaf9f3594c87debce`, an ancestor 18 commits behind local HEAD, and GitHub could not resolve the accepted commit. Recommendation: publish the accepted code and evidence through the agreed landing workflow, update the issue conclusions, then close #42 followed by #36. No GitHub issue mutation, push or history rewrite was performed in this review.
+
+History rewriting solely to hide old borrowing is not recommended: #36 explicitly retains history, and GitHub documents changed commit IDs and surviving clones/forks/cached references after rewriting ([GitHub documentation](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)). No specific secret or prohibited historical blob was identified by this scoped review; it was not a full historical secret/license audit. Current `design-authoring/source-manifest.json` still records adapted/ported files; `design-bento/README.md` distinguishes the ALD adapter closure (whose pinned source has no root license file) from MIT Bento. Closing these authoring issues must not imply a repository-wide provenance or licensing clearance. The user subsequently confirmed ALD is their own project and its adapter code is not a blocker for this task. The close-out scope is similarity to open-kimi-ppt-skill; ALD provenance remains recorded.
+
+
+The user authorized committing/publishing the close-out and updating/closing #42 and #36. Keep Git history intact. The current Bento-aligned YAML is retained; deeper type-block restructuring is optional future usability work, not a remaining condition for these issues. Closure applies to the accepted implementation on `codex/independent-release`, not a claim of release or merge to `main`.

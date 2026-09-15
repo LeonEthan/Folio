@@ -7,7 +7,7 @@ Translation: current
 
 ## 摘要
 
-用无本轮对话上下文的 Agent，只看 Geon 当前树与钉死的 `open-kimi-ppt-skill`，按 A 产品克隆 / B 技能文本 / C 格式 DSL 三层打分。主评测禁止翻 `agentic-listing-design`、禁止打开本评测/退役笔记、禁止搜网页。仪器是 [盲测 prompt](../../../eval/open-kimi-pptd-blind-prompt.md)。基线两次独立 run 分层一致：A `否`，B `借鉴`，C `借鉴`。YAML 退役并改写剩余近原文后，又两次独立 run 分层一致：A `否`，B `否`，C `借鉴`。退役通过线 A/B/C 均为 `否` 因此在 C 层未满足。不是法律结论，也不批准改 Spec 或改运行时。
+用无本轮对话上下文的 Agent，只看 Geon 当前树与钉死的 `open-kimi-ppt-skill`，按 A 产品克隆 / B 技能文本 / C 格式 DSL 三层打分。主评测禁止翻 `agentic-listing-design`、禁止打开本评测/退役笔记、禁止搜网页。仪器是 [盲测 prompt](../../../eval/open-kimi-pptd-blind-prompt.md)。基线两次独立 run 分层一致：A `否`，B `借鉴`，C `借鉴`。YAML 退役并改写剩余近原文后，又两次独立 run 分层一致：A `否`，B `否`，C `借鉴`。该历史组未满足 C 层通过线。获批单文件重构后，两次独立 Grok 4.6 CLI 测评均为 A/B/C 全部 `否`，在下文记录的抽样范围内达到约定评分线。不是法律结论，也不批准改 Spec 或改运行时。
 
 ## 合同
 
@@ -119,3 +119,14 @@ A、B 已达通过线。C 未达。两次 C 都有双方路径，不作废。Age
 
 
 后续人工验收（2026-09-15）：用户接受当前单文件 Kimi 黄金结果，并授权提交本次调整。此确认取代上文的视觉待审核状态；Grok 抽样限制保持不变。
+
+## 收尾核查（2026-09-15）
+
+只读核对 GitHub：#37–#41 已关闭，#42/#36 仍开放。Grok 两轮达到 #42 约定的评分线，阅读抽样和上下文验证限制仍如上；基线笔记已更新，第一阶段黄金结果已获人工接受。#36 原文的双文件结构已被后续获批单文件修订取代，收尾时应明确记录该变更，不能声称逐字符合旧正文。
+
+本地验收提交为 `ce5a9c1d636aa75ec9fbb8a900c7093ddb0b7129`。核查时公开的 `codex/independent-release` 分支仍为 `9003c522b96fad9bd93c2cebaf9f3594c87debce`，是本地 HEAD 之前 18 个提交的祖先；GitHub 无法找到本地验收提交。建议按约定落地流程公开已验收代码及证据，更新 Issue 结论后，依次关闭 #42、#36。本次核查未修改 GitHub Issue、推送或改写历史。
+
+不建议仅为隐藏旧借鉴痕迹重写历史：#36 明确保留历史，GitHub 也说明重写会改变提交 ID，且旧克隆、fork、缓存引用仍可能保留（[官方说明](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)）。本次限定范围核查未识别出具体泄露密钥或必须移除的历史文件，不等于完成全历史秘密/许可审计。当前 `design-authoring/source-manifest.json` 仍登记 adapted/ported 文件；`design-bento/README.md` 区分 ALD 适配闭包（固定来源无根许可证文件）与 MIT Bento。关闭创作层 Issue 不代表全仓来源或许可问题已清零；用户随后确认 ALD 是自己的项目，其适配代码不是本任务的阻碍。本次收尾范围为与 open-kimi-ppt-skill 的相似性，ALD 来源记录继续保留。
+
+
+用户已授权提交/公开收尾内容、更新并关闭 #42 与 #36。保留 Git 历史，继续采用贴近 Bento 的当前 YAML；更深的类型区块重组属于可选的后续易用性工作，不是这些 Issue 的剩余验收条件。关闭针对 `codex/independent-release` 上已验收的实现，不代表已发布或合并到 `main`。
