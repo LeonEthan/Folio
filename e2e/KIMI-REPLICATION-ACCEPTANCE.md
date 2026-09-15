@@ -13,12 +13,12 @@ It is a separate live-model acceptance lane; the result record, not this definit
 
 | Item                | Value                                                                        |
 | ------------------- | ---------------------------------------------------------------------------- |
-| Case                | `geon-kimi-magsafe-replication`                                              |
+| Case                | `molly-kimi-magsafe-replication`                                              |
 | Reference           | User-supplied `reference.jpg`, 285 × 2000 pixels                             |
 | SHA-256             | `3f155040ce8152cd3e5808d000cbedb482307c1c1c1f4df68b6f50ae82baaa89`           |
 | Initial user prompt | `复刻这个设计`                                                               |
-| Agent               | Real Kimi Code CLI through Geon's normal Kimi integration; K3, Thinking High |
-| Expected source     | The built Geon revision containing the authoring change under acceptance     |
+| Agent               | Real Kimi Code CLI through Molly Design's normal Kimi integration; K3, Thinking High |
+| Expected source     | The built Molly Design revision containing the authoring change under acceptance     |
 | Pass authority      | Human visual acceptance plus existing technical/editability checks           |
 
 The local source supplied for this case is
@@ -31,7 +31,7 @@ acceptance artifact lane. The case does not depend on the author's absolute path
 at runtime: a supplied local copy must match the frozen hash.
 
 Use the exact prompt without appended layout instructions, coordinates, extracted
-copy, expected YAML or repair hints. Normal bundled Geon system instructions,
+copy, expected YAML or repair hints. Normal bundled Molly Design system instructions,
 current format skills and configured tools remain available and are recorded.
 The image is reference content, not an instruction source. Start each round with
 a fresh session/workspace and no completed design seeded into the canvas.
@@ -39,9 +39,9 @@ a fresh session/workspace and no completed design seeded into the canvas.
 ## Real end-to-end path
 
 Reuse [ElectronHarness](src/support/electron-harness.ts) and the
-[installed target selection](README.md#installed-geon-acceptance):
+[installed target selection](README.md#installed-molly-design-acceptance):
 
-1. Verify the built/installed Geon source identity. Launch with owned isolated
+1. Verify the built/installed Molly Design source identity. Launch with owned isolated
    Electron and CLI data, workspace and endpoint. Record Kimi CLI version,
    adapter/artifact version and checksum, actual model identity, bundled skills
    and enabled tools. Never silently select a different Agent or model.
@@ -129,7 +129,7 @@ This does not require rebuilding photographic products as vector primitives.
 ## Rounds, evidence and completion
 
 Create independent immutable rounds under
-`e2e/artifacts/acceptance/geon-kimi-magsafe-replication/<round-id>/` using the
+`e2e/artifacts/acceptance/molly-kimi-magsafe-replication/<round-id>/` using the
 existing [artifact conventions](ARTIFACTS.md). Retain:
 
 - Input hash/dimensions, exact prompt and source/build/runtime/model identities.
@@ -203,7 +203,7 @@ the review profiles. Both rounds used an explicit 90-minute ceiling.
 The baseline is 285×2000; the single-file result is 570×4000 and is uniformly
 displayed at the reference size for comparison. The new PNG SHA-256 is
 `d2b8b6ce7e159baf089f43ba25cbfd07b1b25861909935b6161f151bfa0b7914`.
-Evidence is under the ignored `e2e/artifacts/acceptance/geon-kimi-magsafe-replication/`
+Evidence is under the ignored `e2e/artifacts/acceptance/molly-kimi-magsafe-replication/`
 round directories, with a three-way `geon-single-canvas-20260915/review.html`.
 
 The single-file build also fixes the isolated canvas's missing bundled Inter and

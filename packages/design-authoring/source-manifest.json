@@ -83,16 +83,16 @@
   },
   "derivations": {
     "verbatim": "byte-identical to the pinned upstream; build.mjs verifies the recorded sha256",
-    "adapted": "Geon adaptations and subsequent simplification; upstreamSha256 records provenance",
+    "adapted": "Molly Design adaptations and subsequent simplification; upstreamSha256 records provenance",
     "ported": "re-implemented dependency-free for Node (upstream was Python/Pillow)",
-    "original": "Geon-authored YAML canvas materials; not a live upstream pin"
+    "original": "Molly Design-authored YAML canvas materials; not a live upstream pin"
   },
   "excluded": [
     "packages/authoring/src/revisions.ts (immutable revision CAS store)",
     "packages/authoring/src/workspace.ts (CAS workspace persistence)",
     "skills/graphic-design/references/pptd.md (upstream PPTD catalogue; not a live pin)",
     "skills/graphic-design/references/pptd-authoring.md and examples/minimal PPTD files (not live upstream pins)",
-    "rewritten graphic-design/imagegen SKILL.md and helper scripts (Geon-local; not live upstream pins)",
+    "rewritten graphic-design/imagegen SKILL.md and helper scripts (Molly Design-local; not live upstream pins)",
     "skills/graphic-design/scripts/reference-pack.py superseded by the ported .mjs",
     "skills/graphic-design/VENDOR.lock (runtime per-file freezing replaced by this build-time manifest)",
     "skills/imagegen/scripts/image_gen.py, references/cli.md, references/codex-network.md, references/image-api.md (old CLI/deployment specifics)",

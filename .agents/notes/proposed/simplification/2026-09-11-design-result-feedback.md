@@ -32,17 +32,17 @@ retirement and new adaptation are not yet implemented.
   actions; `baed947b6f16263cb6a2f8f37e10f1695d146fe0` added P2.6 thumbnail references.
   These were not unplanned additions during P2 development.
 - The [message rendering entry](../../../../packages/components/src/components/ai-gui/view.tsx)
-  mounts the card under the user's turn in design sessions; the [state parser](https://github.com/LeonEthan/Geon/blob/a09858632afaf2a9d1929af95f593308951d8ae9/packages/components/src/lib/design-turn-result.ts)
+  mounts the card under the user's turn in design sessions; the [state parser](https://github.com/LeonEthan/molly-design/blob/a09858632afaf2a9d1929af95f593308951d8ae9/packages/components/src/lib/design-turn-result.ts)
   reads persistent `designOutcome` and provides a live display, with states committed,
   candidate, invalid, no_artifact, failed, cancelled.
-- The [card component](https://github.com/LeonEthan/Geon/blob/a09858632afaf2a9d1929af95f593308951d8ae9/packages/components/src/components/sessions/design-turn-result-card.tsx)
+- The [card component](https://github.com/LeonEthan/molly-design/blob/a09858632afaf2a9d1929af95f593308951d8ae9/packages/components/src/components/sessions/design-turn-result-card.tsx)
   reads candidate state and thumbnail, provides positioning, adopt, discard, and
   user-triggered fix. Fix goes through the ordinary `dispatchPrompt` in
   [session-chat-interface](../../../../packages/components/src/components/sessions/session-chat-interface.tsx),
   not automatic repair or a private Agent channel; the card does not perform semantic
   quality review.
-- [Thumbnail generation](https://github.com/LeonEthan/Geon/blob/baed947b6f16263cb6a2f8f37e10f1695d146fe0/apps/cli/src/design/thumbnail.ts),
-  [reading](https://github.com/LeonEthan/Geon/blob/baed947b6f16263cb6a2f8f37e10f1695d146fe0/apps/cli/src/design/thumbnail-read.ts),
+- [Thumbnail generation](https://github.com/LeonEthan/molly-design/blob/baed947b6f16263cb6a2f8f37e10f1695d146fe0/apps/cli/src/design/thumbnail.ts),
+  [reading](https://github.com/LeonEthan/molly-design/blob/baed947b6f16263cb6a2f8f37e10f1695d146fe0/apps/cli/src/design/thumbnail-read.ts),
   and optional references in the shared outcome are maintenance surfaces beyond display.
   They reuse the existing rendering bridge, not a second renderer; no measured data proves
   their cost unacceptable, and reuse alone does not make the requirement deletable.
@@ -89,7 +89,7 @@ fields/states/protocols that exist only for possible future needs to be deleted 
 only the current-minimum form within a phase, scenario knowledge to live in skills, and
 Agents to finish autonomously before checking artifacts. This review applies those project
 source texts as the design basis, without automatically transplanting the adjacent
-project's full architecture or export governance contract into Geon. Public method
+project's full architecture or export governance contract into Molly Design. Public method
 background is in the
 [Everyday Astronaut first-hand interview summary](https://everydayastronaut.com/starbase-tour-and-interview-with-elon-musk/).
 
@@ -140,14 +140,14 @@ Checking the adjacent project's current UI entry `app.js` and orchestration modu
   `pendingCandidate` (line 685) also serves pending candidates.
 - Candidate images come from a preview interface requested by revision; the adjacent
   `packages/orchestration/src/revisions.ts` `previewRevision` (line 196) reads the revision
-  and calls the existing renderer to return a PNG. It does not prove that Geon's per-turn
+  and calls the existing renderer to return a PNG. It does not prove that Molly Design's per-turn
   thumbnail capture, storage, and outcome reference chain has a source; that corresponding
   function was not found in the inspected app and public package source. Bento's own page
   thumbnails are also not session-history result thumbnails.
 
 This corrects the judgment: candidate review is an existing capability and can be reduced
 and migrated; generalizing it into a per-turn result card and adding per-turn historical
-visual receipts is a Geon migration extension. Even if they were written into this
+visual receipts is a Molly Design migration extension. Even if they were written into this
 project's plan from the start, they do not fit the now-clarified migration scope and should
 be removed from subsequent goals, not kept or relocated on "might be useful" grounds. This
 is a source-fact correction and does not constitute a requirement to migrate candidates
@@ -169,18 +169,18 @@ with "already done."
 
 | Scope / state | Evidence and judgment | Disposition |
 | --- | --- | --- |
-| P2.5/P2.6 implemented: generic result card, dedicated fix button, per-turn images | Source only shows review card for pending candidates; Geon extended it to all states and added a thumbnail write/read chain. | Retire in P3.0; fixes continue via ordinary input/file diagnostics, old content reachable, no candidate entry built. |
+| P2.5/P2.6 implemented: generic result card, dedicated fix button, per-turn images | Source only shows review card for pending candidates; Molly Design extended it to all states and added a thumbnail write/read chain. | Retire in P3.0; fixes continue via ordinary input/file diagnostics, old content reachable, no candidate entry built. |
 | P4.2 not implemented: sidebar artwork thumbnails | Source `navigation.js` uses session navigation; no corresponding artwork thumbnail chain found. Current-artwork positioning needs no new image generation/cache. | Delete from feature list, P4, and concept-art constraints; do not move the retired image chain to the sidebar. |
 | P2.1 already migrated to skill, P3.6 pending: fixed creation flow | Current [SKILL.md](../../../../packages/design-authoring/skills/graphic-design/SKILL.md) Produce section requires fixed order, inspect reference image once, forbid self pixel analysis, publish via finalize; having a source does not equal fitting the target paradigm. | Keep format contract and optional helper scripts; cancel method constraints and mandatory finalize; no longer fail all review because a single tool is absent. |
 | P2.7 #2b implemented: old-file auto-promotion | [turn-outcome.ts](../../../../apps/cli/src/design/turn-outcome.ts) still `keepCandidate` when `unchangedSinceSend` and different from current artwork, adding post-turn processing for visibility. Source orchestration's candidates correspond to regeneration or conflict coordination, not proving the same old-file promotion need. | Delete auto-promotion in P3.0d; keep files and existing candidates/receipts; explicit resubmission has a separate baseline contract. |
 | P0/P1 done: bridge, save, export, conflict copy | Bento cannot be used as an ordinary React component; storage, resources, and version protection have current consumers. Size interaction already has a clear decision; serial editing replaces normal human-machine concurrency. | Keep necessary adaptation; conflict copy remains an abnormal escape hatch, not expanded into a daily flow. |
 | P2.2/P2.3/P2.7 done: input snapshot, atomic commit, receipt recovery | These protect the current artwork and record historical submission facts not reconstructible from it; P2-A2 current-canvas update also consumes committed revision. | Keep; when removing cards check consumers; do not delete the whole `designOutcome`, input snapshot, or rendering bridge together. |
-| P3.1/P3.7 pending: read hook, read-only live preview | Confirmed Geon adaptation, not claimable as existing in source; shared forward conversion, workspace, actual hooks, and Lody watcher. | Keep confirmed scope; do not expand into a generic hook platform, new runtime, persistent preview library, or auto-submit system. |
-| P3 image/selection, P4 context actions | Source already has image editing and stable selection; Geon MCP currently only generates images, edit needs to be added. | Reuse input/dispatch and existing image connection, required model with no default; regeneration uses unified commit, candidate flow deleted. |
+| P3.1/P3.7 pending: read hook, read-only live preview | Confirmed Molly Design adaptation, not claimable as existing in source; shared forward conversion, workspace, actual hooks, and Lody watcher. | Keep confirmed scope; do not expand into a generic hook platform, new runtime, persistent preview library, or auto-submit system. |
+| P3 image/selection, P4 context actions | Source already has image editing and stable selection; Molly Design MCP currently only generates images, edit needs to be added. | Reuse input/dispatch and existing image connection, required model with no default; regeneration uses unified commit, candidate flow deleted. |
 | P3–P5 asset library, brand resources, artwork catalog, template marketplace | Explicitly out of migration scope; some old diagrams still draw these capabilities. | Keep deleted; 2026-09-12 user separately confirmed Git design history, do not use this to restore these capabilities or the source project's full revision library. |
 | P5/P6 cleanup, packaging, and acceptance | Reuse Lody infrastructure and existing tests; platform/agent support needs empirical evidence. | Keep necessary delivery work; do not build a new release system, verification engine, or Agent scheduler. |
 
-Reference-image attachment P2-A3 is an adaptation gap for Geon's local composition of the
+Reference-image attachment P2-A3 is an adaptation gap for Molly Design's local composition of the
 existing Lody attachment chain; reference-pack non-PNG is an optional helper-script
 raster-analysis limitation and cannot be expanded into "Agents do not support non-PNG
 images." Both remain separate; specific reuse evidence is below. Hand-written PNG porting
@@ -199,8 +199,8 @@ original P0–P2 historical judgments are not rewritten.
 
 Agent image reading and result cards are different consumers: the skill's Review usage in
 [SKILL.md](../../../../packages/design-authoring/skills/graphic-design/SKILL.md) calls
-`geon_render_preview` and then opens the PNG with whatever image tool is available;
-[thumbnail.ts](https://github.com/LeonEthan/Geon/blob/baed947b6f16263cb6a2f8f37e10f1695d146fe0/apps/cli/src/design/thumbnail.ts)
+`molly_render_preview` and then opens the PNG with whatever image tool is available;
+[thumbnail.ts](https://github.com/LeonEthan/molly-design/blob/baed947b6f16263cb6a2f8f37e10f1695d146fe0/apps/cli/src/design/thumbnail.ts)
 generates small images for the UI after artifacts are categorized. After deletion, tool
 registration, preview queue/host, and image-reading usage must remain; rendering success,
 model saying it looked, and successful image reading are different facts. Old-content
@@ -221,7 +221,7 @@ visual truth, recomputable derived state, current-phase minimum form, scenario k
 skills, evidence-driven constraints, and autonomous completion, as this project's
 constraints. It questions requirements, deletes before simplifying, and optimizes last. It
 does not copy the source's immutable revision library, export-only governance, closed tool
-whitelist, or full runtime; those are inconsistent with Geon's confirmed scope and Lody's
+whitelist, or full runtime; those are inconsistent with Molly Design's confirmed scope and Lody's
 working paradigm.
 
 Document updates cover root rules, Spec, phase plan, related sync/preview decisions, and
@@ -231,11 +231,11 @@ acceptance.
 
 ## Lody routine capability review (2026-09-11)
 
-This round compared Geon `HEAD=101425f` source against the pre-migration Lody baseline
+This round compared Molly Design `HEAD=101425f` source against the pre-migration Lody baseline
 `8ea564d`, distinguishing original generic capabilities, P0–P2 already-migrated
 capabilities, and P3 new connection work. The installed Lody attachment menu was observed,
 but no upload/send was verified, nor was its binary proven to match the local source
-version. A single Geon OSS acceptance failure cannot be generalized to Lody lacking
+version. A single Molly Design OSS acceptance failure cannot be generalized to Lody lacking
 attachments; likewise, having an entry and code does not mean the cloud-authenticated
 end-to-end has passed.
 
@@ -296,12 +296,12 @@ merged, product responsibilities are not.
 | 5, 6: create, size, edit, save, reopen, export | P1 already connected existing Session create/auto-naming and [design-service](../../../../apps/electron/src/main/services/design-service.ts); Bento has edit commands and undo/redo. | Later only new serial boundary and UI adaptation; Lody's ordinary file save/image save is not a substitute for editable design persistence. |
 | 7, 8, 9: conversion, reverse projection, draft | P2 already has [intakeAuthoring](../../../../packages/design-authoring/src/intake.ts); Lody has workspace and dispatch. | Forward conversion continues to reuse; reverse editable semantics and projection/draft isolation are explicit new adaptation; existing group/multi-shadow still need minimal PPTD extension. |
 | 10, 11, 12: hooks, five agents, version/receipts | Existing Agent wiring, P2 [turn-input](../../../../apps/cli/src/design/turn-input.ts), [turn-outcome](../../../../apps/cli/src/design/turn-outcome.ts), and store already protect submission. | Do not rebuild wiring and receipts; add thin read/write hook adapters and verify actual tool coverage; Lody supporting an Agent does not equal supporting design hooks. |
-| 15, 16: candidates and old-file promotion | P2 already has candidate persistence and actions; #2b is a Geon-added attribution strategy. | P3.0/P3.3 retire new candidate production and UI, P3.4 protect old content; P3.0d delete old-file passive promotion; explicit resubmission has a separate baseline contract. |
+| 15, 16: candidates and old-file promotion | P2 already has candidate persistence and actions; #2b is a Molly Design-added attribution strategy. | P3.0/P3.3 retire new candidate production and UI, P3.4 protect old content; P3.0d delete old-file passive promotion; explicit resubmission has a separate baseline contract. |
 | 17, 18: live preview and current artwork | [File preview](../../../../apps/cli/src/lib/file-preview/README.md), [watch coordinator](../../../../apps/cli/src/lib/code-collab/workspace-watch-coordinator.ts), Bento, and forward conversion already exist. | Connect PPTD multi-file snapshot, restricted subscription, and independent preview; ordinary file preview does not convert PPTD, and the existing watcher subscribes to workspace root, not yet a precise-dependency API. |
-| 19: rendering and image reading | P2.4b already has `geon_render_preview`; Lody has file/image display, and Agents have actual image-reading capability. | Keep capability; retiring result cards does not delete generic attachment bubbles, image preview, copy/save, or Agent image content blocks. |
+| 19: rendering and image reading | P2.4b already has `molly_render_preview`; Lody has file/image display, and Agents have actual image-reading capability. | Keep capability; retiring result cards does not delete generic attachment bubbles, image preview, copy/save, or Agent image content blocks. |
 | 20: skill | Lody already has skill discovery/materialization and input references; P2 already migrated the design skill. | Converge forced steps; do not build a new skill manager or fixed creation flow. |
 | 21: image generation and current-canvas image operations | P2.4 already has [image connection settings](../../../../packages/components/src/components/settings/image-connection-setting.tsx), [generation tool](../../../../apps/cli/src/mcp/image-generation.ts); Bento [image command](../../../../packages/design-bento/vendor/packages/editor-bento/src/ui/image.ts) already has replace/crop, etc. | P3.2a reuse connection and add generate/edit requests, delete product default model; P3.2b connect current selection; do not rebuild image editor or image job service. |
-| 22: reference-image attachments | See the full input/local-file chain above. | Geon local composition adaptation and acceptance; do not write this as "adding attachment functionality" or "building new local image storage." |
+| 22: reference-image attachments | See the full input/local-file chain above. | Molly Design local composition adaptation and acceptance; do not write this as "adding attachment functionality" or "building new local image storage." |
 | 23: non-PNG reference analysis | [image-preview-export](../../../../packages/components/src/lib/image-preview-export.ts) `encodePngBytes` already decodes via browser and converts via Canvas; this file existed in the pre-migration baseline. | Optional script capability adaptation; if normalized, prefer reusing in the existing renderer entry that holds the image and passing an analysis copy; do not let CLI/skill import Electron, and do not build a new decode channel. |
 | 24: element references | Already have [mentions](../../../../packages/components/src/components/mentions/README.md), [visual-annotation input](../../../../packages/components/src/components/preview/visual-annotation-draft-composer.tsx), and [anchor contract](../../../../packages/shared/src/visual-annotation-types.ts). | Reuse input/reference presentation and dispatch; web selector/rectangles are not stable Bento IDs, so artwork/baseline/element binding is still needed; do not migrate another annotation system. |
 | 25: shortcuts | [Commands and shortcuts](../../../../packages/components/src/lib/commands/shortcuts.ts), ordinary prompt dispatch already exist. | Optional target actions reuse existing entry; no new command system, and no convenience buttons blocking basic creation. |
@@ -324,7 +324,7 @@ capability and development-size inferences are withdrawn. P3.5/P4/P6 generic cap
 are listed as reuse/adapt/verify, and P2 completed capabilities are not redeveloped. The
 above sender, blob store, PNG helper, layout, command palette, watch coordinator,
 onboarding, and shortcut modules show no diff between `8ea564d..101425f`; they are Lody
-existing implementation, not new Geon extensions discovered this round.
+existing implementation, not new Molly Design extensions discovered this round.
 
 This round is source and plan review, only changing documents; no product tests, real
 Agents, attachment uploads, listener execution, or installed-package full behavior were

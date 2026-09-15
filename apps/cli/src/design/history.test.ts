@@ -6,14 +6,14 @@ import { afterEach, expect, test } from 'vitest';
 import { designHistoryOperation } from './history';
 import { designOperation } from './store';
 import { withDesignLock } from './lock';
-import { ARTWORK_ENTRY, collectAuthoring, intakeAuthoring } from '@geon/design-authoring';
+import { ARTWORK_ENTRY, collectAuthoring, intakeAuthoring } from '@molly-design/design-authoring';
 
 const roots: string[] = [];
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 async function fixture() {
-  const root = await mkdtemp(path.join(tmpdir(), 'geon-history-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'molly-history-'));
   roots.push(root);
   const sessionId = randomUUID();
   const initial = await designOperation(root, {
@@ -220,7 +220,7 @@ test('stale restore and another artwork version cannot overwrite current work', 
 
 test('history cannot be redirected into an unrelated repository', async () => {
   const { root, sessionId, initial } = await fixture();
-  const unrelated = await mkdtemp(path.join(tmpdir(), 'geon-unrelated-'));
+  const unrelated = await mkdtemp(path.join(tmpdir(), 'molly-unrelated-'));
   roots.push(unrelated);
   await symlink(unrelated, path.join(root, 'chats', sessionId, 'history.git'), 'dir');
   await expect(

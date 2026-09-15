@@ -11,7 +11,7 @@ import {
   sparklePackageJsonPathFromModuleEntry
 } from './app-updater-sparkle-policy.ts'
 
-void test('Geon supports updates only on its first-release platform', () => {
+void test('Molly Design supports updates only on its first-release platform', () => {
   assert.equal(
     shouldConstructUpdaterEnabled({
       localPlatform: true,
@@ -81,7 +81,7 @@ void test('uses Sparkle only for packaged macOS when the native bridge is availa
 void test('resolves the GitHub Releases appcast and ignores blank overrides', () => {
   assert.equal(
     resolveSparkleAppcastUrl({}),
-    'https://github.com/LeonEthan/Geon/releases/latest/download/appcast.xml'
+    'https://github.com/LeonEthan/molly-design/releases/latest/download/appcast.xml'
   )
   assert.equal(
     resolveSparkleAppcastUrl({ configuredAppcastUrl: '  https://example.com/appcast.xml  ' }),

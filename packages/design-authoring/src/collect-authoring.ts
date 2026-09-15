@@ -3,7 +3,7 @@
  * see source-manifest.json). This is the trust boundary: allowlist + lstat
  * without following links. Consumers only receive the collected Map.
  *
- * Geon adaptation: the only authoring entry is `design.yaml` with local `media/` assets. Leftover `.pptd` is not
+ * Molly Design adaptation: the only authoring entry is `design.yaml` with local `media/` assets. Leftover `.pptd` is not
  * admitted. Upstream's AuthoringSnapshotError is replaced by a local error
  * class so the CAS workspace module is not migrated.
  */
@@ -190,7 +190,7 @@ function scanAuthoring(
   for (const rootFile of ROOT_FILES) takeFile(rootFile);
   const leftoverPptd = lstatOptional(join(dir, 'design.pptd'), 'design.pptd');
   if (leftoverPptd !== null) {
-    throw new AuthoringSnapshotError('leftover PPTD is not admitted (GEON-E-PPTD): design.pptd');
+    throw new AuthoringSnapshotError('leftover PPTD is not admitted (MOLLY-E-PPTD): design.pptd');
   }
 
   if (options.referencedOnly) {

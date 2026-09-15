@@ -79,7 +79,7 @@ function showBootFailure(error: unknown, scope: RendererFatalScope): void {
   reportFatalToMain(error, scope)
   renderBootFailure(rootElement!, error, {
     buildInfo,
-    hint: 'If this keeps happening after a Reload, click "Copy error" and share it in Geon Issues.',
+    hint: 'If this keeps happening after a Reload, click "Copy error" and share it in Molly Design Issues.',
     onReload: () => {
       if (!requestReloadViaMain()) {
         window.location.reload()

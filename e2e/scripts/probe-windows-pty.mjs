@@ -22,9 +22,9 @@ if (process.argv.includes('--child')) {
       output += event.data;
       if (!sent) {
         sent = true;
-        service.input(event.terminalId, 'cmd.exe /d /c echo geon-pty-probe-rea^dy\r');
+        service.input(event.terminalId, 'cmd.exe /d /c echo molly-pty-probe-rea^dy\r');
       }
-      if (!closing && output.includes('geon-pty-probe-ready')) {
+      if (!closing && output.includes('molly-pty-probe-ready')) {
         closing = true;
         process.send({ phase: 'close-session', hostPid: process.pid });
         service.closeSession('native-probe');

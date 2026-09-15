@@ -2,7 +2,7 @@
 
 This is a compact format guide. Read
 [graphic-canvas-profile.md](graphic-canvas-profile.md) first. Write the YAML
-artwork projection below; Geon's intake validator enforces it after your turn.
+artwork projection below; Molly Design's intake validator enforces it after your turn.
 
 Do not invent fields. Do not write a presentation catalogue, HTML rich text,
 theme `$ref`, or leftover `.pptd` syntax.
@@ -117,10 +117,10 @@ Two geometry habits the editor rewards:
 `node scripts/finalize.mjs <project>/design.yaml[.tmp]` (from the skill
 directory) is an optional structural self-check. It can promote a clean `.tmp`,
 but writing `design.yaml` directly is supported. Neither this helper nor a
-review sequence is a completion or commit requirement. Geon independently
+review sequence is a completion or commit requirement. Molly Design independently
 checks the collected project and versions. When rendering through
-`geon_render_preview`, open the PNG with an actual image-reading tool to judge
-composition and decide on edits. If `geon_render_preview` is absent, only that
+`molly_render_preview`, open the PNG with an actual image-reading tool to judge
+composition and decide on edits. If `molly_render_preview` is absent, only that
 tool is unavailable.
 
 Any silent drop, placeholder, reset after reopen, or mismatch between preview

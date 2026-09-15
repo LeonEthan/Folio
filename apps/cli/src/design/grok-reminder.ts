@@ -9,17 +9,18 @@ import { z } from 'zod';
 export async function prepareGrokDesignReminder(
   entry = path.join(path.dirname(fileURLToPath(import.meta.url)), 'grok-design-reminder.js')
 ) {
-  if (!existsSync(entry)) throw Error('Geon Grok design reminder is missing from the CLI bundle');
+  if (!existsSync(entry))
+    throw Error('Molly Design Grok design reminder is missing from the CLI bundle');
   const quote = (value: string) =>
     process.platform === 'win32'
       ? `"${value.replaceAll('"', '""')}"`
       : `'${value.replaceAll("'", "'\\''")}'`;
-  const directory = await realpath(await mkdtemp(path.join(tmpdir(), 'geon-grok-reminder-')));
+  const directory = await realpath(await mkdtemp(path.join(tmpdir(), 'molly-grok-reminder-')));
   try {
     await mkdir(path.join(directory, 'hooks'));
     await writeFile(
       path.join(directory, 'plugin.json'),
-      JSON.stringify({ name: 'geon-read-before-edit', version: '1.0.0' }),
+      JSON.stringify({ name: 'molly-read-before-edit', version: '1.0.0' }),
       { flag: 'wx' }
     );
     await writeFile(
@@ -71,6 +72,6 @@ export async function reloadGrokDesignReminder(
     )
   )
     throw Error(
-      'Geon Grok read-before-edit reminder was not loaded; native plugin policy and user configuration were preserved'
+      'Molly Design Grok read-before-edit reminder was not loaded; native plugin policy and user configuration were preserved'
     );
 }

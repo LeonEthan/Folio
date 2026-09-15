@@ -1,9 +1,9 @@
-appId: dev.geon.app
-productName: Geon
+appId: dev.molly-design.app
+productName: Molly Design
 protocols:
-  - name: Geon Desktop
+  - name: Molly Design Desktop
     schemes:
-      - geon
+      - molly-design
 directories:
   buildResources: build
 # Embedded-CLI native deps: swap Electron-ABI bindings per packaging target,
@@ -77,15 +77,15 @@ electronLanguages:
   - en_US
   - en-US
 win:
-  executableName: geon
+  executableName: molly
   icon: build/icon.ico
 nsis:
   # GitHub Releases rewrites spaces in uploaded asset names to periods, which would
   # desynchronize the file names electron-builder records in latest*.yml from the
   # ones electron-updater can actually download on Windows/Linux. productName is
-  # "Geon", so every artifact name here uses a space-free token instead of
+  # "Molly Design", so every artifact name here uses a space-free token instead of
   # ${productName}. macOS updates use Sparkle appcast.xml, not latest-mac.yml.
-  artifactName: Geon-${version}-${arch}-setup.${ext}
+  artifactName: MollyDesign-${version}-${arch}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
@@ -102,7 +102,7 @@ mac:
     NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
     NSUserNotificationAlertStyle: banner
-    SUFeedURL: https://github.com/LeonEthan/Geon/releases/latest/download/appcast.xml
+    SUFeedURL: https://github.com/LeonEthan/molly-design/releases/latest/download/appcast.xml
     SUPublicEDKey: SPARKLE_ED_PUBLIC_KEY_PLACEHOLDER
     SUEnableInstallerLauncherService: false
     SUScheduledCheckInterval: 3600
@@ -114,26 +114,26 @@ mac:
   # Local builds without Apple credentials are still fine: electron-builder skips
   # signing (and therefore notarization) with a warning rather than failing.
   notarize: true
-  artifactName: Geon-${version}-${arch}.${ext}
+  artifactName: MollyDesign-${version}-${arch}.${ext}
 dmg:
-  artifactName: Geon-${version}-${arch}.${ext}
+  artifactName: MollyDesign-${version}-${arch}.${ext}
   writeUpdateInfo: false
 linux:
   icon: build/icon.png
-  executableName: geonDesktop
+  executableName: mollyDesign
   syncDesktopName: true
   target:
     - AppImage
     - snap
     - deb
-  maintainer: Geon contributors
+  maintainer: Molly Design contributors
   category: Utility
 appImage:
-  artifactName: Geon-${version}-${arch}.${ext}
+  artifactName: MollyDesign-${version}-${arch}.${ext}
 snap:
-  artifactName: Geon-${version}-${arch}.${ext}
+  artifactName: MollyDesign-${version}-${arch}.${ext}
 deb:
-  artifactName: Geon-${version}-${arch}.${ext}
+  artifactName: MollyDesign-${version}-${arch}.${ext}
 includePdb: false
 npmRebuild: false
 # The public build has no VITE_ELECTRON_UPDATE_URL to inject: electron.vite.config.ts
@@ -144,4 +144,4 @@ npmRebuild: false
 publish:
   provider: github
   owner: LeonEthan
-  repo: Geon
+  repo: molly-design

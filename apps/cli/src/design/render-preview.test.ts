@@ -15,7 +15,7 @@ import path from 'node:path';
 import { deflateSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { DesignRenderHostWork } from '@lody/shared';
-import { ARTWORK_ENTRY } from '@geon/design-authoring';
+import { ARTWORK_ENTRY } from '@molly-design/design-authoring';
 import { canonicalContentBytes } from './store';
 import {
   DESIGN_PREVIEW_DIRNAME,
@@ -115,7 +115,7 @@ type Harness = {
 };
 
 function createHarness(options: { artifact?: boolean; page?: string } = {}): Harness {
-  const dataRoot = mkdtempSync(path.join(tmpdir(), 'geon-render-preview-'));
+  const dataRoot = mkdtempSync(path.join(tmpdir(), 'molly-render-preview-'));
   roots.push(dataRoot);
   const sessionId = 'artwork-1';
   const workdir = path.join(dataRoot, 'chats', sessionId);
@@ -253,7 +253,7 @@ describe('renderDesignPreview', () => {
 
   it('refuses a rendering that lands outside the session workspace', async () => {
     const { ctx } = createHarness();
-    const outside = await mkdtemp(path.join(tmpdir(), 'geon-render-outside-'));
+    const outside = await mkdtemp(path.join(tmpdir(), 'molly-render-outside-'));
     const escaped = path.join(outside, 'escaped.png');
     const queue = queueThat(async () => {
       await writeFile(escaped, syntheticPng(4, 4, [0, 0, 0]));
@@ -275,11 +275,11 @@ describe('renderDesignPreview', () => {
     const { ctx } = createHarness();
     const queue = queueThat(async () => ({
       status: 'refused',
-      error: 'the Geon desktop is not running',
+      error: 'the Molly Design desktop is not running',
     }));
     await expect(renderDesignPreview(ctx, queue)).resolves.toEqual({
       status: 'refused',
-      error: 'the Geon desktop is not running',
+      error: 'the Molly Design desktop is not running',
     });
   });
 
@@ -351,7 +351,7 @@ describe('manual source snapshots', () => {
 
   it('refuses mixed observations and incomplete references without modifying the draft', async () => {
     const { workdir } = createHarness();
-    const { collectAuthoring } = await import('@geon/design-authoring');
+    const { collectAuthoring } = await import('@molly-design/design-authoring');
     const first = collectAuthoring(workdir, { referencedOnly: true });
     writeFileSync(path.join(workdir, ARTWORK_ENTRY), PAGE.replace('Hello', 'Intermediate'));
     const second = collectAuthoring(workdir, { referencedOnly: true });
@@ -389,7 +389,7 @@ describe('manual source snapshots', () => {
       previousSourceIdentity: valid.sourceIdentity,
     });
     expect(afterLeftover.status).toBe('refused');
-    expect(afterLeftover.error).toMatch(/GEON-E-PPTD/);
+    expect(afterLeftover.error).toMatch(/MOLLY-E-PPTD/);
     expect(afterLeftover.sourceIdentity).toBeUndefined();
     expect(afterLeftover.dependencies).toEqual([ARTWORK_ENTRY]);
     expect(afterLeftover.dependencies).not.toContain('design.pptd');

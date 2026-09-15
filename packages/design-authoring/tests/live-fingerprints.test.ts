@@ -28,18 +28,19 @@ elements:
 `;
 
 describe('live PPTD/Kimi fingerprints', () => {
-  it('ships geon-authoring.mjs and does not keep a geon-pptd helper', () => {
+  it('ships molly-authoring.mjs and does not keep a pre-rename helper', () => {
     expect(existsSync(path.join(helperDir, 'lib', 'geon-pptd.mjs'))).toBe(false);
-    expect(existsSync(path.join(helperDir, 'lib', 'geon-authoring.mjs'))).toBe(true);
+    expect(existsSync(path.join(helperDir, 'lib', 'geon-authoring.mjs'))).toBe(false);
+    expect(existsSync(path.join(helperDir, 'lib', 'molly-authoring.mjs'))).toBe(true);
     const finalize = readFileSync(path.join(helperDir, 'finalize.mjs'), 'utf8');
     const preview = readFileSync(path.join(helperDir, 'render-preview.mjs'), 'utf8');
-    expect(finalize).toContain('./lib/geon-authoring.mjs');
-    expect(preview).toContain('./lib/geon-authoring.mjs');
-    expect(finalize).not.toMatch(/geon-pptd/);
-    expect(preview).not.toMatch(/geon-pptd/);
+    expect(finalize).toContain('./lib/molly-authoring.mjs');
+    expect(preview).toContain('./lib/molly-authoring.mjs');
+    expect(finalize).not.toMatch(/geon-pptd|geon-authoring/);
+    expect(preview).not.toMatch(/geon-pptd|geon-authoring/);
   });
 
-  it('emits GEON-E* diagnostics rather than PPTD-E*', () => {
+  it('emits MOLLY-E* diagnostics rather than PPTD-E*', () => {
     const result = intakeAuthoring(
       'design.yaml',
       new Map([
@@ -52,13 +53,13 @@ describe('live PPTD/Kimi fingerprints', () => {
     expect(result.status).toBe('invalid');
     if (result.status !== 'invalid') return;
     expect(result.diagnostics.length).toBeGreaterThan(0);
-    expect(result.diagnostics.every((diagnostic) => diagnostic.code.startsWith('GEON-E'))).toBe(
+    expect(result.diagnostics.every((diagnostic) => diagnostic.code.startsWith('MOLLY-E'))).toBe(
       true
     );
     expect(result.diagnostics.some((diagnostic) => diagnostic.code.startsWith('PPTD-'))).toBe(
       false
     );
-    expect(result.diagnostics.some((diagnostic) => diagnostic.code === 'GEON-E005')).toBe(true);
+    expect(result.diagnostics.some((diagnostic) => diagnostic.code === 'MOLLY-E005')).toBe(true);
   });
 
   it('presents the excluded remote renderer without PPTD or Kimi names', () => {
@@ -74,7 +75,7 @@ describe('live PPTD/Kimi fingerprints', () => {
     );
     expect(result.ok).toBe(false);
     const diagnostic = result.diagnostics[0];
-    expect(diagnostic?.code).toBe('GEON-E011');
+    expect(diagnostic?.code).toBe('MOLLY-E011');
     expect(diagnostic?.message).toMatch(/remote renderer/i);
     expect(diagnostic?.message).not.toMatch(/kimi|pptd/i);
   });

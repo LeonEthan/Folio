@@ -130,7 +130,7 @@ export class AppUpdaterService {
     }
     if (this.options.requireSparkle) {
       this.configurationUnavailable = true
-      this.setState({ phase: 'disabled', disabledReason: 'geon_update_configuration_unavailable' })
+      this.setState({ phase: 'disabled', disabledReason: 'molly_update_configuration_unavailable' })
       return
     }
 
@@ -382,7 +382,7 @@ export class AppUpdaterService {
     }
 
     // In a signed package Info.plist is authoritative; an inherited shell key/feed
-    // must not redirect a Geon installation or downgrade its verification.
+    // must not redirect a Molly Design installation or downgrade its verification.
     if (this.options.requireSparkle) {
       try {
         const plist = join(app.getAppPath(), '..', '..', 'Info.plist')
@@ -394,7 +394,7 @@ export class AppUpdaterService {
           configuredAppcastUrl: process.env.SPARKLE_APPCAST_URL
         })
         if (
-          read('CFBundleIdentifier') !== 'dev.geon.app' ||
+          read('CFBundleIdentifier') !== 'dev.molly-design.app' ||
           read('SUFeedURL') !== expectedFeed ||
           !/^[A-Za-z0-9+/]{43}=$/.test(read('SUPublicEDKey'))
         )

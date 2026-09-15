@@ -9,7 +9,7 @@ import { createServer } from 'node:http';
 import { spawn, execFileSync } from 'node:child_process';
 const codex = process.env.CODEX_PATH || 'codex';
 assert.equal(execFileSync(codex, ['--version'], { encoding: 'utf8' }).trim(), 'codex-cli 0.153.4');
-const root = mkdtempSync(join(tmpdir(), 'geon-t18-native-'));
+const root = mkdtempSync(join(tmpdir(), 'molly-t18-native-'));
 const log = join(root, 'hooks.ndjson');
 writeFileSync(join(root, 'fixture.txt'), 'complete native read\n');
 writeFileSync(

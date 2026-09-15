@@ -33,7 +33,7 @@ void test('keeps the lifecycle fixture clean for helpers but exposes authored de
 });
 
 void test('preserves Windows paths when the custom Agent command is parsed by the product', async () => {
-  const eventLog = String.raw`C:\Temp\geon\scripted-acp-events.jsonl`;
+  const eventLog = String.raw`C:\Temp\molly\scripted-acp-events.jsonl`;
   const fixture = await WorkSessionFixture.create(eventLog);
   try {
     const sharedPackage: string = '@lody/shared';

@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID, createHash } from 'node:crypto';
-import { ARTWORK_ENTRY, collectAuthoring, intakeAuthoring } from '@geon/design-authoring';
+import { ARTWORK_ENTRY, collectAuthoring, intakeAuthoring } from '@molly-design/design-authoring';
 import { designOperation } from './store';
 import { resolveDesignWorkspace } from './workspace';
 
@@ -27,7 +27,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 async function create() {
-  const root = await mkdtemp(path.join(tmpdir(), 'geon-save-projection-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'molly-save-projection-'));
   roots.push(root);
   const id = randomUUID();
   const payload = await designOperation(root, {

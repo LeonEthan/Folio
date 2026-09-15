@@ -119,8 +119,8 @@ export class ElectronHarness {
   async launch(): Promise<void> {
     if (this.app || this.tempRoot) throw new Error('Electron harness already owns a launch');
     this.launchTarget = {
-      installedExecutable: process.env.GEON_E2E_INSTALLED_EXECUTABLE,
-      expectedSourceCommit: process.env.GEON_E2E_EXPECTED_SOURCE_COMMIT,
+      installedExecutable: process.env.MOLLY_E2E_INSTALLED_EXECUTABLE,
+      expectedSourceCommit: process.env.MOLLY_E2E_EXPECTED_SOURCE_COMMIT,
     };
     await this.start(false);
   }
@@ -158,7 +158,7 @@ export class ElectronHarness {
     if (!this.launchTarget) throw new Error('Electron launch target is missing');
     const { installedExecutable, expectedSourceCommit } = this.launchTarget;
     if (installedExecutable && !/^[a-f0-9]{40}$/.test(expectedSourceCommit ?? '')) {
-      throw new Error('Installed acceptance requires GEON_E2E_EXPECTED_SOURCE_COMMIT (full SHA)');
+      throw new Error('Installed acceptance requires MOLLY_E2E_EXPECTED_SOURCE_COMMIT (full SHA)');
     }
     if (installedExecutable && !existsSync(installedExecutable)) {
       throw new Error(`Installed Electron executable does not exist: ${installedExecutable}`);
@@ -249,8 +249,8 @@ export class ElectronHarness {
         const manifest: unknown = JSON.parse(
           fs.readFileSync(path.join(app.getAppPath(), 'package.json'), 'utf8')
         );
-        return manifest && typeof manifest === 'object' && 'geonSourceCommit' in manifest
-          ? manifest.geonSourceCommit
+        return manifest && typeof manifest === 'object' && 'mollySourceCommit' in manifest
+          ? manifest.mollySourceCommit
           : null;
       });
       this.record('electron-main', 'installed-source', JSON.stringify({ sourceCommit }));

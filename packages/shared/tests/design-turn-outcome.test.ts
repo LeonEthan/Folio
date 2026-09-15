@@ -39,7 +39,7 @@ describe('sanitizeDesignTurnOutcome', () => {
       status: 'candidate',
       candidateId: SHA,
       revisionId: undefined,
-      diagnostics: [{ code: 'GEON-E005', message: '引用媒体文件不存在：media/a.png' }],
+      diagnostics: [{ code: 'MOLLY-E005', message: '引用媒体文件不存在：media/a.png' }],
     });
     expect(sanitizeDesignTurnOutcome(candidate)).toEqual(candidate);
   });
@@ -68,21 +68,21 @@ describe('sanitizeDesignTurnOutcome', () => {
     const many = Array.from(
       { length: MAX_DESIGN_TURN_OUTCOME_DIAGNOSTICS + 5 },
       (_value, index) => ({
-        code: `GEON-E${String(index).padStart(3, '0')}`,
+        code: `MOLLY-E${String(index).padStart(3, '0')}`,
         message: `problem ${index}`,
       })
     );
     const bounded = sanitizeDesignTurnOutcomeDiagnostics([...many, many[0]]);
     expect(bounded).toHaveLength(MAX_DESIGN_TURN_OUTCOME_DIAGNOSTICS);
     expect(sanitizeDesignTurnOutcomeDiagnostics([])).toBeUndefined();
-    expect(sanitizeDesignTurnOutcomeDiagnostics([{ code: 'GEON-E001' }])).toBeUndefined();
+    expect(sanitizeDesignTurnOutcomeDiagnostics([{ code: 'MOLLY-E001' }])).toBeUndefined();
   });
 
   it('keeps one code reported at two different places', () => {
     expect(
       sanitizeDesignTurnOutcomeDiagnostics([
-        { code: 'GEON-E006', message: 'bounds 越出画布：pages[0].elements[1]' },
-        { code: 'GEON-E006', message: 'bounds 越出画布：pages[0].elements[2]' },
+        { code: 'MOLLY-E006', message: 'bounds 越出画布：pages[0].elements[1]' },
+        { code: 'MOLLY-E006', message: 'bounds 越出画布：pages[0].elements[2]' },
       ])
     ).toHaveLength(2);
   });

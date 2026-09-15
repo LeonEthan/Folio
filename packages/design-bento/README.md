@@ -1,7 +1,7 @@
 # Pinned Bento resources
 
-P0 loads a synthetic single-canvas design through Geon's Electron File menu.
-The CLI owns the current JSON at `<Geon data root>/chats/geon-p0/design.json`;
+P0 loads a synthetic single-canvas design through Molly Design's Electron File menu.
+The CLI owns the current JSON at `<Molly Design data root>/chats/molly-p0/design.json`;
 Electron owns a sandboxed, network-blocked Bento view and PNG/JPEG rendering.
 This fixed sample is not a new Session or a general document import API. P1 adds editable Session canvases; Agent generation remains P2.
 
@@ -24,7 +24,7 @@ Bento is pinned to `813c71fff72491e6898f5e55a20da44a562be586` (MIT, see
 `bento/LICENSE`). Its own `slides` and `kernel` sources are assembled with the
 adapter closure. Font Awesome Free glyph attribution is in `FONTAWESOME-LICENSE`;
 Space Mono's bundled fixture font is covered by `SPACE-MONO-LICENSE`.
-Geon's omitted text font resolves to Inter in the assembled contract copy. The
+Molly Design's omitted text font resolves to Inter in the assembled contract copy. The
 isolated canvas embeds Fontsource Inter 5.2.8 WOFF2 faces (regular/bold, normal/italic,
 with its original script ranges) and emits `INTER-LICENSE` (OFL). It cannot inherit
 fonts from the React shell. The font CSS identity is recorded in `build.json`;
@@ -46,7 +46,7 @@ workspace/relative path after durable save, without rolling back saved content.
 
 ## P1 manual designs
 
-`apps/cli/src/design/store.ts` owns `<Geon data root>/chats/<sessionId>/design.json`.
+`apps/cli/src/design/store.ts` owns `<Molly Design data root>/chats/<sessionId>/design.json`.
 The file atomically contains the canonical BentoDoc, referenced content-addressed
 asset bytes, and Session association. Assets are embedded so a confirmed save has
 no partially committed external asset table. The module is the single committer:
@@ -83,21 +83,21 @@ TypeScript adaptations. Original upstream identity and licenses remain unchanged
 
 ## Historical projection types
 
-`vendor/packages/contracts/src/pptd-v3.ts` records Geon's earlier adaptation
+`vendor/packages/contracts/src/pptd-v3.ts` records Molly Design's earlier adaptation
 of the pinned Bento v4 types. It remains pinned source evidence, not a live PPTD
 import/export entry. The current `geon-canvas/1` single-file conversion and
-projection capability mapping belong to `@geon/design-authoring`;
+projection capability mapping belong to `@molly-design/design-authoring`;
 see its [README](../design-authoring/README.md).
 The source manifest pins this additional file separately and records its origin.
 
 ## Serial canvas editing
 
-The desktop controls generic `geon.setReadonly`, `geon.flush` and `geon.state`.
+The desktop controls generic `molly.setReadonly`, `molly.flush` and `molly.state`.
 Bento does not observe Agent status: the bridge rejects semantic mutations while
 readonly, and the product overlay commits buffered input before freezing, then
 flushes accepted saves. An unfinished composition or save failure retains the draft.
 The product API reports its existing font-backed `ready` state and emits
-`geon:ready` at that boundary. Electron waits for both the complete generic API and
+`molly:ready` at that boundary. Electron waits for both the complete generic API and
 `state().ready` before an attach can complete; document load alone is insufficient.
 Views start readonly until the desktop confirms execution state. The daemon's
 existing visible-turn owner waits for all artwork instances and keeps them readonly
@@ -105,7 +105,7 @@ through provider completion and artifact processing; hiding a view changes no ow
 Unexpected dirty content blocks reload rather than being discarded. The original
 store CAS remains independent. See the [implementation note](../../.agents/notes/implemented/architecture/2026-09-11-canvas-serial-execution.zh.md), including the headless limitation.
 
-The generic `geon.selection()` bridge exposes the existing stable selection IDs.
+The generic `molly.selection()` bridge exposes the existing stable selection IDs.
 Electron captures those IDs, flushes, and pairs them with the saved canonical
 revision before inserting a normal composer mention. Bento has no conversation or
 reference lifecycle; source previews cannot supply element references.

@@ -13,7 +13,7 @@ export interface LodyMcpHttpEndpoint {
   token: string;
 }
 
-export const MCP_HTTP_DESIGN_LAUNCH_ID_HEADER = 'x-geon-design-launch-id';
+export const MCP_HTTP_DESIGN_LAUNCH_ID_HEADER = 'x-molly-design-launch-id';
 export const MCP_HTTP_SESSION_ID_HEADER = 'x-lody-mcp-session-id';
 export const MCP_HTTP_WORKSPACE_ID_HEADER = 'x-lody-mcp-workspace-id';
 export const MCP_HTTP_MACHINE_ID_HEADER = 'x-lody-mcp-machine-id';

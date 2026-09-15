@@ -67,7 +67,7 @@ describe('session file blob store', () => {
 
   it('lays out blobs under the local installation data directory', () => {
     const dir = getSessionFileBlobDir({ workspaceId: 'ws', sessionId: 'sess', homeDir });
-    expect(dir).toBe(join(homeDir, '.geon', 'session-files', 'ws', 'sess'));
+    expect(dir).toBe(join(homeDir, '.molly', 'session-files', 'ws', 'sess'));
     const file = getSessionFileBlobPath({
       workspaceId: 'ws',
       sessionId: 'sess',
@@ -298,7 +298,7 @@ describe('session file blob store', () => {
     const old = new Date(1_000);
     const backfilledPath = join(
       homeDir,
-      '.geon',
+      '.molly',
       'session-files',
       '_backfilled',
       'ws',
@@ -313,7 +313,7 @@ describe('session file blob store', () => {
   });
 
   it('returns no pending blobs for an empty/absent workspace', async () => {
-    await mkdir(join(homeDir, '.geon'), { recursive: true });
+    await mkdir(join(homeDir, '.molly'), { recursive: true });
     expect(await listPendingLocalSessionFiles({ workspaceId: 'ws', homeDir })).toEqual([]);
   });
 });

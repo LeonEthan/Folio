@@ -1,15 +1,15 @@
-# Geon installed-package human acceptance checklist (Issue #32)
+# Molly Design installed-package human acceptance checklist (Issue #32)
 
 Status: proposed
 Translation: pending
 
 ## Abstract
 
-The Geon 0.1.0 macOS arm64 release DMG has been built from the release packaging
+The Molly Design 0.1.0 macOS arm64 release DMG has been built from the release packaging
 script for the final installed-package acceptance originally required by
-[Issue #32](https://github.com/LeonEthan/Geon/issues/32). After #32 was closed,
+[Issue #32](https://github.com/LeonEthan/molly-design/issues/32). After #32 was closed,
 this checklist and the remaining release work moved to
-[Issue #34](https://github.com/LeonEthan/Geon/issues/34). This note records the
+[Issue #34](https://github.com/LeonEthan/molly-design/issues/34). This note records the
 artifact identity and checksums, the acceptance checklist, and the limits of what
 can be verified automatically. The visual identity verdict and the onboarding
 audio/video behavior checks require a human reviewer; no automated assertion can
@@ -22,14 +22,14 @@ the in-app update acceptance round.
 
 | File | Path | SHA-256 |
 |------|------|---------|
-| DMG | `apps/electron/dist/Geon-0.1.0-arm64.dmg` | `dbf8ed7ddb443c8b14cd2d015c3962fe98e1f320c44ecc97259a737aa70b6732` |
-| ZIP | `apps/electron/dist/Geon-0.1.0-arm64.zip` | `0dfc581e5479f7f67eb9d966521fa7bd6725f7d4f55eea385f396d010b5f856e` |
+| DMG | `apps/electron/dist/MollyDesign-0.1.0-arm64.dmg` | `dbf8ed7ddb443c8b14cd2d015c3962fe98e1f320c44ecc97259a737aa70b6732` |
+| ZIP | `apps/electron/dist/MollyDesign-0.1.0-arm64.zip` | `0dfc581e5479f7f67eb9d966521fa7bd6725f7d4f55eea385f396d010b5f856e` |
 
 Packaged app identity:
 
-- `CFBundleIdentifier`: `dev.geon.app`
+- `CFBundleIdentifier`: `dev.molly-design.app`
 - `CFBundleShortVersionString`: `0.1.0`
-- `SUFeedURL`: `https://github.com/LeonEthan/Geon/releases/latest/download/appcast.xml`
+- `SUFeedURL`: `https://github.com/LeonEthan/molly-design/releases/latest/download/appcast.xml`
 - `SUPublicEDKey`: `eo5wdjstR0vesa7qYOKvxMXd977lOVLkd44OGzG/XiI=`
 
 The public key is the local throwaway acceptance key because no Apple Developer
@@ -40,22 +40,22 @@ right-click the app and choose **Open** rather than double-clicking.
 ## Human acceptance checklist
 
 Reviewer: perform these checks on a clean macOS account or after removing any
-prior `~/Library/Preferences/dev.geon.app.plist`, `~/Library/Application Support/Geon`,
-and `~/.geon` state.
+prior `~/Library/Preferences/dev.molly-design.app.plist`, `~/Library/Application Support/Molly Design`,
+and `~/.molly` state.
 
 ### Visual identity
 
-- [ ] Mount `Geon-0.1.0-arm64.dmg`; the volume name, background image, and
-  `.VolumeIcon.icns` show **Geon** branding, not Lody/Folio jellyfish or old
+- [ ] Mount `MollyDesign-0.1.0-arm64.dmg`; the volume name, background image, and
+  `.VolumeIcon.icns` show **Molly Design** branding, not Lody/Folio jellyfish or old
   underwater/aurora artwork.
-- [ ] Drag `Geon.app` to `/Applications`; the app icon in Finder and Launchpad is
-  the new Geon identity.
+- [ ] Drag `Molly Design.app` to `/Applications`; the app icon in Finder and Launchpad is
+  the new Molly Design identity.
 - [ ] Launch the installed app; the Dock icon and menu-bar menus are labeled
-  **Geon**, not Lody/Folio.
-- [ ] Open **Geon → About Geon**; the about panel shows **Geon** product name,
-  version `0.1.0`, and the Geon repository link.
-- [ ] Inspect `~/Library/Preferences/dev.geon.app.plist` after first launch; the
-  bundle identifier is `dev.geon.app` and no Lody/Folio defaults leaked in.
+  **Molly Design**, not Lody/Folio.
+- [ ] Open **Molly Design → About Molly Design**; the about panel shows **Molly Design** product name,
+  version `0.1.0`, and the Molly Design repository link.
+- [ ] Inspect `~/Library/Preferences/dev.molly-design.app.plist` after first launch; the
+  bundle identifier is `dev.molly-design.app` and no Lody/Folio defaults leaked in.
 
 ### Onboarding
 
@@ -79,8 +79,8 @@ and `~/.geon` state.
 
 ## Automated verification already performed
 
-- DMG mounts successfully and contains `Geon.app` plus an `Applications` symlink.
-- `Geon.app/Contents/Info.plist` has the correct bundle id, version, feed URL,
+- DMG mounts successfully and contains `Molly Design.app` plus an `Applications` symlink.
+- `Molly Design.app/Contents/Info.plist` has the correct bundle id, version, feed URL,
   and Sparkle public key placeholder.
 - The packaged app launches through the existing Playwright harness in an
   isolated environment and reaches the onboarding/product surface (see
@@ -94,5 +94,5 @@ installed-package acceptance item of Issue #32 can be considered complete.
 
 ## Related decisions
 
-- [Geon in-app update acceptance](../../implemented/testing/2026-09-14-geon-in-app-update-acceptance.md)
+- [Molly Design in-app update acceptance](../../implemented/testing/2026-09-14-geon-in-app-update-acceptance.md)
 - [Independent brand release proposal](../../proposed/feature/2026-09-13-geon-independent-brand-release.zh.md)

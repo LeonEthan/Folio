@@ -19,7 +19,7 @@ export const Invalid: Story = {
     outcome: {
       ...base,
       status: 'invalid',
-      diagnostics: [{ code: 'GEON-E001', message: 'Canvas width must be positive.' }],
+      diagnostics: [{ code: 'MOLLY-E001', message: 'Canvas width must be positive.' }],
     },
   },
 };

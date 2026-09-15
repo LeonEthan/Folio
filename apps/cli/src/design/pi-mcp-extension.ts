@@ -26,11 +26,11 @@ const IMAGE_TOOL_TIMEOUT_MS = 210_000;
 const CANCELLATION_DELIVERY_TIMEOUT_MS = 30_000;
 const callOptions = (name: string, signal?: AbortSignal) => ({
   signal,
-  ...(['geon_generate_image', 'geon_edit_image'].includes(name)
+  ...(['molly_generate_image', 'molly_edit_image'].includes(name)
     ? { timeout: IMAGE_TOOL_TIMEOUT_MS }
     : {}),
 });
-const names = new Set(['geon_generate_image', 'geon_edit_image', 'geon_render_preview']);
+const names = new Set(['molly_generate_image', 'molly_edit_image', 'molly_render_preview']);
 
 /** Give SDK cancellation delivery its existing allowance before per-call transport cleanup. */
 export class CancellationDeliveryTransport implements Transport {
@@ -116,7 +116,7 @@ interface PiMcpApi {
   ): void;
 }
 
-/** Only the existing Geon tools: no external MCP catalog, image provider or server. */
+/** Only the existing Molly Design tools: no external MCP catalog, image provider or server. */
 export async function registerPiMcpTools(
   pi: PiMcpApi,
   client: Client,
@@ -143,10 +143,11 @@ export async function registerPiMcpTools(
         description: tool.description ?? tool.name,
         parameters: tool.inputSchema,
         async execute(_id, args, signal) {
-          if (closed || !available.has(tool.name)) throw Error('Geon MCP tool is unavailable');
+          if (closed || !available.has(tool.name))
+            throw Error('Molly Design MCP tool is unavailable');
           const result = await invoke({ name: tool.name, arguments: args }, signal);
           if (!('content' in result) || !Array.isArray(result.content))
-            throw Error('Invalid Geon MCP result');
+            throw Error('Invalid Molly Design MCP result');
           const content = z
             .array(
               z.union([
@@ -160,7 +161,7 @@ export async function registerPiMcpTools(
               content
                 .filter((c) => c.type === 'text')
                 .map((c) => c.text)
-                .join('\n') || 'Geon MCP tool failed'
+                .join('\n') || 'Molly Design MCP tool failed'
             );
           return { content, details: {} };
         },
@@ -183,10 +184,10 @@ export async function registerPiMcpTools(
   pi.on('session_start', refresh);
 }
 
-export default async function geonPiMcpExtension(pi: PiMcpApi): Promise<void> {
-  const raw = process.env.GEON_PI_MCP_CONFIG;
+export default async function mollyPiMcpExtension(pi: PiMcpApi): Promise<void> {
+  const raw = process.env.MOLLY_PI_MCP_CONFIG;
   if (!raw) return;
-  const client = new Client({ name: 'geon-pi-tools', version: '1.0.0' });
+  const client = new Client({ name: 'molly-pi-tools', version: '1.0.0' });
   try {
     const config = configSchema.parse(JSON.parse(raw));
     if (config.type === 'http') {
@@ -206,7 +207,7 @@ export default async function geonPiMcpExtension(pi: PiMcpApi): Promise<void> {
       await client.connect(transport());
       await registerPiMcpTools(pi, client, async (args, signal) => {
         signal?.throwIfAborted();
-        const callClient = new Client({ name: 'geon-pi-tool-call', version: '1.0.0' });
+        const callClient = new Client({ name: 'molly-pi-tool-call', version: '1.0.0' });
         const callTransport = new CancellationDeliveryTransport(transport());
         activeCalls.add(callClient);
         let closing: Promise<void> | undefined;
@@ -247,6 +248,6 @@ export default async function geonPiMcpExtension(pi: PiMcpApi): Promise<void> {
   } catch {
     await client.close();
     // Never include headers, endpoints, or provider credentials in startup errors.
-    throw Error('Geon MCP tools could not initialize');
+    throw Error('Molly Design MCP tools could not initialize');
   }
 }

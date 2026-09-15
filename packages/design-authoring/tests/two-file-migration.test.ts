@@ -15,7 +15,7 @@ import { collectAuthoring, digestAuthoring, intakeAuthoring } from '../src/index
 const roots: string[] = [];
 afterEach(() => roots.splice(0).forEach((p) => rmSync(p, { recursive: true, force: true })));
 function fixture() {
-  const root = mkdtempSync(join(tmpdir(), 'geon-migrate-'));
+  const root = mkdtempSync(join(tmpdir(), 'molly-migrate-'));
   roots.push(root);
   const source = join(root, 'source'),
     target = join(root, 'new');

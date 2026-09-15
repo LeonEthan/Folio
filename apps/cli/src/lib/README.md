@@ -68,7 +68,7 @@ subdirectory; this file is the navigation index. Cross-module explanations live 
   ([AGENTS.md](file-preview/AGENTS.md)).
 - `loro/` — Loro repo/runtime layer, presence, machine flock rooms, and connection
   recovery ([AGENTS.md](loro/AGENTS.md)).
-- PR polling and automatic code review/merge were retired from Geon; no scheduler,
+- PR polling and automatic code review/merge were retired from Molly Design; no scheduler,
   credential harvest, or dedicated scheduling database is opened. Existing records remain on disk.
 
 - `task-automation/` — delegated task automation: `planTaskAutomation` is a pure

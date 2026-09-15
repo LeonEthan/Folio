@@ -138,17 +138,17 @@ The current active coverage is tracked in [the coverage matrix](./COVERAGE.md).
 The suite checker parses Gherkin and enforces IDs, priorities, runtime ownership,
 documentation indexes, and P0 matrix entries before any application build.
 
-## Installed Geon acceptance
+## Installed Molly Design acceptance
 
-Set `GEON_E2E_INSTALLED_EXECUTABLE` to the executable in a private installed
+Set `MOLLY_E2E_INSTALLED_EXECUTABLE` to the executable in a private installed
 application copy to run the same Electron harness and manual desktop probes
-against package bytes. For macOS this is `Geon.app/Contents/MacOS/Geon` inside
+against package bytes. For macOS this is `Molly Design.app/Contents/MacOS/Molly Design` inside
 the copy extracted from the verified DMG. The executable loads its own packaged
 entry; the harness supplies no development application path and verifies
 `app.isPackaged` and its isolated user-data directory. It records executable and
 application paths in the boot evidence. Also set
-`GEON_E2E_EXPECTED_SOURCE_COMMIT` to the full source SHA supplied during packaging
-as `-c.extraMetadata.geonSourceCommit=<SHA>`; the harness verifies that exact
+`MOLLY_E2E_EXPECTED_SOURCE_COMMIT` to the full source SHA supplied during packaging
+as `-c.extraMetadata.mollySourceCommit=<SHA>`; the harness verifies that exact
 value from the running application's own packaged manifest. CLI data and the daemon endpoint remain
 independently isolated through the existing harness.
 
@@ -162,7 +162,7 @@ outside Git, and record package source/hash and runtime/ACP identity for each ro
 Repeat relevant checks after source changes and do not infer one Agent's result
 from another.
 
-## Geon design acceptance
+## Molly Design design acceptance
 
 [The design acceptance procedure](DESIGN-ACCEPTANCE.md) supplies synthetic poster,
 infographic and long-image inputs, cross-behavior coverage and measurement

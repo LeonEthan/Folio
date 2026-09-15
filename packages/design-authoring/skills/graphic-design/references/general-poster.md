@@ -49,7 +49,7 @@ Treat the whole surface as a single designed field:
 
 Compare directions by whether a thumbnail still names the subject, whether the
 facts remain readable at the real output size, and whether the result stays
-editable in Geon. Choose a direction because it carries the content.
+editable in Molly Design. Choose a direction because it carries the content.
 
 ## Keep facts and images honest
 

@@ -18,7 +18,7 @@ migrateLegacyUserDataDir({
 if (isLocalPlatform()) {
   migrateLegacyUserDataDir({
     appDataDir: os.homedir(),
-    productName: '.geon',
-    legacyProductName: '.folio'
+    productName: '.molly',
+    legacyProductNames: ['.geon', '.folio']
   })
 }

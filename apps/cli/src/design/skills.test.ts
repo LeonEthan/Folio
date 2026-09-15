@@ -37,7 +37,7 @@ afterEach(() => {
 });
 
 function makeSource(skillFiles: Record<string, string>, skill = 'graphic-design'): string {
-  const root = mkdtempSync(path.join(tmpdir(), 'geon-skill-src-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'molly-skill-src-'));
   workdirs.push(root);
   const dir = path.join(root, skill);
   for (const [rel, content] of Object.entries(skillFiles)) {
@@ -49,7 +49,7 @@ function makeSource(skillFiles: Record<string, string>, skill = 'graphic-design'
 }
 
 function makeWorkdir(): string {
-  const dir = mkdtempSync(path.join(tmpdir(), 'geon-skill-dst-'));
+  const dir = mkdtempSync(path.join(tmpdir(), 'molly-skill-dst-'));
   workdirs.push(dir);
   return dir;
 }
@@ -193,7 +193,7 @@ describe('designSkillPointerLine', () => {
 });
 
 describe('designSkillsForImageCapability', () => {
-  /* The imagegen skill instructs the agent to call `geon_generate_image`, so it
+  /* The imagegen skill instructs the agent to call `molly_generate_image`, so it
      is delivered exactly when that tool will be registered — never on its own. */
   it('adds the imagegen skill only when the machine has image capability', () => {
     expect(designSkillsForImageCapability(false)).toEqual(['graphic-design']);
@@ -263,8 +263,8 @@ describe('packaged design materials', () => {
     );
     expect(text).toContain('Choose your own analysis, drafting, and review methods');
     expect(text).toContain('actual image-reading tool');
-    expect(text).toContain('geon_edit_image');
-    expect(text).toContain('Geon has no default model');
+    expect(text).toContain('molly_edit_image');
+    expect(text).toContain('Molly Design has no default model');
     expect(text).toContain('Files are uploaded as multipart data');
 
     expect(graphicText).toContain('design.yaml');
@@ -274,7 +274,7 @@ describe('packaged design materials', () => {
     expect(graphicText).toMatch(/\bid\b/);
     expect(graphicText).toMatch(/\bkind\b/);
     expect(graphicText).toContain(
-      'If `geon_render_preview` is absent, only that tool is unavailable'
+      'If `molly_render_preview` is absent, only that tool is unavailable'
     );
     expect(graphicText).not.toMatch(/You may write `design\.pptd` directly/);
     expect(graphicText).not.toMatch(/version:\s*v[23]/);
@@ -309,7 +309,7 @@ describe('packaged design materials', () => {
     expect(intake.status, intake.stderr).toBe(0);
     expect(intake.stdout).toContain('intake OK');
     expect(intake.stdout).toContain('This script does not render or review images');
-    expect(intake.stdout).toContain('geon_render_preview');
+    expect(intake.stdout).toContain('molly_render_preview');
     expect(readdirSync(workdir)).not.toContain('design.yaml.tmp');
 
     const edited = path.join(workdir, '.claude/skills/graphic-design/SKILL.md');

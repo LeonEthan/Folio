@@ -4,7 +4,7 @@
  * Canonical `design.json` writes go through `designOperation` in this module.
  * Historical conflict candidates remain readable, with no candidate writer.
  * The one exception to canonical storage is the
- * P0 fixed sample, which `./sample.ts` links into `chats/geon-p0/` — an id that
+ * P0 fixed sample, which `./sample.ts` links into `chats/molly-p0/` — an id that
  * is not a design session, holding the raw fixture rather than a saved design,
  * created once and never replaced.
  *

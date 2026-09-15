@@ -2,7 +2,7 @@
  * The daemon half of the design preview render bridge (P2.4b).
  *
  * The daemon cannot rasterize a design — that needs the desktop's Chromium — so
- * a preview is a hand-off to a *render host*: the running Geon desktop, which
+ * a preview is a hand-off to a *render host*: the running Molly Design desktop, which
  * polls `design/render-host` over the machine-local control socket and returns
  * each result on a later call. This module owns that queue and nothing else: no
  * filesystem, no IPC, no payload. `./render-preview.ts` stages the artifact and
@@ -11,7 +11,7 @@
  * Liveness is the poll itself. `isConnected` is true only while a host has
  * polled within `DESIGN_RENDER_HOST_TTL_MS`, so capability presence matches
  * environment presence: a desktop that is not running means
- * `geon_render_preview` is not registered, and a preview asked for with no host
+ * `molly_render_preview` is not registered, and a preview asked for with no host
  * is refused immediately rather than queued behind a promise that never settles.
  *
  * A request is handed to the host exactly once. If the host disappears while
@@ -109,7 +109,7 @@ export class DesignRenderHost {
       return Promise.resolve({
         status: 'refused',
         error:
-          'the Geon desktop is not running, so no preview can be rendered. Do not retry: tell the user to open Geon and run the preview again.',
+          'the Molly Design desktop is not running, so no preview can be rendered. Do not retry: tell the user to open Molly Design and run the preview again.',
       });
     }
     if (this.entries.size >= MAX_PENDING_PREVIEWS) {
@@ -124,7 +124,7 @@ export class DesignRenderHost {
         () =>
           this.settle(work.requestId, () => ({
             status: 'refused',
-            error: `the Geon desktop did not render the image within ${Math.round(
+            error: `the Molly Design desktop did not render the image within ${Math.round(
               timeoutMs / 1000
             )}s`,
           })),
@@ -161,7 +161,7 @@ export class DesignRenderHost {
         if (!entry.handedOut) continue;
         this.settle(requestId, () => ({
           status: 'refused',
-          error: 'the Geon desktop restarted before the preview was rendered',
+          error: 'the Molly Design desktop restarted before the preview was rendered',
         }));
       }
     }

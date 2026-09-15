@@ -3,7 +3,7 @@ import {
   ensureDesignDirectory,
   designWorkspacePointer,
 } from '@/design/workspace';
-import { ARTWORK_ENTRY } from '@geon/design-authoring';
+import { ARTWORK_ENTRY } from '@molly-design/design-authoring';
 import os from 'os';
 import fs from 'fs';
 import path from 'path';
@@ -2770,7 +2770,7 @@ export class MessageHandler {
     const workdir = workspaceRoot;
 
     // Capability presence matches environment presence (P2.4): the imagegen
-    // skill is delivered exactly when `geon_generate_image` will be. An
+    // skill is delivered exactly when `molly_generate_image` will be. An
     // unreadable connection resolves to "no capability" rather than blocking the
     // turn — the agent then simply does not get the skill, which is the same
     // state an unconfigured machine is in.
@@ -6972,7 +6972,7 @@ export class MessageHandler {
           this.workspaceId,
           this.machineId
         );
-        // `geon_generate_image` is exposed to design sessions only, so the
+        // `molly_generate_image` is exposed to design sessions only, so the
         // asking session is part of the gate rather than an extra check each
         // caller would have to remember: a coding session resolves to "no
         // capability" even on a machine whose connection is ready, which is

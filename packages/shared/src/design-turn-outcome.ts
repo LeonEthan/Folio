@@ -57,7 +57,7 @@ export type DesignTurnOutcomeStatus = (typeof DESIGN_TURN_OUTCOME_STATUSES)[numb
 
 /** One storage-layer diagnostic: a validator code plus its human-readable message. */
 export type DesignTurnOutcomeDiagnostic = {
-  /** Authoring validator codes (`GEON-Exxx`) pass through; app-side failures use `design_*`. */
+  /** Authoring validator codes (`MOLLY-Exxx`) pass through; app-side failures use `design_*`. */
   code: string;
   message: string;
 };

@@ -146,12 +146,12 @@ describe('the daemon’s render answers', () => {
     const refused = DesignRenderRpcResultSchema.safeParse({
       type: 'design/render-preview',
       ok: false,
-      error: 'the Geon desktop is not running',
+      error: 'the Molly Design desktop is not running',
     });
     expect(refused.success && refused.data).toEqual({
       type: 'design/render-preview',
       ok: false,
-      error: 'the Geon desktop is not running',
+      error: 'the Molly Design desktop is not running',
     });
   });
 

@@ -1,7 +1,7 @@
 import path from 'node:path'
 
 export const DEFAULT_SPARKLE_APPCAST_URL =
-  'https://github.com/LeonEthan/Geon/releases/latest/download/appcast.xml'
+  'https://github.com/LeonEthan/molly-design/releases/latest/download/appcast.xml'
 
 const SPARKLE_ADDON_RELATIVE_PATH = path.join('native', 'build', 'Release', 'sparkle_bridge.node')
 
@@ -17,7 +17,7 @@ export function shouldConstructUpdaterEnabled(input: {
   platform?: string
   arch?: string
 }): boolean {
-  // The first supported Geon release is macOS arm64. A force flag cannot expand it.
+  // The first supported Molly Design release is macOS arm64. A force flag cannot expand it.
   return !input.localPlatform || (input.platform === 'darwin' && input.arch === 'arm64')
 }
 

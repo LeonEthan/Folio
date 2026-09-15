@@ -82,7 +82,7 @@ record of material deviations that affect fidelity or editability.
 ## Visual fidelity
 
 The optional `scripts/finalize.mjs` helper checks syntax; it does not establish
-visual fidelity. When rendering with `geon_render_preview`, open the resulting
+visual fidelity. When rendering with `molly_render_preview`, open the resulting
 PNG with an actual image-reading tool. Useful questions include:
 
 - Is there unintended stretching, blur, clipping, or crop drift?
@@ -92,7 +92,7 @@ PNG with an actual image-reading tool. Useful questions include:
 
 Choose review depth and iterations according to the task. View updated renders
 when needed to judge edits; no fixed review count or analysis sequence applies.
-If `geon_render_preview` is absent, only that tool is unavailable; assess other
+If `molly_render_preview` is absent, only that tool is unavailable; assess other
 image-reading and rendering capabilities actually available to your Agent.
 Report actual inspection and remaining source-evidence or capability limits
 honestly.

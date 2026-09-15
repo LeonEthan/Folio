@@ -182,9 +182,9 @@ const TASK_UPDATE_TOOL_NAME = 'lody_task_update';
 const TASK_EDIT_BODY_TOOL_NAME = 'lody_task_edit_body';
 const TASK_COMMENT_TOOL_NAME = 'lody_task_comment';
 const TASK_IMAGE_UPLOAD_TOOL_NAME = 'lody_task_upload_images';
-const GENERATE_IMAGE_TOOL_NAME = 'geon_generate_image';
-const EDIT_IMAGE_TOOL_NAME = 'geon_edit_image';
-const RENDER_PREVIEW_TOOL_NAME = 'geon_render_preview';
+const GENERATE_IMAGE_TOOL_NAME = 'molly_generate_image';
+const EDIT_IMAGE_TOOL_NAME = 'molly_edit_image';
+const RENDER_PREVIEW_TOOL_NAME = 'molly_render_preview';
 const DESIGN_IMAGE_PROMPT_MAX_CHARS = 8_000;
 const DESIGN_IMAGE_SIZE_SPEC_MAX_CHARS = 32;
 const SESSION_FILE_MAX_SIZE_MB = Math.floor(SESSION_FILE_MAX_SIZE_BYTES / (1024 * 1024));
@@ -1002,7 +1002,7 @@ export const runWithMcpSessionContext = <T>(context: McpSessionContext, fn: () =
 
 const getSessionContext = (): McpSessionContext =>
   mcpSessionContextStorage.getStore() ?? {
-    designHookLaunchId: readOptionalEnv('GEON_DESIGN_LAUNCH_ID'),
+    designHookLaunchId: readOptionalEnv('MOLLY_DESIGN_LAUNCH_ID'),
     machineId: readRequiredEnv('LODY_MCP_MACHINE_ID', 'LODY_PREVIEW_MCP_MACHINE_ID'),
     workspaceId: readRequiredEnv('LODY_MCP_WORKSPACE_ID', 'LODY_PREVIEW_MCP_WORKSPACE_ID'),
     sessionId: SessionIdSchema.parse(
@@ -4048,7 +4048,7 @@ export function buildLodyMcpServer(
      */
     resolveGate?: () => Promise<McpDesignGate>;
     /**
-     * Whether a Geon desktop is polling this machine (P2.4b). Absent means "no
+     * Whether a Molly Design desktop is polling this machine (P2.4b). Absent means "no
      * desktop", the honest default: rendering is done by the desktop app, so a
      * caller that has not asked the daemon has no reason to claim otherwise.
      * Deliberately not folded into `designGate` — an image connection and a
@@ -4091,7 +4091,7 @@ export function buildLodyMcpServer(
       signal.throwIfAborted();
       if (connection === null) {
         return textResult(
-          'Image generation is unavailable: this is not a design session, or the image connection is not configured, is disabled, or is missing its URL, API key or explicit model. Tell the user to enable it in Geon settings; do not retry.',
+          'Image generation is unavailable: this is not a design session, or the image connection is not configured, is disabled, or is missing its URL, API key or explicit model. Tell the user to enable it in Molly Design settings; do not retry.',
           true
         );
       }
@@ -4136,9 +4136,9 @@ export function buildLodyMcpServer(
   const generateImageTool = server.registerTool(
     GENERATE_IMAGE_TOOL_NAME,
     {
-      title: 'Generate an image through Geon image connection',
+      title: 'Generate an image through Molly Design image connection',
       description:
-        "Generate one image with the image connection configured in Geon settings and write it into the current session workspace as a design asset. Use this for product shots, concept art, covers, illustrations, and other raster assets for the design you are building; it is available in design sessions only, and only when the user has configured and enabled an image connection. Returns an artwork-relative asset path (under media/ in the design authoring directory), its absolute path, sha256 and pixel dimensions. Reference that relative path from design.pptd in the authoring directory. Each call is a paid generation on the user's own account and is never retried automatically. Use an actual image-reading tool to judge outputs and choose further work according to the task. If this tool is absent, only this generation tool is unavailable; assess other Agent capabilities from the tools actually available. Never ask the user to paste an API key in chat.",
+        "Generate one image with the image connection configured in Molly Design settings and write it into the current session workspace as a design asset. Use this for product shots, concept art, covers, illustrations, and other raster assets for the design you are building; it is available in design sessions only, and only when the user has configured and enabled an image connection. Returns an artwork-relative asset path (under media/ in the design authoring directory), its absolute path, sha256 and pixel dimensions. Reference that relative path from design.pptd in the authoring directory. Each call is a paid generation on the user's own account and is never retried automatically. Use an actual image-reading tool to judge outputs and choose further work according to the task. If this tool is absent, only this generation tool is unavailable; assess other Agent capabilities from the tools actually available. Never ask the user to paste an API key in chat.",
       inputSchema: GenerateImageToolInputSchema,
     },
     runImageTool
@@ -4146,7 +4146,7 @@ export function buildLodyMcpServer(
   const editImageTool = server.registerTool(
     EDIT_IMAGE_TOOL_NAME,
     {
-      title: 'Edit images through Geon image connection',
+      title: 'Edit images through Molly Design image connection',
       description:
         "Edit one image using a prompt and one or more source/reference image files, with an optional PNG mask for the first image. Relative image/mask paths resolve from the design authoring directory (the same root as generated media/ assets); use absolute paths for attachments elsewhere in the Session workspace. Uploads the actual files to the user's configured OpenAI Images-compatible /images/edits endpoint using their explicitly selected model. Supported input formats and mask/size limits depend on that service and model; failures are reported without model fallback, generation fallback or automatic paid retries. Each call can be billed. Returns a new workspace media asset for the Agent to read and optionally use in PPTD; it does not replace or commit the current artwork. Available only in design sessions with a complete enabled image connection. Never request an API key in chat.",
       inputSchema: EditImageToolInputSchema,
@@ -4155,11 +4155,11 @@ export function buildLodyMcpServer(
   );
 
   // Preview rendering (P2.4b). Registered unconditionally and disabled below
-  // unless a Geon desktop is polling this machine, so the agent that cannot
+  // unless a Molly Design desktop is polling this machine, so the agent that cannot
   // render never sees the tool rather than discovering it by failing.
   if (config.designResubmit)
     server.registerTool(
-      'geon_resubmit_draft',
+      'molly_resubmit_draft',
       {
         title: 'Explicitly resubmit preserved design draft',
         description:
@@ -4188,7 +4188,7 @@ export function buildLodyMcpServer(
     {
       title: 'Render a preview of the current design project',
       description:
-        "Render the design session's current project (design.pptd and its assets) to a PNG with the Geon desktop, and return the absolute path of the written file. Open the returned PNG with an actual image-reading tool to judge layout, spacing, overflow, and text fit, then continue editing as useful. Choose review depth and iterations for the task. It is available in design sessions only, and only while the user has Geon open: rendering is done by the desktop app, not by this process. It reads the project files as they are now; it does not save, commit, or change anything, so it is safe to call at any point mid-work. Each call renders one image of the whole canvas. If this tool is absent, only this rendering tool is unavailable; other Agent image capabilities may still be available. Rendering and review are not completion or commit gates.",
+        "Render the design session's current project (design.pptd and its assets) to a PNG with the Molly Design desktop, and return the absolute path of the written file. Open the returned PNG with an actual image-reading tool to judge layout, spacing, overflow, and text fit, then continue editing as useful. Choose review depth and iterations for the task. It is available in design sessions only, and only while the user has Molly Design open: rendering is done by the desktop app, not by this process. It reads the project files as they are now; it does not save, commit, or change anything, so it is safe to call at any point mid-work. Each call renders one image of the whole canvas. If this tool is absent, only this rendering tool is unavailable; other Agent image capabilities may still be available. Rendering and review are not completion or commit gates.",
       inputSchema: z.object({}).strict(),
     },
     async () => {
@@ -4202,7 +4202,7 @@ export function buildLodyMcpServer(
           : (config.renderHost ?? false);
         if (!host) {
           return textResult(
-            'Preview rendering is unavailable: the Geon desktop is not running, or this is not a design session. Tell the user to open Geon and ask again; do not retry.',
+            'Preview rendering is unavailable: the Molly Design desktop is not running, or this is not a design session. Tell the user to open Molly Design and ask again; do not retry.',
             true
           );
         }
@@ -5204,7 +5204,7 @@ export function buildLodyMcpServer(
   }
 
   // Preview rendering needs a desktop, not a credential: the gate is "is a
-  // Geon window polling this machine right now". Without one there is nothing
+  // Molly Design window polling this machine right now". Without one there is nothing
   // to render with, so the tool is absent rather than present-and-always-failing.
   if (config.renderHost !== true) {
     renderPreviewTool.disable();

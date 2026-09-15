@@ -15,7 +15,7 @@ export const DEFAULT_IGNORED_DIRECTORY_NAMES: ReadonlySet<string> = new Set([
   '.git',
   '.hg',
   '.svn',
-  // Geon's own workspace state (e.g. .geon/attachments) plus the pre-rename
+  // Molly Design's own workspace state (e.g. .geon/attachments) plus the pre-rename
   // .lody/.folio equivalents; must not appear in code-collab change tracking
   // even when the workspace is not a git repo.
   '.lody',

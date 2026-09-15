@@ -126,7 +126,7 @@ function buildAndSetMenu(): void {
       label: t(locale, 'menu.file'),
       submenu: [
         {
-          label: 'Geon Sample',
+          label: 'Molly Design Sample',
           click: () => {
             void openDesignSampleWindow().catch(reportDesignSampleError)
           }
@@ -256,15 +256,15 @@ function buildAndSetMenu(): void {
           click: () => {
             void shell.openExternal(
               locale === 'zh_CN'
-                ? 'https://github.com/LeonEthan/Geon/blob/main/README.zh-CN.md'
-                : 'https://github.com/LeonEthan/Geon#readme'
+                ? 'https://github.com/LeonEthan/molly-design/blob/main/README.zh-CN.md'
+                : 'https://github.com/LeonEthan/molly-design#readme'
             )
           }
         },
         {
           label: t(locale, 'menu.feedback'),
           click: () => {
-            void shell.openExternal('https://github.com/LeonEthan/Geon/issues')
+            void shell.openExternal('https://github.com/LeonEthan/molly-design/issues')
           }
         }
       ]

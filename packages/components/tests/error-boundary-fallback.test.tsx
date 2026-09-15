@@ -138,7 +138,7 @@ describe('ErrorBoundaryFallback', () => {
     click(button('Try again'));
     expect(resetErrorBoundary).toHaveBeenCalledTimes(1);
 
-    click(button('Reload Geon'));
+    click(button('Reload Molly Design'));
     expect(mocks.reloadApp).toHaveBeenCalledTimes(1);
   });
 
@@ -172,7 +172,7 @@ describe('ErrorBoundaryFallback', () => {
 
     expect(container.textContent).not.toContain('CONVEX');
     expect(container.textContent).not.toContain('Server Error');
-    expect(container.textContent).toContain('The Geon backend returned a server error.');
+    expect(container.textContent).toContain('The Molly Design backend returned a server error.');
 
     click(button('Copy error details'));
     await act(async () => {});

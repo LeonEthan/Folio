@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const DEFAULT_TITLE = 'Geon';
+const DEFAULT_TITLE = 'Molly Design';
 
 /**
  * Hook to manage document title.

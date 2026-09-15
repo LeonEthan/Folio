@@ -294,7 +294,7 @@ export function ProvidersScreenView({
       title={t('onboarding.providers.title', 'Connect your Agent')}
       description={t(
         'onboarding.providers.description',
-        'Add an Agent now. Geon will continue setup and let you know if anything needs your attention.'
+        'Add an Agent now. Molly Design will continue setup and let you know if anything needs your attention.'
       )}
       previewIdentity={
         previewConfig
@@ -840,7 +840,7 @@ export function ProvidersScreen({
           toast.error(
             t(
               'onboarding.providers.localAgentUnreachable',
-              'Could not reach the local agent. Please restart Geon and try again.'
+              'Could not reach the local agent. Please restart Molly Design and try again.'
             )
           );
           return;
@@ -876,7 +876,7 @@ export function ProvidersScreen({
               toast.error(
                 t(
                   'onboarding.providers.localAgentUnreachable',
-                  'Could not reach the local agent. Please restart Geon and try again.'
+                  'Could not reach the local agent. Please restart Molly Design and try again.'
                 )
               );
             }, PROVIDERS_SCREEN_MACHINE_TIMEOUT_MS);
@@ -894,7 +894,7 @@ export function ProvidersScreen({
             toast.error(
               t(
                 'onboarding.providers.localAgentUnreachable',
-                'Could not reach the local agent. Please restart Geon and try again.'
+                'Could not reach the local agent. Please restart Molly Design and try again.'
               ),
               { description: error instanceof Error ? error.message : String(error) }
             );
@@ -1526,7 +1526,7 @@ function ProviderStatusBadge({
     // copyable report, where it is diagnostic data rather than a claim.
     const slowDetail = t(
       'onboarding.providers.slowWaitDetail',
-      'Agent setup is still running. A first run may have to download and unpack the agent. You can continue — Geon keeps working on this in the background.'
+      'Agent setup is still running. A first run may have to download and unpack the agent. You can continue — Molly Design keeps working on this in the background.'
     );
     const badge = (
       <Badge

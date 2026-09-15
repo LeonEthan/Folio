@@ -450,7 +450,7 @@ describe('desktop onboarding flow', () => {
     });
 
     expect(container.textContent).toContain(
-      'Geon could not download the Agent runtime. Check your connection and try again.'
+      'Molly Design could not download the Agent runtime. Check your connection and try again.'
     );
     expect(container.textContent).not.toContain('runtime-install-failed');
     await act(async () => {

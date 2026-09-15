@@ -581,7 +581,7 @@ export class Session extends EventEmitter<SessionEvents> implements ISession {
       lastStderrTail = '';
       lastAgentProcessHandle = null;
       this.designHookLaunchId = this.designHookRuntime ? randomUUID() : undefined;
-      env = { ...env, GEON_DESIGN_LAUNCH_ID: this.designHookLaunchId };
+      env = { ...env, MOLLY_DESIGN_LAUNCH_ID: this.designHookLaunchId };
       this.logger.debug(
         `[${this.sessionId}] Starting ACP agent process (cwd=${this.getWorkdir()} cmd=${
           callbacks.command

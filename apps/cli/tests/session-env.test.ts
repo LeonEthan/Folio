@@ -270,5 +270,5 @@ it('preserves an ordinary Pi custom executable without requiring design extensio
   const session = new Session(createConfig({ agentCliType: 'registry', agentType: 'pi-acp', env: { PI_ACP_PI_COMMAND: '/synthetic/old-custom-pi' } }), createSilentLogger(), process.cwd(), sandbox);
   await expect(session.createAgent({ cliType: 'registry', agentType: 'pi-acp', command: 'synthetic-pi-acp' } as CreateAgentConfig)).rejects.toBe(stop);
   expect(observed?.PI_ACP_PI_COMMAND).toBe('/synthetic/old-custom-pi');
-  expect(observed?.GEON_DESIGN_EXTENSION).toBeUndefined();
+  expect(observed?.MOLLY_DESIGN_EXTENSION).toBeUndefined();
 });

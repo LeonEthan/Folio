@@ -7,7 +7,7 @@ conformance tests.
 
 ## Product boundary
 
-Geon creates and edits one **static visual canvas** through a Bento-derived
+Molly Design creates and edits one **static visual canvas** through a Bento-derived
 editor and renderer. The Agent-facing files are a YAML artwork projection
 (`design.yaml` with `format: geon-canvas/1`, `media/`). After a successful import, the
 platform visual document (BentoDoc) remains the single editable truth. The YAML
@@ -89,7 +89,7 @@ merely renders.
 ## Write from the admitted projection
 
 The bundled format guidance in
-[artwork-format.md](artwork-format.md) describes the YAML artwork files Geon
+[artwork-format.md](artwork-format.md) describes the YAML artwork files Molly Design
 admits. Existing projected documents may carry editable Bento fields that the
 compact guide does not enumerate. Preserve those fields rather than assuming
 their omission means unsupported. Do not treat an external presentation

@@ -1,5 +1,5 @@
 /**
- * Geon-facing diagnostic codes. Frozen vendored tables stay PPTD-E*; this
+ * Molly Design-facing diagnostic codes. Frozen vendored tables stay PPTD-E*; this
  * package maps them at the authoring boundary instead of forking vendor.
  */
 
@@ -14,7 +14,7 @@ import type {
 } from './contracts.ts';
 
 const FROZEN_PREFIX = 'PPTD-';
-export const LIVE_DIAGNOSTIC_PREFIX = 'GEON-';
+export const LIVE_DIAGNOSTIC_PREFIX = 'MOLLY-';
 
 export function liveDiagnosticCode(
   code: FrozenDiagnosticCode | LiveDiagnosticCode | string

@@ -24,27 +24,27 @@ export async function preparePiDesignLaunch(
   const mcpExtension = path.join(directory, 'pi-mcp-extension.js');
   const endpoint = getLodyMcpHttpEndpoint();
   if (!existsSync(launcher) || !existsSync(extension) || !existsSync(mcpExtension))
-    throw Error('Geon Pi design extension is missing from the CLI bundle');
+    throw Error('Molly Design Pi design extension is missing from the CLI bundle');
   if (!endpoint && !process.argv[1]) throw Error('Missing bundled MCP entry');
-  const temporary = await mkdtemp(path.join(tmpdir(), 'geon-pi-launch-'));
+  const temporary = await mkdtemp(path.join(tmpdir(), 'molly-pi-launch-'));
   const command = path.join(temporary, process.platform === 'win32' ? 'pi.cmd' : 'pi');
   await writeFile(
     command,
     process.platform === 'win32'
-      ? '@echo off\r\n"%GEON_DESIGN_NODE%" "%GEON_DESIGN_LAUNCHER%" %*\r\n'
-      : '#!/bin/sh\nexec "$GEON_DESIGN_NODE" "$GEON_DESIGN_LAUNCHER" "$@"\n',
+      ? '@echo off\r\n"%MOLLY_DESIGN_NODE%" "%MOLLY_DESIGN_LAUNCHER%" %*\r\n'
+      : '#!/bin/sh\nexec "$MOLLY_DESIGN_NODE" "$MOLLY_DESIGN_LAUNCHER" "$@"\n',
     { mode: 0o700, flag: 'wx' }
   );
   return {
     env: {
       ...env,
       PI_ACP_PI_COMMAND: command,
-      GEON_DESIGN_PI_COMMAND: env.PI_ACP_PI_COMMAND || 'pi',
-      GEON_DESIGN_NODE: process.execPath,
-      GEON_DESIGN_LAUNCHER: launcher,
-      GEON_DESIGN_EXTENSION: extension,
-      GEON_PI_MCP_EXTENSION: mcpExtension,
-      GEON_PI_MCP_CONFIG: endpoint
+      MOLLY_DESIGN_PI_COMMAND: env.PI_ACP_PI_COMMAND || 'pi',
+      MOLLY_DESIGN_NODE: process.execPath,
+      MOLLY_DESIGN_LAUNCHER: launcher,
+      MOLLY_DESIGN_EXTENSION: extension,
+      MOLLY_PI_MCP_EXTENSION: mcpExtension,
+      MOLLY_PI_MCP_CONFIG: endpoint
         ? JSON.stringify({
             type: 'http',
             url: endpoint.url,
@@ -67,9 +67,9 @@ export async function preparePiDesignLaunch(
                 : {}),
             },
           }),
-      GEON_DESIGN_MACHINE_ID: identity.machineId,
-      GEON_DESIGN_WORKSPACE_ID: identity.workspaceId,
-      GEON_DESIGN_CONTROL_SOCKET: getLocalControlSocketPath(),
+      MOLLY_DESIGN_MACHINE_ID: identity.machineId,
+      MOLLY_DESIGN_WORKSPACE_ID: identity.workspaceId,
+      MOLLY_DESIGN_CONTROL_SOCKET: getLocalControlSocketPath(),
     },
     cleanup: () => rm(temporary, { recursive: true, force: true }),
   };

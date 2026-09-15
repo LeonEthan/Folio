@@ -147,16 +147,16 @@ describe('intakeAuthoring', () => {
     expect(AUTHORING_DEFAULT_FONT_FAMILY).toBe('Inter');
   });
 
-  it('rejects a missing media reference with GEON-E005', () => {
+  it('rejects a missing media reference with MOLLY-E005', () => {
     const result = intakeAuthoring('design.yaml', snapshotWith({ 'media/pic.png': undefined }));
     expect(result.status).toBe('invalid');
     if (result.status !== 'invalid') return;
     expect(
-      result.diagnostics.some((d) => d.code === 'GEON-E005' && d.message.includes('media/pic.png'))
+      result.diagnostics.some((d) => d.code === 'MOLLY-E005' && d.message.includes('media/pic.png'))
     ).toBe(true);
   });
 
-  it('rejects a remote image URL with GEON-E004', () => {
+  it('rejects a remote image URL with MOLLY-E004', () => {
     const result = intakeAuthoring(
       'design.yaml',
       snapshotWith({
@@ -165,10 +165,10 @@ describe('intakeAuthoring', () => {
     );
     expect(result.status).toBe('invalid');
     if (result.status !== 'invalid') return;
-    expect(result.diagnostics.some((d) => d.code === 'GEON-E004')).toBe(true);
+    expect(result.diagnostics.some((d) => d.code === 'MOLLY-E004')).toBe(true);
   });
 
-  it('rejects an out-of-vocabulary kind with GEON-E003', () => {
+  it('rejects an out-of-vocabulary kind with MOLLY-E003', () => {
     const result = intakeAuthoring(
       'design.yaml',
       snapshotWith({
@@ -177,10 +177,10 @@ describe('intakeAuthoring', () => {
     );
     expect(result.status).toBe('invalid');
     if (result.status !== 'invalid') return;
-    expect(result.diagnostics.some((d) => d.code === 'GEON-E003')).toBe(true);
+    expect(result.diagnostics.some((d) => d.code === 'MOLLY-E003')).toBe(true);
   });
 
-  it('rejects unknown fields with GEON-E001', () => {
+  it('rejects unknown fields with MOLLY-E001', () => {
     const result = intakeAuthoring(
       'design.yaml',
       snapshotWith({
@@ -191,9 +191,9 @@ describe('intakeAuthoring', () => {
     );
     expect(result.status).toBe('invalid');
     if (result.status !== 'invalid') return;
-    expect(result.diagnostics.some((d) => d.code === 'GEON-E001' && d.path.includes('bogus'))).toBe(
-      true
-    );
+    expect(
+      result.diagnostics.some((d) => d.code === 'MOLLY-E001' && d.path.includes('bogus'))
+    ).toBe(true);
   });
 
   it('rejects extra pages with the matrix-derived excluded capability code', () => {
@@ -208,11 +208,11 @@ describe('intakeAuthoring', () => {
     expect(result.status).toBe('invalid');
     if (result.status !== 'invalid') return;
     expect(
-      result.diagnostics.some((d) => d.code === 'GEON-E011' && d.message.includes('multiPage'))
+      result.diagnostics.some((d) => d.code === 'MOLLY-E011' && d.message.includes('multiPage'))
     ).toBe(true);
   });
 
-  it('rejects a media reference escaping media/ with GEON-E005', () => {
+  it('rejects a media reference escaping media/ with MOLLY-E005', () => {
     const result = intakeAuthoring(
       'design.yaml',
       snapshotWith({
@@ -221,7 +221,7 @@ describe('intakeAuthoring', () => {
     );
     expect(result.status).toBe('invalid');
     if (result.status !== 'invalid') return;
-    expect(result.diagnostics.some((d) => d.code === 'GEON-E005')).toBe(true);
+    expect(result.diagnostics.some((d) => d.code === 'MOLLY-E005')).toBe(true);
   });
 });
 
@@ -235,7 +235,7 @@ describe('bundled minimal example', () => {
       'examples',
       'minimal'
     );
-    const dir = mkdtempSync(path.join(tmpdir(), 'geon-example-'));
+    const dir = mkdtempSync(path.join(tmpdir(), 'molly-example-'));
     mkdirSync(path.join(dir, 'pages'));
     mkdirSync(path.join(dir, 'media'));
     copyFileSync(path.join(exampleRoot, 'design.yaml'), path.join(dir, 'design.yaml'));
@@ -281,7 +281,7 @@ describe('loadBentoDocV4', () => {
 
 describe('collectAuthoring', () => {
   it('collects design.yaml and media, and ignores unrelated files', () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'geon-collect-'));
+    const dir = mkdtempSync(path.join(tmpdir(), 'molly-collect-'));
     mkdirSync(path.join(dir, 'media'));
     writeFileSync(
       path.join(dir, 'design.yaml'),
@@ -301,7 +301,7 @@ describe('collectAuthoring', () => {
   });
 
   it('refuses a leftover design.pptd with a named diagnostic', () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'geon-collect-pptd-'));
+    const dir = mkdtempSync(path.join(tmpdir(), 'molly-collect-pptd-'));
     mkdirSync(path.join(dir, 'pages'));
     writeFileSync(
       path.join(dir, 'design.yaml'),
@@ -309,11 +309,11 @@ describe('collectAuthoring', () => {
     );
     writeFileSync(path.join(dir, 'pages', 'canvas.yaml'), 'elements: []\n');
     writeFileSync(path.join(dir, 'design.pptd'), 'version: v2\n');
-    expect(() => collectAuthoring(dir)).toThrow(/GEON-E-PPTD/);
+    expect(() => collectAuthoring(dir)).toThrow(/MOLLY-E-PPTD/);
   });
 
   it('refuses extra pages instead of collecting a second canvas', () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'geon-collect-pages-'));
+    const dir = mkdtempSync(path.join(tmpdir(), 'molly-collect-pages-'));
     mkdirSync(path.join(dir, 'pages'));
     writeFileSync(
       path.join(dir, 'design.yaml'),
@@ -325,7 +325,7 @@ describe('collectAuthoring', () => {
   });
 
   it('refuses a missing entry and symlinked page entries', () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'geon-collect-'));
+    const dir = mkdtempSync(path.join(tmpdir(), 'molly-collect-'));
     expect(() => collectAuthoring(dir)).toThrow(AuthoringSnapshotError);
     writeFileSync(
       path.join(dir, 'design.yaml'),

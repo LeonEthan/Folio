@@ -613,10 +613,10 @@ describe('version, compatibility and fail-closed inputs', () => {
     const imported = intakeAuthoring('design.pptd', snapshot);
     expect(imported.status).toBe('invalid');
     if (imported.status !== 'invalid') return;
-    expect(imported.diagnostics.some((d) => d.message.includes('GEON-E-PPTD'))).toBe(true);
+    expect(imported.diagnostics.some((d) => d.message.includes('MOLLY-E-PPTD'))).toBe(true);
   });
   it('keeps filesystem and snapshot intake consistent', () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'geon-roundtrip-'));
+    const root = mkdtempSync(path.join(tmpdir(), 'molly-roundtrip-'));
     try {
       const snapshot = roundtrip(doc());
       for (const [rel, bytes] of snapshot) {

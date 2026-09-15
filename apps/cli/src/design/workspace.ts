@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { ARTWORK_ENTRY } from '@geon/design-authoring';
+import { ARTWORK_ENTRY } from '@molly-design/design-authoring';
 import { designId } from './store';
 import { designTurnInputDir, readFrozenManifest } from './turn-input';
 import { lstat, mkdir } from 'node:fs/promises';

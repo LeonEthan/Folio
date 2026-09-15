@@ -1,7 +1,7 @@
-# Geon embedded runtime
+# Molly Design embedded runtime
 
 This private package powers Agent execution and local design storage inside the
-Geon desktop app. It is not a separately installed CLI product. Start desktop
+Molly Design desktop app. It is not a separately installed CLI product. Start desktop
 development with `corepack pnpm start:local` from the repository root. Internal
 process arguments and the workspace package name remain implementation interfaces.
 
@@ -22,7 +22,7 @@ Decision: [T01](../../.agents/notes/implemented/simplification/2026-09-11-unchan
 ## Design image connection
 
 Design sessions with an enabled URL/key/model connection expose
-`geon_generate_image` (JSON `/images/generations`) and `geon_edit_image`
+`molly_generate_image` (JSON `/images/generations`) and `molly_edit_image`
 (multipart `/images/edits`, ordered workspace files and an optional PNG mask).
 The user must provide a model; existing explicit values are preserved. Each call
 returns a content-addressed workspace asset without changing or committing PPTD.

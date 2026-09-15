@@ -349,10 +349,10 @@ async function renderSourcePreview(
         const observer = new MutationObserver(check);
         observer.observe(document, { childList: true, subtree: true });
         async function check() {
-          if (started || !window.geon || !window.bento?.doc || !document.querySelector('.bento-slide')) return;
+          if (started || !window.molly || !window.bento?.doc || !document.querySelector('.bento-slide')) return;
           started = true; observer.disconnect();
           try {
-            window.geon.setReadonly(true, ${JSON.stringify(kind === 'history' ? '历史版本 · 只读 / Version history · Read-only' : '未提交预览 · 只读 / Unsubmitted preview · Read-only')});
+            window.molly.setReadonly(true, ${JSON.stringify(kind === 'history' ? '历史版本 · 只读 / Version history · Read-only' : '未提交预览 · 只读 / Unsubmitted preview · Read-only')});
             document.querySelector('.bento-slide').getBoundingClientRect();
             await Promise.all([...document.fonts].filter(font => font.status === 'loading').map(font => font.load()));
             if ([...document.fonts].some(font => font.status === 'error')) throw Error('Preview font failed to load');

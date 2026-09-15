@@ -1,4 +1,4 @@
-# Blind eval of Geon vs open-kimi-ppt-skill (baseline)
+# Blind eval of Molly Design vs open-kimi-ppt-skill (baseline)
 
 Status: proposed
 Translation: current
@@ -7,7 +7,7 @@ Translation: current
 
 ## Abstract
 
-An Agent with no memory of this conversation scores Geon's current tree against a pinned `open-kimi-ppt-skill` checkout on three layers: A product clone, B skill text, C format DSL. The main eval must not open `agentic-listing-design`, must not open this eval or the retirement notes, and must not search the web. The instrument is the [blind prompt](../../../eval/open-kimi-pptd-blind-prompt.md). Two independent baseline runs agreed A `否`, B `借鉴`, C `借鉴`. After YAML retirement and a leftover-phrasing rewrite, two further independent runs agree A `否`, B `否`, C `借鉴`. That historical pair did not meet the C pass line. After the approved single-file redesign, two independent Grok 4.6 CLI runs score A/B/C all `否`, meeting the agreed score line within the sampling limits recorded below. This is not a legal opinion and does not approve Spec or runtime changes.
+An Agent with no memory of this conversation scores Molly Design's current tree against a pinned `open-kimi-ppt-skill` checkout on three layers: A product clone, B skill text, C format DSL. The main eval must not open `agentic-listing-design`, must not open this eval or the retirement notes, and must not search the web. The instrument is the [blind prompt](../../../eval/open-kimi-pptd-blind-prompt.md). Two independent baseline runs agreed A `否`, B `借鉴`, C `借鉴`. After YAML retirement and a leftover-phrasing rewrite, two further independent runs agree A `否`, B `否`, C `借鉴`. That historical pair did not meet the C pass line. After the approved single-file redesign, two independent Grok 4.6 CLI runs score A/B/C all `否`, meeting the agreed score line within the sampling limits recorded below. This is not a legal opinion and does not approve Spec or runtime changes.
 
 ## Contract
 
@@ -29,7 +29,7 @@ git -C /Users/macmini/dev/open-kimi-ppt-skill rev-parse HEAD
 
 ## Baseline environment
 
-- Geon branch: `codex/independent-release` @ `48fbd0e3764a72a27378aa78b678c0c8676c0e48` (untracked eval/retirement notes exist; the prompt forbids opening them)
+- Molly Design branch: `codex/independent-release` @ `48fbd0e3764a72a27378aa78b678c0c8676c0e48` (untracked eval/retirement notes exist; the prompt forbids opening them)
 - open-kimi-ppt-skill: `c32890fe0985bdf668f2722fed30f1010bdf24c9`
 - Two runs: independent general-purpose subagents, cwd `/Users/macmini/dev`, no memory of this chat
 - Instrument: full text of the [blind prompt](../../../eval/open-kimi-pptd-blind-prompt.md)
@@ -48,7 +48,7 @@ The post-retirement pass line is still A/B/C all `否`. Baseline: A already pass
 
 ### Run 1 (`01a09f64-5ad3-7042-87a5-53f1afcf7255`, ~228s)
 
-A: Geon is a single-canvas desktop design bench (Bento + PNG/JPEG); it does not ship the Kimi-hosted editor, PPTX export, ~30 presets, or dual PPTD+PPTX delivery.
+A: Molly Design is a single-canvas desktop design bench (Bento + PNG/JPEG); it does not ship the Kimi-hosted editor, PPTX export, ~30 presets, or dual PPTD+PPTX delivery.
 
 B: The main `SKILL.md` workflows differ, but the eight-row relationship table and several distinctive phrases in `general-poster.md` are a compressed rewrite of B's poster guide.
 
@@ -58,7 +58,7 @@ C: Agent-facing v2 uses the same PPTD YAML layout and field names (`elementId`/`
 
 Same three-layer verdicts. Extra contrast: A's `SKILL.md` is already a single-canvas router (`finalize.mjs` / `render-preview.mjs`), not B's step0–step5 + Python export chain. C still calls the v2 authoring syntax the same PPTD DSL, including 13 chart types, while noting v3 is a product layer B does not have.
 
-## Post-retirement eval ([#42](https://github.com/LeonEthan/Geon/issues/42))
+## Post-retirement eval ([#42](https://github.com/LeonEthan/molly-design/issues/42))
 
 Instrument unchanged. Comparison repo still `c32890fe0985bdf668f2722fed30f1010bdf24c9`. Two independent general-purpose subagents, cwd `/Users/macmini/dev`, no chat memory, no ALD, no retirement/eval notes as required reading.
 
@@ -88,7 +88,7 @@ Both runs valid. They agree.
 
 A and B now meet the pass line. C does not. Both C cells have both-repo paths, so they are not void. The Agent-facing entry is `design.yaml` / Bento `id`/`kind` and leftover `.pptd` is rejected; the `借鉴` is the remaining YAML projection layout (`pages/`+`media/`), seven `kind` values, `bounds`/`shapeName`, and runtime leftover-PPTD recognition (including `src/pptd-v3.ts`, `richtext.ts`, and e2e `.pptd` fixtures). Those field names and the `pages/canvas.yaml` path are the approved Bento projection, not a second live PPTD authoring format. Changing them to force a `否` would be a Spec change, not an eval-instrument tweak.
 
-[#42](https://github.com/LeonEthan/Geon/issues/42) stays open. Parent [#36](https://github.com/LeonEthan/Geon/issues/36) stays open.
+[#42](https://github.com/LeonEthan/molly-design/issues/42) stays open. Parent [#36](https://github.com/LeonEthan/molly-design/issues/36) stays open.
 
 ## Limits
 
@@ -96,7 +96,7 @@ Two independent runs of the same model per pair, not two product models. No `cli
 
 ## Single-file follow-up: Grok (2026-09-15)
 
-The user requested an independent Grok recognition test after the approved single-file implementation. Two fresh local Grok CLI 1.0.30 (`04b7ffed98c6`) sessions used `grok-4.6`, cwd `/Users/macmini/dev`, the unchanged frozen prompt, plan permissions, disabled web and subagents, and an added read-only restriction excluding all Geon notes and prior evaluation artifacts. No earlier scores or conversation were supplied. Repo B remained `c32890fe0985bdf668f2722fed30f1010bdf24c9`; Repo A was the current uncommitted single-file worktree on `06aa8ba031e5ccff40c9fabe60c5432d8e850f7d`.
+The user requested an independent Grok recognition test after the approved single-file implementation. Two fresh local Grok CLI 1.0.30 (`04b7ffed98c6`) sessions used `grok-4.6`, cwd `/Users/macmini/dev`, the unchanged frozen prompt, plan permissions, disabled web and subagents, and an added read-only restriction excluding all Molly Design notes and prior evaluation artifacts. No earlier scores or conversation were supplied. Repo B remained `c32890fe0985bdf668f2722fed30f1010bdf24c9`; Repo A was the current uncommitted single-file worktree on `06aa8ba031e5ccff40c9fabe60c5432d8e850f7d`.
 
 | Layer | Grok run 1 | Grok run 2 |
 | --- | --- | --- |
@@ -104,7 +104,7 @@ The user requested an independent Grok recognition test after the approved singl
 | B skill text | 否 | 否 |
 | C format DSL | 否 | 否 |
 
-Both contrast Geon's single-canvas PNG/JPEG product with B's editor/PPTX pipeline; the short canvas guides with B's step0–5, `style.md` and preset workflow; and `design.yaml`, `geon-canvas/1`, native `id`/`kind` and structured text with B's multi-file PPTD, `elementId`/`elementType`, themes and HTML. Their evidence includes both skills, both poster guides, Geon's format guide/example/codec and B's `reference/pptd.md` and example project.
+Both contrast Molly Design's single-canvas PNG/JPEG product with B's editor/PPTX pipeline; the short canvas guides with B's step0–5, `style.md` and preset workflow; and `design.yaml`, `geon-canvas/1`, native `id`/`kind` and structured text with B's multi-file PPTD, `elementId`/`elementType`, themes and HTML. Their evidence includes both skills, both poster guides, Molly Design's format guide/example/codec and B's `reference/pptd.md` and example project.
 
 Tool-log audit found 29 and 33 read/list/search calls respectively, no tool access to excluded source or notes, no mutation/network calls, and unchanged captured authoring/skill source hashes. Both processes exited successfully. Both emitted introductory progress before the requested table, a formatting deviation. Coverage is sampled: B's 2,029-line format guide was read only through line 150, and its 241-line poster guide through line 120/80; native editor code and full element details were not inspected. Run 1's claimed format coverage “through animation” overstates the actual read range. Treat the unanimous scores as a bounded Grok follow-up meeting the score line, not exhaustive similarity clearance or replacement of historical scores. Cross-session memory absence was requested, not independently proven from the CLI's internal context assembly.
 

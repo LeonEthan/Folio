@@ -74,7 +74,7 @@ contracts, and window/renderer integration rules live in
 
 ## Release packaging and auto-update
 
-- Geon updates must use its independent release feed and trusted signing identity.
+- Molly Design updates must use its independent release feed and trusted signing identity.
   Never enable an inherited Lody feed or bypass verification. Installation must wait
   for saved edits and idle Agent execution; unavailable prerequisites stay explicit.
 

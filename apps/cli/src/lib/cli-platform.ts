@@ -91,15 +91,15 @@ export async function loadOrCreateLocalIdentity(
   return identity;
 }
 
-export const LOCAL_WORKSPACE_NAME = 'Geon';
+export const LOCAL_WORKSPACE_NAME = 'Molly Design';
 export const LOCAL_WORKSPACE_SLUG = 'local';
 
 /**
- * One-time rename of the pre-Geon home data directory (`~/.folio` → `~/.geon`).
- * Runs before any local store opens; a fresh install finds nothing to move.
- * A LODY_DATA_DIR override that pins the default location (the desktop passes
- * it to every CLI child) still migrates; a custom override location is left
- * alone.
+ * One-time rename of pre-rename home data directories (`~/.folio` / `~/.geon`
+ * → `~/.molly`). Runs before any local store opens; a fresh install finds
+ * nothing to move. A LODY_DATA_DIR override that pins the default location
+ * (the desktop passes it to every CLI child) still migrates; a custom override
+ * location is left alone. `~/.lody` is never touched.
  */
 export async function migrateLegacyLocalDataDir(
   logger: Logger,
@@ -107,10 +107,8 @@ export async function migrateLegacyLocalDataDir(
 ): Promise<void> {
   const homeDir = options.homeDir ?? os.homedir();
   const current = getLodyDataDir('local', homeDir);
-  const legacy = path.join(homeDir, '.folio');
-  if (current === legacy) return;
   const override = process.env.LODY_DATA_DIR?.trim();
-  const defaultDir = path.join(homeDir, '.geon');
+  const defaultDir = path.join(homeDir, '.molly');
   if (override && path.resolve(override) !== defaultDir) return;
   try {
     await fs.access(current);
@@ -118,11 +116,16 @@ export async function migrateLegacyLocalDataDir(
   } catch {
     // New dir absent: migration candidate.
   }
-  try {
-    await fs.rename(legacy, current);
-    logger.info(`[platform] Migrated local data directory ${legacy} -> ${current}`);
-  } catch {
-    // No legacy directory: fresh install.
+  for (const legacyName of ['.geon', '.folio']) {
+    const legacy = path.join(homeDir, legacyName);
+    if (legacy === current) continue;
+    try {
+      await fs.rename(legacy, current);
+      logger.info(`[platform] Migrated local data directory ${legacy} -> ${current}`);
+      return;
+    } catch {
+      // Candidate absent: try the older one.
+    }
   }
 }
 

@@ -40,8 +40,8 @@ installCliHttpGlobalDispatcher({ logger: getLogger('http-transport') });
 const program = new Command();
 
 program
-  .name('geon-runtime')
-  .description('Internal Agent runtime for the Geon desktop app')
+  .name('molly-runtime')
+  .description('Internal Agent runtime for the Molly Design desktop app')
   .version(version, '-v, --version', 'display version number')
   .enablePositionalOptions();
 

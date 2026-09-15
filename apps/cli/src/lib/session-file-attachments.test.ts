@@ -70,7 +70,7 @@ describe('computeExcludeFileContent', () => {
     const result = computeExcludeFileContent('');
     expect(result).not.toBeNull();
     expect(result).toContain(ATTACHMENTS_EXCLUDE_ENTRY);
-    expect(result).toContain('# Added by Geon');
+    expect(result).toContain('# Added by Molly Design');
   });
 
   it('is idempotent when the entry is already present', () => {

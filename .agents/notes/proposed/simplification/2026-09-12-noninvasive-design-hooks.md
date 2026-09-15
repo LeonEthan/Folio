@@ -9,7 +9,7 @@ Translation: current
 
 The user confirmed that human edits automatically write back to PPTD, and explicitly
 kept a reminder hook that says "read an existing file before editing it." Synchronization
-is handled by Geon's ordinary design save adapter; public hooks/extensions deliver the
+is handled by Molly Design's ordinary design save adapter; public hooks/extensions deliver the
 reminder, and existing native file-tool protections continue to be reused. There is no
 runtime patch or per-sampling generation read proof. The native read-before-write behavior
 of the five agents is not uniform, so internal tool reads, text matching, or prompt text
@@ -35,7 +35,7 @@ research; new adapter wiring and packaged acceptance have not yet been completed
   exist; if the event only adds context and lets execution continue, it cannot be claimed
   to force the current write to wait for a Read. When blocking is required, describe it
   only by the native interface's real reject/retry semantics; do not treat prompt output
-  as blocking. Native support and new Geon wiring are accepted separately.
+  as blocking. Native support and new Molly Design wiring are accepted separately.
 - Using only a static skill/project description without actually loading the hook does
   not complete this item. If an adapter has no suitable public event, record the gap,
   do not silently degrade or patch the runtime; do not deny its other creation abilities
@@ -51,12 +51,12 @@ The following is a 2026-09-12 static review. Pinned source versions, rolling off
 documentation, and actual installed packages are different kinds of evidence; this review
 ran no models or tool probes.
 
-| Agent / review scope | Native behavior | Implication for Geon |
+| Agent / review scope | Native behavior | Implication for Molly Design |
 | --- | --- | --- |
 | Claude Code official current tool docs | Edit/Write has read-before-write rules, but differs by model and version; newer models may edit unread files when permissions and Read availability are met. | Reuse existing checks; cannot claim all models hard-require Read; still keep the project reminder. |
 | Codex `rust-v0.153.4` / `3d2ee51` | The inspected apply_patch path validates patches, reads disk, and matches content; no observed "this session must have called a read tool first" as a general precondition. | Patch matching is not a model read proof; the public hook reminder has independent value. |
 | Pi `v0.85.1` | The read tool suggests using read to inspect files, edit matches original content, write is for new files / full rewrite; the inspected edit/write paths have no session read-history gate. | Use the public extension reminder; do not treat internal tool disk reads as the Agent having read. |
-| Kimi: Geon-hosted `f255222661c9`; also checked Moonshot official current source | The hosted adapter's Edit instruction explicitly reads before each edit, Write instruction requires reading before replacement; the inspected implementation performs file replacement/write, with no observed read-history gate. The official WriteFile/StrReplaceFile cannot infer a read constraint from internal disk reads or generated diffs. | Prefer reusing existing instructions and public hooks; the hosted adapter and the Moonshot official product must not be conflated as the same implementation. |
+| Kimi: Molly Design-hosted `f255222661c9`; also checked Moonshot official current source | The hosted adapter's Edit instruction explicitly reads before each edit, Write instruction requires reading before replacement; the inspected implementation performs file replacement/write, with no observed read-history gate. The official WriteFile/StrReplaceFile cannot infer a read constraint from internal disk reads or generated diffs. | Prefer reusing existing instructions and public hooks; the hosted adapter and the Moonshot official product must not be conflated as the same implementation. |
 | Grok Build public source `37949780` | SearchReplace's `skip_read_before_edit` is marked runtime-invalid compatibility; when the setting is kept, it requires a Read tool to exist, but execution is matching/write oriented and can prompt re-read on mismatch. | A configuration name does not prove forced read; the source conclusion does not automatically override the installed 1.0.13 binary. |
 
 Primary sources:

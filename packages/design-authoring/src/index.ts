@@ -1,5 +1,5 @@
 /**
- * @geon/design-authoring — YAML artwork intake for the Geon design platform.
+ * @molly-design/design-authoring — YAML artwork intake for the Molly Design platform.
  *
  * Migrated from the pinned upstream authoring package (see source-manifest.json
  * and README.md). Scope: YAML snapshot validation, YAML → BentoDoc v4 import,

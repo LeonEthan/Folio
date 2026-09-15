@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/card';
-import geonLogo from '@/assets/geon-icon.png';
+import mollyLogo from '@/assets/molly-icon.png';
 
 export interface EmailVerifiedPageProps {
   /** The verified email address, when better-auth forwarded it in the callback. */
@@ -21,7 +21,12 @@ export function EmailVerifiedPage({ email, secondsRemaining, onContinue }: Email
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
-            <img src={geonLogo} alt="Geon" className="h-10 w-10 object-contain" draggable={false} />
+            <img
+              src={mollyLogo}
+              alt="Molly Design"
+              className="h-10 w-10 object-contain"
+              draggable={false}
+            />
           </div>
           <div className="space-y-2 text-center">
             <CardTitle className="text-2xl font-bold">

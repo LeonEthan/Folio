@@ -10,7 +10,7 @@ const execFileAsync = promisify(execFile);
  * Directory (relative to the session workspace root) where human→agent file
  * attachments are materialized. Excluded from version control and from
  * code-collab file watching. Kept under `.geon/` so a single ignore entry
- * covers all Geon-managed runtime state.
+ * covers all Molly Design-managed runtime state.
  */
 export const ATTACHMENTS_DIR_RELATIVE = path.join('.geon', 'attachments');
 
@@ -18,7 +18,7 @@ export const ATTACHMENTS_DIR_RELATIVE = path.join('.geon', 'attachments');
 export const ATTACHMENTS_EXCLUDE_ENTRY = '.geon/';
 
 const EXCLUDE_HEADER_COMMENT =
-  '# Added by Geon: runtime state and session file attachments (do not commit).';
+  '# Added by Molly Design: runtime state and session file attachments (do not commit).';
 
 /**
  * Sanitize an untrusted file name into a single safe path component:

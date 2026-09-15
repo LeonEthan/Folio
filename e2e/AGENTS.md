@@ -11,7 +11,7 @@ also applies.
   and the synced CLI under `apps/electron/resources/cli`; they never rebuild.
 - Installed acceptance uses the same harness with an explicit executable and
   expected source commit, consuming the package's own entry and resources.
-  Read [installed launch instructions](README.md#installed-geon-acceptance)
+  Read [installed launch instructions](README.md#installed-molly-design-acceptance)
   before selecting that target; preserve the same profile and endpoint isolation.
 - Use a real Electron main process, preload, renderer, IPC graph, and bundled
   CLI. Only an external model/provider wire may be simulated.

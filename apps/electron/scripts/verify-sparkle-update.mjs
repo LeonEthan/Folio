@@ -7,11 +7,11 @@ import { fileURLToPath } from 'node:url'
 
 const electronDir = fileURLToPath(new URL('../', import.meta.url))
 const localDir = path.join(electronDir, '.sparkle-local')
-// Realistic Geon-line versions keep the packaged evidence close to the release
+// Realistic Molly Design-line versions keep the packaged evidence close to the release
 // feed; override only when a throwaway smoke run needs different numbers.
-const oldVersion = process.env.GEON_SPARKLE_OLD_VERSION ?? '0.1.0'
-const newVersion = process.env.GEON_SPARKLE_NEW_VERSION ?? '0.1.1'
-const feedPort = Number(process.env.GEON_SPARKLE_FEED_PORT ?? 4371)
+const oldVersion = process.env.MOLLY_SPARKLE_OLD_VERSION ?? '0.1.0'
+const newVersion = process.env.MOLLY_SPARKLE_NEW_VERSION ?? '0.1.1'
+const feedPort = Number(process.env.MOLLY_SPARKLE_FEED_PORT ?? 4371)
 const feedUrl = `http://127.0.0.1:${feedPort}/appcast.xml`
 
 function run(command, args, options = {}) {
@@ -48,7 +48,7 @@ function ensureKeys() {
   }
 
   const generateKeys = resolveSparkleBin('generate_keys')
-  const account = 'geon-sparkle-local'
+  const account = 'molly-sparkle-local'
   const printed = spawnSync(generateKeys, ['-p', '--account', account], { encoding: 'utf8' })
   if (printed.status !== 0) {
     run(generateKeys, ['--account', account])
@@ -69,7 +69,7 @@ function findPackagedApp() {
   const distDir = path.join(electronDir, 'dist')
   // Prefer the standard electron-builder output over any stale fixture layout
   // that may also contain a .app (find order is filesystem-dependent).
-  const standard = path.join(distDir, 'mac-arm64', 'Geon.app')
+  const standard = path.join(distDir, 'mac-arm64', 'Molly Design.app')
   if (existsSync(standard)) return standard
   const matches = spawnSync('find', [distDir, '-maxdepth', '3', '-name', '*.app', '-type', 'd'], {
     encoding: 'utf8'
@@ -166,9 +166,9 @@ const prepareOnly = process.argv.includes('--prepare-only')
 const { publicEdKey, privateKeyPath } = ensureKeys()
 const workDir = path.join(localDir, 'update-flow')
 const archiveDir = path.join(workDir, 'feed')
-const oldApp = path.join(workDir, 'old', 'Geon.app')
-const newApp = path.join(workDir, 'new', 'Geon.app')
-const newZip = path.join(archiveDir, `Geon-${newVersion}-arm64.zip`)
+const oldApp = path.join(workDir, 'old', 'Molly Design.app')
+const newApp = path.join(workDir, 'new', 'Molly Design.app')
+const newZip = path.join(archiveDir, `MollyDesign-${newVersion}-arm64.zip`)
 
 rmSync(workDir, { recursive: true, force: true })
 mkdirSync(archiveDir, { recursive: true })
@@ -191,7 +191,7 @@ if (skipPackage) {
 // stale or untouched install.
 writeFileSync(
   path.join(newApp, 'Contents', 'Resources', 'update-verification-marker.txt'),
-  `Geon ${newVersion} update verification marker\n`
+  `Molly Design ${newVersion} update verification marker\n`
 )
 adHocSign(newApp)
 run('codesign', ['--verify', '--deep', '--strict', oldApp])
@@ -215,7 +215,7 @@ if (!appcast.includes(newVersion) || !appcast.includes('sparkle:edSignature')) {
 
 writeFileSync(
   path.join(workDir, 'launch.json'),
-  `${JSON.stringify({ feedUrl, oldApp, oldBinary: path.join(oldApp, 'Contents', 'MacOS', 'Geon'), newApp, archiveDir, oldVersion, newVersion, publicEdKey }, null, 2)}\n`
+  `${JSON.stringify({ feedUrl, oldApp, oldBinary: path.join(oldApp, 'Contents', 'MacOS', 'Molly Design'), newApp, archiveDir, oldVersion, newVersion, publicEdKey }, null, 2)}\n`
 )
 
 if (prepareOnly) {
@@ -225,7 +225,7 @@ if (prepareOnly) {
 }
 
 const server = await startFeedServer(archiveDir)
-const oldBinary = path.join(oldApp, 'Contents', 'MacOS', 'Geon')
+const oldBinary = path.join(oldApp, 'Contents', 'MacOS', 'Molly Design')
 if (!existsSync(oldBinary)) {
   throw new Error(`missing packaged binary: ${oldBinary}`)
 }

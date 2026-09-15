@@ -30,13 +30,13 @@ Translation: pending
 ### 文档处理裁定
 
 - 设计平台 Spec（`specs/graphic-design-platform.md` / `.zh.md`，Status: approved）：仅替换产品名及 `folio_*` 工具名为 Geon/`geon_*`，属保持含义的编辑性修改，按 Spec 规则批准继续有效，Status 与 Approved 记录不变。
-- 独立首发 Spec 改名 `specs/geon-independent-release.zh.md`，保持 draft 与 Issue #32 引用。
+- 独立首发 Spec 改名（现 `specs/molly-design-independent-release.zh.md`），保持 draft 与 Issue #32 引用。
 - 已实现（implemented）笔记保留历史 Folio 表述；仅修复指向本次被改名文件的链接目标，不改写历史理由。证据路径（`/tmp/folio-*`、探针轮次目录名）按事实保留。
 - Logo 按 G 方向重新制作；四幕引导插画与开场音乐复用。README 保留当前标记的视觉描述文本，仅替换名称，G 标志选定后再修订。
 
 ## 依据与链接
 
-- 独立品牌范围与首发条件：[独立首发规格](../../../../specs/geon-independent-release.zh.md)（draft）、[独立发布提案](../../proposed/feature/2026-09-13-geon-independent-brand-release.zh.md)；Issue [#32](https://github.com/LeonEthan/Geon/issues/32)。
+- 独立品牌范围与首发条件：[独立首发规格](../../../../specs/molly-design-independent-release.zh.md)（draft）、[独立发布提案](../../proposed/feature/2026-09-13-geon-independent-brand-release.zh.md)；Issue [#32](https://github.com/LeonEthan/Geon/issues/32)。
 - 设计行为合同：[设计平台规格](../../../../specs/graphic-design-platform.zh.md)（approved）。
 - T26 身份与公开帮助基线：[Folio public identity and help](2026-09-11-folio-public-help.md)（历史记录，保留原名）。
 

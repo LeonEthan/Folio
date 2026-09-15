@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_RUNTIME_ARTIFACTS_BASE_URL, resolveRuntimeArtifactUrl } from '../src/runtime-artifacts';
 
 describe('runtime distribution', () => {
-  it('addresses a versioned Geon release asset without the upstream API path', () => {
+  it('addresses a versioned Molly Design release asset without the upstream API path', () => {
     expect(resolveRuntimeArtifactUrl(DEFAULT_RUNTIME_ARTIFACTS_BASE_URL, 'codex', '1.2.3', 'darwin-arm64', 'runtime.tar.zst'))
-      .toBe('https://github.com/LeonEthan/Geon/releases/download/runtime-artifacts-v1/codex--1.2.3--darwin-arm64--runtime.tar.zst');
+      .toBe('https://github.com/LeonEthan/molly-design/releases/download/runtime-artifacts-v1/codex--1.2.3--darwin-arm64--runtime.tar.zst');
   });
 
   it('preserves explicitly configured API mirrors and escapes path components', () => {

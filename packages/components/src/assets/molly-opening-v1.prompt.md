@@ -1,8 +1,8 @@
-# Geon opening score
+# Molly Design opening score
 
 Generated on the user-authorized MiniMax Audio website with Music-3.0, instrumental mode, quantity 1, title `Geon — Form & Rhythm`. The submit button displayed 300 credits. This record does not assert final billing or independently verified licensing terms.
 
-The downloaded no-watermark source was 122.8 seconds. `geon-opening-v1.mp3` is the first 20 seconds, processed with FFmpeg `loudnorm=I=-20:TP=-3:LRA=7,afade=t=in:st=0:d=0.4,afade=t=out:st=16:d=4`, encoded as 44.1 kHz / 192 kbps MP3. The full source remains in the user's Downloads; no credentials are stored here.
+The downloaded no-watermark source was 122.8 seconds. `molly-opening-v1.mp3` is the first 20 seconds, processed with FFmpeg `loudnorm=I=-20:TP=-3:LRA=7,afade=t=in:st=0:d=0.4,afade=t=out:st=16:d=4`, encoded as 44.1 kHz / 192 kbps MP3. The full source remains in the user's Downloads; no credentials are stored here.
 
 ## Submitted prompt
 

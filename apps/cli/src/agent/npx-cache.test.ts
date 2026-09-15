@@ -741,8 +741,9 @@ describe('npm cache isolation helpers', () => {
   });
 
   it('recognizes only the Lody npm cache path', () => {
-    expect(isLodyNpmCacheDir('/Users/u/.geon/npm-cache', '/Users/u')).toBe(true);
-    expect(isLodyNpmCacheDir('/Users/u/.geon/npm-cache/', '/Users/u')).toBe(true);
+    expect(isLodyNpmCacheDir('/Users/u/.molly/npm-cache', '/Users/u')).toBe(true);
+    expect(isLodyNpmCacheDir('/Users/u/.molly/npm-cache/', '/Users/u')).toBe(true);
+    expect(isLodyNpmCacheDir('/Users/u/.geon/npm-cache', '/Users/u')).toBe(false);
     expect(isLodyNpmCacheDir('/Users/u/.lody/npm-cache', '/Users/u')).toBe(false);
     expect(isLodyNpmCacheDir('/Users/u/.lody-oss/npm-cache', '/Users/u')).toBe(false);
     expect(isLodyNpmCacheDir('/Users/u/.npm', '/Users/u')).toBe(false);
@@ -752,7 +753,7 @@ describe('npm cache isolation helpers', () => {
   it('recognizes the cloud installation cache only in cloud mode', () => {
     process.env.LODY_PLATFORM = 'cloud';
     expect(isLodyNpmCacheDir('/Users/u/.lody/npm-cache', '/Users/u')).toBe(true);
-    expect(isLodyNpmCacheDir('/Users/u/.geon/npm-cache', '/Users/u')).toBe(false);
+    expect(isLodyNpmCacheDir('/Users/u/.molly/npm-cache', '/Users/u')).toBe(false);
   });
 });
 
@@ -776,6 +777,11 @@ describe('isLikelyNpmCacheCorruption', () => {
   });
 
   it('recognizes the isolated OSS installation cache path', () => {
+    expect(
+      isLikelyNpmCacheCorruption(
+        'npm ERR! EACCES: permission denied, rename /Users/u/.molly/npm-cache/_cacache/tmp'
+      )
+    ).toBe(true);
     expect(
       isLikelyNpmCacheCorruption(
         'npm ERR! EACCES: permission denied, rename /Users/u/.geon/npm-cache/_cacache/tmp'
@@ -947,7 +953,7 @@ describe('purgeBrokenNpxCache', () => {
 
 describe('purgeLodyNpmCache', () => {
   it('purges only Lody-owned _npx and _cacache dirs', () => {
-    const cache = '/Users/u/.geon/npm-cache';
+    const cache = '/Users/u/.molly/npm-cache';
     const npx = join(cache, '_npx');
     const cacache = join(cache, '_cacache');
     const userNpm = '/Users/u/.npm';
@@ -982,7 +988,7 @@ describe('purgeLodyNpmCache', () => {
   });
 
   it('is best-effort when cleanup fails', () => {
-    const cache = '/Users/u/.geon/npm-cache';
+    const cache = '/Users/u/.molly/npm-cache';
     const npx = join(cache, '_npx');
     const cacache = join(cache, '_cacache');
     const io = makeIo({

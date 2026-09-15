@@ -548,7 +548,7 @@ async function startAgentService(
       identity: { userId },
       workspaces: [],
       runtimeArtifactsBaseUrl:
-        process.env.GEON_RUNTIME_BASE_URL ?? process.env.LODY_RUNTIME_BASE_URL,
+        process.env.MOLLY_RUNTIME_BASE_URL ?? process.env.LODY_RUNTIME_BASE_URL,
     });
   } else {
     if (!LODY_AUTH_URL) {
@@ -565,7 +565,7 @@ async function startAgentService(
       serverBaseUrl: LODY_SERVER_URL,
       previewGatewayUrl: process.env.LODY_PREVIEW_GATEWAY_URL,
       runtimeArtifactsBaseUrl:
-        process.env.GEON_RUNTIME_BASE_URL ?? process.env.LODY_RUNTIME_BASE_URL,
+        process.env.MOLLY_RUNTIME_BASE_URL ?? process.env.LODY_RUNTIME_BASE_URL,
       logger,
     });
   }

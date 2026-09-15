@@ -37,7 +37,7 @@ import {
   AuthoringSnapshotError,
   collectAuthoring,
   intakeAuthoring,
-} from '@geon/design-authoring';
+} from '@molly-design/design-authoring';
 import { createHash, randomUUID } from 'node:crypto';
 import { lstat, mkdir, readdir, unlink } from 'node:fs/promises';
 import path from 'node:path';

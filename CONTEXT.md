@@ -1,6 +1,6 @@
-# Geon
+# Molly Design
 
-Geon 是以自身品牌独立发行、通过设计会话创作和查找平面设计产出的本地桌面工作台。
+Molly Design 是以自身品牌独立发行、通过设计会话创作和查找平面设计产出的本地桌面工作台。
 
 ## Language
 
@@ -49,5 +49,5 @@ _Avoid_：作品目录导入、候选审批、PPTD 互通
 _Avoid_：作品库、可迁移作品目录
 
 **Agent**：
-用户选择的创作执行工具；Pi 与其他 coding agent 属于同一类选择，Geon 不绑定其中某一种。
-_Avoid_：Geon 内置必选 Agent
+用户选择的创作执行工具；Pi 与其他 coding agent 属于同一类选择，Molly Design 不绑定其中某一种。
+_Avoid_：Molly Design 内置必选 Agent

@@ -42,7 +42,7 @@ type ProductBoundaryRouteResult = ProductBoundaryRejection | ProductBoundaryMalf
 interface RouteContract {
   /** Frozen matrix capabilityId; may remain common.kimiRuntime. */
   readonly capabilityId: string;
-  /** Geon-facing probe id; remote renderer is not named Kimi. */
+  /** Molly Design-facing probe id; remote renderer is not named Kimi. */
   readonly liveCapabilityId: string;
   readonly requiredPayload: readonly string[];
 }

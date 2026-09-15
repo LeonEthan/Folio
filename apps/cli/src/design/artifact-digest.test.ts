@@ -10,7 +10,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 async function createRoot() {
-  const directory = await mkdtemp(path.join(tmpdir(), 'geon-digest-'));
+  const directory = await mkdtemp(path.join(tmpdir(), 'molly-digest-'));
   roots.push(directory);
   await mkdir(path.join(directory, 'pages'));
   await mkdir(path.join(directory, 'media'));

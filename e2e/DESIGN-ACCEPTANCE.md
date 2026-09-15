@@ -1,4 +1,4 @@
-# Geon design acceptance
+# Molly Design design acceptance
 
 The DSL redesign additionally requires the real Kimi Code CLI
 [golden reference replication case](KIMI-REPLICATION-ACCEPTANCE.md): the frozen
@@ -84,7 +84,7 @@ specific newly discovered gap instead of creating another test engine or registr
 | Multipart writes, replaced/renamed media, missing dependencies, continuous writes, missed notifications | `apps/electron/src/main/services/design-source-preview-verification.ts`; `design-canvas-sync-core.test.mjs` | Observe actual macOS file events and explicit refresh reconciliation; no partial/old snapshot advertised as current |
 | Multiple consumers, release, background with no consumers | Same source-preview verification and canvas-sync core | Close one consumer while another remains, then close all during a background turn; no extra commit or retained preview producer |
 | Exact viewed source import, no sync/commit loops | Source-preview verification; `packages/components/tests/design-source-preview.test.tsx` | Change source after displaying preview; import must save the displayed snapshot or reject, never silently switch |
-| No CLI, image configuration error | Existing onboarding journey; `apps/cli/src/design/image-connection.test.ts` | Without a configured external Agent, manual editing/save/export remain available. Separately inspect visible recovery wording and protected artwork while Geon's bundled daemon is stopped, then editable recovery; image calls fail explicitly without a default model or paid retry |
+| No CLI, image configuration error | Existing onboarding journey; `apps/cli/src/design/image-connection.test.ts` | Without a configured external Agent, manual editing/save/export remain available. Separately inspect visible recovery wording and protected artwork while Molly Design's bundled daemon is stopped, then editable recovery; image calls fail explicitly without a default model or paid retry |
 | Disk write failure, cancel, quit/reopen | `apps/cli/src/design/turn-outcome.test.ts`; canvas-sync core; installed P1 `design-verification.ts` | Use isolated data only; preserve edits/draft, show failure, reopen last confirmed data; do not count schema rejection as disk failure |
 | Old files/receipts, actual image read, no result cards or thumbnail production | `apps/cli/src/design/candidate-file.test.ts`; `turn-outcome.test.ts`; render tool tests | Open synthetic legacy content, render and read exported pixels; compare files before/after a background turn, with no dedicated thumbnail producer |
 
@@ -101,8 +101,8 @@ Agent/human journey. Native save-dialog selection is simulated. Run only after
 T28's harness and final package are sealed and other builds/probes have finished:
 
 ```sh
-GEON_E2E_INSTALLED_EXECUTABLE=/path/to/Geon.app/Contents/MacOS/Geon \
-GEON_E2E_EXPECTED_SOURCE_COMMIT=<sealed-commit> \
+MOLLY_E2E_INSTALLED_EXECUTABLE=/path/to/Molly Design.app/Contents/MacOS/Molly Design \
+MOLLY_E2E_EXPECTED_SOURCE_COMMIT=<sealed-commit> \
 corepack pnpm --filter @lody/e2e exec tsx scripts/measure-design-acceptance.mjs
 ```
 
@@ -144,7 +144,7 @@ The release remains pending until this round is complete. The
 [installed matrix](../.agents/notes/implemented/testing/2026-09-11-installed-five-agent-matrix.md)
 owns runtime identities and scoped evidence for all five Agents, including
 switching and recovery. The current contract uses automatic PPTD saves and public
-read-before-edit reminders. Pi's installed public extension now exposes Geon's
+read-before-edit reminders. Pi's installed public extension now exposes Molly Design's
 image MCP; the older adapter-catalog limitation is historical. Codex, Kimi and
 Grok have scoped installed reminder/current-file/collector evidence. Kimi's
 actual-user plugin registration remains unexecuted; isolated-home acceptance is

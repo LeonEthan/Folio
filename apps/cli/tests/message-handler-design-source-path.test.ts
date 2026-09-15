@@ -16,7 +16,7 @@ import { MessageHandler } from '../src/lib/message-handler';
 import { getDefaultSessionWorkdir } from '../src/session/session';
 import { designTurnInputDir, DESIGN_TURN_MANIFEST_FILENAME } from '../src/design/turn-input';
 import { resolveDesignWorkspace } from '../src/design/workspace';
-import { ARTWORK_ENTRY } from '@geon/design-authoring';
+import { ARTWORK_ENTRY } from '@molly-design/design-authoring';
 // Historical draft fixture: path resolution must preserve old bytes without migrating them.
 const ARTWORK_PAGE = 'pages/canvas.yaml';
 import type { SessionManager } from '../src/session/session-manager';
@@ -115,7 +115,7 @@ test.each([
   'archived-project',
   'archived-chat',
 ] as const)('unloaded %s draft reopens original bytes without creating a Session', async (kind) => {
-  const root = await mkdtemp(path.join(tmpdir(), 'geon-source-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'molly-source-'));
   roots.push(root);
   vi.stubEnv('LODY_DATA_DIR', root);
   const sessionId = randomUUID() as SessionId;

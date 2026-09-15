@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import geonMark from '@/assets/geon-mark.svg';
-import editorial from '@/assets/geon-editorial-v3.png';
-import poster from '@/assets/geon-poster-v3.png';
-import brand from '@/assets/geon-brand-v3.png';
-import commerce from '@/assets/geon-commerce-v3.png';
+import mollyMark from '@/assets/molly-mark.svg';
+import editorial from '@/assets/molly-editorial-v3.png';
+import poster from '@/assets/molly-poster-v3.png';
+import brand from '@/assets/molly-brand-v3.png';
+import commerce from '@/assets/molly-commerce-v3.png';
 import { Button } from '@/ui/button';
 
 export const INTRO_SHOT_COUNT = 4;
@@ -16,22 +16,22 @@ const BEATS = [
 ] as const;
 
 const MOTION = `
-@keyframes geon-paper-arrive { from { opacity: 0; transform: translateY(24px) rotate(-4deg); } to { opacity: 1; transform: translateY(0) rotate(0); } }
-@keyframes geon-type-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-.geon-paper-arrive { animation: geon-paper-arrive 900ms cubic-bezier(.2,.7,.2,1) both; }
-.geon-type-arrive { animation: geon-type-arrive 700ms ease both; }
-@media (prefers-reduced-motion: reduce) { .geon-paper-arrive, .geon-type-arrive { animation: none; } }
+@keyframes molly-paper-arrive { from { opacity: 0; transform: translateY(24px) rotate(-4deg); } to { opacity: 1; transform: translateY(0) rotate(0); } }
+@keyframes molly-type-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.molly-paper-arrive { animation: molly-paper-arrive 900ms cubic-bezier(.2,.7,.2,1) both; }
+.molly-type-arrive { animation: molly-type-arrive 700ms ease both; }
+@media (prefers-reduced-motion: reduce) { .molly-paper-arrive, .molly-type-arrive { animation: none; } }
 `;
 
 /** The same paper composition anchors the intro and the local setup background. */
-export function GeonPaperComposition({ beat = 1 }: { beat?: number }) {
+export function MollyPaperComposition({ beat = 1 }: { beat?: number }) {
   return (
     <div aria-hidden className="relative aspect-[4/5] w-full max-w-[390px]">
       <img
         key={beat}
         src={(BEATS[beat] ?? BEATS[0]).image}
         alt=""
-        className="geon-paper-arrive h-full w-full object-cover shadow-[0_24px_64px_-24px_#25292355]"
+        className="molly-paper-arrive h-full w-full object-cover shadow-[0_24px_64px_-24px_#25292355]"
       />
     </div>
   );
@@ -57,8 +57,8 @@ export function IntroSequence({
       <style>{MOTION}</style>
       <div className="mx-auto flex min-h-full max-w-[1180px] flex-col px-[6%] py-10">
         <header className="flex items-center gap-3">
-          <img src={geonMark} alt="" className="h-9 w-9" />
-          <span className="font-serif text-2xl tracking-tight">Geon</span>
+          <img src={mollyMark} alt="" className="h-9 w-9" />
+          <span className="font-serif text-2xl tracking-tight">Molly Design</span>
         </header>
         <main className="grid flex-1 items-center gap-12 py-10 md:grid-cols-2 md:gap-20">
           <div>
@@ -70,7 +70,7 @@ export function IntroSequence({
                 />
               ))}
             </div>
-            <div key={beat} className="geon-type-arrive min-h-[200px]" aria-live="polite">
+            <div key={beat} className="molly-type-arrive min-h-[200px]" aria-live="polite">
               <p className="mb-4 text-xs tracking-[0.12em] text-[#9c583d]">
                 {t(`onboarding.intro.${current.scene}.label`)}
               </p>
@@ -89,7 +89,7 @@ export function IntroSequence({
             </Button>
           </div>
           <div className="mx-auto w-[min(68vw,330px)] md:w-full">
-            <GeonPaperComposition beat={beat} />
+            <MollyPaperComposition beat={beat} />
           </div>
         </main>
       </div>

@@ -1,6 +1,6 @@
 ---
 name: graphic-design
-description: "Create or reconstruct editable posters, infographics, social graphics, banners, covers, flyers, and other static single-canvas designs as a YAML artwork project for Geon's Bento-derived editor and renderer."
+description: "Create or reconstruct editable posters, infographics, social graphics, banners, covers, flyers, and other static single-canvas designs as a YAML artwork project for Molly Design's Bento-derived editor and renderer."
 metadata:
   short-description: Create editable static single-canvas graphic designs
 ---
@@ -8,7 +8,7 @@ metadata:
 # Graphic Design
 
 Create one static graphic canvas as editable source. The source is a YAML artwork
-project that Geon imports into its Bento-derived editor and renderer. It is not a
+project that Molly Design imports into its Bento-derived editor and renderer. It is not a
 slide deck. A reference image or a flattened render must never stand in for the
 editable design.
 
@@ -20,7 +20,7 @@ media/               # local raster and font assets
 ```
 
 This directory may differ from Agent cwd in a local project; ordinary chat
-workspaces retain their root. Geon collects exactly these draft files, validates
+workspaces retain their root. Molly Design collects exactly these draft files, validates
 them, and imports the result as the editable document. The separate
 `design-current/` path is application input, never a submitted draft; it may be
 absent until synchronized. You do not write `design.json` yourself. Leftover
@@ -59,20 +59,20 @@ helpers, not prerequisites for creation, rendering, submission, or turn completi
   [replication.md](references/replication.md) for this script's format limits;
   use available image tools or other analysis methods as appropriate.
 - `node scripts/finalize.mjs <project>/design.yaml[.tmp]` checks structure and can
-  promote a clean `.tmp` canvas. You may write `design.yaml` directly. Geon
+  promote a clean `.tmp` canvas. You may write `design.yaml` directly. Molly Design
   independently validates structure, assets, and versions at intake; it does not
   require evidence that you ran this helper or completed a creative checklist.
 - `node scripts/migrate-two-file.mjs <old-draft> <new-output>` explicitly converts
-  a previous Geon two-file draft into a fresh directory, preserving the source.
+  a previous Molly Design two-file draft into a fresh directory, preserving the source.
   It does not submit or update current artwork.
 - `node scripts/render-preview.mjs <project>/design.yaml` checks intake locally.
   This script does not render an image or perform visual review.
 
-When using `geon_render_preview`, open the returned PNG with an actual
+When using `molly_render_preview`, open the returned PNG with an actual
 image-reading tool, inspect what was rendered, and continue modifying the project
 as useful. Render and view updated images when you need to judge changes. A prior
 image shows the prior file state; structural validation does not judge composition.
-If `geon_render_preview` is absent, only that tool is unavailable; assess other
+If `molly_render_preview` is absent, only that tool is unavailable; assess other
 image-reading and rendering capabilities actually available to your Agent. Report
 what you could and could not inspect without claiming a review you did not perform.
 Agent review is advisory and its method and extent are your decision. Human
@@ -103,6 +103,6 @@ assumptions honestly.
 - Presentation narrative, multiple slides, masters, speaker notes, transitions,
   animations, and PPT/PPTX import, export, or round-trip.
 - Business-vertical dimensions, copy rules, and compliance policies.
-- Image generation and editing. The imagegen skill describes `geon_generate_image`
-  and `geon_edit_image` when available. Place image assets under `media/`. A materialized
+- Image generation and editing. The imagegen skill describes `molly_generate_image`
+  and `molly_edit_image` when available. Place image assets under `media/`. A materialized
   skill does not itself establish tool availability; use the actual tool list.

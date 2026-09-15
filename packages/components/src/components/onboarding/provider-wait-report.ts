@@ -33,7 +33,7 @@ export type ProviderWaitReportInput = {
   environment?: ErrorBoundaryReportEnvironment;
 };
 
-const REPORT_TITLE = 'Geon: agent setup is taking longer than usual';
+const REPORT_TITLE = 'Molly Design: agent setup is taking longer than usual';
 
 function formatOnline(online: boolean | null | undefined): string | undefined {
   if (online === true) return 'yes';

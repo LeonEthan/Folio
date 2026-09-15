@@ -32,7 +32,7 @@ describe('migrateLegacyLocalDataDir', () => {
   let homeDir: string | undefined;
 
   beforeEach(async () => {
-    homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'geon-data-dir-migration-'));
+    homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'molly-data-dir-migration-'));
   });
 
   afterEach(async () => {
@@ -42,44 +42,69 @@ describe('migrateLegacyLocalDataDir', () => {
     }
   });
 
-  it('renames ~/.folio to ~/.geon when the new dir is absent', async () => {
+  it('renames ~/.folio to ~/.molly when the new dir is absent', async () => {
     const logger = createTestLogger();
     await fs.mkdir(path.join(homeDir!, '.folio', 'chats'), { recursive: true });
     await migrateLegacyLocalDataDir(logger, { homeDir: homeDir! });
-    await expect(fs.access(path.join(homeDir!, '.geon', 'chats'))).resolves.toBeUndefined();
+    await expect(fs.access(path.join(homeDir!, '.molly', 'chats'))).resolves.toBeUndefined();
     await expect(fs.access(path.join(homeDir!, '.folio'))).rejects.toThrow();
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('.folio'));
   });
 
-  it('keeps an existing ~/.geon untouched', async () => {
+  it('renames ~/.geon to ~/.molly when the new dir is absent', async () => {
+    const logger = createTestLogger();
+    await fs.mkdir(path.join(homeDir!, '.geon', 'chats'), { recursive: true });
+    await migrateLegacyLocalDataDir(logger, { homeDir: homeDir! });
+    await expect(fs.access(path.join(homeDir!, '.molly', 'chats'))).resolves.toBeUndefined();
+    await expect(fs.access(path.join(homeDir!, '.geon'))).rejects.toThrow();
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('.geon'));
+  });
+
+  it('prefers the newer ~/.geon over ~/.folio when both exist', async () => {
+    const logger = createTestLogger();
+    await fs.mkdir(path.join(homeDir!, '.geon', 'chats'), { recursive: true });
+    await fs.mkdir(path.join(homeDir!, '.folio', 'chats'), { recursive: true });
+    await fs.writeFile(path.join(homeDir!, '.geon', 'marker'), 'geon');
+    await fs.writeFile(path.join(homeDir!, '.folio', 'marker'), 'folio');
+    await migrateLegacyLocalDataDir(logger, { homeDir: homeDir! });
+    await expect(fs.readFile(path.join(homeDir!, '.molly', 'marker'), 'utf8')).resolves.toBe(
+      'geon'
+    );
+    await expect(fs.access(path.join(homeDir!, '.folio', 'chats'))).resolves.toBeUndefined();
+  });
+
+  it('keeps an existing ~/.molly untouched', async () => {
     const logger = createTestLogger();
     await fs.mkdir(path.join(homeDir!, '.folio'), { recursive: true });
     await fs.mkdir(path.join(homeDir!, '.geon'), { recursive: true });
+    await fs.mkdir(path.join(homeDir!, '.molly'), { recursive: true });
     await migrateLegacyLocalDataDir(logger, { homeDir: homeDir! });
     await expect(fs.access(path.join(homeDir!, '.folio'))).resolves.toBeUndefined();
+    await expect(fs.access(path.join(homeDir!, '.geon'))).resolves.toBeUndefined();
   });
 
   it('does nothing on a fresh install', async () => {
     const logger = createTestLogger();
     await migrateLegacyLocalDataDir(logger, { homeDir: homeDir! });
-    await expect(fs.access(path.join(homeDir!, '.geon'))).rejects.toThrow();
+    await expect(fs.access(path.join(homeDir!, '.molly'))).rejects.toThrow();
   });
 
   it('still migrates when LODY_DATA_DIR pins the default location', async () => {
     const logger = createTestLogger();
-    await fs.mkdir(path.join(homeDir!, '.folio', 'chats'), { recursive: true });
-    vi.stubEnv('LODY_DATA_DIR', path.join(homeDir!, '.geon'));
+    await fs.mkdir(path.join(homeDir!, '.geon', 'chats'), { recursive: true });
+    vi.stubEnv('LODY_DATA_DIR', path.join(homeDir!, '.molly'));
     try {
       await migrateLegacyLocalDataDir(logger, { homeDir: homeDir! });
     } finally {
       vi.unstubAllEnvs();
     }
-    await expect(fs.access(path.join(homeDir!, '.geon', 'chats'))).resolves.toBeUndefined();
+    await expect(fs.access(path.join(homeDir!, '.molly', 'chats'))).resolves.toBeUndefined();
   });
 
   it('leaves the legacy dir alone when LODY_DATA_DIR pins a custom location', async () => {
     const logger = createTestLogger();
     await fs.mkdir(path.join(homeDir!, '.folio'), { recursive: true });
+    await fs.mkdir(path.join(homeDir!, '.geon'), { recursive: true });
     vi.stubEnv('LODY_DATA_DIR', path.join(homeDir!, 'custom-data'));
     try {
       await migrateLegacyLocalDataDir(logger, { homeDir: homeDir! });
@@ -87,6 +112,7 @@ describe('migrateLegacyLocalDataDir', () => {
       vi.unstubAllEnvs();
     }
     await expect(fs.access(path.join(homeDir!, '.folio'))).resolves.toBeUndefined();
+    await expect(fs.access(path.join(homeDir!, '.geon'))).resolves.toBeUndefined();
     await expect(fs.access(path.join(homeDir!, 'custom-data'))).rejects.toThrow();
   });
 });
@@ -95,7 +121,7 @@ describe('ensureImplicitLocalWorkspace legacy rename', () => {
   let tempDir: string | undefined;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'geon-workspace-rename-'));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'molly-workspace-rename-'));
   });
 
   afterEach(async () => {
@@ -109,7 +135,7 @@ describe('ensureImplicitLocalWorkspace legacy rename', () => {
     const logger = createTestLogger();
     const catalog = makeLocalWorkspaceCatalog({
       filePath: path.join(tempDir!, 'workspace-catalog.json'),
-      lockName: `geon-workspace-rename-${path.basename(tempDir!)}`,
+      lockName: `molly-workspace-rename-${path.basename(tempDir!)}`,
     });
     const identity = {
       userId: `local:${crypto.randomUUID().replaceAll('-', '')}`,
@@ -122,7 +148,7 @@ describe('ensureImplicitLocalWorkspace legacy rename', () => {
         workspaces: [
           {
             id: `lw_${crypto.randomUUID().replaceAll('-', '')}`,
-            name: 'Folio',
+            name: 'Geon',
             slug: 'local',
             role: 'owner',
           },

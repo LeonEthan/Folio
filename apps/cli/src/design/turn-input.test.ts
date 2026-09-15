@@ -47,7 +47,7 @@ async function writeProject(workdir: string, page: string): Promise<void> {
 }
 
 async function setupDesign(options: { width?: number; height?: number } = {}) {
-  const root = await mkdtemp(path.join(tmpdir(), 'geon-turn-input-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'molly-turn-input-'));
   roots.push(root);
   const sessionId = randomUUID();
   await designOperation(root, {

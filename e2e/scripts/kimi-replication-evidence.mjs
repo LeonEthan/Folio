@@ -61,7 +61,7 @@ export async function collectKimiResult(h, { directory, artworkId, dataRoot, rep
   });
   // Use this build's delivered authoring helper, including the old baseline format.
   const authoring = await import(
-    pathToFileURL(join(workdir, '.claude/skills/graphic-design/scripts/lib/geon-authoring.mjs'))
+    pathToFileURL(join(workdir, '.claude/skills/graphic-design/scripts/lib/molly-authoring.mjs'))
       .href
   );
   const projection = authoring.collectAuthoring(join(workdir, 'design-current'));
@@ -82,7 +82,7 @@ export async function collectKimiResult(h, { directory, artworkId, dataRoot, rep
     await writeFile(destination, bytes, { flag: 'wx' });
   }
   report.deliveredAuthoringSha256 = sha(
-    await readFile(join(workdir, '.claude/skills/graphic-design/scripts/lib/geon-authoring.mjs'))
+    await readFile(join(workdir, '.claude/skills/graphic-design/scripts/lib/molly-authoring.mjs'))
   );
   report.exports = {};
   const exportAndRecord = async (label, format) => {
@@ -214,7 +214,7 @@ export async function writeComparison(directory) {
   const pair = (top, height) =>
     `<div class="pair">${[
       ['Reference', reference, 'jpeg'],
-      ['Geon export', output, 'png'],
+      ['Molly Design export', output, 'png'],
     ]
       .map(
         ([name, bytes, type]) =>
@@ -223,7 +223,7 @@ export async function writeComparison(directory) {
       .join('')}</div>`;
   await writeFile(
     join(directory, 'comparison.html'),
-    `<!doctype html><meta charset="utf-8"><title>Golden replication comparison</title><style>body{font:14px system-ui;background:#eee;padding:24px}.pair{display:flex;gap:24px;margin:24px 0}figure{margin:0}figcaption{margin-bottom:8px}figure div{position:relative;overflow:hidden;width:285px;background:white}img{position:absolute;width:285px;height:2000px;left:0}h1{font-size:24px}</style><h1>Reference and actual Geon export</h1><p>Reference coordinates: 285 × 2000. Uniform display scaling only; native export dimensions are recorded in report.json. No warping, section alignment or score-based pass.</p>${pair(0, 2000)}<h2>Fixed corresponding regions</h2>${boundaries
+    `<!doctype html><meta charset="utf-8"><title>Golden replication comparison</title><style>body{font:14px system-ui;background:#eee;padding:24px}.pair{display:flex;gap:24px;margin:24px 0}figure{margin:0}figcaption{margin-bottom:8px}figure div{position:relative;overflow:hidden;width:285px;background:white}img{position:absolute;width:285px;height:2000px;left:0}h1{font-size:24px}</style><h1>Reference and actual Molly Design export</h1><p>Reference coordinates: 285 × 2000. Uniform display scaling only; native export dimensions are recorded in report.json. No warping, section alignment or score-based pass.</p>${pair(0, 2000)}<h2>Fixed corresponding regions</h2>${boundaries
       .slice(0, -1)
       .map((top, i) => pair(top, boundaries[i + 1] - top))
       .join('')}`

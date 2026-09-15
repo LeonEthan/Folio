@@ -56,9 +56,9 @@ export class OnboardingPage {
     await this.openAgentConfiguration();
     await this.page.getByRole('button', { name: /^(Skip for now|稍后再配置)$/u }).click();
     await expect(
-      this.page.getByRole('heading', { name: /^(Explore Geon|探索 Geon)$/u })
+      this.page.getByRole('heading', { name: /^(Explore Molly Design|探索 Molly Design)$/u })
     ).toBeVisible();
-    await this.page.getByRole('button', { name: /^(Enter Geon|进入 Geon)$/u }).click();
+    await this.page.getByRole('button', { name: /^(Enter Molly Design|进入 Molly Design)$/u }).click();
     await expect(this.page.locator('#chat-prompt')).toBeVisible({ timeout: 60_000 });
     await expect(this.page).toHaveURL(/#\/local\/chat(?:\?.*)?$/u);
   }

@@ -14,7 +14,7 @@ Root `AGENTS.md` applies; this file adds CLI context. Build, PR-poller, and adap
   FILENAME next to `import.meta.url`. Keep npm packages external by ABSOLUTE path, keep
   `splitting: true`, and keep the no-hoisting assertion.
 - Import the CLI's own `version` from `@/pkg`, never a relative `../package.json`; the package
-  `name` stays `lody` internally. This package is private, has no public bin, and is shipped only inside Geon.
+  `name` stays `lody` internally. This package is private, has no public bin, and is shipped only inside Molly Design.
 - Keep `prepare:acp-adapters` before `dev-build.mjs` and Vite: skipping it can silently launch old
   adapter capabilities from a stale `dist/`.
 - Keep `prepare:design-authoring` before `dev-build.mjs` and Vite, and `copy:design-skills` after
@@ -76,7 +76,7 @@ execution/consent rules. These rules also bind CLI callers outside that director
   DeepSeek capability source version and thread the Agent config environment through every
   probe/session source-version derivation, so two endpoint catalogs never share a cache identity.
   Never put the API key or a derivative of it in that cache key.
-- Geon does not start PR reconciliation or automatic code-review/merge engines. Preserve
+- Molly Design does not start PR reconciliation or automatic code-review/merge engines. Preserve
   generic task dispatch, file watchers, and existing session/history records when changing fleet wiring.
 
 ## Design workspace files

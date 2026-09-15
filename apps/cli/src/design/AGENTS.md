@@ -45,7 +45,7 @@ See [runtime and files](README.md), the
 and the [YAML turn/projection entry](../../../../.agents/notes/implemented/architecture/2026-09-14-yaml-turn-projection.md).
 
 Codex public UserPromptSubmit supplies context only. Preserve native user hook
-declarations and trust; trust only Geon’s exact bundled command in the per-session
+declarations and trust; trust only Molly Design’s exact bundled command in the per-session
 overlay. Never treat reminder delivery as read or commit evidence.
 
 Pi image/render tools use the existing Lody MCP catalog and session context through
@@ -68,4 +68,4 @@ lock so queued operations cannot version a pre-restore snapshot. See [history](R
 
 Grok reminders use only the app-owned session plugin and native hook reload. Preserve
 user plugin trust; PreToolUse context arrives after the tool and establishes no read
-or commit evidence. Missing/disabled Geon hooks must not be reported as loaded.
+or commit evidence. Missing/disabled Molly Design hooks must not be reported as loaded.

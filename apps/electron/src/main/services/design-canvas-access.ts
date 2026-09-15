@@ -60,7 +60,8 @@ export class DesignCanvasAccess {
     for (const state of states) {
       if (!state.preparing || this.reported.has(state.turnId)) continue
       try {
-        if (this.updating) throw Error('Geon is preparing an update; try again after updating')
+        if (this.updating)
+          throw Error('Molly Design is preparing an update; try again after updating')
         await this.flush(state.artworkId)
         reports.push({ artworkId: state.artworkId, turnId: state.turnId, ok: true })
       } catch (error) {
@@ -97,7 +98,7 @@ export class DesignCanvasAccess {
 
   /** Frontend preflight preserves composer errors; real dispatch repeats this after claiming. */
   async prepareForSend(id: string): Promise<void> {
-    if (this.updating) throw Error('Geon is preparing an update; try again after updating')
+    if (this.updating) throw Error('Molly Design is preparing an update; try again after updating')
     if (this.known && this.isActive(id)) return // Existing queue/steer owns routing.
     if (this.isReadonly(id))
       throw Error('Canvas execution state is unknown or saving; retry when connected')
@@ -138,7 +139,7 @@ export class DesignCanvasAccess {
     action: (assertIdle: () => void) => Promise<T>
   ): Promise<T> {
     const assertIdle = () => {
-      if (this.updating) throw Error('Geon is preparing an update; import refused')
+      if (this.updating) throw Error('Molly Design is preparing an update; import refused')
       if (!this.known || this.active.has(id))
         throw Error('Canvas execution or artifact processing is active or unknown; import refused')
     }

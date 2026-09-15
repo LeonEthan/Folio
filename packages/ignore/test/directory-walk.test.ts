@@ -43,7 +43,7 @@ describe('listNonIgnoredWorkspaceDirectories', () => {
     expect(directories.some((directory) => directory.split('/')[0] === 'node_modules')).toBe(false);
     expect(directories.some((directory) => directory.split('/')[0] === '.git')).toBe(false);
     expect(directories.some((directory) => directory.split('/')[0] === 'build')).toBe(false);
-    // Geon's workspace state and its pre-rename equivalents stay out of
+    // Molly Design's workspace state and its pre-rename equivalents stay out of
     // change tracking even without a git repo.
     for (const stateDirectory of ['.geon', '.lody', '.folio']) {
       expect(directories.some((directory) => directory.split('/')[0] === stateDirectory)).toBe(false);

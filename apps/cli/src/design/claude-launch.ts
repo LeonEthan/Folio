@@ -11,7 +11,8 @@ export function prepareClaudeDesignLaunch(
   identity: { machineId: string; workspaceId: string }
 ) {
   const hook = path.join(path.dirname(fileURLToPath(import.meta.url)), 'claude-design-hook.js');
-  if (!existsSync(hook)) throw Error('Geon Claude design hook is missing from the CLI bundle');
+  if (!existsSync(hook))
+    throw Error('Molly Design Claude design hook is missing from the CLI bundle');
   const command = env.CLAUDE_CODE_EXECUTABLE;
   if (!command) throw Error('Claude executable is required for design hooks');
   const version = spawn.sync(command, ['--version'], {
@@ -23,7 +24,7 @@ export function prepareClaudeDesignLaunch(
   const runtimeVersion = version.status === 0 ? version.stdout.trim().split(' ')[0] : 'unknown';
   if (runtimeVersion !== claudeRuntimeManifest.version)
     throw Error(
-      `Geon design hooks require verified Claude Code ${claudeRuntimeManifest.version}; selected runtime reports ${runtimeVersion}`
+      `Molly Design design hooks require verified Claude Code ${claudeRuntimeManifest.version}; selected runtime reports ${runtimeVersion}`
     );
   // Claude command hooks use the platform shell. Quote executable paths, never
   // interpolate a model/user command or credentials into hook configuration.
@@ -38,10 +39,10 @@ export function prepareClaudeDesignLaunch(
     ),
     env: {
       ...env,
-      GEON_DESIGN_CLAUDE_VERSION: runtimeVersion,
-      GEON_DESIGN_MACHINE_ID: identity.machineId,
-      GEON_DESIGN_WORKSPACE_ID: identity.workspaceId,
-      GEON_DESIGN_CONTROL_SOCKET: getLocalControlSocketPath(),
+      MOLLY_DESIGN_CLAUDE_VERSION: runtimeVersion,
+      MOLLY_DESIGN_MACHINE_ID: identity.machineId,
+      MOLLY_DESIGN_WORKSPACE_ID: identity.workspaceId,
+      MOLLY_DESIGN_CONTROL_SOCKET: getLocalControlSocketPath(),
     },
   };
 }

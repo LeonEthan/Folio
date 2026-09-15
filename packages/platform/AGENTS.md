@@ -15,7 +15,7 @@ telemetry, or managed-runtime downloads, as routed by the root instructions.
   selects `local` explicitly; private Web/mobile entries and cloud composition
   roots may inject `cloud` without forking those shared packages.
 - The OSS desktop entry is local-only and must not make authenticated product-cloud requests;
-  public managed-runtime and Geon application-update downloads are the exceptions.
+  public managed-runtime and Molly Design application-update downloads are the exceptions.
 - An absent platform selector resolves to `local`; public build scripts must
   not accept or discover staging/production deployment presets.
 - Local CLI, renderer, and Electron-main telemetry is hard-disabled even when
@@ -23,7 +23,7 @@ telemetry, or managed-runtime downloads, as routed by the root instructions.
 
 ## Managed runtime channel
 
-- Managed runtime downloads use the Geon GitHub Release channel owned by
+- Managed runtime downloads use the Molly Design GitHub Release channel owned by
   `packages/platform/src/runtime-artifacts.ts`. Keep asset names versioned and
-  checksums in the existing runtime manifests. `GEON_RUNTIME_BASE_URL` overrides
+  checksums in the existing runtime manifests. `MOLLY_RUNTIME_BASE_URL` overrides
   the channel; `LODY_RUNTIME_BASE_URL` remains a legacy explicit mirror alias.

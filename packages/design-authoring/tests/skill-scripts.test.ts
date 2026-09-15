@@ -78,7 +78,7 @@ function run(script: string, args: string[]) {
 
 const workdirs: string[] = [];
 function workdir(): string {
-  const dir = mkdtempSync(path.join(tmpdir(), 'geon-skill-test-'));
+  const dir = mkdtempSync(path.join(tmpdir(), 'molly-skill-test-'));
   workdirs.push(dir);
   return dir;
 }
@@ -138,7 +138,7 @@ describe('finalize.mjs', () => {
     writeProject(dir, VALID_PAGE.replace('media/pic.png', 'media/missing.png'));
     const result = run('finalize.mjs', [path.join(dir, 'design.yaml.tmp')]);
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain('GEON-E005');
+    expect(result.stderr).toContain('MOLLY-E005');
     expect(existsSync(path.join(dir, 'design.yaml'))).toBe(false);
     expect(existsSync(path.join(dir, 'design.yaml.tmp'))).toBe(true);
   });
@@ -153,7 +153,7 @@ describe('render-preview.mjs', () => {
     const result = run('render-preview.mjs', [path.join(dir, 'design.yaml')]);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('intake OK');
-    expect(result.stdout).toContain('geon_render_preview');
+    expect(result.stdout).toContain('molly_render_preview');
   });
 
   it('fails intake on an invalid project', () => {
@@ -162,7 +162,7 @@ describe('render-preview.mjs', () => {
     writeFileSync(path.join(dir, 'design.yaml'), readFileSync(path.join(dir, 'design.yaml.tmp')));
     const result = run('render-preview.mjs', [path.join(dir, 'design.yaml')]);
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain('GEON-E005');
+    expect(result.stderr).toContain('MOLLY-E005');
   });
 });
 

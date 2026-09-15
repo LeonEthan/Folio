@@ -18,10 +18,10 @@ it('keeps each graphic-design scene paired with its copy and holds the final inv
       root.render(<IntroSequence onStart={() => {}} />);
     });
     const scenes = [
-      ['Make an impression.', 'geon-poster-v3.png'],
-      ['Give every page a rhythm.', 'geon-editorial-v3.png'],
-      ['Create a visual language.', 'geon-brand-v3.png'],
-      ['Show what makes it special.', 'geon-commerce-v3.png'],
+      ['Make an impression.', 'molly-poster-v3.png'],
+      ['Give every page a rhythm.', 'molly-editorial-v3.png'],
+      ['Create a visual language.', 'molly-brand-v3.png'],
+      ['Show what makes it special.', 'molly-commerce-v3.png'],
     ];
     for (const [index, [title, image]] of scenes.entries()) {
       if (index > 0)
@@ -35,7 +35,7 @@ it('keeps each graphic-design scene paired with its copy and holds the final inv
       vi.advanceTimersByTime(30000);
     });
     expect(container.querySelector('h1')?.textContent).toBe(scenes[3][0]);
-    expect(container.textContent).toContain('Configure Geon');
+    expect(container.textContent).toContain('Configure Molly Design');
   } finally {
     act(() => root.unmount());
     container.remove();

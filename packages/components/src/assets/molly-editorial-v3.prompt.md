@@ -1,4 +1,4 @@
-# Geon editorial — v3
+# Molly Design editorial — v3
 
 Mode: built-in image_gen, text-only generation. No reference images supplied.
 Candidate pending human visual acceptance; no legal clearance is asserted.

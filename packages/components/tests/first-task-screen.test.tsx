@@ -214,7 +214,7 @@ describe('first task Agent Provider state', () => {
       sessionActions.startSession.mock.invocationCallOrder[0]
     );
     expect(sessionActions.requestSessionDispatch).not.toHaveBeenCalled();
-    expect(container.textContent).toContain('Enter Geon');
+    expect(container.textContent).toContain('Enter Molly Design');
 
     await act(async () => {
       resolveStart?.({

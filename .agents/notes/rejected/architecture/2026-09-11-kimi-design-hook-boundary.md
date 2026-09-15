@@ -5,7 +5,7 @@ Translation: pending
 
 ## Abstract
 
-The pinned Kimi runtime cannot currently provide Geon's complete successful-read
+The pinned Kimi runtime cannot currently provide Molly Design's complete successful-read
 attestation and generation-frozen write baseline. A native ACP probe of the exact
 public artifact confirms that post-read hooks run without delaying the next model
 request, receive truncated output, and permit writes after pre-hook errors or
@@ -16,7 +16,7 @@ before a thin adapter can reuse the existing design service safely.
 ## Ownership and scope
 
 This records the unresolved Kimi slice of [shared design hooks](2026-09-10-design-sync-hooks.zh.md)
-and [Issue #21](https://github.com/LeonEthan/Geon/issues/21). The existing
+and [Issue #21](https://github.com/LeonEthan/molly-design/issues/21). The existing
 [Pi integration](../../implemented/architecture/2026-09-11-pi-design-hooks.md)
 and [explicit resubmission](../../implemented/simplification/2026-09-11-explicit-design-resubmission.md)
 own complete delivered reads, generation fences, exact draft digests, attempt
@@ -45,7 +45,7 @@ behavior. The production command is Node plus this artifact's `main.mjs acp`.
 Default ACP uses `@moonshot-ai/acp-server@0.0.1` and agent-core-v2; the legacy
 adapter is a separate path. ACP initialize negotiated protocol 1 and advertised
 Core version-1 usage, rate limits, fork, tasks, subagents and compaction. It
-advertised no Geon design generation/read contract. The runtime's source pins
+advertised no Molly Design design generation/read contract. The runtime's source pins
 `acp-extension-core@0.1.0`; no implementation was copied into the root workspace,
 no gitlink changed, and Kimi remains excluded from root pnpm.
 

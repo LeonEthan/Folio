@@ -22,20 +22,20 @@ interface PiExtensionApi {
     execute(callId: string, params: unknown): Promise<unknown>;
   }): void;
 }
-export default function geonDesignExtension(pi: PiExtensionApi): void {
+export default function mollyDesignExtension(pi: PiExtensionApi): void {
   let runId: string | undefined;
   let terminal: 'end_turn' | 'failed' | 'cancelled' | undefined;
   const request = async (event: DesignToolEvent) => {
     const response = await Effect.runPromise(
       makeLocalControlClientAuto({
-        socketPath: process.env.GEON_DESIGN_CONTROL_SOCKET ?? getLocalControlSocketPath(),
+        socketPath: process.env.MOLLY_DESIGN_CONTROL_SOCKET ?? getLocalControlSocketPath(),
       }).machineRpc(
         {
           method: 'design/tool-hook',
-          machineId: process.env.GEON_DESIGN_MACHINE_ID ?? '',
-          workspaceId: process.env.GEON_DESIGN_WORKSPACE_ID ?? '',
+          machineId: process.env.MOLLY_DESIGN_MACHINE_ID ?? '',
+          workspaceId: process.env.MOLLY_DESIGN_WORKSPACE_ID ?? '',
           ownerSessionId: process.env.LODY_SESSION_ID,
-          params: { version: 2, launchId: process.env.GEON_DESIGN_LAUNCH_ID, event },
+          params: { version: 2, launchId: process.env.MOLLY_DESIGN_LAUNCH_ID, event },
         },
         { timeoutMs: 30_000 }
       )
@@ -47,7 +47,7 @@ export default function geonDesignExtension(pi: PiExtensionApi): void {
   };
   pi.on('before_agent_start', async (event) => {
     // Only native settlement interpretation is pinned; no tool/read interception.
-    if (process.env.GEON_DESIGN_PI_VERSION !== '0.85.1')
+    if (process.env.MOLLY_DESIGN_PI_VERSION !== '0.85.1')
       throw Error('Native Pi completion verification requires Pi 0.85.1');
     runId = randomUUID();
     terminal = undefined;
@@ -71,7 +71,7 @@ export default function geonDesignExtension(pi: PiExtensionApi): void {
     if (runId && terminal) await request({ phase: 'terminal', runId, status: terminal });
   });
   pi.registerTool({
-    name: 'geon_resubmit_draft',
+    name: 'molly_resubmit_draft',
     label: 'Resubmit preserved design draft',
     description:
       'Explicitly retain the exact existing draft against the expected current-canvas revision. Supply the artifact digest and revision from the saved files/turn facts after inspecting and comparing them. This neither commits nor ends the turn; natural completion independently validates the unchanged submitted bytes and versions.',

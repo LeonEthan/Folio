@@ -1,8 +1,8 @@
 /**
  * The daemon's image-connection Machine RPC (P2.4): the gate behind
- * `geon_generate_image`, and the settings page's own test action.
+ * `molly_generate_image`, and the settings page's own test action.
  *
- * `geon_generate_image` is exposed to design sessions only, and the daemon is
+ * `molly_generate_image` is exposed to design sessions only, and the daemon is
  * where that rule lives: the read method folds the asking session's identity and
  * the machine's connection row into one `ready` bit and one credential, so no
  * caller can register the tool on half the condition. The read never opens,
@@ -117,8 +117,8 @@ const createHandler = (options: {
     getSession: vi.fn((id: string) =>
       options.sessions?.[id]
         ? {
-            getHostWorkdir: () => '/synthetic/geon-test-project',
-            getWorkdir: () => '/synthetic/geon-test-project',
+            getHostWorkdir: () => '/synthetic/molly-test-project',
+            getWorkdir: () => '/synthetic/molly-test-project',
           }
         : null
     ),

@@ -1,4 +1,4 @@
-import { GeonPaperComposition } from './ceremony/intro-sequence';
+import { MollyPaperComposition } from './ceremony/intro-sequence';
 import {
   createContext,
   useCallback,
@@ -487,7 +487,7 @@ function OnboardingShellSurface({
           aria-hidden
           className="pointer-events-none absolute right-[8%] top-[22%] hidden w-[30%] max-w-[360px] opacity-60 lg:block"
         >
-          <GeonPaperComposition />
+          <MollyPaperComposition />
         </div>
       ) : null}
 

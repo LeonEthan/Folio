@@ -61,7 +61,7 @@ it('plays the local cue once, supports mute and gesture recovery, and stops pend
     });
     const player = players[0];
     expect(audio!.needsGesture).toBe(false);
-    expect(player.src).toContain('geon-opening-v1.mp3');
+    expect(player.src).toContain('molly-opening-v1.mp3');
     expect(player.loop).toBe(false);
     expect(player.paused).toBe(false);
     act(() => {

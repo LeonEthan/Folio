@@ -94,8 +94,8 @@
   "localAdaptations": [
     "kernel imports use relative paths for CLI validation; original source commit remains recorded above",
     "chart invariant default label table asserts its existing required entry under noUncheckedIndexedAccess",
-    "Geon-authored pptd-v3.ts reuses the pinned BentoDoc v4 fields for lossless PPTD projection; upstream files and the frozen v1 profile remain unchanged",
-    "Geon generic bridge readonly rejects semantic mutations; product session exposes readonly and flush without Agent lifecycle",
+    "Molly Design-authored pptd-v3.ts reuses the pinned BentoDoc v4 fields for lossless PPTD projection; upstream files and the frozen v1 profile remain unchanged",
+    "Molly Design generic bridge readonly rejects semantic mutations; product session exposes readonly and flush without Agent lifecycle",
     "The assembled static-v1 font default is Inter and its OFL WOFF2 faces are embedded in the isolated canvas shell; canonical omissions and pinned vendor bytes remain unchanged"
   ]
 }

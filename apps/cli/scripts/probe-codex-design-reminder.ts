@@ -11,14 +11,14 @@ import { codexDesignReminderConfig } from '../src/design/codex-reminder';
 import { DESIGN_READ_BEFORE_EDIT_REMINDER } from '../src/design/read-before-edit-reminder';
 import manifest from '../src/agent/codex-runtime-manifest.json';
 
-const bundle = path.resolve(process.env.GEON_PROBE_BUNDLE_DIR || 'apps/cli/dist-dev');
-const executable = process.env.GEON_PROBE_CODEX;
-if (!executable) throw Error('Set GEON_PROBE_CODEX to the managed Codex executable');
+const bundle = path.resolve(process.env.MOLLY_PROBE_BUNDLE_DIR || 'apps/cli/dist-dev');
+const executable = process.env.MOLLY_PROBE_CODEX;
+if (!executable) throw Error('Set MOLLY_PROBE_CODEX to the managed Codex executable');
 assert.equal(
   execFileSync(executable, ['--version'], { encoding: 'utf8' }).trim(),
   `codex-cli ${manifest.version}`
 );
-const root = await mkdtemp(path.join(tmpdir(), 'geon-codex-reminder-'));
+const root = await mkdtemp(path.join(tmpdir(), 'molly-codex-reminder-'));
 const home = path.join(root, 'home');
 await mkdir(home);
 await writeFile(path.join(root, 'existing.txt'), 'saved human content\n');

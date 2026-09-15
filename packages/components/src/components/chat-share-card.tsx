@@ -4,7 +4,7 @@ import QRCode from 'qrcode';
 import { cn } from '@/lib/utils';
 import { MarkdownRenderer } from '@/components/ai-gui/markdown-renderer';
 import { ensureChatShareThemeScopes } from '@/components/chat-share-theme-scope';
-import lodyLogo from '@/assets/geon-icon.png';
+import lodyLogo from '@/assets/molly-icon.png';
 
 export interface ChatShareCardMessage {
   id: string;
@@ -54,7 +54,7 @@ export interface ChatShareCardProps {
   onAssetsReadyChange?: (ready: boolean) => void;
 }
 
-const DEFAULT_SHARE_URL = 'https://github.com/LeonEthan/Geon';
+const DEFAULT_SHARE_URL = 'https://github.com/LeonEthan/molly-design';
 /** Matches the markdown code block metrics in src/tailwind/index.css (0.75rem × 1.4). */
 const CODE_LINE_HEIGHT_PX = 16.8;
 
@@ -271,7 +271,7 @@ export function ChatShareCard({
       <div className="px-6 pt-5">
         <div className="flex items-center gap-2">
           <img src={lodyLogo} alt="" className="size-3.5 scale-[1.64] rounded-md" />
-          <span className="text-sm font-semibold">Geon</span>
+          <span className="text-sm font-semibold">Molly Design</span>
         </div>
         {title ? (
           <div className="mt-3 text-lg font-semibold leading-snug tracking-tight text-foreground">
@@ -311,7 +311,7 @@ export function ChatShareCard({
           )}
         >
           <img src={lodyLogo} alt="" className="size-7 scale-[1.64] rounded-md" />
-          <div className="text-[13px] font-medium text-muted-foreground">Geon</div>
+          <div className="text-[13px] font-medium text-muted-foreground">Molly Design</div>
           {qrDataUrl ? (
             <img
               src={qrDataUrl}
@@ -333,7 +333,7 @@ export function ChatShareCard({
         >
           <img src={lodyLogo} alt="" className="size-5 scale-[1.64] rounded-md" />
           <div className="min-w-0 flex-1 -mt-0.5 text-[13px] font-medium text-muted-foreground">
-            Geon
+            Molly Design
           </div>
           {qrDataUrl ? (
             <img
@@ -363,7 +363,7 @@ export function ChatShareCard({
         >
           {meta?.icon ?? <img src={lodyLogo} alt="" className="size-5 scale-[1.64] rounded-md" />}
           <div className="min-w-0 truncate text-[13px] font-semibold text-foreground">
-            {meta?.title ?? 'Geon'}
+            {meta?.title ?? 'Molly Design'}
           </div>
           <div className="ml-auto min-w-0 text-right">
             {meta?.params && meta.params.length > 0 ? (
@@ -396,7 +396,7 @@ export function ChatShareCard({
           )}
         >
           <img src={lodyLogo} alt="" className="size-3.5 scale-[1.64] rounded-md" />
-          <span className="text-[11px] text-muted-foreground">Geon</span>
+          <span className="text-[11px] text-muted-foreground">Molly Design</span>
         </div>
       )}
     </div>
@@ -413,7 +413,7 @@ export function ChatShareCard({
       {footerVariant === 'canvas' ? (
         <div className="mt-8 flex items-center justify-center gap-2.5">
           <img src={lodyLogo} alt="" className="size-5 scale-[1.64] rounded-md" />
-          <span className="text-[13px] font-medium tracking-wide text-white/85">Geon</span>
+          <span className="text-[13px] font-medium tracking-wide text-white/85">Molly Design</span>
           {qrDataUrl ? (
             <img
               src={qrDataUrl}

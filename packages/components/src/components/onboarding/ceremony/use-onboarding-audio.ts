@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import openingScore from '@/assets/geon-opening-v1.mp3';
+import openingScore from '@/assets/molly-opening-v1.mp3';
 
 export type OnboardingAudio = {
   start: () => void;

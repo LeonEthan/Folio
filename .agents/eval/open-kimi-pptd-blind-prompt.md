@@ -1,4 +1,4 @@
-# Blind comparison: Geon vs open-kimi-ppt-skill
+# Blind comparison: Molly Design vs open-kimi-ppt-skill
 
 You are an independent reviewer with no prior conversation about these repositories.
 Judge only from primary files you open. Do not reuse anyone else's conclusion.

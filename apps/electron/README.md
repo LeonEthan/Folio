@@ -47,15 +47,15 @@ $ pnpm build:mac
 $ pnpm build:linux
 ```
 
-### Geon P0 design sample
+### Molly Design P0 design sample
 
-The File menu opens the fixed Geon sample and exports PNG/JPEG. Both development
+The File menu opens the fixed Molly Design sample and exports PNG/JPEG. Both development
 and packaged builds include the pinned Bento resources; no adjacent checkout is
 needed. See [Bento resources](../../packages/design-bento/README.md) for the source
-closure and current scope. Geon local state uses `~/.geon`, independently of Lody.
+closure and current scope. Molly Design local state uses `~/.molly`, independently of Lody.
 
-Run the built app with `--geon-p0-verify=<output-directory>` to verify the
-bundled font/image sample. `--geon-p1-verify=<output-directory>` exercises the
+Run the built app with `--molly-p0-verify=<output-directory>` to verify the
+bundled font/image sample. `--molly-p1-verify=<output-directory>` exercises the
 editor controls, save/reopen, conflict protection and exact 913×617 PNG/JPEG
 exports, and checks that local updates remain disabled even with the legacy
 force-enable flag. These opt-in probes use synthetic designs and no model calls.

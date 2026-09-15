@@ -77,9 +77,9 @@ save retry or reopen repairs it. Verification checks file hashes, not just a mar
 No projection publication touches draft files or frozen turn manifests.
 
 Pi and Claude use public read-before-edit reminders and their native tools. There
-are no Geon generation ledgers, successful-read coverage proofs or Write/Edit
+are no Molly Design generation ledgers, successful-read coverage proofs or Write/Edit
 interceptors. Shell and custom tools retain their actual native behavior. The
-optional `geon_resubmit_draft` accepts explicit `expectedRevisionId` and
+optional `molly_resubmit_draft` accepts explicit `expectedRevisionId` and
 `artifactDigest`, checks both against the current canvas and exact draft, and
 records only those facts. It neither commits nor ends a turn. Unchanged inherited
 bytes without explicit submission remain `no_artifact`; ordinary changed output
@@ -127,7 +127,7 @@ Codex design sessions load the bundled read-before-edit reminder through native
 `UserPromptSubmit` hooks in the existing ACP `CODEX_CONFIG` session overlay.
 The managed CLI `0.153.4` and ACP `1.10.0` deliver it before the model request,
 including a fresh reminder after session resume. Existing hooks and trust remain;
-only Geon's fixed command receives its own session-scoped native trust hash.
+only Molly Design's fixed command receives its own session-scoped native trust hash.
 
 The rule requires current-file reads, complete reads before full replacement,
 rereads after conflicts, and the latest current-design files when continuing. New
@@ -192,8 +192,8 @@ The managed executable exposes no separate config-file CLI option in this launch
 and [server cancellation correction](../../../../.agents/notes/implemented/bug-fix/2026-09-12-image-mcp-request-cancellation.md).
 
 The separate `pi-mcp-extension` uses Pi's public tool API and the existing Lody
-MCP HTTP host. It exposes only listed `geon_generate_image`, `geon_edit_image`
-and `geon_render_preview` tools, with the server's descriptions and schemas.
+MCP HTTP host. It exposes only listed `molly_generate_image`, `molly_edit_image`
+and `molly_render_preview` tools, with the server's descriptions and schemas.
 Before each generation it refreshes availability without re-enabling an explicitly
 inactive tool. Execution uses the ordinary native extension tool policy and MCP
 session context; the adapter does not answer permissions for the user or implement

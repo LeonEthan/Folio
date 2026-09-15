@@ -3,7 +3,7 @@
  *
  * A design session's workspace (`chats/<artworkId>`) holds the agent's YAML
  * artwork at its root — `design.yaml` beside `media/`;
- * `@geon/design-authoring` owns the allowlist and the fail-closed snapshot
+ * `@molly-design/design-authoring` owns the allowlist and the fail-closed snapshot
  * rules for it. Three stages need to talk about "the project that is there right
  * now", and they must agree on the answer:
  *
@@ -32,7 +32,7 @@ import {
   AuthoringSnapshotError,
   collectAuthoring,
   digestAuthoring,
-} from '@geon/design-authoring';
+} from '@molly-design/design-authoring';
 import { createHash } from 'node:crypto';
 import { lstat } from 'node:fs/promises';
 import path from 'node:path';

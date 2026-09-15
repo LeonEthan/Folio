@@ -169,7 +169,7 @@ describe('AgentClient Kimi authentication and resume', () => {
   it.each(['grok', 'kimi'])(
     'preserves standard UTF-8 write and line read behavior for %s',
     async (agentType) => {
-      const directory = await mkdtemp(join(tmpdir(), 'geon-acp-file-'));
+      const directory = await mkdtemp(join(tmpdir(), 'molly-acp-file-'));
       try {
         const client = createClient(agentType);
         const session = await client.startSession({} as never, directory);

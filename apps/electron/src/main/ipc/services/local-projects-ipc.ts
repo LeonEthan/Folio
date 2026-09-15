@@ -145,7 +145,10 @@ export class LocalProjectsIpc extends IpcService {
     if (!selectedPath) return null
     const machineId = await getIpcServiceDeps().cliService.getLocalMachineId()
     if (!machineId) {
-      return { error: 'The Geon background service is unavailable. Restart Geon and try again.' }
+      return {
+        error:
+          'The Molly Design background service is unavailable. Restart Molly Design and try again.'
+      }
     }
     return { rootPath: selectedPath, machineId }
   }

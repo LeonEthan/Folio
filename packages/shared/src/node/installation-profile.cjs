@@ -13,11 +13,11 @@ const CLOUD_PROFILE = Object.freeze({
 
 const LOCAL_PROFILE = Object.freeze({
   platform: 'local',
-  namespace: 'geon',
-  dataDirectoryName: '.geon',
-  desktopProtocol: 'geon',
-  desktopProductName: 'Geon',
-  desktopAppId: 'dev.geon.app',
+  namespace: 'molly',
+  dataDirectoryName: '.molly',
+  desktopProtocol: 'molly-design',
+  desktopProductName: 'Molly Design',
+  desktopAppId: 'dev.molly-design.app',
   localCliHostPort: 17790,
 });
 

@@ -1,4 +1,4 @@
-export const AUTO_LAUNCH_ARG = '--geon-auto-launch'
+export const AUTO_LAUNCH_ARG = '--molly-auto-launch'
 
 export type AutoLaunchPlatform = 'darwin' | 'win32' | 'linux'
 
@@ -49,6 +49,7 @@ export function resolveAutoLaunchInvocation(input: {
   return (
     input.platform === 'win32' &&
     (input.argv.includes(AUTO_LAUNCH_ARG) ||
+      input.argv.includes('--geon-auto-launch') ||
       input.argv.includes('--folio-auto-launch') ||
       input.argv.includes('--lody-auto-launch'))
   )

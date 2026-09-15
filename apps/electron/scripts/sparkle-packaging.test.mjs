@@ -133,7 +133,7 @@ void test('injects the Sparkle public key only into packaged macOS Info.plist fi
 })
 
 void test('pins collector pnpm to the caller entrypoint across quoted paths and arguments', () => {
-  const directory = mkdtempSync(path.join(tmpdir(), "geon package 'shim-"))
+  const directory = mkdtempSync(path.join(tmpdir(), "molly package 'shim-"))
   try {
     const entrypoint = path.join(directory, 'pinned pnpm.cjs')
     writeFileSync(entrypoint, 'console.log(JSON.stringify(process.argv.slice(2)))')

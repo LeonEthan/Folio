@@ -178,7 +178,7 @@ by reloading after commit.
 ## Adapter plan for the five Agents
 
 The following records the integration points identified by prior static research as a basis
-for re-verification before implementation; **this is not Geon current support or end-to-end
+for re-verification before implementation; **this is not Molly Design current support or end-to-end
 acceptance**. Vendor docs change; when work starts, pin actual runtime version, ACP launch
 mode, config loading scope, and tool events, then record the measured matrix. Prefer
 supported session/project-level configs, keep user config, and do not override global hooks.
@@ -231,7 +231,7 @@ to an upstream job/checkpoint/recovery orchestration.
 
 Subsequent skill changes keep format contracts, capability descriptions, tool references,
 design suggestions, and optional helper scripts; remove fixed call order, inspect-once,
-forbidden self pixel analysis, and mandatory review counts. Absence of a `geon_*` tool only
+forbidden self pixel analysis, and mandatory review counts. Absence of a `molly_*` tool only
 means that tool is unavailable, not that other Agent-native capabilities are unavailable.
 Formal PNG/JPEG export continues to use the fixed Bento renderer. Runtime skill was not
 edited this round; planning goes to P3.6.

@@ -1,5 +1,5 @@
 /**
- * Geon in-app update acceptance (Issue #32, testing decisions).
+ * Molly Design in-app update acceptance (Issue #32, testing decisions).
  *
  * Drives the two-version rig prepared by
  * apps/electron/scripts/verify-sparkle-update.mjs --prepare-only through a real
@@ -109,7 +109,7 @@ async function startFeedServer(port: number): Promise<Server> {
     response.writeHead(200, {
       'Content-Type': filePath.endsWith('.xml') ? 'application/xml' : 'application/octet-stream',
       // Sparkle downloads through NSURLSession, whose shared cache lives in the
-      // real ~/Library/Caches/dev.geon.app; a stale cached appcast or zip must
+      // real ~/Library/Caches/dev.molly-design.app; a stale cached appcast or zip must
       // never satisfy a later lane (the rogue-signature lane reuses the URLs).
       'Cache-Control': 'no-store',
       'Content-Length': body.length,
@@ -136,20 +136,20 @@ function makeIsolatedDirs(label: string): IsolatedDirs {
  */
 function prepareScratchApp(label: string): { scratchApp: string; scratchBinary: string } {
   const root = mkdtempSync(join('/tmp', `gapp-${label}-`));
-  const scratchApp = join(root, 'Geon.app');
+  const scratchApp = join(root, 'Molly Design.app');
   const result = spawnSync('ditto', [rig.oldApp, scratchApp]);
   if (result.status !== 0) throw new Error(`failed to copy scratch app: ${result.stderr}`);
-  return { scratchApp, scratchBinary: join(scratchApp, 'Contents', 'MacOS', 'Geon') };
+  return { scratchApp, scratchBinary: join(scratchApp, 'Contents', 'MacOS', 'Molly Design') };
 }
 
 // Sparkle persists check state in NSUserDefaults keyed by CFBundleIdentifier,
 // and macOS resolves that domain through the passwd home, not $HOME or the
-// Electron user-data dir. requireSparkle pins the bundle id to dev.geon.app,
-// so these keys land in the real ~/Library/Preferences/dev.geon.app.plist no
+// Electron user-data dir. requireSparkle pins the bundle id to dev.molly-design.app,
+// so these keys land in the real ~/Library/Preferences/dev.molly-design.app.plist no
 // matter how the launch is isolated. They are created by the test app itself
-// (no real Geon install exists); reset them before each lane so launch-time
+// (no real Molly Design install exists); reset them before each lane so launch-time
 // behavior is deterministic, and again at exit so no residue survives.
-const SPARKLE_DEFAULTS_DOMAIN = 'dev.geon.app';
+const SPARKLE_DEFAULTS_DOMAIN = 'dev.molly-design.app';
 const SPARKLE_DEFAULTS_KEYS = [
   'SUEnableAutomaticChecks',
   'SUHasLaunchedBefore',
@@ -162,7 +162,7 @@ function resetSparkleDefaultsState(): void {
   }
 }
 
-async function launchGeon(
+async function launchMolly(
   binary: string,
   dirs: IsolatedDirs,
   options: { forceOnboarding: boolean; logName: string }
@@ -206,7 +206,7 @@ async function enterProduct(page: Page): Promise<void> {
 /**
  * Run JavaScript inside the design canvas WebContentsView via the main process.
  * A session window can host several editor.html views (canonical editor,
- * read-only previews); only the canonical one reports `geon.state().ready`
+ * read-only previews); only the canonical one reports `molly.state().ready`
  * while editable, so select by the product state API instead of DOM order.
  */
 async function canvasEval<T>(
@@ -230,7 +230,7 @@ async function canvasEval<T>(
         let state: CanvasProbe = null;
         try {
           state = (await view.webContents.executeJavaScript(
-            'window.geon?.state?.() ?? null'
+            'window.molly?.state?.() ?? null'
           )) as CanvasProbe;
         } catch {
           // View still navigating; treat as not ready.
@@ -460,7 +460,7 @@ async function positiveLane(): Promise<void> {
   const dirs = makeIsolatedDirs('positive');
   resetSparkleDefaultsState();
   const { scratchApp, scratchBinary } = prepareScratchApp('positive');
-  const { app, page } = await launchGeon(scratchBinary, dirs, {
+  const { app, page } = await launchMolly(scratchBinary, dirs, {
     forceOnboarding: true,
     logName: 'app-old',
   });
@@ -677,7 +677,7 @@ async function positiveLane(): Promise<void> {
     });
 
     // Sparkle may relaunch the new bundle outside our isolated environment; stop it.
-    const stray = spawnSync('pgrep', ['-f', `${scratchApp}/Contents/MacOS/Geon`], { encoding: 'utf8' });
+    const stray = spawnSync('pgrep', ['-f', `${scratchApp}/Contents/MacOS/Molly Design`], { encoding: 'utf8' });
     const strayPids = (stray.stdout ?? '').split('\n').map((line) => line.trim()).filter(Boolean);
     if (strayPids.length > 0) {
       spawnSync('kill', strayPids);
@@ -690,7 +690,7 @@ async function positiveLane(): Promise<void> {
     record('installed-bundle-signature-valid', signCheck.status === 0, { stderr: signCheck.stderr });
 
     // Reopen the updated app on the same data and verify everything survived.
-    const relaunch = await launchGeon(scratchBinary, dirs, {
+    const relaunch = await launchMolly(scratchBinary, dirs, {
       forceOnboarding: false,
       logName: 'app-updated',
     });
@@ -748,7 +748,7 @@ async function positiveLane(): Promise<void> {
       await closeSettings(pageB);
 
       // Export through the real path with a stubbed native save dialog.
-      const exportPath = join(evidenceDir, `geon-${rig.newVersion}-export.png`);
+      const exportPath = join(evidenceDir, `molly-${rig.newVersion}-export.png`);
       await appB.evaluate(({ dialog }, target) => {
         // @ts-expect-error intentional test stub on the shared Electron module object
         dialog.showSaveDialog = async () => ({ canceled: false, filePath: target });
@@ -795,7 +795,7 @@ async function expectRejection(laneName: string): Promise<void> {
   const dirs = makeIsolatedDirs(laneName);
   resetSparkleDefaultsState();
   const { scratchBinary } = prepareScratchApp(laneName);
-  const { app, page } = await launchGeon(scratchBinary, dirs, {
+  const { app, page } = await launchMolly(scratchBinary, dirs, {
     forceOnboarding: true,
     logName: `app-${laneName}`,
   });
@@ -824,8 +824,8 @@ async function badSignatureLane(): Promise<void> {
     repoRoot,
     'apps/electron/node_modules/electron-sparkle-updater/native/vendor/bin'
   );
-  execFileSync(join(sparkleBin, 'generate_keys'), ['--account', 'geon-sparkle-rogue'], { stdio: 'ignore' });
-  execFileSync(join(sparkleBin, 'generate_keys'), ['--account', 'geon-sparkle-rogue', '-x', rogueKey]);
+  execFileSync(join(sparkleBin, 'generate_keys'), ['--account', 'molly-sparkle-rogue'], { stdio: 'ignore' });
+  execFileSync(join(sparkleBin, 'generate_keys'), ['--account', 'molly-sparkle-rogue', '-x', rogueKey]);
   execFileSync(
     'pnpm',
     [
@@ -850,13 +850,13 @@ async function badSignatureLane(): Promise<void> {
 }
 
 async function downloadFailureLane(): Promise<void> {
-  const zipPath = join(rig.archiveDir, `Geon-${rig.newVersion}-arm64.zip`);
+  const zipPath = join(rig.archiveDir, `MollyDesign-${rig.newVersion}-arm64.zip`);
   const hidden = `${zipPath}.bak`;
   renameSync(zipPath, hidden);
   const dirs = makeIsolatedDirs('download-failure');
   resetSparkleDefaultsState();
   const { scratchBinary } = prepareScratchApp('download-failure');
-  const { app, page } = await launchGeon(scratchBinary, dirs, {
+  const { app, page } = await launchMolly(scratchBinary, dirs, {
     forceOnboarding: true,
     logName: 'app-download-failure',
   });
@@ -895,7 +895,7 @@ async function tamperedPlistLane(): Promise<void> {
     join(tamperedApp, 'Contents', 'Info.plist'),
   ]);
   execFileSync('codesign', ['--force', '--sign', '-', tamperedApp]);
-  const { app, page } = await launchGeon(tamperedBinary, dirs, {
+  const { app, page } = await launchMolly(tamperedBinary, dirs, {
     forceOnboarding: true,
     logName: 'app-tampered-plist',
   });
@@ -904,7 +904,7 @@ async function tamperedPlistLane(): Promise<void> {
     const state = await updaterState(page);
     record(
       'foreign-feed-disables-updater',
-      state.phase === 'disabled' && state.disabledReason === 'geon_update_configuration_unavailable',
+      state.phase === 'disabled' && state.disabledReason === 'molly_update_configuration_unavailable',
       state
     );
     await openAbout(page);

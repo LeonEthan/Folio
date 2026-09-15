@@ -1,13 +1,13 @@
 {
   "name": "@lody/electron",
-  "productName": "Geon",
-  "desktopName": "dev.geon.app.desktop",
+  "productName": "Molly Design",
+  "desktopName": "dev.molly-design.app.desktop",
   "private": true,
   "version": "0.1.0",
-  "description": "Geon — local desktop canvas for Agent-assisted graphic design",
+  "description": "Molly Design — local desktop canvas for Agent-assisted graphic design",
   "main": "./out/main/index.js",
-  "author": "Geon contributors",
-  "homepage": "https://github.com/LeonEthan/Geon",
+  "author": "Molly Design contributors",
+  "homepage": "https://github.com/LeonEthan/molly-design",
   "scripts": {
     "format": "prettier --write .",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/system-language-argument.test.mjs src/main/reload-shortcut.test.mjs src/main/close-focused-tab-or-window.test.mjs src/main/onboarding-launch-policy.test.mjs src/main/user-data-migration-core.test.mjs src/main/auto-launch-policy.test.mjs src/main/window-theme.test.mjs src/main/local-platform-snapshot.test.mjs src/main/ipc/ipc-channel-list.test.mjs src/main/services/local-file-resource.test.mjs src/main/services/image-export-core.test.mjs src/main/services/design-render-host-core.test.mjs src/main/services/design-canvas-ready-core.test.mjs src/main/services/design-leave-drain-core.test.mjs src/main/services/design-canvas-sync-core.test.mjs src/main/services/design-worker.test.mjs src/main/services/public-browser-state.test.mjs src/main/services/app-updater-linux-install.test.mjs src/main/services/app-updater-metadata.test.mjs src/main/services/app-updater-sparkle-policy.test.mjs src/main/services/app-updater-sparkle-events.test.mjs src/main/services/loro-data-plane-relay.test.mjs src/renderer/renderer-csp.test.mjs src/renderer/src/auth-callback-transaction.test.mjs src/renderer/src/auth-query-generation.test.mjs src/renderer/src/renderer-error-reporting.test.mjs scripts/sparkle-packaging.test.mjs",

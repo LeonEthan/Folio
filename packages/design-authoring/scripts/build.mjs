@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Build script for @geon/design-authoring.
+ * Build script for @molly-design/design-authoring.
  *
  * 1. Verifies source-manifest.json: every verbatim-migrated file must exist and
  *    match its recorded sha256 (adapted files record upstream provenance only).
@@ -11,7 +11,7 @@
  *    (FROZEN_MATRIX_SHA256) — the vendored kernel snapshot stays the single
  *    truth — and the v1.json bytes must match it, fail-closed.
  * 3. Bundles the skill script support library with esbuild into
- *    skills/graphic-design/scripts/lib/geon-authoring.mjs so the materialized
+ *    skills/graphic-design/scripts/lib/molly-authoring.mjs so the materialized
  *    skill directory is self-contained (no repo checkout, no node_modules).
  *    Live helper, Folio wording, rewritten skills, and PPTD catalogues must
  *    not remain named PPTD/Kimi or pinned as live ALD/open-kimi upstream.
@@ -117,11 +117,14 @@ writeFileSync(
 // ---- 3. skill script support bundle ----
 
 const helperDir = path.join(packageRoot, 'skills', 'graphic-design', 'scripts', 'lib');
-const helperOut = path.join(helperDir, 'geon-authoring.mjs');
-const staleHelper = path.join(helperDir, 'geon-pptd.mjs');
-if (path.basename(helperOut) === 'geon-pptd.mjs')
-  fail('live helper bundle must not be named geon-pptd.mjs');
-if (existsSync(staleHelper)) rmSync(staleHelper);
+const helperOut = path.join(helperDir, 'molly-authoring.mjs');
+const staleHelperNames = ['geon-pptd.mjs', 'geon-authoring.mjs'];
+if (staleHelperNames.includes(path.basename(helperOut)))
+  fail('live helper bundle must not use a pre-rename name');
+for (const staleName of staleHelperNames) {
+  const staleHelper = path.join(helperDir, staleName);
+  if (existsSync(staleHelper)) rmSync(staleHelper);
+}
 
 const { build } = await import('esbuild');
 await build({
@@ -137,7 +140,7 @@ await build({
   // Bundled CJS deps (yaml) keep dynamic require calls; provide a real
   // require in the ESM output.
   banner: {
-    js: "import { createRequire as __geonCreateRequire } from 'node:module'; const require = __geonCreateRequire(import.meta.url);",
+    js: "import { createRequire as __mollyCreateRequire } from 'node:module'; const require = __mollyCreateRequire(import.meta.url);",
   },
   logLevel: 'warning',
 });

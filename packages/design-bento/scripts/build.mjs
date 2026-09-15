@@ -36,7 +36,7 @@ for (const [file, expected] of Object.entries(manifest.files)) {
   if (hash(readFileSync(join(root, file))) !== expected) throw Error(`Source pin changed: ${file}`);
 }
 // Windows TEMP may use an 8.3 alias; Vite module IDs must use one canonical path.
-const temporary = realpathSync.native(mkdtempSync(join(tmpdir(), 'geon-bento-')));
+const temporary = realpathSync.native(mkdtempSync(join(tmpdir(), 'molly-bento-')));
 const tree = join(temporary, 'bento');
 let registered = false;
 try {

@@ -1,6 +1,6 @@
 /**
  * Intake → store integration: a synthetic YAML artwork must import through
- * @geon/design-authoring and pass the single-writer design store validation
+ * @molly-design/design-authoring and pass the single-writer design store validation
  * (schema + kernel replay + asset integrity). Synthetic fixtures only.
  */
 
@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { deflateSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
-import { intakeAuthoring } from '@geon/design-authoring';
+import { intakeAuthoring } from '@molly-design/design-authoring';
 import { designOperation } from './store';
 
 function syntheticPng(width: number, height: number, rgb: [number, number, number]): Uint8Array {
@@ -67,7 +67,7 @@ afterEach(() => {
 
 describe('YAML intake → design store', () => {
   it('a synthetic YAML artwork imports and saves through designOperation validation', async () => {
-    const dataRoot = mkdtempSync(path.join(tmpdir(), 'geon-intake-store-'));
+    const dataRoot = mkdtempSync(path.join(tmpdir(), 'molly-intake-store-'));
     roots.push(dataRoot);
 
     const snapshot = new Map<string, Uint8Array>([
@@ -153,6 +153,6 @@ elements:
     const intake = intakeAuthoring('design.yaml', snapshot);
     expect(intake.status).toBe('invalid');
     if (intake.status !== 'invalid') return;
-    expect(intake.diagnostics.some((d) => d.code === 'GEON-E005')).toBe(true);
+    expect(intake.diagnostics.some((d) => d.code === 'MOLLY-E005')).toBe(true);
   });
 });

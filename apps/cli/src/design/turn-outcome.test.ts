@@ -178,7 +178,7 @@ function createHarness(
     metaThrows?: boolean;
   } = {}
 ): Harness {
-  const root = mkdtempSync(path.join(tmpdir(), 'geon-turn-outcome-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'molly-turn-outcome-'));
   roots.push(root);
   const sessionId = crypto.randomUUID();
   const turnId = 'turn-outcome-1';
@@ -887,7 +887,7 @@ describe('collectDesignTurnOutcome', () => {
     expect(attempt.status).toBe('recorded');
     if (attempt.status !== 'recorded') return;
     expect(attempt.outcome.status).toBe('invalid');
-    expect(attempt.outcome.diagnostics?.some(({ code }) => code === 'GEON-E005')).toBe(true);
+    expect(attempt.outcome.diagnostics?.some(({ code }) => code === 'MOLLY-E005')).toBe(true);
     const stored = await designOperation(harness.root, {
       operation: 'read',
       sessionId: harness.sessionId,

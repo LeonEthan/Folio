@@ -1,6 +1,6 @@
 /** Public immutable artifact distribution shared by local and cloud builds. */
 export const DEFAULT_RUNTIME_ARTIFACTS_BASE_URL =
-  'https://github.com/LeonEthan/Geon/releases/download/runtime-artifacts-v1';
+  'https://github.com/LeonEthan/molly-design/releases/download/runtime-artifacts-v1';
 
 /** Release assets are flat; include all identity components to prevent collisions. */
 export function runtimeReleaseAssetName(

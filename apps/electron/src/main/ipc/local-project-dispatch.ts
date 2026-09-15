@@ -15,7 +15,8 @@ export async function sendLocalProjectControl(
     ok: false,
     type: request.type,
     error: 'daemon_unavailable',
-    message: 'The Geon background service is unavailable. Restart Geon and try again.'
+    message:
+      'The Molly Design background service is unavailable. Restart Molly Design and try again.'
   } as const
 
   const { cliService } = getIpcServiceDeps()

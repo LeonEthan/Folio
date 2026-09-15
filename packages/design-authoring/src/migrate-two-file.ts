@@ -1,4 +1,4 @@
-/** Explicit, one-time conversion of Geon's former two-file YAML projection.
+/** Explicit, one-time conversion of Molly Design's former two-file YAML projection.
  * No PPTD importer, canonical save, history write or turn authorization lives here.
  */
 import { mkdirSync, writeFileSync, realpathSync } from 'node:fs';

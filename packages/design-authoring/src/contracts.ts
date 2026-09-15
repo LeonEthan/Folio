@@ -40,7 +40,7 @@ import type {
 } from '../../design-bento/vendor/packages/contracts/src/diagnostics.ts';
 export type { FrozenDiagnostic, FrozenDiagnosticCode };
 export type LiveDiagnosticCode = FrozenDiagnosticCode extends `PPTD-${infer Rest}`
-  ? `GEON-${Rest}`
+  ? `MOLLY-${Rest}`
   : never;
 export type LiveDiagnostic = {
   code: LiveDiagnosticCode;

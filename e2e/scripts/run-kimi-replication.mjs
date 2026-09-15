@@ -35,13 +35,13 @@ if (!Number.isSafeInteger(timeout) || timeout <= 0)
 const reference = await readFile(resolve(values.reference));
 if (sha(reference) !== REFERENCE_SHA256)
   throw Error('Reference must match the approved MagSafe image SHA-256');
-const parent = join(root, 'e2e/artifacts/acceptance/geon-kimi-magsafe-replication');
+const parent = join(root, 'e2e/artifacts/acceptance/molly-kimi-magsafe-replication');
 await mkdir(parent, { recursive: true });
 const directory = join(parent, values.round);
 await mkdir(directory, { mode: 0o700 }); // exclusive; a failed round cannot be overwritten
 await copyFile(resolve(values.reference), join(directory, 'reference.jpg'));
 const report = {
-  case: 'geon-kimi-magsafe-replication',
+  case: 'molly-kimi-magsafe-replication',
   phase: values.phase,
   prompt: '复刻这个设计',
   requiredConfiguration: { model: 'K3', reasoning: 'Thinking High' },

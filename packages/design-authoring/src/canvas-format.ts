@@ -1,4 +1,4 @@
-/** Geon's lossless YAML artwork projection. No embedded canonical document or edit log. */
+/** Molly Design's lossless YAML artwork projection. No embedded canonical document or edit log. */
 import { createHash } from 'node:crypto';
 import { stringify } from 'yaml';
 import {
@@ -217,11 +217,11 @@ export function validateYaml(
   const fail = (at: string, message: string, code: FrozenDiagnostic['code'] = 'PPTD-E001') =>
     diagnostics.push({ code, path: at, message });
   if (entryFile.endsWith('.pptd') || canvas.version === 'v2' || canvas.version === 'v3') {
-    fail(`${entryFile}#`, 'leftover PPTD is not admitted (GEON-E-PPTD)', 'PPTD-E001');
+    fail(`${entryFile}#`, 'leftover PPTD is not admitted (MOLLY-E-PPTD)', 'PPTD-E001');
     return { ok: false, diagnostics };
   }
   if (canvas.theme !== undefined) {
-    fail(`${entryFile}#theme`, 'PPTD theme/$ref is not admitted (GEON-E-PPTD)');
+    fail(`${entryFile}#theme`, 'PPTD theme/$ref is not admitted (MOLLY-E-PPTD)');
     return { ok: false, diagnostics };
   }
   const exact = (v: Raw, keys: string[], at: string) =>
@@ -253,7 +253,7 @@ export function validateYaml(
     if (PPTD_PAGE_FIELDS.has(key))
       fail(
         `${entryFile}#${key}`,
-        `PPTD page field "${key}" is not admitted (GEON-E-PPTD)`,
+        `PPTD page field "${key}" is not admitted (MOLLY-E-PPTD)`,
         'PPTD-E011'
       );
   }
@@ -266,7 +266,7 @@ export function validateYaml(
         return;
       }
       if ('elementId' in element || 'elementType' in element || 'content' in element) {
-        fail(at, 'PPTD elementId/elementType/HTML content is not admitted (GEON-E-PPTD)');
+        fail(at, 'PPTD elementId/elementType/HTML content is not admitted (MOLLY-E-PPTD)');
         return;
       }
       if (typeof element.id !== 'string' || typeof element.kind !== 'string') {
@@ -287,7 +287,7 @@ export function validateYaml(
         }
       }
       if (record(element.chart) && element.chart.seriesDefaults !== undefined)
-        fail(`${at}.chart.seriesDefaults`, 'PPTD seriesDefaults is not admitted (GEON-E-PPTD)');
+        fail(`${at}.chart.seriesDefaults`, 'PPTD seriesDefaults is not admitted (MOLLY-E-PPTD)');
     });
   if (diagnostics.length) return { ok: false, diagnostics };
   const project = canvas as unknown as CanvasSource;

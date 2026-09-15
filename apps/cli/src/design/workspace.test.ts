@@ -9,7 +9,7 @@ import { materializeDesignTurnInput } from './turn-input';
 import { readDesignArtifact } from './artifact';
 import { buildPreviewPayload } from './render-preview';
 import { collectDesignTurnOutcome } from './turn-outcome';
-import { ARTWORK_ENTRY, exportAuthoring } from '@geon/design-authoring';
+import { ARTWORK_ENTRY, exportAuthoring } from '@molly-design/design-authoring';
 import {
   resolveDesignContext,
   resolveDesignWorkspace,
@@ -21,7 +21,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 async function setup(kind = 'project') {
-  const root = await mkdtemp(path.join(tmpdir(), 'geon-workspace-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'molly-workspace-'));
   roots.push(root);
   const sessionId = randomUUID();
   const legacyWorkdir = path.join(root, 'chats', sessionId);

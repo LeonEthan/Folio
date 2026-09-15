@@ -23,7 +23,7 @@ describe('buildProviderWaitReport', () => {
   it('carries the three things the user cannot see: stage, elapsed, and build', () => {
     expect(buildProviderWaitReport(base)).toBe(
       [
-        'Geon: agent setup is taking longer than usual',
+        'Molly Design: agent setup is taking longer than usual',
         '',
         'Agent: Claude Code (builtin/claude)',
         'Stage: probing-provider',
@@ -76,9 +76,7 @@ describe('buildProviderWaitReport', () => {
   });
 
   it('never reports a negative or fractional elapsed', () => {
-    expect(buildProviderWaitReport({ ...base, elapsedSeconds: -5 })).toContain(
-      'Setup elapsed: 0s'
-    );
+    expect(buildProviderWaitReport({ ...base, elapsedSeconds: -5 })).toContain('Setup elapsed: 0s');
     expect(buildProviderWaitReport({ ...base, elapsedSeconds: 12.9 })).toContain(
       'Setup elapsed: 12s'
     );

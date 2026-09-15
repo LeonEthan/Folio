@@ -197,7 +197,7 @@ export const imageConnectionUrl = (settings: ImageConnectionSettings, apiPath: s
 /** The non-billable discovery endpoint the settings "test connection" action uses. */
 export const IMAGE_CONNECTION_MODELS_PATH = '/models';
 
-/** The generation endpoint. Paid; only `geon_generate_image` calls it. */
+/** The generation endpoint. Paid; only `molly_generate_image` calls it. */
 export const IMAGE_CONNECTION_GENERATIONS_PATH = '/images/generations';
 export const IMAGE_CONNECTION_EDITS_PATH = '/images/edits';
 

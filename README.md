@@ -1,8 +1,8 @@
-# Geon
+# Molly Design
 
 [简体中文](README.zh-CN.md)
 
-Geon is a local desktop workspace for graphic design with an Agent and an editable
+Molly Design is a local desktop workspace for graphic design with an Agent and an editable
 single canvas. It reuses [Lody](https://github.com/LodyAI/Lody)'s interface and Agent
 execution, with YAML artwork authoring and the Bento editor.
 
@@ -19,11 +19,11 @@ execution, with YAML artwork authoring and the Bento editor.
   session navigation. Visual quality remains your judgment.
 - Edit the canvas without configuring an image service. Image generation is an
   optional connection; supply your own endpoint, credentials and explicit model
-  identifier in Settings. Geon does not recommend a product-default model.
+  identifier in Settings. Molly Design does not recommend a product-default model.
 
 This is a development build, not a claim of release readiness. Agent-specific
 image input, public read-first reminders, live authoring preview, and the remaining workflow
-cleanup are tracked in [Issues](https://github.com/LeonEthan/Geon/issues). An Agent
+cleanup are tracked in [Issues](https://github.com/LeonEthan/molly-design/issues). An Agent
 being configurable does not prove every design operation works with that Agent.
 The [design specification](specs/graphic-design-platform.zh.md) describes the draft
 target, not a list of shipped features.
@@ -45,15 +45,15 @@ images are optional; text and shape design does not require an image service.
 
 ## Continue, preview and recover
 
-Manual edits automatically update the saved canvas and its YAML artwork files. Geon waits
+Manual edits automatically update the saved canvas and its YAML artwork files. Molly Design waits
 for open-canvas saves before dispatch and keeps the artwork read-only while the Agent executes
 and its files are processed. A file preview shows the working source; it is not a
 saved canvas or proof that the Agent has finished. After a formal commit, edit the
-current canvas again. When explicitly importing a preview, Geon binds the import
+current canvas again. When explicitly importing a preview, Molly Design binds the import
 to the displayed snapshot.
 
 If a file or final-save conflict occurs, the current saved canvas and Agent draft
-are preserved. Use a new message to continue and resolve the conflict; Geon does
+are preserved. Use a new message to continue and resolve the conflict; Molly Design does
 not automatically restart the finished turn. Existing draft files and historical
 content remain available through the file interface. A save failure must be
 resolved before treating your latest edits as saved or quitting.
@@ -82,9 +82,9 @@ without patching Agent runtimes or requiring generation-by-generation read proof
 Pi, Claude, Codex and Grok reminders have scoped native evidence. Kimi's public
 plugin also passed in a normal installed package with explicit registration in an
 isolated Kimi home. Enabling that reminder in a user's own home requires their
-opt-in plugin setup; Geon does not install it silently or claim it works before
+opt-in plugin setup; Molly Design does not install it silently or claim it works before
 registration. Pi now exposes
-Geon image and rendering tools through its public extension, with installed
+Molly Design image and rendering tools through its public extension, with installed
 generation/editing and native image-reading evidence. The
 [installed Agent matrix](.agents/notes/implemented/testing/2026-09-11-installed-five-agent-matrix.md)
 records each combination and its limits; Settings availability alone does not
@@ -109,8 +109,8 @@ is established by the local ad-hoc package checks.
 Use Node.js 22.14 or later and the repository-pinned pnpm through Corepack:
 
 ```sh
-git clone --recurse-submodules https://github.com/LeonEthan/Geon.git
-cd Geon
+git clone --recurse-submodules https://github.com/LeonEthan/molly-design.git
+cd molly-design
 corepack pnpm install
 corepack pnpm start:local
 ```
@@ -120,21 +120,21 @@ public download and the provider's own authentication. The OSS desktop uses loca
 product storage; it does not sign in to Lody's hosted workspace or provide its web,
 mobile, team-sharing or cloud features.
 
-Geon already has a separate application identity (`dev.geon.app`, `geon://`) and
-uses `~/.geon` for its local service data. Electron uses the Geon user-data
+Molly Design already has a separate application identity (`dev.molly-design.app`, `molly-design://`) and
+uses `~/.molly` for its local service data. Electron uses the Molly Design user-data
 location for the current operating system. Existing `LODY_*` environment options
 and `@lody/*` package/protocol names remain compatibility interfaces. No automatic
 migration or deletion of Lody data is performed.
 
 See the [embedded runtime README](apps/cli/README.md) for internal architecture and
 [CONTRIBUTING.md](CONTRIBUTING.md) for inherited contribution terms and development
-checks. This repository README is Geon's public help entry; `site-docs` retains
-upstream Lody website material and is not the Geon feature reference.
+checks. This repository README is Molly Design's public help entry; `site-docs` retains
+upstream Lody website material and is not the Molly Design feature reference.
 
 ## Repository
 
 - `apps/cli` — Agent execution and local design persistence
-- `apps/electron` — Geon desktop application
+- `apps/electron` — Molly Design desktop application
 - `packages/components` — Reused workspace interface
 - `packages/design-bento` — Pinned Bento editor and rendering resources
 - `packages/design-authoring` — YAML artwork conversion and Agent skills
@@ -145,8 +145,8 @@ upstream Lody website material and is not the Geon feature reference.
 
 ## Source and licenses
 
-Geon builds on [Lody](https://github.com/LodyAI/Lody). Its upstream authorship,
-[Apache-2.0 license](LICENSE) and attribution notices remain intact. The current Geon mark — a G built from a rounded arc, a mid-rule crossbar, and a right vertical stem on a ruled-paper tile, with a terracotta caret at the upper right — and the typographic opening are authored for Geon;
+Molly Design builds on [Lody](https://github.com/LodyAI/Lody). Its upstream authorship,
+[Apache-2.0 license](LICENSE) and attribution notices remain intact. The current Molly Design mark — a single handwritten stroke forming an M with a gentle lead-in, drawn in ink on a ruled-paper tile — and the typographic opening are authored for Molly Design;
 legacy upstream artwork retains its original attribution. Visual acceptance of
 the new identity is tracked with the independent-release work.
 Authoring and editor adapters come from
@@ -155,5 +155,5 @@ Authoring and editor adapters come from
 [authoring provenance](packages/design-authoring/README.md) identify their sources.
 The app's Open Source Licenses entry retains dependency notices.
 
-For Geon problems or proposals, use
-[Geon Issues](https://github.com/LeonEthan/Geon/issues).
+For Molly Design problems or proposals, use
+[Molly Design Issues](https://github.com/LeonEthan/molly-design/issues).

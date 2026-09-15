@@ -189,6 +189,8 @@ export function isLikelyNpmCacheCorruption(text: string | null | undefined): boo
   const mentionsNpmCache =
     normalized.includes('_cacache') ||
     normalized.includes('npm cache') ||
+    normalized.includes('.molly/npm-cache') ||
+    normalized.includes('.molly\\npm-cache') ||
     normalized.includes('.lody/npm-cache') ||
     normalized.includes('.lody\\npm-cache') ||
     normalized.includes('.geon/npm-cache') ||

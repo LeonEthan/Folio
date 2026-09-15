@@ -100,7 +100,7 @@ export class KimiReplicationPage {
           selected = matches.length === 1 ? matches[0] : undefined;
           return (
             !!selected &&
-            (await selected.evaluate('!!window.geon?.state && !window.geon.state().readonly'))
+            (await selected.evaluate('!!window.molly?.state && !window.molly.state().readonly'))
           );
         },
         { timeout: 60_000 }

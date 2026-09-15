@@ -8,7 +8,7 @@ pointer to this page live in
 this page is the full text of the rules summarised there.
 
 - Automatic code review/merge, its configuration and its subscriptions are retired
-  from Geon. Existing review records are retained without restarting work. See
+  from Molly Design. Existing review records are retained without restarting work. See
   [the consumer audit](../notes/implemented/simplification/2026-09-11-developer-workflow-retirement.md).
 - `session-status-strip.tsx`: ONE priority-ordered status slot for
   connection/machine problems (browser-offline > machine-removed >

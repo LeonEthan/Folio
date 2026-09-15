@@ -88,7 +88,7 @@ const jsonResponse = (status: number, body: unknown): ImageHttpResponse => ({
 const bytesResponse = (status: number, bytes: Uint8Array): ImageHttpResponse => ({ status, bytes });
 
 const makeWorkdir = async (): Promise<string> =>
-  await mkdtemp(path.join(os.tmpdir(), 'geon-imagegen-'));
+  await mkdtemp(path.join(os.tmpdir(), 'molly-imagegen-'));
 
 const sha256Of = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
 
@@ -423,7 +423,7 @@ describe('image edits', () => {
   it.each([false, true])(
     'uploads ordered source bytes and optional mask (%s), preserving the artwork',
     async (withMask) => {
-      const workdir = await mkdtemp(path.join(os.tmpdir(), 'geon-edit-'));
+      const workdir = await mkdtemp(path.join(os.tmpdir(), 'molly-edit-'));
       const first = pngFixture(4, 3);
       const second = pngFixture(8, 6);
       const output = pngFixture(12, 9);
@@ -471,11 +471,11 @@ describe('image edits', () => {
   );
 
   it('refuses empty models, missing inputs, outside paths, symlinks, invalid masks and excess bytes before transport', async () => {
-    const workdir = await mkdtemp(path.join(os.tmpdir(), 'geon-edit-invalid-'));
+    const workdir = await mkdtemp(path.join(os.tmpdir(), 'molly-edit-invalid-'));
     await writeFile(path.join(workdir, 'image.png'), pngFixture(2, 2));
     await writeFile(path.join(workdir, 'mask.png'), pngFixture(3, 3));
     await writeFile(path.join(workdir, 'not-image'), 'not an image');
-    const outside = await mkdtemp(path.join(os.tmpdir(), 'geon-outside-'));
+    const outside = await mkdtemp(path.join(os.tmpdir(), 'molly-outside-'));
     await writeFile(path.join(outside, 'source.png'), pngFixture(2, 2));
     await symlink(outside, path.join(workdir, 'outside'));
     await writeFile(
@@ -506,7 +506,7 @@ describe('image edits', () => {
   });
 
   it('preserves unsupported-edit errors and redacts thrown transport credentials without falling back', async () => {
-    const workdir = await mkdtemp(path.join(os.tmpdir(), 'geon-edit-error-'));
+    const workdir = await mkdtemp(path.join(os.tmpdir(), 'molly-edit-error-'));
     await writeFile(path.join(workdir, 'image.png'), pngFixture(2, 2));
     const requests: string[] = [];
     const transport: ImageHttpTransport = async (request) => {
@@ -528,7 +528,7 @@ describe('image edits', () => {
 });
 
 it('refuses non-http and embedded-credential returned URLs before downloading', async () => {
-  const workdir = await mkdtemp(path.join(os.tmpdir(), 'geon-invalid-result-url-'));
+  const workdir = await mkdtemp(path.join(os.tmpdir(), 'molly-invalid-result-url-'));
   for (const url of ['file:///tmp/source.png', 'https://user:password@images.example/output.png']) {
     const requests: string[] = [];
     const transport: ImageHttpTransport = async (request) => {

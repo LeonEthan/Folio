@@ -29,7 +29,7 @@ export function getDownloadPageUrl(language: string | undefined): string {
 }
 
 export function getChangelogUrl(_language: string | undefined): string {
-  return 'https://github.com/LeonEthan/Geon/releases';
+  return 'https://github.com/LeonEthan/molly-design/releases';
 }
 
 export function getWebsiteUrl(language: string | undefined): string {
@@ -38,11 +38,11 @@ export function getWebsiteUrl(language: string | undefined): string {
   return new URL(path, getLodyOrigin()).toString();
 }
 
-/** Geon public help; upstream Lody URLs above retain their original attribution. */
-export const GEON_REPOSITORY_URL = 'https://github.com/LeonEthan/Geon';
-export const GEON_ISSUES_URL = `${GEON_REPOSITORY_URL}/issues`;
-export function getGeonDocumentationUrl(language: string | undefined): string {
+/** Molly Design public help; upstream Lody URLs above retain their original attribution. */
+export const MOLLY_REPOSITORY_URL = 'https://github.com/LeonEthan/molly-design';
+export const MOLLY_ISSUES_URL = `${MOLLY_REPOSITORY_URL}/issues`;
+export function getMollyDocumentationUrl(language: string | undefined): string {
   return language?.startsWith('zh')
-    ? `${GEON_REPOSITORY_URL}/blob/main/README.zh-CN.md`
-    : `${GEON_REPOSITORY_URL}#readme`;
+    ? `${MOLLY_REPOSITORY_URL}/blob/main/README.zh-CN.md`
+    : `${MOLLY_REPOSITORY_URL}#readme`;
 }

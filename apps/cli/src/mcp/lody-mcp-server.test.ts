@@ -152,7 +152,7 @@ const listPublishedToolNames = async (taskToolsEnabled: boolean): Promise<string
   }
 };
 
-describe('Geon developer workflow retirement', () => {
+describe('Molly Design developer workflow retirement', () => {
   it('publishes generic session tools without the retired review submission tool', async () => {
     const names = await listPublishedToolNames(false);
     expect(names).not.toContain('lody_review_submit');

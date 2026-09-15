@@ -13,9 +13,9 @@ import {
 import { getCliHttpFetch } from '../src/utils/http-transport';
 
 // Stages public, already-pinned runtime artifacts. Never publishes or changes pins.
-// Run from apps/cli: pnpm exec tsx scripts/stage-geon-runtimes.ts <output> [--download]
-const sourceBase = process.env.GEON_RUNTIME_SOURCE_URL?.trim();
-if (!sourceBase) throw Error('Set GEON_RUNTIME_SOURCE_URL to the public source artifact mirror');
+// Run from apps/cli: pnpm exec tsx scripts/stage-molly-runtimes.ts <output> [--download]
+const sourceBase = process.env.MOLLY_RUNTIME_SOURCE_URL?.trim();
+if (!sourceBase) throw Error('Set MOLLY_RUNTIME_SOURCE_URL to the public source artifact mirror');
 const output = process.argv[2];
 if (!output || output.startsWith('--')) throw Error('Pass an output directory before --download');
 const directory = resolve(output);

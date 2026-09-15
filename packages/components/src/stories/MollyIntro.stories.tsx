@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { IntroSequence } from '@/components/onboarding/ceremony/intro-sequence';
 
 const meta = {
-  title: 'Onboarding/Geon opening',
+  title: 'Onboarding/Molly Design opening',
   component: IntroSequence,
   parameters: { layout: 'fullscreen' },
   decorators: [

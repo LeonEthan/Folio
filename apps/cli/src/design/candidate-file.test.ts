@@ -16,7 +16,7 @@ afterEach(async () => {
 });
 
 test('reopened historical file yields exact original document and extractable asset bytes through ordinary preview', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'geon-old-file-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'molly-old-file-'));
   roots.push(root);
   const artworkId = randomUUID();
   const sessionId = randomUUID() as SessionId;

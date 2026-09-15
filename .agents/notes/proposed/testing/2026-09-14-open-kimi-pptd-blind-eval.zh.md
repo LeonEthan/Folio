@@ -7,7 +7,7 @@ Translation: current
 
 ## 摘要
 
-用无本轮对话上下文的 Agent，只看 Geon 当前树与钉死的 `open-kimi-ppt-skill`，按 A 产品克隆 / B 技能文本 / C 格式 DSL 三层打分。主评测禁止翻 `agentic-listing-design`、禁止打开本评测/退役笔记、禁止搜网页。仪器是 [盲测 prompt](../../../eval/open-kimi-pptd-blind-prompt.md)。基线两次独立 run 分层一致：A `否`，B `借鉴`，C `借鉴`。YAML 退役并改写剩余近原文后，又两次独立 run 分层一致：A `否`，B `否`，C `借鉴`。该历史组未满足 C 层通过线。获批单文件重构后，两次独立 Grok 4.6 CLI 测评均为 A/B/C 全部 `否`，在下文记录的抽样范围内达到约定评分线。不是法律结论，也不批准改 Spec 或改运行时。
+用无本轮对话上下文的 Agent，只看 Molly Design 当前树与钉死的 `open-kimi-ppt-skill`，按 A 产品克隆 / B 技能文本 / C 格式 DSL 三层打分。主评测禁止翻 `agentic-listing-design`、禁止打开本评测/退役笔记、禁止搜网页。仪器是 [盲测 prompt](../../../eval/open-kimi-pptd-blind-prompt.md)。基线两次独立 run 分层一致：A `否`，B `借鉴`，C `借鉴`。YAML 退役并改写剩余近原文后，又两次独立 run 分层一致：A `否`，B `否`，C `借鉴`。该历史组未满足 C 层通过线。获批单文件重构后，两次独立 Grok 4.6 CLI 测评均为 A/B/C 全部 `否`，在下文记录的抽样范围内达到约定评分线。不是法律结论，也不批准改 Spec 或改运行时。
 
 ## 合同
 
@@ -30,7 +30,7 @@ git -C /Users/macmini/dev/open-kimi-ppt-skill rev-parse HEAD
 
 ## 基线环境
 
-- Geon 分支：`codex/independent-release` @ `48fbd0e3764a72a27378aa78b678c0c8676c0e48`（另有未跟踪的本评测/退役笔记；prompt 禁止打开它们）
+- Molly Design 分支：`codex/independent-release` @ `48fbd0e3764a72a27378aa78b678c0c8676c0e48`（另有未跟踪的本评测/退役笔记；prompt 禁止打开它们）
 - open-kimi-ppt-skill：`c32890fe0985bdf668f2722fed30f1010bdf24c9`
 - 两次 run：独立 general-purpose subagent，cwd `/Users/macmini/dev`，无本会话记忆
 - 仪器：[盲测 prompt](../../../eval/open-kimi-pptd-blind-prompt.md) 全文投递
@@ -51,7 +51,7 @@ git -C /Users/macmini/dev/open-kimi-ppt-skill rev-parse HEAD
 
 | 层 | 判定 | 一句话 | 双方证据路径 |
 | --- | --- | --- | --- |
-| A 产品克隆 | 否 | Geon 是单画布桌面平面设计台（Bento + PNG/JPEG），不交付 Kimi 托管编辑器、PPTX 导出脚本、约 30 套预设主题，也不做 PPTD+PPTX 双交付 | B: `README.md`、`editor/app.js`、`skills/open-kimi-ppt/scripts/export_pptx.py`、`theme.md`；A: `README.zh-CN.md`、`packages/design-authoring/skills/graphic-design/SKILL.md`、`packages/design-authoring/src/product-boundary.ts` |
+| A 产品克隆 | 否 | Molly Design 是单画布桌面平面设计台（Bento + PNG/JPEG），不交付 Kimi 托管编辑器、PPTX 导出脚本、约 30 套预设主题，也不做 PPTD+PPTX 双交付 | B: `README.md`、`editor/app.js`、`skills/open-kimi-ppt/scripts/export_pptx.py`、`theme.md`；A: `README.zh-CN.md`、`packages/design-authoring/skills/graphic-design/SKILL.md`、`packages/design-authoring/src/product-boundary.ts` |
 | B 技能文本 | 借鉴 | `SKILL.md` 工作流本身不同，但海报方法指南的 8 行关系表与若干独特措辞是 B 文的压缩改写，不是泛泛设计建议 | B: `skills/open-kimi-ppt/SKILL.md`、`skills/open-kimi-ppt/reference/general-poster.md`；A: `packages/design-authoring/skills/graphic-design/SKILL.md`、`.../references/general-poster.md`、`.../references/replication.md` |
 | C 格式 DSL | 借鉴 | Agent 面向的 v2 使用同一套 PPTD YAML 布局与字段名（`elementId`/`elementType`/`cropShape`/`seriesDefaults`、HTML 富文本、MiSans/18），但 A 不附带 B 的 `pptd.md` 全文，并裁成单页、禁动画/远程资源/PPTX | B: `skills/open-kimi-ppt/reference/pptd.md`、`example/dji-pocket4/dji-pocket4.pptd`；A: `packages/design-authoring/skills/graphic-design/references/pptd-authoring.md`、`packages/design-authoring/src/validate.ts`、`.../examples/minimal/poster.pptd` |
 
@@ -65,7 +65,7 @@ git -C /Users/macmini/dev/open-kimi-ppt-skill rev-parse HEAD
 
 两次都强调：A 的主 `SKILL.md` 已不是 B 的 step0–step5；B 层的命中点是 `general-poster.md` 的八行关系表和近义禁令句。C 层的命中点是 v2 字段名、默认值、工程布局，同时承认未附带 2000 行 `pptd.md`、未做产品克隆。
 
-## 退役后评测（[#42](https://github.com/LeonEthan/Geon/issues/42)）
+## 退役后评测（[#42](https://github.com/LeonEthan/molly-design/issues/42)）
 
 仪器未改。对照仓库仍是 `c32890fe0985bdf668f2722fed30f1010bdf24c9`。两次独立 general-purpose subagent，cwd `/Users/macmini/dev`，无本会话记忆，不打开 ALD，不把退役/评测笔记当必读。
 
@@ -95,7 +95,7 @@ B 双方证据：相对 open-kimi `reference/general-poster.md` 的 “self-owne
 
 A、B 已达通过线。C 未达。两次 C 都有双方路径，不作废。Agent 入口已是 `design.yaml` / Bento `id`/`kind`，leftover `.pptd` 被拒绝；`借鉴` 剩下的是 YAML 投影布局（`pages/`+`media/`）、七个 `kind`、`bounds`/`shapeName`，以及运行时对 leftover PPTD 的识别（含 `src/pptd-v3.ts`、`richtext.ts` 和 e2e `.pptd` 夹具）。这些字段名和 `pages/canvas.yaml` 路径是已批准的 Bento 投影，不是第二套活的 PPTD 创作格式。为了强行得到 `否` 去改它们属于改 Spec，不是改评测仪器。
 
-[#42](https://github.com/LeonEthan/Geon/issues/42) 保持开放。父议题 [#36](https://github.com/LeonEthan/Geon/issues/36) 保持开放。
+[#42](https://github.com/LeonEthan/molly-design/issues/42) 保持开放。父议题 [#36](https://github.com/LeonEthan/molly-design/issues/36) 保持开放。
 
 ## 限制
 
@@ -103,7 +103,7 @@ A、B 已达通过线。C 未达。两次 C 都有双方路径，不作废。Age
 
 ## 单文件后续盲测：Grok（2026-09-15）
 
-用户在已批准的单文件实现后要求 Grok 独立测试识别情况。两次全新本地 Grok CLI 1.0.30（`04b7ffed98c6`）会话使用 `grok-4.6`、工作目录 `/Users/macmini/dev`、原封不动的冻结提示词、plan 权限，禁用网页与子代理，另加只读及禁止读取 Geon 全部 notes、既往测评产物的约束。未提供此前评分或本会话内容。Repo B 保持 `c32890fe0985bdf668f2722fed30f1010bdf24c9`；Repo A 为 `06aa8ba031e5ccff40c9fabe60c5432d8e850f7d` 上尚未提交的单文件工作树。
+用户在已批准的单文件实现后要求 Grok 独立测试识别情况。两次全新本地 Grok CLI 1.0.30（`04b7ffed98c6`）会话使用 `grok-4.6`、工作目录 `/Users/macmini/dev`、原封不动的冻结提示词、plan 权限，禁用网页与子代理，另加只读及禁止读取 Molly Design 全部 notes、既往测评产物的约束。未提供此前评分或本会话内容。Repo B 保持 `c32890fe0985bdf668f2722fed30f1010bdf24c9`；Repo A 为 `06aa8ba031e5ccff40c9fabe60c5432d8e850f7d` 上尚未提交的单文件工作树。
 
 | 层 | Grok 第一轮 | Grok 第二轮 |
 | --- | --- | --- |
@@ -111,7 +111,7 @@ A、B 已达通过线。C 未达。两次 C 都有双方路径，不作废。Age
 | B 技能文本 | 否 | 否 |
 | C 格式 DSL | 否 | 否 |
 
-两轮共同依据：Geon 的单画布 PNG/JPEG 产品与 B 的编辑器/PPTX 管线不同；简短画布指南与 B 的 step0–5、`style.md`、预设工作流不同；`design.yaml`、`geon-canvas/1`、原生 `id`/`kind`、结构化文本与 B 的多文件 PPTD、`elementId`/`elementType`、主题和 HTML 不同。证据覆盖双方技能、海报指南、Geon 格式指南/示例/编解码器，以及 B 的 `reference/pptd.md` 和示例项目。
+两轮共同依据：Molly Design 的单画布 PNG/JPEG 产品与 B 的编辑器/PPTX 管线不同；简短画布指南与 B 的 step0–5、`style.md`、预设工作流不同；`design.yaml`、`geon-canvas/1`、原生 `id`/`kind`、结构化文本与 B 的多文件 PPTD、`elementId`/`elementType`、主题和 HTML 不同。证据覆盖双方技能、海报指南、Molly Design 格式指南/示例/编解码器，以及 B 的 `reference/pptd.md` 和示例项目。
 
 工具日志审计分别为 29、33 次读取/列目录/搜索，无对排除源码或 notes 的工具访问，无修改或联网调用，采集的 authoring/skill 源文件哈希未变。两个进程均正常退出。两轮都在要求的表格前输出进度文字，存在格式偏差。阅读属于抽样：B 的 2,029 行格式指南仅读前 150 行，241 行海报指南分别读前 120/80 行，未读原生编辑器和完整元素细则。第一轮声称格式读至“动画章”超出了实际读取范围。因此，一致评分作为达到评分线的有限 Grok 后续证据，不能当作穷尽相似性排查，也不覆盖历史评分。已要求不使用跨会话记忆，但没有独立证明 CLI 内部上下文组装不含记忆。
 

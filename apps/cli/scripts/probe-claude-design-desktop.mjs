@@ -1,5 +1,5 @@
 /** Manual acceptance probe. Reuses the existing Electron harness; only provider wire is synthetic.
- * Build desktop first (or select an installed executable), then run with tsx and GEON_PROBE_CLAUDE. Not a registered regression journey. */
+ * Build desktop first (or select an installed executable), then run with tsx and MOLLY_PROBE_CLAUDE. Not a registered regression journey. */
 import { ElectronHarness } from '../../../e2e/src/support/electron-harness.ts';
 import { OnboardingPage } from '../../../e2e/src/support/pages/onboarding-page.ts';
 import { createRequire } from 'node:module';
@@ -7,8 +7,8 @@ const { expect } = createRequire(new URL('../../../e2e/package.json', import.met
   '@playwright/test'
 );
 const resubmitMode = true;
-const claude = process.env.GEON_PROBE_CLAUDE;
-if (!claude) throw Error('Set GEON_PROBE_CLAUDE to pinned native executable');
+const claude = process.env.MOLLY_PROBE_CLAUDE;
+if (!claude) throw Error('Set MOLLY_PROBE_CLAUDE to pinned native executable');
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { mkdir, mkdtemp, writeFile, readFile, cp } from 'node:fs/promises';
@@ -17,7 +17,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { designOperation } from '../src/design/store.ts';
 import { readDesignArtifactDigest } from '../src/design/artifact.ts';
-const root = await mkdtemp(path.join(tmpdir(), 'geon-t17-desktop-'));
+const root = await mkdtemp(path.join(tmpdir(), 'molly-t17-desktop-'));
 const scenarioDir = path.join(root, 'evidence');
 await mkdir(scenarioDir);
 const referenceBase64 =
@@ -109,7 +109,7 @@ const provider = createServer(async (req, res) => {
       content = ['design.pptd', 'pages/design.page'].map((f, i) =>
         tool('Read', { file_path: path.join(draft, 'design-current', f) }, i)
       );
-    } else if (resubmitCalls === 1) content = [tool('mcp__lody__geon_resubmit_draft', {}, 0)];
+    } else if (resubmitCalls === 1) content = [tool('mcp__lody__molly_resubmit_draft', {}, 0)];
     else content = [{ type: 'text', text: 'SYNTHETIC_RESUBMIT_FINISHED' }];
     resubmitCalls++;
   } else if (editing) {
@@ -152,7 +152,7 @@ const provider = createServer(async (req, res) => {
     editCalls,
     resubmitCalls,
     content.map((c) => c.name || c.text),
-    body.tools?.map((t) => t.name).filter((n) => n.includes('geon'))
+    body.tools?.map((t) => t.name).filter((n) => n.includes('molly'))
   );
   const stopReason = content[0].type === 'tool_use' ? 'tool_use' : 'end_turn';
   const msg = {
@@ -198,7 +198,7 @@ const port = provider.address().port;
 const h = new ElectronHarness({
   rootDir: root,
   scenarioDir,
-  stableId: 'GEON-T17',
+  stableId: 'MOLLY-T17',
 });
 try {
   await h.launch();
@@ -290,7 +290,7 @@ try {
             v.webContents?.getURL().includes('design')
           );
           return view
-            ? await view.webContents.executeJavaScript('window.geon?.state().readonly')
+            ? await view.webContents.executeJavaScript('window.molly?.state().readonly')
             : true;
         }),
       { timeout: 60000 }
@@ -340,7 +340,7 @@ try {
             v.webContents?.getURL().includes('design')
           );
           return view
-            ? await view.webContents.executeJavaScript('window.geon?.state().readonly')
+            ? await view.webContents.executeJavaScript('window.molly?.state().readonly')
             : true;
         }),
       { timeout: 60000 }
@@ -374,7 +374,7 @@ try {
               v.webContents?.getURL().includes('design')
             );
             return view
-              ? await view.webContents.executeJavaScript('window.geon?.state().readonly')
+              ? await view.webContents.executeJavaScript('window.molly?.state().readonly')
               : true;
           }),
         { timeout: 60000 }

@@ -71,8 +71,9 @@ per-turn MCP selection, or Role-based session creation and dispatch.
 
 ## Installation identity
 
-The public local profile is Geon. Keep its data directory, host endpoint, protocol,
-app ID, packaged desktop identity, and every CLI marker store isolated from Lody.
+The public local profile is Molly Design (machine token `molly`). Keep its data
+directory, host endpoint, protocol, app ID, packaged desktop identity, and every
+CLI marker store isolated from Lody.
 Update both TypeScript and CommonJS installation profiles together; never migrate
 or delete Lody data.
 

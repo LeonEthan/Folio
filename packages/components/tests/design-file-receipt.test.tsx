@@ -79,7 +79,7 @@ test('save receipt and rejection diagnostics survive, while execution-only state
         outcome={outcome('invalid', {
           diagnostics: [
             {
-              code: 'GEON-E001',
+              code: 'MOLLY-E001',
               message:
                 'Invalid canvas at /Users/synthetic/private/design.pptd api_key=sk-synthetic12345',
             },
@@ -88,7 +88,7 @@ test('save receipt and rejection diagnostics survive, while execution-only state
       />
     )
   );
-  expect(element.textContent).toContain('GEON-E001');
+  expect(element.textContent).toContain('MOLLY-E001');
   expect(element.textContent).not.toContain('/Users/');
   expect(element.textContent).not.toContain('sk-synthetic');
   expect(element.querySelector('button')).toBeNull();

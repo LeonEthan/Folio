@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { lstat, mkdir, mkdtemp, open, readdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { exportAuthoring, collectAuthoring } from '@geon/design-authoring';
+import { exportAuthoring, collectAuthoring } from '@molly-design/design-authoring';
 import type { DesignPayload } from './store';
 import { ensureDesignDirectory } from './workspace';
 
