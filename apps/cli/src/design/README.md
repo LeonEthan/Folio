@@ -3,7 +3,7 @@
 `workspace.ts` is the shared resolved context for preparation, rendering, image
 assets and collection. It takes the existing Session host cwd plus session/artwork
 IDs; Agent cwd remains Lody's resolved cwd. New project drafts live at
-`<cwd>/.folio/artworks/<artworkId>/<sessionId>/`. Ordinary chat workspaces retain
+`<cwd>/.geon/artworks/<artworkId>/<sessionId>/`. Ordinary chat workspaces retain
 `<dataRoot>/chats/<sessionId>/`. No Git operation is needed.
 
 Only the draft directory's `design.yaml` and `media/` are
