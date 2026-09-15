@@ -24,6 +24,11 @@ Bento is pinned to `813c71fff72491e6898f5e55a20da44a562be586` (MIT, see
 `bento/LICENSE`). Its own `slides` and `kernel` sources are assembled with the
 adapter closure. Font Awesome Free glyph attribution is in `FONTAWESOME-LICENSE`;
 Space Mono's bundled fixture font is covered by `SPACE-MONO-LICENSE`.
+Geon's omitted text font resolves to Inter in the assembled contract copy. The
+isolated canvas embeds Fontsource Inter 5.2.8 WOFF2 faces (regular/bold, normal/italic,
+with its original script ranges) and emits `INTER-LICENSE` (OFL). It cannot inherit
+fonts from the React shell. The font CSS identity is recorded in `build.json`;
+canonical omitted fields and pinned vendor files remain unchanged.
 The fixture image is synthetic RGBA data. All fonts, icons and images are offline.
 
 The builder emits `apps/electron/resources/design/editor.html`, sample JSON,
@@ -76,13 +81,13 @@ are local overlays of the pinned adapters; the builder applies them after copyin
 vendor sources. The source manifest records relative kernel imports and stricter
 TypeScript adaptations. Original upstream identity and licenses remain unchanged.
 
-## PPTD projection contract
+## Historical projection types
 
-`vendor/packages/contracts/src/pptd-v3.ts` is a Geon-authored source adaptation
-of the pinned Bento v4 types for lossless authoring projection. It adds no editor
-capability and leaves the upstream frozen v1 capability matrix intact. The
-conversion and projection capability mapping belong to `@geon/design-authoring`;
-see its [README](../design-authoring/README.md#editable-projection-pptd-v3).
+`vendor/packages/contracts/src/pptd-v3.ts` records Geon's earlier adaptation
+of the pinned Bento v4 types. It remains pinned source evidence, not a live PPTD
+import/export entry. The current `geon-canvas/1` single-file conversion and
+projection capability mapping belong to `@geon/design-authoring`;
+see its [README](../design-authoring/README.md).
 The source manifest pins this additional file separately and records its origin.
 
 ## Serial canvas editing
@@ -104,7 +109,6 @@ The generic `geon.selection()` bridge exposes the existing stable selection IDs.
 Electron captures those IDs, flushes, and pairs them with the saved canonical
 revision before inserting a normal composer mention. Bento has no conversation or
 reference lifecycle; source previews cannot supply element references.
-
 
 ## Image and selection actions
 

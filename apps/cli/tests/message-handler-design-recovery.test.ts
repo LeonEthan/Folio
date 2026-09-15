@@ -225,7 +225,7 @@ it.each(['claude', 'codex', 'kimi', 'grok'] as const)(
   async (agent) => {
     runtime = agent;
     const directory = path.join(dataRoot, 'chats', DESIGN_SESSION_ID);
-    for (const item of ['design.yaml', 'pages'])
+    for (const item of ['design.yaml'])
       cpSync(path.join(directory, 'design-current', item), path.join(directory, item), {
         recursive: true,
       });

@@ -15,7 +15,7 @@ Translation: current
 
 本记录补充并部分替代[迁移计划](../../implemented/architecture/2026-09-09-graphic-design-platform.zh.md)中尚未实施的 P3：新增当前画稿读取一致性，取消完整三方对比和元素/属性自动合并的迁移要求。P0–P2 的实施事实不改写；产品合同见 [Spec](../../../../specs/graphic-design-platform.zh.md)。本次只修改文档，不实现同步器、hook 或运行时 skill。
 
-已有 [PPTD importer](../../../../packages/design-authoring/src/import.ts) 提供正向转换，不能据此认定反向转换已具备。相邻项目的 `packages/orchestration/src/job-context.ts` 可构造 Bento 上下文，也不等于已经实现 BentoDoc → PPTD。新增反向转换是确保 Agent 能读取手工编辑结果的必要成本；Lody 会话、文件、工具、权限与恢复能力继续复用。
+已有 PPTD importer (`06aa8ba:packages/design-authoring/src/import.ts`) 提供正向转换，不能据此认定反向转换已具备。相邻项目的 `packages/orchestration/src/job-context.ts` 可构造 Bento 上下文，也不等于已经实现 BentoDoc → PPTD。新增反向转换是确保 Agent 能读取手工编辑结果的必要成本；Lody 会话、文件、工具、权限与恢复能力继续复用。
 
 ## 文件变化预览的补充（2026-09-11）
 

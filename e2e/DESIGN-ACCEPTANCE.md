@@ -1,5 +1,12 @@
 # Geon design acceptance
 
+The DSL redesign additionally requires the real Kimi Code CLI
+[golden reference replication case](KIMI-REPLICATION-ACCEPTANCE.md): the frozen
+user-supplied MagSafe image plus the exact prompt `复刻这个设计`. High visual
+consistency needs a human verdict alongside editable-design checks. This case is
+specified; real-run integration and execution are pending. The synthetic scenes
+below do not substitute for it.
+
 This is the T29 review procedure, not human approval. The current installed
 rounds, all nine measurements and original eight-criterion audit are recorded in
 the [owning evidence note](../.agents/notes/implemented/testing/2026-09-11-complete-design-acceptance.md).

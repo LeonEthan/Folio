@@ -21,8 +21,7 @@
 - `src/generated/` and `skills/graphic-design/scripts/lib/` are build outputs;
   never edit them by hand.
 
-- The snapshot contract admits only the YAML artwork projection (`design.yaml`,
-  `pages/canvas.yaml`, `media/`). Leftover `.pptd` and PPTD v2 syntax fail
+- The snapshot contract admits only the YAML artwork projection (`design.yaml` with `format: geon-canvas/1`, `media/`). Leftover `.pptd` and PPTD v2 syntax fail
   closed. Projection reuses the existing Bento v4 editable fields (`id` /
   `kind`) and kernel replay through `contracts.ts`; replay validates but never
   repairs output. Keep exact run boundaries, optional values, IDs, array/z
@@ -32,10 +31,15 @@
   roundtrip fixtures with any supported field change; never add a second
   canonical blob to the format.
 
-- Read-only previews collect the entry, referenced pages and semantic assets only.
+- Read-only previews collect the entry and semantic assets only.
   Bound reads and compare exact document/asset bytes across observations; stability
   is not author completion. Conversion consumes only those frozen bytes.
 
 - Digest-only authoring reads reuse the collector's path and file-identity checks,
   stream fixed-size buffers in sorted path/length/byte order, and preserve the
   existing full-snapshot digest. Do not add a smaller total-size admission limit.
+
+- Former two-file YAML is accepted only by the explicit migration helper, with
+  guarded collection and a fresh output directory. Preserve source bytes, current
+  artwork, history and turn receipts. Digest-only reads retain the former page path
+  to fingerprint inherited drafts; they never confer format admission or submission.

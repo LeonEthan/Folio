@@ -1387,11 +1387,7 @@ describe('SessionExecutionService', () => {
     if (options.pptd !== false) {
       fs.writeFileSync(
         path.join(workdir, 'design.yaml'),
-        'title: Service test\nsize: [320, 200]\npages:\n  - pages/canvas.yaml\n'
-      );
-      fs.mkdirSync(path.join(workdir, 'pages'), { recursive: true });
-      fs.writeFileSync(
-        path.join(workdir, 'pages', 'canvas.yaml'),
+        'format: geon-canvas/1\ntitle: Service test\nsize: [320, 200]\n' +
         'background:\n  type: solid\n  color: "#FFFFFF"\nelements:\n' +
           '  - id: title\n    kind: text\n    bounds: [10, 10, 200, 40]\n' +
           '    text:\n      paragraphs:\n        - runs:\n            - text: "Hello"\n              fontSize: 24\n'

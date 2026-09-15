@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { ARTWORK_ENTRY, ARTWORK_PAGE } from '@geon/design-authoring';
+import { ARTWORK_ENTRY } from '@geon/design-authoring';
 import { designId } from './store';
 import { designTurnInputDir, readFrozenManifest } from './turn-input';
 import { lstat, mkdir } from 'node:fs/promises';
@@ -9,7 +9,7 @@ export interface DesignWorkspace {
   workspaceRoot: string;
   /** Existing per-session dispatch facts and receipts. */
   inputWorkdir: string;
-  /** Only this directory's design.yaml/pages/canvas.yaml/media are Agent output. */
+  /** Only this directory's design.yaml/media are Agent output. */
   artifactWorkdir: string;
   /** Application-owned projection; outside the artifact collector's allowlist. */
   projectionWorkdir: string;
@@ -43,8 +43,8 @@ export function designWorkspacePointer(workspace: DesignWorkspace, turnId?: stri
     ? designTurnInputDir(workspace.inputWorkdir, turnId)
     : path.join(workspace.inputWorkdir, 'design-input');
   return [
-    `Design authoring directory: ${workspace.artifactWorkdir}. Write ${ARTWORK_ENTRY}, ${ARTWORK_PAGE} and media/ here; render and final collection use this directory.`,
-    `Saved current canvas projection: ${workspace.projectionWorkdir}/${ARTWORK_ENTRY}. Its .folio-current.json records the saved revision. This is application input, not an Agent draft or a submitted result. Copy it and its required pages/media into the authoring directory only if you choose to work from it; preserve existing drafts.`,
+    `Design authoring directory: ${workspace.artifactWorkdir}. Write ${ARTWORK_ENTRY} (format: geon-canvas/1) and media/ here; render and final collection use this directory.`,
+    `Saved current canvas projection: ${workspace.projectionWorkdir}/${ARTWORK_ENTRY}. Its .folio-current.json records the saved revision. This is application input, not an Agent draft or a submitted result. Copy it and its required media into the authoring directory only if you choose to work from it; preserve existing drafts.`,
     `Previous chat drafts remain accessible at ${workspace.inputWorkdir}; they are never relocated or overwritten.`,
     `Frozen turn inputs and references: ${inputDirectory}. Earlier durable collection diagnostics are in ${path.join(workspace.inputWorkdir, 'design-input')}/<turnId>/receipt.json; on explicit continuation inspect the previous receipt and retained draft. Agent cwd remains ${workspace.workspaceRoot}.`,
   ].join('\n');

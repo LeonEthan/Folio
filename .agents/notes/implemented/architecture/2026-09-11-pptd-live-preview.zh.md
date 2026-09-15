@@ -25,7 +25,7 @@ Translation: current
 
 ## 复用依据和实际缺口
 
-- [buildPreviewPayload](../../../../apps/cli/src/design/render-preview.ts)已复用 `collectAuthoring → intakeAuthoring` 构造包含文档与素材的预览载荷，不提交当前稿。[intakeAuthoring](../../../../packages/design-authoring/src/intake.ts)从固定字节校验、绑定素材并调用 [importPptd](../../../../packages/design-authoring/src/import.ts)。新增持续预览复用这条转换链；采集和缓存可在既有设计模块内扩展，不复制 validator/importer。
+- [buildPreviewPayload](../../../../apps/cli/src/design/render-preview.ts)已复用 `collectAuthoring → intakeAuthoring` 构造包含文档与素材的预览载荷，不提交当前稿。[intakeAuthoring](../../../../packages/design-authoring/src/intake.ts)从固定字节校验、绑定素材并调用 importPptd (`06aa8ba:packages/design-authoring/src/import.ts`)。新增持续预览复用这条转换链；采集和缓存可在既有设计模块内扩展，不复制 validator/importer。
 - [collectAuthoring](../../../../packages/design-authoring/src/collect-authoring.ts)已有路径白名单和链接检查，但当前逐文件读取 `design.pptd`、`pages/`、`media/`，没有跨文件事务或整次采集前后稳定性校验。不能将其现有 Map 返回值或防抖直接称为跨文件原子快照；需补齐受限依赖闭包和读取稳定性机制。
 - [WorkspaceWatchCoordinator](../../../../apps/cli/src/lib/code-collab/workspace-watch-coordinator.ts)已有根目录共享订阅、释放、代次和 watcher 错误处理；[watch plan](../../../../apps/cli/src/lib/code-collab/workspace-watch-plan.ts)当前仍递归监听非忽略的顶层目录。先评估为该基础设施增加精确目标订阅/拆出可复用底层；不能直接开启 Code Collab 索引、All Changes 或全 workspace 扫描，也不复制另一套 broker/进程恢复系统。
 - [FilePreviewService](../../../../apps/cli/src/lib/file-preview/file-preview-service.ts)明确负责单文件读取，不开启 workspace watcher；保留该边界。设计服务承载 PPTD 项目的订阅与转换，桌面复用 [Bento 宿主](../../../../apps/electron/src/main/services/design-service.ts)的渲染资源和受控桥接，具体只读载荷接入待 P3 验证。不把每次变化都转为一次 `geon_render_preview` MCP 调用或 PNG 文件生成。

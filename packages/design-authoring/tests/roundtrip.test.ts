@@ -1,3 +1,4 @@
+import { convertTwoFileSnapshot } from '../src/migrate-two-file.ts';
 import { createHash } from 'node:crypto';
 import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -5,7 +6,7 @@ import path from 'node:path';
 import { parse, stringify } from 'yaml';
 import { describe, expect, it } from 'vitest';
 import {
-  exportPptd,
+  exportAuthoring,
   loadBentoDocV4,
   intakeAuthoring,
   validate,
@@ -388,13 +389,13 @@ function doc(es = elements): BentoDocV4 {
 }
 function roundtrip(document: BentoDocV4) {
   const before = structuredClone(document);
-  const snapshot = exportPptd(document, assets);
+  const snapshot = exportAuthoring(document, assets);
   const result = intakeAuthoring('design.yaml', snapshot);
   expect(result.status, JSON.stringify(result)).toBe('ok');
   if (result.status !== 'ok') throw Error(JSON.stringify(result));
   expect(result.document).toEqual(before);
   expect(document).toEqual(before);
-  expect([...exportPptd(result.document, result.assets)]).toEqual([...snapshot]);
+  expect([...exportAuthoring(result.document, result.assets)]).toEqual([...snapshot]);
   for (const [hash, bytes] of result.assets) expect(bytes).toEqual(assets.get(hash));
   for (const e of document.elements) expect(result.sourceMap[e.id]).toEqual([e.id]);
   return snapshot;
@@ -550,12 +551,11 @@ const encode = (v: unknown) => new TextEncoder().encode(stringify(v));
 function mutateSnapshot(
   mutator: (manifest: Record<string, unknown>, page: Record<string, unknown>) => void
 ) {
-  const snapshot = exportPptd(doc([...elements, chart(series[0]!)]), assets);
+  const snapshot = exportAuthoring(doc([...elements, chart(series[0]!)]), assets);
   const manifest = parse(new TextDecoder().decode(snapshot.get('design.yaml')));
-  const page = parse(new TextDecoder().decode(snapshot.get('pages/canvas.yaml')));
+  const page = manifest;
   mutator(manifest, page);
   snapshot.set('design.yaml', encode(manifest));
-  snapshot.set('pages/canvas.yaml', encode(page));
   return snapshot;
 }
 describe('version, compatibility and fail-closed inputs', () => {
@@ -678,14 +678,14 @@ describe('version, compatibility and fail-closed inputs', () => {
     expect(intakeAuthoring('design.yaml', snapshot).status).toBe('invalid');
   });
   it('rejects missing, corrupt and wrong-kind assets in both directions', () => {
-    const snapshot = exportPptd(doc(), assets);
+    const snapshot = exportAuthoring(doc(), assets);
     snapshot.delete(`media/${digest}`);
     expect(intakeAuthoring('design.yaml', snapshot).status).toBe('invalid');
     snapshot.set(`media/${digest}`, new Uint8Array([1, 2, 3]));
     expect(intakeAuthoring('design.yaml', snapshot).status).toBe('invalid');
-    expect(() => exportPptd(doc(), new Map())).toThrow(/Missing/);
+    expect(() => exportAuthoring(doc(), new Map())).toThrow(/Missing/);
     expect(() =>
-      exportPptd(
+      exportAuthoring(
         doc(),
         new Map([
           [digest, new Uint8Array([1, 2, 3])],
@@ -741,7 +741,7 @@ it('preserves and validates the legacy chart top-level fill field', () => {
   const c = { ...chart(series[0]!), fill: imageFill };
   roundtrip(doc([c]));
   expect(() =>
-    exportPptd(
+    exportAuthoring(
       doc([{ ...c, fill: { type: 'script', source: 'unmodeled' } } as unknown as BentoElementV4]),
       assets
     )
@@ -765,7 +765,7 @@ it('projects shared style objects without YAML alias expansion limits', () => {
 it('rejects non-JSON canonical values instead of silently losing them', () => {
   const d = doc();
   d.elements[0]!.groupId = undefined;
-  expect(() => exportPptd(d, assets)).toThrow(/JSON/);
+  expect(() => exportAuthoring(d, assets)).toThrow(/JSON/);
 });
 
 it.each([1, 2, 3])(
@@ -801,8 +801,39 @@ it('folds long unbroken text scalars for native bounded reads without changing t
   document.elements = [
     { ...base('long'), kind: 'text', text: { paragraphs: [{ runs: [{ text: longText }] }] } },
   ];
-  const files = exportPptd(document, assets);
-  const page = new TextDecoder().decode(files.get('pages/canvas.yaml'));
+  const files = exportAuthoring(document, assets);
+  const page = new TextDecoder().decode(files.get('design.yaml'));
   expect(Math.max(...page.split('\n').map((line) => Buffer.byteLength(line)))).toBeLessThan(1024);
   roundtrip(document);
+});
+
+it('migrates every native editable field and chart type without changing canonical data or assets', () => {
+  for (const entry of series) {
+    const expected = doc([...elements, { ...chart(entry), id: `migration-${entry.type}` }]);
+    const source = exportAuthoring(expected, assets);
+    const root = parse(new TextDecoder().decode(source.get('design.yaml')));
+    const { format: _format, size, customFonts, background, elements: native, diagnostics } = root;
+    source.set(
+      'design.yaml',
+      encode({
+        size,
+        pages: ['pages/canvas.yaml'],
+        ...(customFonts !== undefined ? { customFonts } : {}),
+      })
+    );
+    source.set('pages/canvas.yaml', encode({ background, elements: native, diagnostics }));
+    const before = structuredClone(source);
+    const migrated = convertTwoFileSnapshot(source);
+    expect(source).toEqual(before);
+    const result = intakeAuthoring('design.yaml', migrated);
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') continue;
+    expect(result.document).toEqual(expected);
+    expect(
+      [...result.assets].map(([id, bytes]) => [
+        id,
+        createHash('sha256').update(bytes).digest('hex'),
+      ])
+    ).toEqual([...result.assets.keys()].map((id) => [id, id]));
+  }
 });

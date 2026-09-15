@@ -9,7 +9,7 @@ conformance tests.
 
 Geon creates and edits one **static visual canvas** through a Bento-derived
 editor and renderer. The Agent-facing files are a YAML artwork projection
-(`design.yaml`, `pages/canvas.yaml`, `media/`). After a successful import, the
+(`design.yaml` with `format: geon-canvas/1`, `media/`). After a successful import, the
 platform visual document (BentoDoc) remains the single editable truth. The YAML
 projection and Agent drafts are not a second editable truth.
 

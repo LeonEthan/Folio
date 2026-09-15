@@ -7,7 +7,6 @@ import type {
   FrozenAuthoringValidationResult,
   FrozenDiagnostic,
   FrozenDiagnosticCode,
-  FrozenValidationResult,
   ImportIssue,
   LiveDiagnostic,
   LiveDiagnosticCode,
@@ -34,9 +33,9 @@ export function liveDiagnostics(
 }
 
 export function liveValidationResult(
-  result: FrozenAuthoringValidationResult | FrozenValidationResult | ValidationResult
+  result: FrozenAuthoringValidationResult | ValidationResult
 ): ValidationResult {
-  return { ...result, diagnostics: liveDiagnostics(result.diagnostics) } as ValidationResult;
+  return { ...result, diagnostics: liveDiagnostics(result.diagnostics) };
 }
 
 export function liveImportIssues(issues: readonly ImportIssue[]): ImportIssue[] {

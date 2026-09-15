@@ -132,7 +132,7 @@ await build({
   format: 'esm',
   target: 'node22',
   // Node builtins stay external; everything else (vendored contracts, yaml,
-  // temml, generated matrix bytes) is inlined for a self-contained skill dir.
+  // generated matrix bytes) is inlined for a self-contained skill dir.
   packages: 'bundle',
   // Bundled CJS deps (yaml) keep dynamic require calls; provide a real
   // require in the ESM output.

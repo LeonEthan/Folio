@@ -42,9 +42,8 @@ async function writeProject(workdir: string, page: string): Promise<void> {
   await mkdir(path.join(workdir, 'pages'), { recursive: true });
   await writeFile(
     path.join(workdir, 'design.yaml'),
-    'title: Frozen\nsize: [320, 200]\npages:\n  - pages/canvas.yaml\n'
+    'format: geon-canvas/1\ntitle: Frozen\nsize: [320, 200]\n' + page
   );
-  await writeFile(path.join(workdir, 'pages', 'canvas.yaml'), page);
 }
 
 async function setupDesign(options: { width?: number; height?: number } = {}) {

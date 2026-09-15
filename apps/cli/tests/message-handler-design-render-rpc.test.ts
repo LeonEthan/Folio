@@ -148,13 +148,10 @@ const pngFixture = (width: number, height: number): Buffer => {
   return Buffer.concat([PNG_SIGNATURE, Buffer.from([0, 0, 0, 13]), Buffer.from('IHDR'), ihdr]);
 };
 
-const MANIFEST = `title: Render RPC test
+const PAGE = `format: geon-canvas/1
+title: Render RPC test
 size: [320, 200]
-pages:
-  - pages/canvas.yaml
-`;
-
-const PAGE = `background:
+background:
   type: solid
   color: "#FFFFFF"
 elements:
@@ -190,8 +187,7 @@ const writeProject = (
   workdir = path.join(dataRoot, 'chats', sessionId)
 ): string => {
   mkdirSync(path.join(workdir, 'pages'), { recursive: true });
-  writeFileSync(path.join(workdir, 'design.yaml'), MANIFEST);
-  writeFileSync(path.join(workdir, 'pages', 'canvas.yaml'), PAGE);
+  writeFileSync(path.join(workdir, 'design.yaml'), PAGE);
   return workdir;
 };
 

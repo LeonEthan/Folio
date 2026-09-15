@@ -3,8 +3,7 @@
  * see source-manifest.json). This is the trust boundary: allowlist + lstat
  * without following links. Consumers only receive the collected Map.
  *
- * Geon adaptation: the only authoring entry is `design.yaml` with one page
- * `pages/canvas.yaml` and local `media/` assets. Leftover `.pptd` is not
+ * Geon adaptation: the only authoring entry is `design.yaml` with local `media/` assets. Leftover `.pptd` is not
  * admitted. Upstream's AuthoringSnapshotError is replaced by a local error
  * class so the CAS workspace module is not migrated.
  */
@@ -25,7 +24,7 @@ import { join, sep } from 'node:path';
 import { createHash, type Hash } from 'node:crypto';
 import { parse } from 'yaml';
 import { listSemanticAssetRefs } from './semantic-assets.ts';
-import type { ValidatedPptd } from './contracts.ts';
+import type { ValidatedArtwork } from './contracts.ts';
 
 /** Snapshot collection integrity failure (symlink/hardlink/escape/non-regular). */
 export class AuthoringSnapshotError extends Error {
@@ -48,9 +47,9 @@ function lstatOptional(path: string, label: string): Stats | null {
   }
 }
 
-/** 唯一 relpath 语法：design.yaml | pages/canvas.yaml | media/<单段>。intake 与守护进程采集共用。 */
+/** 唯一 relpath 语法：design.yaml | media/<单段>。intake 与守护进程采集共用。 */
 export function isAuthoringRelPath(rel: string): boolean {
-  if (ROOT_FILES.has(rel) || rel === PAGE_YAML) return true;
+  if (ROOT_FILES.has(rel)) return true;
   const media = /^media\/([^/]+)$/.exec(rel);
   if (media !== null && media[1] !== '.' && media[1] !== '..') return true;
   return false;
@@ -67,17 +66,23 @@ export function collectAuthoring(
   return scanAuthoring(dir, options);
 }
 
+/** @internal Explicit migration only; shares the same no-follow file guards. */
+export function collectTwoFileArtwork(dir: string): Map<string, Uint8Array> {
+  return scanAuthoring(dir, {}, undefined, true);
+}
+
 /** Exact full authoring digest, using the same guarded scan without retaining file bytes. */
 export function digestAuthoring(dir: string): string {
   const hash = createHash('sha256');
-  scanAuthoring(dir, {}, hash);
+  scanAuthoring(dir, {}, hash, true);
   return hash.digest('hex');
 }
 
 function scanAuthoring(
   dir: string,
   options: CollectionOptions,
-  hash?: Hash
+  hash?: Hash,
+  legacy = false
 ): Map<string, Uint8Array> {
   let totalBytes = 0;
   const chunk = hash ? new Uint8Array(64 * 1024) : undefined;
@@ -189,40 +194,18 @@ function scanAuthoring(
   }
 
   if (options.referencedOnly) {
+    const parent = lstatOptional(join(dir, 'pages'), 'pages');
+    if (parent?.isSymbolicLink()) throw new AuthoringSnapshotError('pages directory is redirected');
+    if (parent?.isDirectory() && lstatOptional(join(dir, PAGE_YAML), PAGE_YAML))
+      throw new AuthoringSnapshotError('old two-file YAML requires explicit migration');
+  }
+
+  if (options.referencedOnly) {
     assertAuthoringEntry(out.keys());
     const decode = (rel: string) =>
       parse(new TextDecoder().decode(out.get(rel)), { maxAliasCount: 100 });
-    const manifest = decode(ENTRY_YAML);
-    if (
-      !manifest ||
-      !Array.isArray(manifest.pages) ||
-      manifest.pages.length !== 1 ||
-      manifest.pages[0] !== PAGE_YAML
-    )
-      throw new AuthoringSnapshotError(
-        'authoring entry must reference exactly one page (pages/canvas.yaml)'
-      );
-    for (const rel of manifest.pages) {
-      if (
-        typeof rel !== 'string' ||
-        !rel.startsWith('pages/') ||
-        !isAuthoringRelPath(rel) ||
-        rel.includes('\\')
-      )
-        throw new AuthoringSnapshotError('invalid referenced page path');
-      options.onDependencies?.([ENTRY_YAML, ...manifest.pages]);
-      const parent = lstatSync(join(dir, 'pages'));
-      if (parent.isSymbolicLink() || !parent.isDirectory())
-        throw new AuthoringSnapshotError('pages directory is redirected');
-      takeFile(rel, true);
-    }
-    // Discovery is not validation. Malformed schema shapes fail closed here or
-    // at intake; only the existing semantic enumerator decides asset locations.
-    const project = {
-      manifest,
-      pages: manifest.pages.map((rel: string) => decode(rel)),
-    } as ValidatedPptd;
-    const refs = listSemanticAssetRefs(project, manifest.pages[0]);
+    const project = decode(ENTRY_YAML) as ValidatedArtwork;
+    const refs = listSemanticAssetRefs(project);
     for (const { ref } of refs) {
       if (
         typeof ref !== 'string' ||
@@ -234,7 +217,6 @@ function scanAuthoring(
     }
     options.onDependencies?.([
       ENTRY_YAML,
-      ...manifest.pages,
       ...new Set(refs.map(({ ref }) => ref)),
     ]);
     for (const { ref } of refs) {
@@ -301,7 +283,7 @@ function scanAuthoring(
   // Preserve ordinary snapshot insertion order for existing consumers.
   for (const directory of hash ? ['media', 'pages'] : ['pages', 'media'])
     takeDir(directory, (name) =>
-      isAuthoringRelPath(`${directory}/${name}`) ? `${directory}/${name}` : undefined
+      isAuthoringRelPath(`${directory}/${name}`) || (legacy && `${directory}/${name}` === PAGE_YAML) ? `${directory}/${name}` : undefined
     );
 
   assertAuthoringEntry(out.keys());

@@ -20,7 +20,6 @@ async function createRoot() {
 it('streaming digest matches existing snapshot encoding despite file creation order and binary bytes', async () => {
   const directory = await createRoot();
   for (const [file, text] of [
-    ['pages/canvas.yaml', 'last'],
     ['media/β.bin', '\0binary\xff'],
     ['design.yaml', 'entry'],
     ['media/a.bin', 'asset'],
@@ -69,4 +68,22 @@ it('streaming observation preserves absence and the shared redirected-file refus
     rejectedBy: 'snapshot',
     message: expect.stringContaining('symlink'),
   });
+});
+
+it('fingerprints inherited two-file drafts without admitting them as new output', async () => {
+  const directory = await createRoot();
+  const files = [
+    ['design.yaml', 'old entry'],
+    ['pages/canvas.yaml', 'old canvas'],
+  ];
+  const expected = createHash('sha256');
+  for (const [rel, text] of files) {
+    await writeFile(path.join(directory, rel!), text!);
+    expected.update(rel! + '\0' + Buffer.byteLength(text!) + '\0' + text!);
+  }
+  expect(await readDesignArtifactDigest(directory)).toEqual({
+    status: 'present',
+    digest: expected.digest('hex'),
+  });
+  expect(await readDesignArtifact(directory)).toMatchObject({ status: 'rejected' });
 });

@@ -46,7 +46,7 @@ introducing Vite, HMR protocols, or a new Agent scheduling system.
 - [buildPreviewPayload](../../../../apps/cli/src/design/render-preview.ts) already reuses
   `collectAuthoring → intakeAuthoring` to build a preview payload containing document and
   assets without committing the current artwork. [intakeAuthoring](../../../../packages/design-authoring/src/intake.ts)
-  validates fixed bytes, binds assets, and calls [importPptd](../../../../packages/design-authoring/src/import.ts).
+  validates fixed bytes, binds assets, and calls importPptd (`06aa8ba:packages/design-authoring/src/import.ts`).
   Continuous preview reuses this conversion chain; collection and caching can be extended
   within existing design modules without copying validator/importer.
 - [collectAuthoring](../../../../packages/design-authoring/src/collect-authoring.ts) already

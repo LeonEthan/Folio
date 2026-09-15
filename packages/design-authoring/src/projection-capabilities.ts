@@ -1,14 +1,14 @@
 import { FROZEN_CAPABILITY_MATRIX } from './capability-matrix.ts';
 
-/** The v3 profile adds authoring representation, never editor capabilities.
- * v2 remains frozen; each row keeps its original admission/render evidence.
+/** The YAML projection changes representation, never editor capabilities.
+ * Each frozen row keeps its original admission/render evidence.
  */
 export const AUTHORING_PROJECTION_CAPABILITIES = FROZEN_CAPABILITY_MATRIX.rows
   .filter((row) => row.profileState === 'active')
   .map((row) => ({
     capabilityId: row.capabilityId,
     canonicalPath: row.canonicalPath,
-    projectionVersion: 'v3' as const,
+    projectionVersion: 'geon-canvas/1' as const,
     representation: [
       'common.theme',
       'common.styleInheritance',
@@ -16,9 +16,6 @@ export const AUTHORING_PROJECTION_CAPABILITIES = FROZEN_CAPABILITY_MATRIX.rows
       'table.cellTextStyleRef',
       'table.styleRef',
     ].includes(row.capabilityId)
-      ? 'v2 import resolves authoring references/defaults; v3 preserves resulting literal fields'
-      : 'v4 fields preserved; canvas uses manifest.size, id/kind use elementId/elementType, asset src uses media paths',
+      ? 'Only resolved literal Bento fields are represented; authoring references/defaults are excluded'
+      : 'v4 fields preserved; size maps canvas dimensions, id/kind stay native, asset src uses media paths',
   }));
-
-/** @deprecated Use AUTHORING_PROJECTION_CAPABILITIES. */
-export const PPTD_PROJECTION_CAPABILITIES = AUTHORING_PROJECTION_CAPABILITIES;

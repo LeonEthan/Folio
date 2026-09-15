@@ -45,9 +45,8 @@ describe('live PPTD/Kimi fingerprints', () => {
       new Map([
         [
           'design.yaml',
-          enc.encode('title: Test\nsize: [320, 200]\npages:\n  - pages/canvas.yaml\n'),
+          enc.encode('format: geon-canvas/1\ntitle: Test\nsize: [320, 200]\n' + VALID_PAGE),
         ],
-        ['pages/canvas.yaml', enc.encode(VALID_PAGE)],
       ])
     );
     expect(result.status).toBe('invalid');

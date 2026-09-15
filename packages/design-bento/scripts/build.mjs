@@ -12,6 +12,20 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+// Each isolated canvas owns its font faces; the React shell's fonts do not cross
+// WebContents boundaries. Preserve Fontsource's script ranges and use offline WOFF2.
+const interCss = ['400', '700', '400-italic', '700-italic']
+  .map((face) =>
+    readFileSync(require.resolve(`@fontsource/inter/${face}.css`), 'utf8').replace(
+      /src: url\(\.\/files\/([^)]*\.woff2)\)[^;]*;/g,
+      (_, file) =>
+        `src: url(data:font/woff2;base64,${readFileSync(require.resolve(`@fontsource/inter/files/${file}`)).toString('base64')}) format('woff2');`
+    )
+  )
+  .join('\n');
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const manifest = JSON.parse(readFileSync(join(root, 'source-manifest.json'), 'utf8'));
@@ -64,6 +78,13 @@ try {
   );
   const canvasFile = join(destination, 'editor-bento/src/ui/canvas.ts');
   writeFileSync(canvasFile, readFileSync(canvasFile, 'utf8').replace('16000', '4096'));
+  // Adapt only the assembled copy. Canonical omitted values and pinned vendor
+  // files remain untouched; rendering resolves the product's existing default.
+  const defaultsFile = join(destination, 'contracts/src/static-v1.ts');
+  const defaults = readFileSync(defaultsFile, 'utf8');
+  if (defaults.split('fontFamily: "MiSans",').length !== 2)
+    throw Error('Pinned text font default changed; review the Inter adaptation');
+  writeFileSync(defaultsFile, defaults.replace('fontFamily: "MiSans",', 'fontFamily: "Inter",'));
   const slides = join(tree, 'slides');
   // Use the checked-in npm lockfile; installation may fill an empty CI cache.
   if (process.platform === 'win32')
@@ -77,12 +98,15 @@ try {
   );
   const output = resolve(root, '../../apps/electron/resources/design');
   mkdirSync(output, { recursive: true });
-  const shell = readFileSync(join(slides, 'dist-single/index.html'));
+  const html = readFileSync(join(slides, 'dist-single/index.html'), 'utf8');
+  if (!html.includes('</head>')) throw Error('Built canvas has no head for font resources');
+  const shell = Buffer.from(html.replace('</head>', `<style>${interCss}</style></head>`));
   writeFileSync(join(output, 'editor.html'), shell);
   cpSync(join(root, 'sample.json'), join(output, 'sample.json'));
   cpSync(join(root, 'bento/LICENSE'), join(output, 'BENTO-LICENSE'));
   cpSync(join(root, 'SPACE-MONO-LICENSE'), join(output, 'SPACE-MONO-LICENSE'));
   cpSync(join(root, 'FONTAWESOME-LICENSE'), join(output, 'FONTAWESOME-LICENSE'));
+  cpSync(require.resolve('@fontsource/inter/LICENSE'), join(output, 'INTER-LICENSE'));
   writeFileSync(
     join(output, 'build.json'),
     JSON.stringify(
@@ -90,6 +114,11 @@ try {
         source: manifest.commit,
         bento: manifest.bentoCommit,
         shellSha256: hash(shell),
+        defaultFont: {
+          family: 'Inter',
+          package: '@fontsource/inter@5.2.8',
+          cssSha256: hash(interCss),
+        },
         sampleSha256: hash(readFileSync(join(root, 'sample.json'))),
         node: process.version,
       },

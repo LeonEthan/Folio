@@ -12,28 +12,28 @@ theme `$ref`, or leftover `.pptd` syntax.
 Deliver one self-contained project at the session workspace root:
 
 ```text
-design.yaml          # manifest (fixed entry name)
-pages/canvas.yaml    # the one canvas (fixed page path)
+design.yaml          # geon-canvas/1: the complete editable canvas
 media/*              # optional local raster and font assets
 ```
 
-The manifest must reference exactly `pages/canvas.yaml`. Keep all dependencies
-inside the project. Image and font asset paths are relative, remain under
-`media/`, and must not resolve to remote URLs or escape the project.
+Keep dependencies inside the project. Image and font paths must be `media/<name>`
+with a single filename, never remote URLs or paths escaping the project.
 
-## Manifest
+## Canvas fields
 
-`design.yaml` admits `title`, `size`, `pages`, and optional `customFonts`.
-`size` is a positive integer pair `[width, height]`. `pages` is exactly
-`[pages/canvas.yaml]`. Do not write a `version` field.
+`design.yaml` requires `format: geon-canvas/1`, `size`, and `elements`.
+`size` is a positive integer pair `[width, height]`. Optional fields are
+`background`, `customFonts`, `diagnostics`, and `title`. Missing background is
+solid white; missing diagnostics is an empty array. `title` is file metadata,
+not a canonical title saved by the editor. Do not write `pages`, `version`, or
+`schemaVersion`.
 
 Omit `fontFamily` to use Inter, the bundled licensed default family name. Other
 families need a `customFonts` registration whose `src` is a local `media/` font
 file.
 
-## Canvas
+## Elements
 
-`pages/canvas.yaml` admits `background`, `elements`, and optional `diagnostics`.
 Each element uses Bento `id` and `kind`. IDs must be unique and stable. Array
 order is z-order; an omitted `zIndex` is filled from the array index, and an
 explicit `zIndex` is kept.
@@ -55,13 +55,32 @@ Kind-specific fields (not a complete whitelist):
 - `icon`: `iconName` as `style:name` against the pinned offline shelf.
 - `table` / `chart`: structured `table` / `chart` objects with literal styles.
 
+Text geometry belongs on the element; text style belongs inside `text`, not beside
+`kind`. For example:
+
+```yaml
+- id: heading
+  kind: text
+  bounds: [12, 12, 261, 48]
+  text:
+    fontSize: 20
+    color: '#111111'
+    align: [center, middle]
+    wrap: true
+    paragraphs:
+      - runs:
+          - text: 'Editable heading'
+```
+
+Run-specific overrides such as `bold` go on that run. `bounds`, `opacity`, `groupId`
+and `shadow` remain element fields. Unknown fields are rejected, not relocated.
+
 Groups are the existing flat `groupId`, not nested nodes. Preserve existing
 fields and array order when editing a projected document.
 
 ## Minimal structural example
 
-Read [../examples/minimal/](../examples/minimal/) (`design.yaml`,
-`pages/canvas.yaml`, `media/`). It demonstrates packaging, geometry, and
+Read [../examples/minimal/](../examples/minimal/) (`design.yaml`, `media/`). It demonstrates packaging, geometry, and
 membership together: a solid background, a `rect` band, structured text, and an
 image with `fit: cover`. Copy its field shape; it is not a capability whitelist.
 A repository test runs intake against these files, so the example cannot

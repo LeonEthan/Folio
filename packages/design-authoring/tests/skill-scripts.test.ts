@@ -87,13 +87,11 @@ afterAll(() => {
 });
 
 function writeProject(dir: string, page: string): void {
-  mkdirSync(path.join(dir, 'pages'), { recursive: true });
   mkdirSync(path.join(dir, 'media'), { recursive: true });
   writeFileSync(
     path.join(dir, 'design.yaml.tmp'),
-    'title: Test\nsize: [320, 200]\npages:\n  - pages/canvas.yaml\n'
+    'format: geon-canvas/1\ntitle: Test\nsize: [320, 200]\n' + page
   );
-  writeFileSync(path.join(dir, 'pages', 'canvas.yaml'), page);
   writeFileSync(path.join(dir, 'media', 'pic.png'), syntheticPng(8, 8, [200, 30, 30]));
 }
 
@@ -109,6 +107,23 @@ elements:
 `;
 
 describe('finalize.mjs', () => {
+  it('accepts the editable text example published in the format guide', () => {
+    const guide = readFileSync(path.join(skillDir, 'references', 'artwork-format.md'), 'utf8');
+    const example = guide.match(/```yaml\n([\s\S]*?)```/)?.[1];
+    expect(example).toBeDefined();
+    const dir = workdir();
+    writeProject(
+      dir,
+      'elements:\n' +
+        example!
+          .split('\n')
+          .map((line) => '  ' + line)
+          .join('\n')
+    );
+    const result = run('finalize.mjs', [path.join(dir, 'design.yaml.tmp')]);
+    expect(result.status, result.stdout + result.stderr).toBe(0);
+  });
+
   it('promotes a clean draft to design.yaml', () => {
     const dir = workdir();
     writeProject(dir, VALID_PAGE);

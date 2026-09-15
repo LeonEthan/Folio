@@ -180,3 +180,7 @@ Reopen the exported profile and check its sessions, saves and source previews be
 calling it ready for human use; copying files alone is insufficient.
 
 Windows Daily also runs `node e2e/scripts/probe-windows-pty.mjs` before building. It exercises the real CLI terminal service under Node and Electron, closes the same Session through overlapping cleanup paths, and requires the native terminal exit receipt and a successful host exit. This catches native double-close crashes independently of the desktop journey.
+
+The separate [real Kimi golden replication case](KIMI-REPLICATION-ACCEPTANCE.md#run-the-golden-case)
+uses the fixed MagSafe reference and exact prompt, then retains actual exports and
+editable review evidence. It is explicitly invoked and is not a deterministic CI scenario.

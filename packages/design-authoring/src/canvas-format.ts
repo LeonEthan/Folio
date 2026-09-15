@@ -21,23 +21,17 @@ import {
 export const AUTHORING_DEFAULT_FONT_FAMILY = 'Inter';
 
 export const ARTWORK_ENTRY = 'design.yaml';
-export const ARTWORK_PAGE = 'pages/canvas.yaml';
+export const ARTWORK_FORMAT = 'geon-canvas/1';
 
-export interface YamlArtworkProject {
-  manifest: {
-    title?: string;
-    size: [number, number];
-    pages: string[];
-    customFonts?: BentoDocV4['fonts'];
-  };
-  pages: {
-    background: BentoDocV4['background'];
-    elements: BentoElementV4[];
-    diagnostics?: BentoDocV4['diagnostics'];
-  }[];
+export interface CanvasSource {
+  format: typeof ARTWORK_FORMAT;
+  title?: string;
+  size: [number, number];
+  customFonts?: BentoDocV4['fonts'];
+  background?: BentoDocV4['background'];
+  elements: BentoElementV4[];
+  diagnostics?: BentoDocV4['diagnostics'];
 }
-declare const validatedYaml: unique symbol;
-export type ValidatedYamlArtwork = YamlArtworkProject & { readonly [validatedYaml]: true };
 
 type Raw = Record<string, unknown>;
 const record = (v: unknown): v is Raw => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -49,11 +43,11 @@ const mediaPath = (v: unknown): v is string =>
   !['media/.', 'media/..'].includes(v);
 
 /** Transform only asset-bearing schema fields; text, URLs and chart data are not assets. */
-export function mapV3Assets<T>(
+export function mapArtworkAssets<T>(
   value: T,
   map: (src: string, kind: 'image' | 'font', path: string) => string
 ): T {
-  const out = structuredClone(value) as T & { manifest: Raw; pages: Raw[] };
+  const out = structuredClone(value) as T & Raw;
   const originalSources = new WeakMap<object, string>();
   const source = (v: Raw, kind: 'image' | 'font', at: string) => {
     if (!originalSources.has(v)) originalSources.set(v, v.src as string);
@@ -65,71 +59,60 @@ export function mapV3Assets<T>(
   const style = (v: unknown, at: string) => {
     if (record(v)) fill(v.fill, `${at}.fill`);
   };
-  const fonts = out.manifest.customFonts;
+  const fonts = out.customFonts;
   if (Array.isArray(fonts))
     fonts.forEach((font, i) => {
-      if (record(font)) source(font, 'font', `manifest#customFonts[${i}].src`);
+      if (record(font)) source(font, 'font', `${ARTWORK_ENTRY}#customFonts[${i}].src`);
     });
-  out.pages.forEach((page, pi) => {
-    const at = `${(out.manifest.pages as string[])[pi]}#`;
-    fill(page.background, `${at}background`);
-    if (!Array.isArray(page.elements)) return;
-    page.elements.forEach((element, i) => {
-      if (!record(element)) return;
-      const elAt = `${at}elements[${i}]`;
-      if (element.kind === 'image' || (element as Raw).elementType === 'image')
-        source(element, 'image', `${elAt}.src`);
-      fill(element.fill, `${elAt}.fill`);
-      if (record(element.chart)) fill(element.chart.fill, `${elAt}.chart.fill`);
-      if (record(element.table)) {
-        const table = element.table;
-        if (Array.isArray(table.rows))
-          table.rows.forEach((row, r) => {
-            if (Array.isArray(row))
-              row.forEach((cell, c) => style(cell, `${elAt}.table.rows[${r}][${c}]`));
-          });
-        if (record(table.style)) {
-          for (const slot of [
-            'cellStyle',
-            'firstRowStyle',
-            'lastRowStyle',
-            'firstColumnStyle',
-            'lastColumnStyle',
-          ])
-            style(table.style[slot], `${elAt}.table.style.${slot}`);
-          if (Array.isArray(table.style.bodyStyles))
-            table.style.bodyStyles.forEach((s, j) =>
-              style(s, `${elAt}.table.style.bodyStyles[${j}]`)
-            );
-        }
+  const at = `${ARTWORK_ENTRY}#`;
+  fill(out.background, `${at}background`);
+  if (!Array.isArray(out.elements)) return out;
+  out.elements.forEach((element, i) => {
+    if (!record(element)) return;
+    const elAt = `${at}elements[${i}]`;
+    if (element.kind === 'image') source(element, 'image', `${elAt}.src`);
+    fill(element.fill, `${elAt}.fill`);
+    if (record(element.chart)) fill(element.chart.fill, `${elAt}.chart.fill`);
+    if (record(element.table)) {
+      const table = element.table;
+      if (Array.isArray(table.rows))
+        table.rows.forEach((row, r) => {
+          if (Array.isArray(row))
+            row.forEach((cell, c) => style(cell, `${elAt}.table.rows[${r}][${c}]`));
+        });
+      if (record(table.style)) {
+        for (const slot of [
+          'cellStyle',
+          'firstRowStyle',
+          'lastRowStyle',
+          'firstColumnStyle',
+          'lastColumnStyle',
+        ])
+          style(table.style[slot], `${elAt}.table.style.${slot}`);
+        if (Array.isArray(table.style.bodyStyles))
+          table.style.bodyStyles.forEach((s, j) =>
+            style(s, `${elAt}.table.style.bodyStyles[${j}]`)
+          );
       }
-    });
+    }
   });
   return out;
 }
 
-export function artworkToDocument(project: YamlArtworkProject): BentoDocV4 {
-  const {
-    manifest,
-    pages: [page],
-  } = project;
-  if (!page) throw Error('Exactly one page required');
-  const elements = page.elements.map((element, index) => ({
+export function artworkToDocument(project: CanvasSource): BentoDocV4 {
+  const elements = project.elements.map((element, index) => ({
     ...structuredClone(element),
     zIndex: element.zIndex ?? index,
   }));
   return {
     schemaVersion: 4,
-    canvas: { width: manifest.size[0], height: manifest.size[1] },
-    background: structuredClone(page.background) ?? { type: 'solid', color: '#FFFFFF' },
-    ...(manifest.customFonts !== undefined ? { fonts: structuredClone(manifest.customFonts) } : {}),
+    canvas: { width: project.size[0], height: project.size[1] },
+    background: structuredClone(project.background) ?? { type: 'solid', color: '#FFFFFF' },
+    ...(project.customFonts !== undefined ? { fonts: structuredClone(project.customFonts) } : {}),
     elements,
-    diagnostics: structuredClone(page.diagnostics ?? []),
+    diagnostics: structuredClone(project.diagnostics ?? []),
   };
 }
-
-/** @deprecated YAML artwork uses artworkToDocument. */
-export const v3ToDocument = artworkToDocument;
 
 /** Same acceptance domains as manual save; replay is validation, never output repair. */
 export function assertProjectionDocument(doc: BentoDocV4): void {
@@ -226,66 +209,58 @@ const KIND_SET = new Set<string>(BENTO_ELEMENT_KINDS_V4);
 const PPTD_PAGE_FIELDS = new Set(['notes', 'animations', 'pageType']);
 
 export function validateYaml(
-  manifest: Raw,
-  manifestFile: string,
-  loadPage: (rel: string) => unknown,
+  canvas: Raw,
+  entryFile: string,
   readMedia: (rel: string) => Uint8Array | undefined
 ): FrozenAuthoringValidationResult {
   const diagnostics: FrozenDiagnostic[] = [];
   const fail = (at: string, message: string, code: FrozenDiagnostic['code'] = 'PPTD-E001') =>
     diagnostics.push({ code, path: at, message });
-  if (manifestFile.endsWith('.pptd') || manifest.version === 'v2' || manifest.version === 'v3') {
-    fail(`${manifestFile}#`, 'leftover PPTD is not admitted (GEON-E-PPTD)', 'PPTD-E001');
+  if (entryFile.endsWith('.pptd') || canvas.version === 'v2' || canvas.version === 'v3') {
+    fail(`${entryFile}#`, 'leftover PPTD is not admitted (GEON-E-PPTD)', 'PPTD-E001');
     return { ok: false, diagnostics };
   }
-  if (manifest.theme !== undefined) {
-    fail(`${manifestFile}#theme`, 'PPTD theme/$ref is not admitted (GEON-E-PPTD)');
+  if (canvas.theme !== undefined) {
+    fail(`${entryFile}#theme`, 'PPTD theme/$ref is not admitted (GEON-E-PPTD)');
     return { ok: false, diagnostics };
   }
   const exact = (v: Raw, keys: string[], at: string) =>
     Object.keys(v).forEach((k) => {
       if (!keys.includes(k)) fail(`${at}.${k}`, `Unknown artwork field: ${k}`);
     });
-  exact(manifest, ['title', 'size', 'pages', 'customFonts'], `${manifestFile}#`);
-  if (manifest.title !== undefined && typeof manifest.title !== 'string')
-    fail(`${manifestFile}#title`, 'title must be a string');
-  if (
-    !Array.isArray(manifest.size) ||
-    manifest.size.length !== 2 ||
-    !manifest.size.every((v) => typeof v === 'number' && Number.isInteger(v) && v > 0)
-  )
-    fail(`${manifestFile}#size`, 'size must be a positive integer pair', 'PPTD-E002');
-  if (!Array.isArray(manifest.pages) || manifest.pages.some((rel) => typeof rel !== 'string')) {
-    fail(`${manifestFile}#pages`, 'pages must be a string array');
-    return { ok: false, diagnostics };
-  }
-  if (manifest.pages.length !== 1 || manifest.pages[0] !== ARTWORK_PAGE) {
+  exact(
+    canvas,
+    ['format', 'title', 'size', 'customFonts', 'background', 'elements', 'diagnostics'],
+    `${entryFile}#`
+  );
+  if (canvas.format !== ARTWORK_FORMAT)
+    fail(`${entryFile}#format`, `Expected format: ${ARTWORK_FORMAT}`);
+  if ('pages' in canvas)
     fail(
-      `${manifestFile}#pages`,
-      `pages 必须恰为 1 页（单画布产品范围；common.multiPage 行 excluded，实际 ${manifest.pages.length} 页）`,
+      `${entryFile}#pages`,
+      'pages are not admitted: common.multiPage is excluded; migrate old two-file YAML explicitly',
       'PPTD-E011'
     );
-    return { ok: false, diagnostics };
-  }
-  const pagePath = manifest.pages[0];
-  const page = loadPage(pagePath);
-  if (!record(page)) {
-    fail(`${pagePath}#`, 'Page must be a mapping');
-    return { ok: false, diagnostics };
-  }
-  for (const key of Object.keys(page)) {
+  if (canvas.title !== undefined && typeof canvas.title !== 'string')
+    fail(`${entryFile}#title`, 'title must be a string');
+  if (
+    !Array.isArray(canvas.size) ||
+    canvas.size.length !== 2 ||
+    !canvas.size.every((v) => typeof v === 'number' && Number.isInteger(v) && v > 0)
+  )
+    fail(`${entryFile}#size`, 'size must be a positive integer pair', 'PPTD-E002');
+  for (const key of Object.keys(canvas)) {
     if (PPTD_PAGE_FIELDS.has(key))
       fail(
-        `${pagePath}#${key}`,
+        `${entryFile}#${key}`,
         `PPTD page field "${key}" is not admitted (GEON-E-PPTD)`,
         'PPTD-E011'
       );
   }
-  exact(page, ['background', 'elements', 'diagnostics'], `${pagePath}#`);
-  if (!Array.isArray(page.elements)) fail(`${pagePath}#elements`, 'elements must be an array');
+  if (!Array.isArray(canvas.elements)) fail(`${entryFile}#elements`, 'elements must be an array');
   else
-    page.elements.forEach((element, index) => {
-      const at = `${pagePath}#elements[${index}]`;
+    canvas.elements.forEach((element, index) => {
+      const at = `${entryFile}#elements[${index}]`;
       if (!record(element)) {
         fail(at, 'Element must be a mapping');
         return;
@@ -315,9 +290,9 @@ export function validateYaml(
         fail(`${at}.chart.seriesDefaults`, 'PPTD seriesDefaults is not admitted (GEON-E-PPTD)');
     });
   if (diagnostics.length) return { ok: false, diagnostics };
-  const project = { manifest, pages: [page] } as unknown as YamlArtworkProject;
+  const project = canvas as unknown as CanvasSource;
   try {
-    const bound = mapV3Assets(project, (src, kind, at) => {
+    const bound = mapArtworkAssets(project, (src, kind, at) => {
       if (REMOTE_URL_RE.test(src)) {
         fail(at, `Remote ${kind} URL is not admitted: ${src}`, 'PPTD-E004');
         return src;
@@ -337,19 +312,16 @@ export function validateYaml(
     });
     assertProjectionDocument(artworkToDocument(bound));
   } catch (error) {
-    fail(`${pagePath}#`, error instanceof Error ? error.message : String(error), 'PPTD-E013');
+    fail(`${entryFile}#`, error instanceof Error ? error.message : String(error), 'PPTD-E013');
   }
   return diagnostics.length
     ? { ok: false, diagnostics }
-    : { ok: true, document: project as ValidatedYamlArtwork, diagnostics: [] };
+    : { ok: true, document: project, diagnostics: [] };
 }
 
-/** @deprecated YAML artwork uses validateYaml. */
-export const validateV3 = validateYaml;
-
-export function importYaml(project: ValidatedYamlArtwork, assets: AssetIndex): ImportResult {
+export function importYaml(project: CanvasSource, assets: AssetIndex): ImportResult {
   try {
-    const bound = mapV3Assets(project, (src) => {
+    const bound = mapArtworkAssets(project, (src) => {
       const asset = Object.hasOwn(assets, src) ? assets[src] : undefined;
       if (typeof asset !== 'string' || !/^asset:[a-f0-9]{64}$/.test(asset))
         throw Error(`Missing or invalid asset index: ${src}`);
@@ -373,9 +345,6 @@ export function importYaml(project: ValidatedYamlArtwork, assets: AssetIndex): I
   }
 }
 
-/** @deprecated YAML artwork uses importYaml. */
-export const importV3 = importYaml;
-
 const yamlStringify = (value: unknown) =>
   new TextEncoder().encode(
     stringify(value, {
@@ -391,22 +360,16 @@ export function exportAuthoring(
   assets: ReadonlyMap<string, Uint8Array>
 ): Map<string, Uint8Array> {
   assertProjectionDocument(document);
-  const project: YamlArtworkProject = {
-    manifest: {
-      size: [document.canvas.width, document.canvas.height],
-      pages: [ARTWORK_PAGE],
-      ...(document.fonts !== undefined ? { customFonts: structuredClone(document.fonts) } : {}),
-    },
-    pages: [
-      {
-        background: structuredClone(document.background),
-        diagnostics: structuredClone(document.diagnostics),
-        elements: structuredClone(document.elements),
-      },
-    ],
+  const project: CanvasSource = {
+    format: ARTWORK_FORMAT,
+    size: [document.canvas.width, document.canvas.height],
+    ...(document.fonts !== undefined ? { customFonts: structuredClone(document.fonts) } : {}),
+    background: structuredClone(document.background),
+    diagnostics: structuredClone(document.diagnostics),
+    elements: structuredClone(document.elements),
   };
   const snapshot = new Map<string, Uint8Array>();
-  const projected = mapV3Assets(project, (src, kind) => {
+  const projected = mapArtworkAssets(project, (src, kind) => {
     if (!/^asset:[a-f0-9]{64}$/.test(src)) throw Error(`Invalid canonical asset: ${src}`);
     const digest = src.slice(6);
     const bytes = assets.get(digest);
@@ -417,10 +380,6 @@ export function exportAuthoring(
     snapshot.set(rel, new Uint8Array(bytes));
     return rel;
   });
-  snapshot.set(ARTWORK_ENTRY, yamlStringify(projected.manifest));
-  snapshot.set(ARTWORK_PAGE, yamlStringify(projected.pages[0]));
+  snapshot.set(ARTWORK_ENTRY, yamlStringify(projected));
   return snapshot;
 }
-
-/** @deprecated Use exportAuthoring. The snapshot is YAML, not PPTD. */
-export const exportPptd = exportAuthoring;

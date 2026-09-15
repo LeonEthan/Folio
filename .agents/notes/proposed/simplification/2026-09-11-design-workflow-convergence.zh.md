@@ -26,7 +26,7 @@ Translation: current
 
 ### 反向转换需要补齐现有表达差异
 
-Bento 的[分组控件](../../../../packages/design-bento/vendor/packages/editor-bento/src/ui/dom/transform.ts)写入 `groupId`，而[冻结能力矩阵](../../../../packages/design-bento/vendor/packages/contracts/capability-matrix/v1.json)明确记录 PPTD v2 无 group 字段。[阴影控件](../../../../packages/design-bento/vendor/packages/editor-bento/src/ui/dom/style.ts)允许多层阴影，但 [PPTD validator](../../../../packages/design-authoring/src/validate.ts)及 [importer](../../../../packages/design-authoring/src/import.ts)只处理单个阴影对象。
+Bento 的[分组控件](../../../../packages/design-bento/vendor/packages/editor-bento/src/ui/dom/transform.ts)写入 `groupId`，而[冻结能力矩阵](../../../../packages/design-bento/vendor/packages/contracts/capability-matrix/v1.json)明确记录 PPTD v2 无 group 字段。[阴影控件](../../../../packages/design-bento/vendor/packages/editor-bento/src/ui/dom/style.ts)允许多层阴影，但 [PPTD validator](../../../../packages/design-authoring/src/validate.ts)及 importer (`06aa8ba:packages/design-authoring/src/import.ts`)只处理单个阴影对象。
 
 因此 P3.1a 先交付现有可见编辑能力的字段/素材差异表，再连同格式版本、校验、import/export、能力矩阵和来源补丁一起适配。分组和多层阴影只是已查到的例子，不冒充完整差异清单。不为此引入新编辑功能；旧文档继续按已声明版本读取，未知版本拒绝，不能只改矩阵宣称支持。沿现有 vendor/patch/source-manifest 规则维护来源。
 

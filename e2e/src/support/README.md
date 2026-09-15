@@ -11,6 +11,7 @@
 | `pages/onboarding-page.ts`                | First-run user interaction and local bootstrap contract             |
 | `pages/review-page.ts`                    | Review-panel project setup and observable diff interactions         |
 | `pages/session-page.ts`                   | Deterministic ACP conversation and Stop lifecycle                   |
+| `pages/kimi-replication-page.ts`         | Explicit live Kimi golden replication, export and reopen acceptance |
 | `pages/work-session-page.ts`              | Worktree Session, terminal, deletion, and cleanup contract          |
 | `fixtures/work-session-fixture.ts`        | Synthetic Git workspace and scripted ACP evidence                   |
 

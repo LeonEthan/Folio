@@ -15,7 +15,7 @@ import path from 'node:path';
 import { deflateSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { DesignRenderHostWork } from '@lody/shared';
-import { ARTWORK_ENTRY, ARTWORK_PAGE } from '@geon/design-authoring';
+import { ARTWORK_ENTRY } from '@geon/design-authoring';
 import { canonicalContentBytes } from './store';
 import {
   DESIGN_PREVIEW_DIRNAME,
@@ -72,13 +72,10 @@ function syntheticPng(width: number, height: number, rgb: [number, number, numbe
   );
 }
 
-const MANIFEST = `title: Preview test
+const PAGE = `format: geon-canvas/1
+title: Preview test
 size: [320, 200]
-pages:
-  - ${ARTWORK_PAGE}
-`;
-
-const PAGE = `background:
+background:
   type: solid
   color: "#FFFFFF"
 elements:
@@ -125,8 +122,7 @@ function createHarness(options: { artifact?: boolean; page?: string } = {}): Har
   mkdirSync(path.join(workdir, 'pages'), { recursive: true });
   mkdirSync(path.join(workdir, 'media'), { recursive: true });
   if (options.artifact !== false) {
-    writeFileSync(path.join(workdir, ARTWORK_ENTRY), MANIFEST);
-    writeFileSync(path.join(workdir, ARTWORK_PAGE), options.page ?? PAGE);
+    writeFileSync(path.join(workdir, ARTWORK_ENTRY), options.page ?? PAGE);
     writeFileSync(path.join(workdir, 'media', 'pic.png'), syntheticPng(8, 8, [31, 107, 138]));
   }
   return {
@@ -337,7 +333,7 @@ describe('manual source snapshots', () => {
     const first = await buildPreviewPayload(workdir, {});
     expect(first.status).toBe('ok');
     if (first.status !== 'ok') throw Error(JSON.stringify(first));
-    expect(first.dependencies).toEqual([ARTWORK_ENTRY, ARTWORK_PAGE, 'media/pic.png']);
+    expect(first.dependencies).toEqual([ARTWORK_ENTRY, 'media/pic.png']);
     expect(first.dependencies).not.toContain('design.pptd');
     expect(
       await buildPreviewPayload(workdir, { previousSourceIdentity: first.sourceIdentity })
@@ -357,7 +353,7 @@ describe('manual source snapshots', () => {
     const { workdir } = createHarness();
     const { collectAuthoring } = await import('@geon/design-authoring');
     const first = collectAuthoring(workdir, { referencedOnly: true });
-    writeFileSync(path.join(workdir, ARTWORK_PAGE), PAGE.replace('Hello', 'Intermediate'));
+    writeFileSync(path.join(workdir, ARTWORK_ENTRY), PAGE.replace('Hello', 'Intermediate'));
     const second = collectAuthoring(workdir, { referencedOnly: true });
     const reads = [first, second];
     const unstable = await buildPreviewPayload(workdir, { collect: () => reads.shift()! });
@@ -366,11 +362,11 @@ describe('manual source snapshots', () => {
       error: expect.stringContaining('changed during observation'),
     });
     expect(unstable.sourceIdentity).toBeUndefined();
-    expect(readFileSync(path.join(workdir, ARTWORK_PAGE), 'utf8')).toContain('Intermediate');
-    writeFileSync(path.join(workdir, ARTWORK_PAGE), BROKEN_PAGE);
+    expect(readFileSync(path.join(workdir, ARTWORK_ENTRY), 'utf8')).toContain('Intermediate');
+    writeFileSync(path.join(workdir, ARTWORK_ENTRY), BROKEN_PAGE);
     expect(await buildPreviewPayload(workdir, {})).toMatchObject({
       status: 'refused',
-      dependencies: [ARTWORK_ENTRY, ARTWORK_PAGE, 'media/missing.png'],
+      dependencies: [ARTWORK_ENTRY, 'media/missing.png'],
     });
   });
 

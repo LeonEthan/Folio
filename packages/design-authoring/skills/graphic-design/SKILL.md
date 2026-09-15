@@ -15,8 +15,7 @@ editable design.
 Write the project in the design authoring directory supplied with the turn:
 
 ```text
-design.yaml          # manifest (fixed entry name)
-pages/canvas.yaml    # the one canvas
+design.yaml          # geon-canvas/1: size, background, elements
 media/               # local raster and font assets
 ```
 
@@ -60,9 +59,12 @@ helpers, not prerequisites for creation, rendering, submission, or turn completi
   [replication.md](references/replication.md) for this script's format limits;
   use available image tools or other analysis methods as appropriate.
 - `node scripts/finalize.mjs <project>/design.yaml[.tmp]` checks structure and can
-  promote a clean `.tmp` manifest. You may write `design.yaml` directly. Geon
+  promote a clean `.tmp` canvas. You may write `design.yaml` directly. Geon
   independently validates structure, assets, and versions at intake; it does not
   require evidence that you ran this helper or completed a creative checklist.
+- `node scripts/migrate-two-file.mjs <old-draft> <new-output>` explicitly converts
+  a previous Geon two-file draft into a fresh directory, preserving the source.
+  It does not submit or update current artwork.
 - `node scripts/render-preview.mjs <project>/design.yaml` checks intake locally.
   This script does not render an image or perform visual review.
 
@@ -81,9 +83,8 @@ assumptions honestly.
 
 ## Invariants
 
-- **Exactly one canvas**: the manifest references exactly one page,
-  `pages/canvas.yaml`. Multiple deliverables are separate single-canvas projects,
-  never pages in a presentation.
+- **Exactly one canvas**: `design.yaml` contains `format: geon-canvas/1`, `size`
+  and `elements`. Multiple deliverables are separate single-canvas projects.
 - **Editable source first**: never paste the reference or a near-complete render as
   the background to simulate editability.
 - **Active means end-to-end**: validator acceptance alone is not a support claim. An

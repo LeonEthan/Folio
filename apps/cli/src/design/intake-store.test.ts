@@ -73,11 +73,9 @@ describe('YAML intake → design store', () => {
     const snapshot = new Map<string, Uint8Array>([
       [
         'design.yaml',
-        enc.encode('title: Store test\nsize: [320, 200]\npages:\n  - pages/canvas.yaml\n'),
-      ],
-      [
-        'pages/canvas.yaml',
-        enc.encode(`background:
+        enc.encode(`format: geon-canvas/1
+size: [320, 200]
+background:
   type: solid
   color: "#FFFFFF"
 elements:
@@ -145,11 +143,10 @@ elements:
 
   it('an invalid YAML artwork never reaches the store (tri-state invalid)', () => {
     const snapshot = new Map<string, Uint8Array>([
-      ['design.yaml', enc.encode('size: [320, 200]\npages:\n  - pages/canvas.yaml\n')],
       [
-        'pages/canvas.yaml',
+        'design.yaml',
         enc.encode(
-          'elements:\n  - id: x\n    kind: image\n    bounds: [0, 0, 10, 10]\n    src: media/missing.png\n'
+          'format: geon-canvas/1\nsize: [320, 200]\nelements:\n  - id: x\n    kind: image\n    bounds: [0, 0, 10, 10]\n    src: media/missing.png\n'
         ),
       ],
     ]);

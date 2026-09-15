@@ -93,3 +93,22 @@ A and B now meet the pass line. C does not. Both C cells have both-repo paths, s
 ## Limits
 
 Two independent runs of the same model per pair, not two product models. No `cli -p` run. Agent answers are not a legal opinion. `source-manifest.json` was opened; the verdicts did not introduce a third repository. The second pair read the leftover rewrite before it was committed; this change is that rewrite plus the score record.
+
+## Single-file follow-up: Grok (2026-09-15)
+
+The user requested an independent Grok recognition test after the approved single-file implementation. Two fresh local Grok CLI 1.0.30 (`04b7ffed98c6`) sessions used `grok-4.6`, cwd `/Users/macmini/dev`, the unchanged frozen prompt, plan permissions, disabled web and subagents, and an added read-only restriction excluding all Geon notes and prior evaluation artifacts. No earlier scores or conversation were supplied. Repo B remained `c32890fe0985bdf668f2722fed30f1010bdf24c9`; Repo A was the current uncommitted single-file worktree on `06aa8ba031e5ccff40c9fabe60c5432d8e850f7d`.
+
+| Layer | Grok run 1 | Grok run 2 |
+| --- | --- | --- |
+| A product clone | 否 | 否 |
+| B skill text | 否 | 否 |
+| C format DSL | 否 | 否 |
+
+Both contrast Geon's single-canvas PNG/JPEG product with B's editor/PPTX pipeline; the short canvas guides with B's step0–5, `style.md` and preset workflow; and `design.yaml`, `geon-canvas/1`, native `id`/`kind` and structured text with B's multi-file PPTD, `elementId`/`elementType`, themes and HTML. Their evidence includes both skills, both poster guides, Geon's format guide/example/codec and B's `reference/pptd.md` and example project.
+
+Tool-log audit found 29 and 33 read/list/search calls respectively, no tool access to excluded source or notes, no mutation/network calls, and unchanged captured authoring/skill source hashes. Both processes exited successfully. Both emitted introductory progress before the requested table, a formatting deviation. Coverage is sampled: B's 2,029-line format guide was read only through line 150, and its 241-line poster guide through line 120/80; native editor code and full element details were not inspected. Run 1's claimed format coverage “through animation” overstates the actual read range. Treat the unanimous scores as a bounded Grok follow-up meeting the score line, not exhaustive similarity clearance or replacement of historical scores. Cross-session memory absence was requested, not independently proven from the CLI's internal context assembly.
+
+Raw local outputs, tool logs, prompt and source hashes are retained outside Git at `/tmp/geon-grok-blind-20260915/`. This is the first actual CLI/model follow-up recorded here; the earlier Limits section describes earlier subagent pairs. The Kimi golden visual acceptance remains pending human review. No runtime code, Spec approval, issue status or provenance was changed by this test.
+
+
+Subsequent human acceptance (2026-09-15): the user accepted the current single-file Kimi golden result and authorized committing this change. This supersedes the pending visual status above; the Grok sampling limits remain unchanged.

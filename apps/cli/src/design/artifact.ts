@@ -2,7 +2,7 @@
  * The session workspace's authoring artifact: where it is, and what it is.
  *
  * A design session's workspace (`chats/<artworkId>`) holds the agent's YAML
- * artwork at its root — `design.yaml` beside `pages/canvas.yaml` and `media/`;
+ * artwork at its root — `design.yaml` beside `media/`;
  * `@geon/design-authoring` owns the allowlist and the fail-closed snapshot
  * rules for it. Three stages need to talk about "the project that is there right
  * now", and they must agree on the answer:

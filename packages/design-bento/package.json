@@ -5,5 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "@fontsource/inter": "5.2.8"
   }
 }

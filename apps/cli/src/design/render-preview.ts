@@ -25,7 +25,7 @@
  *   (agent-naive; root `AGENTS.md`).
  * - **The PNG lands in the session workdir**, so the agent that asked for it can
  *   open it with its own tools. `design-preview/` is outside the authoring
- *   allowlist (`design.yaml`, `pages/canvas.yaml`, `media/`), so a preview can
+ *   allowlist (`design.yaml`, `media/`), so a preview can
  *   never be collected into a later commit as if it were an asset.
  * - **A report is not a rendering.** The host's word that it wrote a file is
  *   checked against the bytes before the path reaches the agent, and a failed or

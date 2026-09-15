@@ -16,7 +16,9 @@ import { MessageHandler } from '../src/lib/message-handler';
 import { getDefaultSessionWorkdir } from '../src/session/session';
 import { designTurnInputDir, DESIGN_TURN_MANIFEST_FILENAME } from '../src/design/turn-input';
 import { resolveDesignWorkspace } from '../src/design/workspace';
-import { ARTWORK_ENTRY, ARTWORK_PAGE } from '@geon/design-authoring';
+import { ARTWORK_ENTRY } from '@geon/design-authoring';
+// Historical draft fixture: path resolution must preserve old bytes without migrating them.
+const ARTWORK_PAGE = 'pages/canvas.yaml';
 import type { SessionManager } from '../src/session/session-manager';
 import type { LoroDocumentManager } from '../src/lib/loro/doc';
 import type { Logger } from '../src/utils/logger';

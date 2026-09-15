@@ -1,7 +1,7 @@
 # Design authoring intake
 
 `@geon/design-authoring` owns Geon's **YAML artwork snapshot** seam: fail-closed
-validation of `design.yaml` / `pages/canvas.yaml` / `media/`, YAML → BentoDoc v4
+validation of `design.yaml` (`format: geon-canvas/1`) / `media/`, YAML → BentoDoc v4
 import, lossless BentoDoc → YAML projection, BentoDoc schema-version migration,
 and secure authoring snapshot collection. Leftover PPTD is rejected. It also
 carries the bundled Agent skills (`skills/graphic-design`, `skills/imagegen`)
@@ -27,14 +27,15 @@ Migrated (`src/`):
 - `intake.ts` — `intakeAuthoring(entryRel, snapshot)`: validate → bind semantic
   assets by exact bytes → import; tri-state result (`ok` / `invalid` /
   `unsupported`).
-- `import.ts` — deterministic YAML → BentoDoc v4 import (only accepts
-  validator-branded documents).
+- `canvas-format.ts` — literal structured YAML ↔ BentoDoc v4 conversion and kernel replay.
 - `migrate.ts` — `loadBentoDocV4` pinned v1/v2/v3 → v4 migration chain.
-- `richtext.ts`, `semantic-assets.ts`, `product-boundary.ts`, `latex.ts` —
-  single-point syntax/enumeration/boundary modules the above depend on.
+- `semantic-assets.ts`, `product-boundary.ts` — native asset enumeration and excluded product probes.
+- `migrate-two-file.ts` — explicit conversion of previous Geon YAML drafts to fresh output,
+  leaving original bytes and turn state untouched. PPTD v2 import, HTML parsing, theme
+  expansion, and their unused modules/exports have been retired.
 - `collect-authoring.ts` — secure snapshot collection (allowlist relpaths,
   symlink/hardlink/escape rejection); Geon admits exactly one entry,
-  `design.yaml`, one page `pages/canvas.yaml`, and local `media/`.
+  `design.yaml` and local `media/`.
 
 Contracts types and the frozen capability matrix come from
 `packages/design-bento/vendor` (the pinned vendored snapshot), reached through the
@@ -76,8 +77,7 @@ The materials describe capabilities and optional design methods, without fixed
 inspection/drafting/review order, analysis restrictions, or review counts. Rendering
 instructions retain actual image reading and autonomous corrections; missing tools
 are described individually. `finalize` is optional and never a turn/commit gate.
-Skill prose and the bundled example teach `design.yaml` / `pages/canvas.yaml` /
-`media/` with Bento `id` / `kind`. The image skill describes text generation and multipart edits with workspace
+Skill prose and the bundled example teach `design.yaml` (`format: geon-canvas/1`) / `media/` with Bento `id` / `kind`. The image skill describes text generation and multipart edits with workspace
 references and an optional mask. Both use the user’s required model without a
 product default and return assets without committing artwork.
 
@@ -98,16 +98,15 @@ skill directories into the CLI dist; see `apps/cli/scripts/copy-design-skills.js
 
 ## Editable projection (YAML artwork)
 
-`exportAuthoring(document, assets)` (`exportPptd` is a deprecated alias) returns
-an in-memory `Map<string, Uint8Array>` containing `design.yaml`,
-`pages/canvas.yaml`, and exactly the referenced media. It never writes or
+`exportAuthoring(document, assets)` returns
+an in-memory `Map<string, Uint8Array>` containing `design.yaml` and exactly the referenced media. It never writes or
 commits; callers own workspace synchronization. Pass that map to
 `intakeAuthoring('design.yaml', snapshot)` to recover the exact BentoDoc and
 content-addressed bytes. Unused asset-table entries are not document references
 and are not copied. Export checks source hashes before writing bytes.
 
-The manifest keeps `size`, `pages`, optional `title` and `customFonts`. The
-single page contains `background`, `elements`, and optional `diagnostics`.
+The entry requires `format: geon-canvas/1`, `size` and `elements`, with optional
+`background`, `customFonts`, `diagnostics` and file-only `title`.
 Elements use Bento `id` / `kind` and structured `text`, `table` and `chart`.
 Asset-bearing `src` fields are local `media/<name>` paths. Styles are literals.
 Groups are the existing flat `groupId`, not nested nodes. No schemaVersion,
@@ -125,14 +124,13 @@ projection without enabling editor features.
 
 The [field audit and evidence](../../.agents/notes/implemented/architecture/2026-09-11-pptd-editable-roundtrip.zh.md)
 records the full scope. `tests/roundtrip.test.ts` covers every element kind, all
-13 chart types, rich text/table fields, semantic assets, v2 compatibility,
+13 chart types, rich text/table fields, semantic assets, legacy BentoDoc migration,
 edit/undo/redo, and unknown nested fields. Visual quality and hook delivery are
 outside these data-conversion tests.
 
 ## Consumer source observations
 
-`collectAuthoring(root, { referencedOnly: true })` reads only `design.yaml`, its
-single referenced page and schema-declared image/font assets. It reuses semantic
+`collectAuthoring(root, { referencedOnly: true })` reads only `design.yaml` and schema-declared image/font assets. It reuses semantic
 asset enumeration; invalid shapes fail closed and intake still validates structure.
 Reads reject redirected/nonregular files, bound each file to 16 MiB and the closure
 to 48 MiB, and recheck opened file identity/content metadata. Consumers compare
@@ -143,3 +141,13 @@ observations do not establish completion of an external multi-file transaction.
 canonical path/length/byte artifact digest with a 64 KiB streaming buffer. It
 retains no file contents and adds no authoring-size cap. This supports explicit
 Agent draft resubmission; it is not a preview, semantic review or commit operation.
+
+## One-time old draft migration
+
+Use `node skills/graphic-design/scripts/migrate-two-file.mjs <old-directory> <fresh-directory>`
+after building. It admits only the former Geon `design.yaml` + `pages/canvas.yaml`
+shape, validates native fields/assets, and verifies the written document/assets.
+Source files are preserved. An existing target is never overwritten; an I/O failure
+may leave incomplete output for inspection. This helper never submits, saves current
+artwork, changes history, or changes an Agent's frozen baseline. Current projections
+are instead regenerated from canonical BentoDoc by the existing publication path.

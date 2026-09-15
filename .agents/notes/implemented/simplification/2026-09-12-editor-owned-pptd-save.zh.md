@@ -28,7 +28,7 @@ Translation: current
 
 - Bento 不接入 Agent 状态或五种 runtime，不在内核中增加 PPTD 文件管理。Geon 的保存适配层处理格式、磁盘及版本；这是对用户所述“Bento 自动反向同步”的职责划分。
 - 保存目标覆盖已完成的文字修改、拖动、撤销/重做和属性变更。可合并连续编辑，不要求每个 pointermove 发布整个多文件工程；flush 必须等待最后一次已完成编辑的文件结果。
-- 复用 [exportPptd](../../../../packages/design-authoring/src/pptd-v3.ts)、[DesignSyncService.project](../../../../apps/cli/src/design/sync-service.ts)中的转换/发布部分与[当前稿存储](../../../../apps/cli/src/design/store.ts)。当前 project 是回合服务私有方法，并依赖活动回合检查；不能仅从手工保存处调用它而保留这一依赖。
+- 复用 exportPptd (`06aa8ba:packages/design-authoring/src/pptd-v3.ts`)、[DesignSyncService.project](../../../../apps/cli/src/design/sync-service.ts)中的转换/发布部分与[当前稿存储](../../../../apps/cli/src/design/store.ts)。当前 project 是回合服务私有方法，并依赖活动回合检查；不能仅从手工保存处调用它而保留这一依赖。
 - 创建及显式导入等产生当前稿的入口也需保证可读表示就绪，避免只有手工改动后才出现 PPTD。Agent 提交刷新当前稿表示时按来源处理，不将其加载到画布的通知当成新的人工编辑。
 
 ## 可删除的设计专用机制

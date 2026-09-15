@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { intakeAuthoring } from '../src/intake.ts';
-import { AUTHORING_DEFAULT_FONT_FAMILY } from '../src/pptd-v3.ts';
+import { AUTHORING_DEFAULT_FONT_FAMILY } from '../src/canvas-format.ts';
 import {
   loadBentoDocV4,
   BentoDocUnknownFieldError,
@@ -71,7 +71,9 @@ function syntheticPng(width: number, height: number, rgb: [number, number, numbe
 
 const enc = new TextEncoder();
 
-const VALID_PAGE = `background:
+const VALID_PAGE = `format: geon-canvas/1
+size: [320, 200]
+background:
   type: solid
   color: "#FFFFFF"
 elements:
@@ -100,8 +102,7 @@ elements:
 
 function snapshotWith(overrides: Record<string, Uint8Array | undefined>): Map<string, Uint8Array> {
   const snapshot = new Map<string, Uint8Array>([
-    ['design.yaml', enc.encode('title: Test\nsize: [320, 200]\npages:\n  - pages/canvas.yaml\n')],
-    ['pages/canvas.yaml', enc.encode(VALID_PAGE)],
+    ['design.yaml', enc.encode(VALID_PAGE)],
     ['media/pic.png', syntheticPng(8, 8, [31, 107, 138])],
   ]);
   for (const [key, value] of Object.entries(overrides)) {
@@ -159,9 +160,7 @@ describe('intakeAuthoring', () => {
     const result = intakeAuthoring(
       'design.yaml',
       snapshotWith({
-        'pages/canvas.yaml': enc.encode(
-          VALID_PAGE.replace('media/pic.png', 'https://example.com/x.png')
-        ),
+        'design.yaml': enc.encode(VALID_PAGE.replace('media/pic.png', 'https://example.com/x.png')),
       })
     );
     expect(result.status).toBe('invalid');
@@ -173,7 +172,7 @@ describe('intakeAuthoring', () => {
     const result = intakeAuthoring(
       'design.yaml',
       snapshotWith({
-        'pages/canvas.yaml': enc.encode(VALID_PAGE.replace('kind: shape', 'kind: widget')),
+        'design.yaml': enc.encode(VALID_PAGE.replace('kind: shape', 'kind: widget')),
       })
     );
     expect(result.status).toBe('invalid');
@@ -185,7 +184,7 @@ describe('intakeAuthoring', () => {
     const result = intakeAuthoring(
       'design.yaml',
       snapshotWith({
-        'pages/canvas.yaml': enc.encode(
+        'design.yaml': enc.encode(
           VALID_PAGE.replace('shapeName: rect', 'shapeName: rect\n    bogus: 1')
         ),
       })
@@ -217,7 +216,7 @@ describe('intakeAuthoring', () => {
     const result = intakeAuthoring(
       'design.yaml',
       snapshotWith({
-        'pages/canvas.yaml': enc.encode(VALID_PAGE.replace('media/pic.png', '../escape.png')),
+        'design.yaml': enc.encode(VALID_PAGE.replace('media/pic.png', '../escape.png')),
       })
     );
     expect(result.status).toBe('invalid');
@@ -241,21 +240,13 @@ describe('bundled minimal example', () => {
     mkdirSync(path.join(dir, 'media'));
     copyFileSync(path.join(exampleRoot, 'design.yaml'), path.join(dir, 'design.yaml'));
     copyFileSync(
-      path.join(exampleRoot, 'pages', 'canvas.yaml'),
-      path.join(dir, 'pages', 'canvas.yaml')
-    );
-    copyFileSync(
       path.join(exampleRoot, 'media', 'swatch.png'),
       path.join(dir, 'media', 'swatch.png')
     );
     const snapshot = collectAuthoring(dir);
-    expect([...snapshot.keys()].sort()).toEqual([
-      'design.yaml',
-      'media/swatch.png',
-      'pages/canvas.yaml',
-    ]);
+    expect([...snapshot.keys()].sort()).toEqual(['design.yaml', 'media/swatch.png']);
     const manifest = new TextDecoder().decode(snapshot.get('design.yaml'));
-    const page = new TextDecoder().decode(snapshot.get('pages/canvas.yaml'));
+    const page = manifest;
     expect(manifest).not.toMatch(/version:\s*v[23]/);
     expect(page).not.toMatch(/\belementId\b|\belementType\b/);
     expect(page).toMatch(/\bid:\s/);
@@ -289,28 +280,22 @@ describe('loadBentoDocV4', () => {
 });
 
 describe('collectAuthoring', () => {
-  it('collects design.yaml, pages/canvas.yaml and media, and ignores unrelated files', () => {
+  it('collects design.yaml and media, and ignores unrelated files', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'geon-collect-'));
-    mkdirSync(path.join(dir, 'pages'));
     mkdirSync(path.join(dir, 'media'));
     writeFileSync(
       path.join(dir, 'design.yaml'),
-      'size: [320, 200]\npages:\n  - pages/canvas.yaml\n'
+      'format: geon-canvas/1\nsize: [320, 200]\nelements: []\n'
     );
-    writeFileSync(path.join(dir, 'pages', 'canvas.yaml'), 'elements: []\n');
     writeFileSync(path.join(dir, 'media', 'pic.png'), syntheticPng(8, 8, [31, 107, 138]));
     writeFileSync(path.join(dir, 'unrelated.txt'), 'ignored\n');
     expect(isAuthoringRelPath('design.yaml')).toBe(true);
-    expect(isAuthoringRelPath('pages/canvas.yaml')).toBe(true);
+    expect(isAuthoringRelPath('pages/canvas.yaml')).toBe(false);
     expect(isAuthoringRelPath('media/pic.png')).toBe(true);
     expect(isAuthoringRelPath('design.pptd')).toBe(false);
     expect(isAuthoringRelPath('pages/other.yaml')).toBe(false);
     const snapshot = collectAuthoring(dir);
-    expect([...snapshot.keys()].sort()).toEqual([
-      'design.yaml',
-      'media/pic.png',
-      'pages/canvas.yaml',
-    ]);
+    expect([...snapshot.keys()].sort()).toEqual(['design.yaml', 'media/pic.png']);
     expect(() => assertAuthoringEntry(snapshot.keys())).not.toThrow();
     expect(() => assertAuthoringEntry(['pages/canvas.yaml'])).toThrow(AuthoringSnapshotError);
   });

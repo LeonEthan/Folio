@@ -87,10 +87,9 @@ function syntheticPng(width: number, height: number, rgb: [number, number, numbe
 
 const enc = new TextEncoder();
 
-const MANIFEST = `title: Turn outcome test
+const MANIFEST = `format: geon-canvas/1
+title: Turn outcome test
 size: [320, 200]
-pages:
-  - pages/canvas.yaml
 `;
 
 const PAGE = `background:
@@ -142,8 +141,7 @@ interface ProjectFiles {
 
 const files = (page: string, options: ProjectFiles = {}): Map<string, Uint8Array> => {
   const entries: [string, Uint8Array][] = [
-    [DESIGN_ARTIFACT_ENTRY, enc.encode(options.manifest ?? MANIFEST)],
-    ['pages/canvas.yaml', enc.encode(page)],
+    [DESIGN_ARTIFACT_ENTRY, enc.encode((options.manifest ?? MANIFEST) + page)],
     ['media/pic.png', syntheticPng(8, 8, [31, 107, 138])],
   ];
   if (options.extraMedia) entries.push(['media/extra.png', syntheticPng(4, 4, [123, 107, 138])]);

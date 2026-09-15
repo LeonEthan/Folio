@@ -1,12 +1,13 @@
 # Geon 平面设计工作台
 
 Status: approved
-Approved: [2026-09-14 批准记录](../.agents/notes/proposed/architecture/2026-09-14-retire-kimi-pptd-authoring.zh.md#spec-批准记录2026-09-14)
+Previous approval: [2026-09-14 批准记录](../.agents/notes/proposed/architecture/2026-09-14-retire-kimi-pptd-authoring.zh.md#spec-批准记录2026-09-14)
+Approval: [2026-09-15](../.agents/notes/implemented/architecture/2026-09-15-single-canvas-authoring-redesign.zh.md#第一阶段批准2026-09-15)
 Translation: current
 
 [English](graphic-design-platform.md)
 
-2026-09-14 修订已批准：Agent 文件表示改为 YAML 画稿投影，不再使用 PPTD。上一版 [2026-09-12 批准](../.agents/notes/implemented/architecture/2026-09-09-graphic-design-platform.zh.md#spec-批准记录2026-09-12) 中的 PPTD 保证被本修订取代。方案与验收见 [#36](https://github.com/LeonEthan/Geon/issues/36)。运行时仍实现 PPTD，与本意图的缺口见文末。
+2026-09-15 已批准修订：用户已确认先清理旧转换语义并将画稿投影合并为单个 `design.yaml`，类型区块重组以完整往返及 Agent 可操作性为条件；增加指定参考图与固定提示词的真实 Kimi Code CLI 黄金复刻验收。本修订的第一阶段方案已于 2026-09-15 获用户明确批准。已确认方向、第一阶段实施及验收见[单画布重构记录](../.agents/notes/implemented/architecture/2026-09-15-single-canvas-authoring-redesign.zh.md)。
 
 ## 使用场景
 
@@ -24,7 +25,7 @@ Translation: current
 - 覆盖海报、封面、社交配图、横幅、信息图、长图和通用电商图片；场景知识放在技能和参考材料中。
 - 保留 Geon 现有桌面架构、UI 设计语言、Agent 接入及本地会话能力；迁入 Bento 的文档、编辑和渲染能力。
 - 整个迁移计划不包含独立素材库、跨作品素材浏览或复用，也不将其顺延至后续迁移阶段。保留当前画布的图片插入、替换、选中图片重新生成及文档所需素材持久化；回合参考图附件是独立需求。
-- 首期交付 PNG/JPEG。多画板、演示文稿、视频、模板市场、云协作及其他专业格式不属于本草案。Agent 创作入口为 `design.yaml`、`pages/canvas.yaml` 与 `media/`，元素使用 Bento 的 `id`/`kind` 及结构化 text/table/chart；不使用 `.pptd`，不发明 DSG 或其它新图形模型。
+- 首期交付 PNG/JPEG。多画板、演示文稿、视频、模板市场、云协作及其他专业格式不属于本草案。Agent 创作入口为单个 `design.yaml` 与本地 `media/`；尺寸、背景、字体和元素集中在该 YAML，不使用页面清单或独立页面文件。第一步保留 Bento 的 `id`/`kind` 及结构化 text/table/chart；不使用 `.pptd`，不发明 DSG 或其它新图形模型。
 - 不提供通用逐轮结果卡、逐轮历史缩略图、侧栏作品缩略图或独立候选创建/采用/拒绝流程。普通回合状态、文件诊断和当前画稿入口复用会话能力；冲突保留草稿供 Agent 继续处理。Agent 的渲染预览与图片读取能力保留。
 - 附件选择、粘贴/拖放、通用图片/文件预览、搜索/置顶/重命名、命令/快捷键和会话恢复复用 Lody 现有能力，不重复建设。参考图接入只补 Geon 本地组合与设计输入的差异；通用附件呈现不属于待删除的设计结果卡链路。
 
@@ -32,11 +33,13 @@ Translation: current
 
 ## 职责和持久化
 
+第一阶段单文件字段合同为：`format: geon-canvas/1`、必填 `size`/`elements`、可选 `background`/`customFonts`/`diagnostics`/`title`。元素保留现有 `id`/`kind`/`bounds`，不采用类型区块。入口默认值、文件元数据与 canonical 的边界、显式旧 YAML 转换和测试门槛见[第一阶段审核方案](../.agents/notes/implemented/architecture/2026-09-15-single-canvas-authoring-redesign.zh.md#第一阶段审核方案)。该具体方案已通过本轮审核。
+
 当前稿维护最新工作状态，设计会话记录讨论和执行过程，首期默认一个作品对应一个主会话。用户通过“存为版本”保留历史节点，Git 是唯一历史存储，不另建文件快照库或权威版本索引；自动保存及普通 Agent 回合不逐次创建历史版本。会话归档和删除沿用原项目语义，不新增删除普通 workspace 文件或设计历史的行为；删除会话记录不等于删除设计文件。既有 Git worktree 清理规则不因此获得删除版本存储的授权。
 
 现有 CLI 后台继续负责 Agent 生命周期、权限回应、会话与回合。设计服务负责格式转换、结构校验、素材登记、版本校验及当前画稿保存；冲突时保留创作文件并返回可处理诊断。Electron 负责桌面资源、可信编辑器桥接、渲染进程与原生文件交互。设计服务不另建一套 Agent 调度、差异合并或聊天存储。
 
-BentoDoc 是当前画稿的唯一权威状态（canonical）。画稿投影是从当前稿按需生成的 YAML 文件表示（`design.yaml`、`pages/canvas.yaml`、`media/`），供 Agent 读取；Agent 创作草稿是 Agent 正在修改的同一布局文件，经校验再提交为 BentoDoc。画稿投影与 Agent 创作草稿具有不同用途，不构成两个可独立提交的权威当前稿。不把 `design.json` 或 PPTD 当作 Agent 创作入口。预览图和导出图是派生产物。现有 Loro/Flock 保存会话及作品关联，本地 workspace 保存当前画稿与素材，不把两者变成可分别修改的重复画稿。
+BentoDoc 是当前画稿的唯一权威状态（canonical）。画稿投影是从当前稿按需生成的 YAML 文件表示（单个 `design.yaml` 与本地 `media/`），供 Agent 读取；Agent 创作草稿是 Agent 正在修改的同一布局文件，经校验再提交为 BentoDoc。画稿投影与 Agent 创作草稿具有不同用途，不构成两个可独立提交的权威当前稿。不把 `design.json` 或 PPTD 当作 Agent 创作入口。预览图和导出图是派生产物。现有 Loro/Flock 保存会话及作品关联，本地 workspace 保存当前画稿与素材，不把两者变成可分别修改的重复画稿。
 
 会话及产物身份是关联依据；当前稿并发保存的基线标识用于检测状态变化，与 Git 历史提交 ID 分开。会话元数据的写入或通知失败不得撤销已持久化的作品；重开时能根据已持久化的关联恢复，具体提交与修复机制在技术切片中确定。用户不应因通知迟到而重复生成同一作品。
 
@@ -62,7 +65,7 @@ P1 支持宽高各 1–4096 像素的单画布，手工调整画布尺寸时保�
 - Bento 保持独立编辑/渲染，提供通用变更、snapshot/flush 和只读能力。人工编辑经 Geon 设计保存适配自动更新 BentoDoc、同版本 YAML 画稿投影与素材；不感知 Agent 生命周期，也不等待 Agent 主动同步。
 - 复用已有自动保存、反向转换和投影发布。连续编辑可合并，flush 等待最后一次已完成编辑的文件结果；启动 Agent 只等待已有保存队列与文件就绪，不首次触发设计同步。创建、导入和恢复等当前稿入口保持同一就绪条件。
 - 当前稿已保存但画稿投影发布失败时保留人工结果，明确反馈并阻止使用陈旧投影开始创作；重开按当前稿版本核对/重建。逐个 rename 或防抖不代表跨文件原子性，旧任务不能覆盖新版本。
-- BentoDoc → YAML 画稿投影 → BentoDoc 保持首期开放的编辑语义、稳定元素 ID、层级、样式和素材引用。投影字段使用 `id`/`kind` 及 Bento 结构化 text/table/chart，不使用 PPTD 的 `elementId`/`elementType`、HTML 富文本、主题 `$ref` 或 `seriesDefaults`。对分组、多层阴影等做最小格式及双向适配；不静默丢弃或栅格化。不要求还原 YAML 排版、注释或别名。
+- BentoDoc → YAML 画稿投影 → BentoDoc 保持首期开放的编辑语义、稳定元素 ID、层级、样式和素材引用。单文件化首先保留 `id`/`kind` 及 Bento 结构化 text/table/chart；进一步类型区块重组须先通过完整往返与 Agent 可操作性验证，并明确批准其具体字段合同。不使用 PPTD 的 `elementId`/`elementType`、HTML 富文本、主题 `$ref` 或 `seriesDefaults`。对分组、多层阴影等做最小格式及双向适配；不静默丢弃或栅格化。不要求还原 YAML 排版、注释或别名。
 - 保留通过公开 hook/extension 加载的先读提醒：修改已有文件前先读取当前内容；整文件覆盖前读完整内容；变化/冲突后重读调整；新文件不要求读取不存在的目标。续改作品还应读取最新当前稿，不能只依据历史记忆修改遗留草稿。复用原生文件工具的已有保护，不修改 runtime。
 - 提醒是行为要求，不是执行证明。仅补上下文的 PreToolUse 不保证本次已生成写参数会等待 Read；记录实际事件、上下文送达和原生拒绝语义，不冒称五种 Agent 全路径强制先读。静态 skill 不能冒充已接通 hook。不新增统一读取台账或逐次模型生成证明。
 - 当前稿投影与 Agent 草稿分离；自动保存、读取和恢复不覆盖未完成草稿，也不静默换其提交基线。应用投影不作为新产物采集，预览不反向保存，防止循环。
@@ -86,7 +89,7 @@ Geon 内置 MCP 提供 generate 和 edit 两种能力，复用既有图像连接
 用户可在 Agent 创作或外部编辑器写入当前会话 YAML 画稿投影期间，查看最新有效的只读预览。实际文件变化触发受限快照采集、结构校验与画稿投影 → BentoDoc 转换；工具事件只作补充，不为五种 Agent 分别建立预览机制。该链路不参与 Agent 调度或完成判断。
 
 - 仅为实际打开的创作预览建立订阅，同一 workspace/入口的消费者共享监听与转换；最后一个消费者离开或断开后释放。无预览消费者的历史 workspace 不监听、不持续转换；后台回合仍沿用正式产物采集。
-- 监听 `design.yaml`、`pages/canvas.yaml` 和必要素材目录；为发现首次创建、rename 替换及缺失依赖，可非递归监听最近合法父目录并过滤。依赖改变时调整目标，不递归监听整个 workspace。建立订阅后核对初始文件，重开、恢复连接、手动刷新及有消费者的回合结束主动核对，补偿遗漏通知。遗留 `.pptd` 不是创作入口。
+- 监听 `design.yaml` 和必要素材目录；为发现首次创建、rename 替换及缺失依赖，可非递归监听最近合法父目录并过滤。依赖改变时调整目标，不递归监听整个 workspace。建立订阅后核对初始文件，重开、恢复连接、手动刷新及有消费者的回合结束主动核对，补偿遗漏通知。遗留 `.pptd` 不是创作入口。
 - 合并连续事件，按依赖集合与文件字节跳过重复转换；设置有限的等待和重采策略，避免持续写入造成无期限等待或忙重试。固定同次观测的文档与素材字节并复核稳定性后转换，不把防抖、逐文件读取或结构有效当成作者已完成多文件事务。有效的中间稿可以预览，不能据此认定产物完成。
 - 转换/渲染按项目合并调度，结果绑定源摘要、作品和订阅代次；旧任务不得覆盖较新结果或更新已切换的视图。无效中间状态、暂缺素材和读取不稳定时保留上一份有效预览并标明状态；首次尚无有效结果时显示等待，不能清空可编辑当前稿或把回合判失败。监听失败显示自动更新不可用并支持主动刷新，正式采集不受影响。
 - 当前稿与未提交创作预览在既有画布区域按来源和状态区分，不另建预览管理页面。执行及处理期间允许观看、缩放和切换，禁止所属画布的文档变更；完成并提交后恢复编辑，再引用当前稿元素继续修改。切换不销毁编辑状态；查看预览不改变当前稿投影的来源。
@@ -131,6 +134,8 @@ Git 分支操作、PR/CI 等开发功能退出设计主流程，并停止其不�
 
 ## 待实施验证项
 
+- **黄金复刻 e2e**：输入用户指定的车载 MagSafe 支架参考图（285×2000，哈希见[固定用例](../e2e/KIMI-REPLICATION-ACCEPTANCE.md)）和准确提示词 `复刻这个设计`，由真实 Kimi Code CLI 经正常桌面创作链生成、提交、保存重开并导出。实际复刻图与参考图视觉一致性很高且获人工确认，才满足视觉通过条件；既有结构、素材和可编辑性验收仍需通过。参考图不作指令，不提供相邻项目解法，不以整图铺底替代可编辑复刻。此用例是独立真实模型 acceptance，保留失败轮次，不加入确定性无网络回归；不把 Kimi 设为产品默认 Agent。
+
 - 真实生图与编辑属于必测项：使用用户提供的测试连接，通过内置 image MCP 验证 generate、带真实原图的 edit、Agent 实际读图及真实多图画稿的保存/重开/导出，人工判断视觉与编辑效果。模拟供应商只证明协议和受控边界，不能替代真实服务。具体 TODO 与非机密配置见[真实图像验收](../.agents/notes/implemented/testing/2026-09-12-live-image-mcp-acceptance.zh.md)；测试供应商及模型不成为产品默认值。
 
 - Git 历史已选独立本地仓库；验证运行依赖供给及普通目录支持。验证自动保存与存版本分离、完整素材留存、历史查看不改稿、恢复前保护、从旧版再编辑、跨实例只读/竞争、保存失败与重开恢复；确认没有独立历史快照库或双写。
@@ -138,7 +143,8 @@ Git 分支操作、PR/CI 等开发功能退出设计主流程，并停止其不�
 - 首个真实设计验收使用当前可用接入，不绑定特定 Agent。Pi 与其他 coding agent 一样属于用户侧选择，不是 Geon 的前置依赖；具体能力以各接入的验证结果为准。
 - P0 以 macOS 实机开发版及安装包通过为阶段门槛；Windows/Linux 同期执行构建与资源探针。2026-09-12 已确定首发支持范围为 macOS arm64——唯一完成实机安装包验收的平台；Windows/Linux 仅有跨宿主构建与资源完整性证据，不构成实机验收承诺，其验收与是否进入支持矩阵另行决定。
 - P3 的画稿投影、Agent 草稿、素材和提交基线沿用现有 workspace；具体布局与 hook 配置方式由技术切片确定。准备、实际 Agent cwd、预览/MCP 和最终采集必须指向同一作品入口 `design.yaml`，不覆盖用户全局配置或另建作品目录产品。
-- YAML 画稿投影（`design.yaml` / `pages/canvas.yaml` / `media/`、`id`/`kind`、停收 PPTD）尚未实施。当前运行时仍使用 `design.pptd` 与 PPTD v2/v3，与本草案意图不一致；实施与盲测收口见 [#36](https://github.com/LeonEthan/Geon/issues/36)，不把下文历史 PPTD 验收当作本修订已落地。
+- 截至 `06aa8ba`，运行时已实现 `design.yaml` + `pages/canvas.yaml` + `media/` 的 YAML 投影并停收 PPTD；本修订要求的旧转换逻辑清理、单文件化及黄金复刻尚未实施。旧字段分区继续保留，进一步重组尚待验证。现有 100 项 authoring 测试通过仅证明改造前基线，不替代本修订验收。
+- 2026-09-15 获批第一阶段工作树已实现旧逻辑退役、`geon-canvas/1` 单文件化及显式旧稿迁移。全仓检查、111 项 authoring 测试、原生设计/预览/导入探针和三个桌面冒烟场景通过；真实 K3 / Thinking High 的基线及单文件轮均通过提交、导出、重开及原生编辑检查，用户于 2026-09-15 接受当前单文件黄金视觉结果，剩余视觉改进留待后续。准确证据、字体装配修正、辅助观察到的视觉差异及未实施的类型区块重组见[所属笔记](../.agents/notes/implemented/architecture/2026-09-15-single-canvas-authoring-redesign.zh.md)。这是 macOS arm64 OSS 构建桌面的证据，不新增安装包或全部 Agent 的验收声明。
 - 既有参考图附件在 Geon 本地组合中的适配（P2-A3）已由 [T10](../.agents/notes/implemented/feature/2026-09-11-local-reference-attachments.zh.md)交付，复用 Lody 附件 UI、本地传输及存储，具备首条消息、设计参考快照和本地读回证据。各 Agent 的安装包图片输入仍按 [T28 矩阵](../.agents/notes/implemented/testing/2026-09-11-installed-five-agent-matrix.md)分别验收；不是新建附件系统，P3 当前画布图片操作不吸收此项。
 - reference-pack 首期明确可选辅助脚本的非 PNG 栅格分析限制，不能扩大为附件或 Agent 不支持 JPEG 等图片。已有渲染端 PNG 转换可供可选改进复用，具体接入及外部路径覆盖仍需验证，不阻塞基础实施。不扩写编解码器，不在 CLI/skill 中 import Electron，不以脚本成功作为 Agent 读图前置条件。
 

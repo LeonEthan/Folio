@@ -9,14 +9,7 @@
  */
 
 export { intakeAuthoring, type AuthoringIntakeResult } from './intake.ts';
-export {
-  validate,
-  validateSnapshot,
-  AUTHORING_VALIDATE_BACKING,
-  PPTD_VALIDATE_BACKING,
-  type ValidateOptions,
-} from './validate.ts';
-export { importPptd } from './import.ts';
+export { validate, validateSnapshot, type ValidateOptions } from './validate.ts';
 export {
   loadBentoDocV4,
   UnsupportedSchemaVersionError,
@@ -37,12 +30,9 @@ export {
 
 export {
   exportAuthoring,
-  exportPptd,
   AUTHORING_DEFAULT_FONT_FAMILY,
   ARTWORK_ENTRY,
-  ARTWORK_PAGE,
-} from './pptd-v3.ts';
-export {
-  AUTHORING_PROJECTION_CAPABILITIES,
-  PPTD_PROJECTION_CAPABILITIES,
-} from './projection-capabilities.ts';
+  ARTWORK_FORMAT,
+} from './canvas-format.ts';
+export { AUTHORING_PROJECTION_CAPABILITIES } from './projection-capabilities.ts';
+export { migrateTwoFileArtwork } from './migrate-two-file.ts';

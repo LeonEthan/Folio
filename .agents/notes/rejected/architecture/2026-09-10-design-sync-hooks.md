@@ -36,7 +36,7 @@ not rewritten; the product contract is in the
 [Spec](../../../../specs/graphic-design-platform.zh.md). Only documents were edited; the
 syncer, hooks, and runtime skill were not implemented.
 
-The existing [PPTD importer](../../../../packages/design-authoring/src/import.ts) provides
+The existing PPTD importer (`06aa8ba:packages/design-authoring/src/import.ts`) provides
 forward conversion; that does not mean reverse conversion already exists. The adjacent
 project's `packages/orchestration/src/job-context.ts` can construct a Bento context, which is
 also not the same as having BentoDoc → PPTD. Adding reverse conversion is the necessary cost

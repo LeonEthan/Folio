@@ -6,7 +6,7 @@ IDs; Agent cwd remains Lody's resolved cwd. New project drafts live at
 `<cwd>/.folio/artworks/<artworkId>/<sessionId>/`. Ordinary chat workspaces retain
 `<dataRoot>/chats/<sessionId>/`. No Git operation is needed.
 
-Only the draft directory's `design.yaml`, `pages/canvas.yaml` and `media/` are
+Only the draft directory's `design.yaml` and `media/` are
 collectible Agent output. A leftover `.pptd` is not this turn's artifact. The
 saved current projection lives at
 `<dataRoot>/chats/<artworkId>/design-current/`, next to canonical storage and
@@ -50,7 +50,7 @@ file preview supplies its bytes. No candidate approval, deletion, export-copy or
 history catalogue is needed. New candidate production is retired; final conflicts preserve the existing draft and receipt diagnostics.
 
 Live authoring preview and idle explicit import watch `design.yaml`,
-`pages/canvas.yaml` and needed `media/` in the draft directory. Leftover
+needed `media/` in the draft directory. Leftover
 Kimi/open-kimi `.pptd` is not a preview or import source. Invalid or unstable
 files keep the last valid preview and do not clear the current artwork.
 

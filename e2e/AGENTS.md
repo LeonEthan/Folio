@@ -57,7 +57,9 @@ also applies.
   generated class names or animation timing.
 - Await observable state or an explicit protocol response. Real sleeps,
   wall-clock races, retries that hide failure, and live network calls are
-  forbidden.
+  forbidden in deterministic regression. The explicitly authorized real Kimi golden
+  acceptance lane uses the live model, retains failed rounds, and never retries a
+  paid image request automatically; see `KIMI-REPLICATION-ACCEPTANCE.md`.
 
 ## Evidence and lanes
 

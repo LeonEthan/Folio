@@ -9,7 +9,7 @@ import { materializeDesignTurnInput } from './turn-input';
 import { readDesignArtifact } from './artifact';
 import { buildPreviewPayload } from './render-preview';
 import { collectDesignTurnOutcome } from './turn-outcome';
-import { ARTWORK_PAGE, exportAuthoring } from '@geon/design-authoring';
+import { ARTWORK_ENTRY, exportAuthoring } from '@geon/design-authoring';
 import {
   resolveDesignContext,
   resolveDesignWorkspace,
@@ -75,7 +75,7 @@ describe('resolved design workspace', () => {
       expect(manifest.artifactAtSend).toEqual({ status: 'absent' });
       // Synthetic Agent copies baseline then changes its own page, through the ordinary filesystem.
       await cp(workspace.projectionWorkdir, workspace.artifactWorkdir, { recursive: true });
-      const page = path.join(workspace.artifactWorkdir, ARTWORK_PAGE);
+      const page = path.join(workspace.artifactWorkdir, ARTWORK_ENTRY);
       await writeFile(page, (await readFile(page, 'utf8')).replace('#FFFFFF', '#112233'));
       const preview = await buildPreviewPayload(workspace.artifactWorkdir);
       expect(preview.status).toBe('ok');

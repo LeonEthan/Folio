@@ -268,7 +268,7 @@ describe('packaged design materials', () => {
     expect(text).toContain('Files are uploaded as multipart data');
 
     expect(graphicText).toContain('design.yaml');
-    expect(graphicText).toContain('pages/canvas.yaml');
+    expect(graphicText).toContain('geon-canvas/1');
     expect(graphicText).toContain('media/');
     expect(graphicText).toContain('You may write `design.yaml` directly');
     expect(graphicText).toMatch(/\bid\b/);
@@ -297,7 +297,7 @@ describe('packaged design materials', () => {
     // shipped helper executes from the materialized tree with its bundled library.
     const graphic = path.join(workdir, '.agents/skills/graphic-design');
     expect(existsSync(path.join(graphic, 'examples/minimal/design.yaml'))).toBe(true);
-    expect(existsSync(path.join(graphic, 'examples/minimal/pages/canvas.yaml'))).toBe(true);
+    expect(existsSync(path.join(graphic, 'examples/minimal/pages/canvas.yaml'))).toBe(false);
     expect(existsSync(path.join(graphic, 'examples/minimal/poster.pptd'))).toBe(false);
     expect(existsSync(path.join(graphic, 'examples/minimal/pages/poster.page'))).toBe(false);
     cpSync(path.join(graphic, 'examples/minimal'), workdir, { recursive: true });

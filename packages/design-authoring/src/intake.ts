@@ -14,7 +14,7 @@
  *
  * Discipline:
  * - Never rereads the source filesystem; snapshot is the complete truth for
- *   validation, page loading, media lookup, hashing, and import.
+ *   validation, media lookup, hashing, and import.
  * - Snapshot remains caller-owned; it is never returned, persisted, or copied
  *   as a second truth. Only content-addressed asset bytes (subset) are returned.
  *   The parsed `validated` document is derived evidence for closure producers
@@ -33,10 +33,10 @@ import type {
   BentoDocV4,
   ImportIssue,
   LiveDiagnostic,
-  ValidatedPptd,
+  ValidatedArtwork,
 } from "./contracts.ts";
-import { importPptd } from "./import.ts";
-import { liveDiagnosticCode } from "./live-diagnostics.ts";
+import { importYaml } from "./canvas-format.ts";
+import { liveDiagnosticCode, liveImportIssues } from "./live-diagnostics.ts";
 import { listSemanticAssetRefs } from "./semantic-assets.ts";
 import { validateSnapshot } from "./validate.ts";
 
@@ -51,11 +51,11 @@ export type AuthoringIntakeResult =
       degradations: readonly [];
       /**
        * Parsed validated document from the same snapshot, for closure
-       * evidence selectors (raw theme/elements). Derived evidence, not a
+       * evidence selectors (native fields/elements). Derived evidence, not a
        * second copy of raw bytes for audit artifacts; avoids a parallel
        * validation pass over the same snapshot.
        */
-      validated: ValidatedPptd;
+      validated: ValidatedArtwork;
     }
   | {
       status: "invalid";
@@ -83,8 +83,8 @@ export function intakeAuthoring(
     return { status: "invalid", diagnostics: validation.diagnostics };
   }
   const validated = validation.document;
-  const pagePath = validated.manifest.pages[0] ?? "";
-  const semantic = listSemanticAssetRefs(validated, pagePath);
+  const pagePath = normEntry;
+  const semantic = listSemanticAssetRefs(validated);
   const refs = [...new Set(semantic.map(({ ref }) => ref))].sort();
   const assetIndex: Record<string, string> = {};
   const assets = new Map<string, Uint8Array>();
@@ -110,9 +110,9 @@ export function intakeAuthoring(
     assetIndex[ref] = `asset:${hash}`;
     if (!assets.has(hash)) assets.set(hash, bytes);
   }
-  const imported = importPptd(validated, assetIndex);
+  const imported = importYaml(validated, assetIndex);
   if (imported.status !== "ok") {
-    return { status: "unsupported", issues: imported.issues };
+    return { status: "unsupported", issues: liveImportIssues(imported.issues) };
   }
   return {
     status: "ok",

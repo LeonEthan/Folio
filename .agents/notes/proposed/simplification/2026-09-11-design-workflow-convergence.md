@@ -49,7 +49,7 @@ Bento's [group control](../../../../packages/design-bento/vendor/packages/editor
 writes `groupId`, while the [frozen capability matrix](../../../../packages/design-bento/vendor/packages/contracts/capability-matrix/v1.json)
 records that PPTD v2 has no group field. The [shadow control](../../../../packages/design-bento/vendor/packages/editor-bento/src/ui/dom/style.ts)
 allows multi-layer shadows, but the [PPTD validator](../../../../packages/design-authoring/src/validate.ts)
-and [importer](../../../../packages/design-authoring/src/import.ts) only handle a single
+and importer (`06aa8ba:packages/design-authoring/src/import.ts`) only handle a single
 shadow object.
 
 Therefore P3.1a first delivers the field/asset gap table for the currently visible editing

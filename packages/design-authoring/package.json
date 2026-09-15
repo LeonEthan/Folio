@@ -20,7 +20,6 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "temml": "0.13.3",
     "yaml": "^2.8.0"
   },
   "devDependencies": {

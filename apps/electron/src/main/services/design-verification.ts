@@ -67,6 +67,14 @@ export async function verifyDesign(directory: string) {
   const edited = await designRequest({ operation: 'read', sessionId: id })
   assert.equal(edited.doc.elements.length, 2)
   assert.notEqual(edited.revisionId, created.revisionId)
+  const fontEvidence = await view.webContents.executeJavaScript(`(async () => ({
+    loaded: (await document.fonts.load('16px Inter')).length > 0,
+    boldItalicLoaded: (await document.fonts.load('italic 700 16px Inter')).length > 0,
+    defaultRendered: Array.from(document.querySelectorAll('[data-el-id] [style]'))
+      .some(node => getComputedStyle(node).fontFamily.replaceAll('"', '') === 'Inter')
+  }))()`)
+  assert.deepEqual(fontEvidence, { loaded: true, boldItalicLoaded: true, defaultRendered: true })
+  await writeFile(join(directory, 'default-font.json'), JSON.stringify(fontEvidence, null, 2))
   await view.webContents.executeJavaScript('window.bento.undo()')
   await saveDesign(id)
   assert.equal((await designRequest({ operation: 'read', sessionId: id })).doc.elements.length, 1)
